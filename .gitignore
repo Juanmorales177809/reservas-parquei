@@ -1,0 +1,32 @@
+# Variables de entorno (no committear archivos con credenciales reales)
+.env
+.env.*
+!.env.example
+
+# Entornos virtuales Python
+venv/
+env/
+.venv/
+
+# Python cache y compilados
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Next.js
+.next/
+out/
+build/
+
+# Logs y SO
+*.log
+.DS_Store
+Thumbs.db
+
+.atl/
