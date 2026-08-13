@@ -17,6 +17,9 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 | test_api_espacios.py | Creado | Integración de espacios y disponibilidad |
 | test_api_usuarios.py | Creado | Integración de administración de usuarios |
 | test_api_notificaciones.py | Creado | Integración de notificaciones |
+| test_domain_enums.py | Creado | Unitarias de enums y constantes de `app/domain` (Fase 1) |
+| test_domain_valor.py | Creado | Unitarias de `FranjaHoraria` y `HorarioAtencion` (Fase 1) |
+| test_domain_protocols.py | Creado | Contrato estructural de `Reloj` y `RegistroAuditoria` (Fase 1) |
 
 ## Reglas de negocio relacionadas
 
@@ -24,6 +27,7 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 - RN-002 (análogo) y RN-003/RN-004: administración de usuarios y roles.
 - RN-029: integridad relacional y consistencia.
 - Reglas adicionales del código: bloques de hora completa, anticipación mínima, solapamiento con exclusión `btree_gist` (409), estados terminales, autorización por rol, notificaciones internas.
+- Fase 1 (dominio): valores JSON de enums, transiciones de estado, invariantes de `FranjaHoraria`/`HorarioAtencion` y contrato de `Reloj`/`RegistroAuditoria` (detalle en `app/domain/README.md`).
 
 ## Decisiones técnicas
 
