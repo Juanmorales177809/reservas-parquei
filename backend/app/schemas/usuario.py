@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domain.enums import Rol
+
 
 class UsuarioEspacioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -18,7 +20,7 @@ class UsuarioCreate(BaseModel):
 class AdminUsuarioCreate(UsuarioCreate):
     """Permite al admin asignar un rol al crear un usuario."""
 
-    rol: str = Field(default="usuario", pattern="^(admin|gestor|usuario)$")
+    rol: Rol = Rol.USUARIO
     espacio_id: int | None = None
 
     @field_validator("email")
@@ -37,7 +39,7 @@ class UsuarioUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=80)
     email: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=6)
-    rol: str | None = Field(default=None, pattern="^(admin|gestor|usuario)$")
+    rol: Rol | None = None
     espacio_id: int | None = None
 
     @field_validator("email")
@@ -54,7 +56,7 @@ class UsuarioResponse(BaseModel):
     id: int
     username: str
     email: str
-    rol: str
+    rol: Rol
     espacio: UsuarioEspacioResponse | None = None
 
 

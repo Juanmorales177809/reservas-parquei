@@ -1,10 +1,9 @@
 from datetime import date, datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-
-ReservaEstado = Literal["esperando", "aprobada", "rechazada", "cancelada"]
+from app.domain.enums import EstadoEntidad, EstadoReserva, Rol
 
 
 class ReservaCreate(BaseModel):
@@ -24,7 +23,9 @@ class ReservaUpdate(BaseModel):
 
 
 class ReservaEstadoUpdate(BaseModel):
-    nuevo_estado: Literal["aprobada", "rechazada", "cancelada"]
+    nuevo_estado: Literal[
+        EstadoReserva.APROBADA, EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA
+    ]
 
 
 class UsuarioReservaResponse(BaseModel):
@@ -33,7 +34,7 @@ class UsuarioReservaResponse(BaseModel):
     id: int
     username: str
     email: str
-    rol: str
+    rol: Rol
 
 
 class EspacioReservaResponse(BaseModel):
@@ -42,7 +43,7 @@ class EspacioReservaResponse(BaseModel):
     id: int
     nombre: str
     capacidad: int
-    estado: str
+    estado: EstadoEntidad
 
 
 class RecursoReservaResponse(BaseModel):
@@ -51,7 +52,7 @@ class RecursoReservaResponse(BaseModel):
     id: int
     nombre: str
     capacidad: int
-    estado: str
+    estado: EstadoEntidad
     espacio: EspacioReservaResponse
 
 
@@ -65,17 +66,10 @@ class ReservaResponse(BaseModel):
     fecha: date
     hora_inicio: time
     hora_fin: time
-    estado: ReservaEstado
+    estado: EstadoReserva
     asistentes: int
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse
     espacio: EspacioReservaResponse
     recurso: RecursoReservaResponse
-
-    @field_validator("estado")
-    @classmethod
-    def validar_estado(cls, value: str) -> str:
-        if value not in {"esperando", "aprobada", "rechazada", "cancelada"}:
-            raise ValueError("Estado de reserva inválido")
-        return value

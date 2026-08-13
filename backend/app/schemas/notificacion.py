@@ -1,14 +1,15 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel
+
+from app.domain.enums import TipoNotificacion
 
 
 class NotificacionResponse(BaseModel):
     id: int
     usuario_id: int
     reserva_id: int | None
-    tipo: Literal["Pendiente", "Aprobada", "Rechazada", "Cancelada"]
+    tipo: TipoNotificacion
     leida: bool
     created_at: datetime
     mensaje: str

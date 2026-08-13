@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.domain.enums import EstadoEntidad
 from app.schemas.espacio import EspacioResponse
 
 
@@ -17,7 +18,7 @@ class RecursoCreate(BaseModel):
     tipo_recurso_id: int
     descripcion: str | None = None
     capacidad: int = Field(gt=0)
-    estado: str = Field(default="activo", pattern=r"^(activo|inactivo|mantenimiento)$")
+    estado: EstadoEntidad = EstadoEntidad.ACTIVO
     espacio_id: int | None = None
 
 
@@ -26,7 +27,7 @@ class RecursoUpdate(BaseModel):
     tipo_recurso_id: int | None = None
     descripcion: str | None = None
     capacidad: int | None = Field(default=None, gt=0)
-    estado: str | None = Field(default=None, pattern=r"^(activo|inactivo|mantenimiento)$")
+    estado: EstadoEntidad | None = None
     espacio_id: int | None = None
 
 
@@ -39,6 +40,6 @@ class RecursoResponse(BaseModel):
     tipo_recurso_id: int
     descripcion: str | None
     capacidad: int
-    estado: str
+    estado: EstadoEntidad
     espacio: EspacioResponse
     tipo: TipoRecursoResponse
