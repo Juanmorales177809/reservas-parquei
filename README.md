@@ -235,6 +235,9 @@ gestionReservas/
 │   │   ├── services/     # Reglas de negocio
 │   │   ├── migrations.py # Ajustes incrementales de PostgreSQL
 │   │   └── main.py       # Inicialización de la API
+│   ├── tests/            # Suite automatizada (pytest + PostgreSQL de prueba)
+│   ├── pytest.ini
+│   ├── requirements-dev.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/app/          # Páginas Next.js
@@ -244,7 +247,8 @@ gestionReservas/
 │   ├── src/types/        # Tipos TypeScript
 │   └── Dockerfile
 ├── .env.example
-└── docker-compose.yml
+├── docker-compose.yml
+└── docker-compose.test.yml
 ```
 
 ## Base de datos y migraciones
@@ -309,7 +313,21 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Para ejecutar el backend fuera de Docker, `DATABASE_URL` debe apuntar a un PostgreSQL accesible y `SECRET_KEY` debe estar exportada en el entorno. Actualmente el repositorio no incluye una suite automatizada de pruebas.
+Para ejecutar el backend fuera de Docker, `DATABASE_URL` debe apuntar a un PostgreSQL accesible y `SECRET_KEY` debe estar exportada en el entorno.
+
+### Pruebas automatizadas
+
+La suite del backend (Fase 0) se ejecuta contra una base PostgreSQL exclusiva de pruebas (`reservas_test` en `localhost:5433`), sin SQLite y sin datos de producción:
+
+```bash
+docker compose -f docker-compose.test.yml up -d --wait
+cd backend
+python -m venv .venv
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -v
+```
+
+Para limpiar la base de pruebas: `docker compose -f docker-compose.test.yml down -v`. Detalles de la suite y de las reglas cubiertas en `backend/tests/README.md`.
 
 ## Solución de problemas
 
