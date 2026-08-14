@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.crud.espacios import create_espacio, get_espacio_by_nombre, update_espacio
 from app.db import get_db
-from app.deps import get_current_user, get_managed_space_id, require_admin
+from app.deps import get_current_user, get_current_user_optional, get_managed_space_id, require_admin
+from app.domain.enums import EstadoEntidad, Rol
 from app.models import Espacio, Recurso, Reserva, UsuarioEspacio
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.models.usuario import Usuario
@@ -43,9 +44,13 @@ def listar_espacios(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
+    usuario: Usuario | None = Depends(get_current_user_optional),
 ):
     """Listar espacios públicos. No requiere autenticación."""
-    return db.query(Espacio).order_by(Espacio.nombre.asc()).offset(skip).limit(limit).all()
+    query = db.query(Espacio).order_by(Espacio.nombre.asc())
+    if usuario is None or usuario.rol == Rol.USUARIO.value:
+        query = query.filter(Espacio.estado == EstadoEntidad.ACTIVO.value)
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/gestion/configuracion", response_model=ConfiguracionEspacioResponse)

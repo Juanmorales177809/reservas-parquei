@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -112,3 +112,26 @@ def get_managed_space_id(db: Session, usuario: Usuario) -> int | None:
             detail="El gestor no tiene un espacio asignado",
         )
     return asignacion.espacio_id
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Usuario | None:
+    """Usuario autenticado, o None si no hay token o es inválido.
+
+    Lee el header Authorization manualmente (sin OAuth2PasswordBearer) para
+    NO añadir un esquema de seguridad al OpenAPI de los endpoints públicos
+    que lo usan (RN-005 en GET /espacios). Un token inválido se trata como
+    acceso anónimo.
+    """
+    cabecera = request.headers.get("Authorization", "")
+    if not cabecera.startswith("Bearer "):
+        return None
+    token = cabecera[len("Bearer ") :]
+    try:
+        payload = _decode_token(token)
+        user_id = int(payload.get("sub"))
+    except (HTTPException, TypeError, ValueError):
+        return None
+    return db.query(Usuario).filter(Usuario.id == user_id).first()

@@ -1,5 +1,4 @@
 from collections import Counter
-from datetime import datetime
 from math import ceil
 
 from fastapi import APIRouter, Depends
@@ -8,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_managed_space_id, require_admin, require_resource_manager
+from app.domain.valor import HorarioAtencion
 from app.models import Espacio, Recurso, Reserva, Usuario
+from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
 from app.services.horarios import horas_atencion_dia
 
@@ -77,15 +78,35 @@ def _construir_resumen(db: Session, espacio_id: int | None) -> dict:
 
     ocupacion = Counter()
     reservas_bloqueantes = (
-        reservas_query.with_entities(Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin)
-        .filter(Reserva.estado.in_(("esperando", "aprobada")))
+        reservas_query.with_entities(
+            Reserva.espacio_id, Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin
+        )
+        .filter(Reserva.estado.in_(ESTADOS_BLOQUEANTES))
         .all()
     )
-    for fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+
+    # Horario real por espacio (fuente única del dominio). Un horario vacío o
+    # inválido no aporta horas habilitadas (dato legacy, no error funcional).
+    horarios_por_espacio: dict[int, HorarioAtencion | None] = {}
+    for espacio_id, horario in db.query(Espacio.id, Espacio.horario_atencion).all():
+        try:
+            horarios_por_espacio[espacio_id] = HorarioAtencion(horario or {})
+        except ValueError:
+            horarios_por_espacio[espacio_id] = None
+
+    for espacio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+        horario = horarios_por_espacio.get(espacio_id)
+        habilitadas = (
+            set(horario.horas_del_dia(fecha.weekday())) if horario is not None else set()
+        )
+        # El grid del heatmap conserva el rango 7..19 del contrato del gráfico;
+        # las horas atendidas fuera de ese rango se cuentan igualmente en
+        # ocupacion_global aunque el gráfico no las muestre.
         inicio = max(7, hora_inicio.hour)
         fin = min(20, ceil(hora_fin.hour + hora_fin.minute / 60))
         for hora in range(inicio, fin):
-            ocupacion[(fecha.weekday(), hora)] += 1
+            if hora in habilitadas:
+                ocupacion[(fecha.weekday(), hora)] += 1
 
     ocupacion_por_dia_hora = [
         {
@@ -103,15 +124,20 @@ def _construir_resumen(db: Session, espacio_id: int | None) -> dict:
         .filter(Recurso.estado == "activo")
         .all()
     )
-    fechas_con_ocupacion = {fecha for fecha, _, _ in reservas_bloqueantes}
-    horas_ocupadas = sum(
-        (fecha_fin - fecha_inicio).total_seconds() / 3600
-        for fecha, hora_inicio, hora_fin in reservas_bloqueantes
-        for fecha_inicio, fecha_fin in [(
-            datetime.combine(fecha, hora_inicio),
-            datetime.combine(fecha, hora_fin),
-        )]
-    )
+    fechas_con_ocupacion = {fecha for _, fecha, _, _ in reservas_bloqueantes}
+
+    # Horas ocupadas según el horario real de cada espacio (no un rango fijo).
+    horas_ocupadas = 0.0
+    for espacio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+        horario = horarios_por_espacio.get(espacio_id)
+        habilitadas = (
+            set(horario.horas_del_dia(fecha.weekday())) if horario is not None else set()
+        )
+        horas_ocupadas += sum(
+            1
+            for hora in range(hora_inicio.hour, ceil(hora_fin.hour + hora_fin.minute / 60))
+            if hora in habilitadas
+        )
     horas_disponibles = 0.0
     for fecha in fechas_con_ocupacion:
         for recurso in recursos_activos:

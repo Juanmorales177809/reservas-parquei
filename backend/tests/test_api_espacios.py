@@ -52,6 +52,59 @@ def test_eliminar_espacio_con_dependencias_da_409(client, db):
     assert respuesta.status_code == 409
 
 
+class TestRN005ListadoPublico:
+    def test_espacio_activo_visible_sin_token(self, client, db):
+        crear_espacio(db, nombre="Sala Activa")
+        nombres = [e["nombre"] for e in client.get("/espacios").json()]
+        assert "Sala Activa" in nombres
+
+    def test_espacio_inactivo_no_visible_sin_token(self, client, db):
+        crear_espacio(db, nombre="Sala Inactiva", estado="inactivo")
+        nombres = [e["nombre"] for e in client.get("/espacios").json()]
+        assert "Sala Inactiva" not in nombres
+
+    def test_espacio_mantenimiento_no_visible_sin_token(self, client, db):
+        crear_espacio(db, nombre="Sala Mant", estado="mantenimiento")
+        assert all(e["nombre"] != "Sala Mant" for e in client.get("/espacios").json())
+
+    def test_mezcla_solo_devuelve_activos(self, client, db):
+        crear_espacio(db, nombre="A1")
+        crear_espacio(db, nombre="I1", estado="inactivo")
+        crear_espacio(db, nombre="M1", estado="mantenimiento")
+        nombres = [e["nombre"] for e in client.get("/espacios").json()]
+        assert nombres == ["A1"]
+
+    def test_todos_inactivos_devuelve_lista_vacia(self, client, db):
+        crear_espacio(db, nombre="I1", estado="inactivo")
+        crear_espacio(db, nombre="M1", estado="mantenimiento")
+        assert client.get("/espacios").json() == []
+
+    def test_skip_y_limit_junto_al_filtro(self, client, db):
+        crear_espacio(db, nombre="A1")
+        crear_espacio(db, nombre="I1", estado="inactivo")
+        crear_espacio(db, nombre="A2")
+        nombres = [
+            e["nombre"]
+            for e in client.get("/espacios", params={"skip": 1, "limit": 1}).json()
+        ]
+        assert nombres == ["A2"]
+
+    def test_usuario_no_recupera_inactivos_con_parametros(self, client, db):
+        crear_espacio(db, nombre="I1", estado="inactivo")
+        usuario = crear_usuario(db, username="user_rn", email="user_rn@test.com")
+        respuesta = client.get(
+            "/espacios", params={"skip": 0, "limit": 100}, headers=headers_para(usuario)
+        )
+        assert respuesta.json() == []
+
+    def test_admin_sigue_viendo_todos(self, client, db):
+        crear_espacio(db, nombre="A1")
+        crear_espacio(db, nombre="I1", estado="inactivo")
+        admin = crear_usuario(db, username="admin_rn", email="admin_rn@test.com", rol="admin")
+        nombres = [e["nombre"] for e in client.get("/espacios", headers=headers_para(admin)).json()]
+        assert set(nombres) == {"A1", "I1"}
+
+
 class TestDisponibilidad:
     def _espacio_con_usuario(self, db, **kwargs):
         espacio = crear_espacio(db, nombre="Sala Disp", **kwargs)
