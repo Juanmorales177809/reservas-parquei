@@ -20,7 +20,8 @@ Utilidades de presentación compartidas (fechas, etiquetas y variantes visuales 
 
 ## Pruebas
 
-- Verificación por `npm run type-check` y `npm run lint` (no existe infraestructura de tests unitarios aprobada).
+- `estados.test.ts` (Vitest): labels, badges, fallback y valores serializados conservados.
+- `npm run test`, `npm run type-check` y `npm run lint` verdes.
 
 ## Impacto y compatibilidad
 

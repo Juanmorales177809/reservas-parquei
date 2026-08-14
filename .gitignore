@@ -24,6 +24,7 @@ yarn-error.log
 out/
 build/
 *.tsbuildinfo
+coverage/
 
 # Logs y SO
 *.log

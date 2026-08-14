@@ -23,7 +23,9 @@ Componentes compartidos de la interfaz: protección de rutas, indicadores de car
 
 ## Pruebas
 
-- `npm run type-check`, `npm run lint` y `npm run build` verdes.
+- `ProtectedRoute.test.tsx` (Vitest, contexto mockeado controlable): redirecciones, roles, adminOnly, redirectNoAuth, redirectForbidden string/función, hidratación, ausencia de loops y de peticiones de red.
+- `AdminDashboardCharts.test.tsx`: grid exacto 07:00–19:00, leyenda exacta, intensidades, estado vacío y tipos del esquema.
+- `npm run test`, `npm run type-check`, `npm run lint` y `npm run build` verdes.
 
 ## Impacto y compatibilidad
 
@@ -31,8 +33,8 @@ Componentes compartidos de la interfaz: protección de rutas, indicadores de car
 
 ## Pendientes
 
-- Tests unitarios de componentes (requieren Vitest/Testing Library, pendientes de aprobación).
+- Tests E2E (Playwright) fuera del alcance de la fase actual.
 
 ## Fase de implementación
 
-Fase 5A.
+Fase 5A/5B.

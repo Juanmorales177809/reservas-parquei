@@ -21,7 +21,8 @@ Páginas del App Router de Next.js y estilos globales.
 
 ## Pruebas
 
-- `npm run type-check`, `npm run lint`, `npm run build` verdes.
+- `espacios/page.test.tsx` (Vitest + RTL + user-event): listado público (loading, vacío, defensa cliente, error), modal accesible (dialog, aria-modal, foco, Escape y restauración), selección consecutiva, términos, payload completo y error de reserva.
+- `npm run test`, `npm run type-check`, `npm run lint`, `npm run build` verdes.
 
 ## Impacto y compatibilidad
 
