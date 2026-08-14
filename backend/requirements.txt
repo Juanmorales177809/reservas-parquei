@@ -1,10 +1,11 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic>=2
-python-jose[cryptography]
-passlib[bcrypt]
+fastapi==0.141.1
+uvicorn[standard]==0.52.3
+sqlalchemy==2.0.52
+psycopg2-binary==2.9.12
+pydantic==2.13.4
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
-python-multipart
-python-dotenv
+python-multipart==0.0.32
+python-dotenv==1.2.2
+tzdata==2025.2; sys_platform == "win32"

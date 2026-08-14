@@ -329,6 +329,53 @@ pytest -v
 
 Para limpiar la base de pruebas: `docker compose -f docker-compose.test.yml down -v`. Detalles de la suite y de las reglas cubiertas en `backend/tests/README.md`.
 
+## Pruebas E2E con Playwright
+
+Cubren el flujo real del frontend (`:3000`) contra el backend (`:8000`) y la misma base exclusiva de pruebas usada por el backend: `reservas_test` en `localhost:5433`. **Nunca se usa la base de desarrollo ni producción.**
+
+Requisitos: Node.js y npm (versión indicada en `frontend/e2e/README.md`).
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium
+```
+
+Preparación manual de la base de pruebas (desde la raíz del repo):
+
+```bash
+docker compose -f docker-compose.test.yml up -d --wait
+```
+
+Ejecución:
+
+```bash
+cd frontend
+npm run test:e2e            # smoke
+npm run test:e2e:regresion  # smoke + regresión
+npm run test:e2e:all        # conjunto completo configurado
+```
+
+Para conocer el conteo real vigente de escenarios, sin depender de cifras desactualizadas en la documentación:
+
+```bash
+npx playwright test --list
+```
+
+Reporte HTML de la última ejecución:
+
+```bash
+npm run test:e2e:report
+```
+
+Limpieza de la base de pruebas, siempre manual y explícita — Playwright **no** ejecuta `down -v` automáticamente en ningún momento:
+
+```bash
+docker compose -f docker-compose.test.yml down -v
+```
+
+No deben rastrearse en git los artefactos de esta suite: `frontend/e2e/.auth/` (sesiones guardadas), `frontend/test-results/`, `frontend/playwright-report/`, ni ningún secreto o credencial real (las credenciales usadas en `playwright.config.ts` son ficticias y exclusivas del proceso E2E local). Detalle completo en `frontend/e2e/README.md`.
+
 ## Solución de problemas
 
 ### El backend aparece como `unhealthy`
