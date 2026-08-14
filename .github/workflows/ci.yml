@@ -1,0 +1,241 @@
+name: CI
+
+# Todo el código y comentarios del repo están en español; se conserva aquí.
+#
+# Alcance de esta Fase 8: solo gates de regresión (backend, frontend, E2E).
+# Sin despliegue automático. Ninguna credencial usada aquí es real: son los
+# mismos valores ficticios ya presentes en backend/tests/conftest.py y
+# frontend/playwright.config.ts, reutilizados tal cual (no se introduce
+# ningún GitHub Secret nuevo).
+
+on:
+  push:
+    branches:
+      - feature/soV0.1
+  pull_request:
+    branches:
+      - feature/v0.1
+      - feature/soV0.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Compartidas por los tres jobs: mismos valores ficticios que ya usan
+  # backend/tests/conftest.py (TEST_DATABASE_URL/TEST_SECRET_KEY) y
+  # frontend/playwright.config.ts (INITIAL_ADMIN_*). Ninguna es un secreto
+  # real; no se usa GitHub Secrets para esto.
+  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reservas_test
+  TEST_SECRET_KEY: clave-ci-solo-proceso-minimo-32-caracteres
+  INITIAL_ADMIN_USERNAME: e2e-admin
+  INITIAL_ADMIN_EMAIL: e2e-admin@test.com
+  INITIAL_ADMIN_PASSWORD: E2e-Admin-123!
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: reservas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d reservas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Instalar dependencias backend (fijadas en la Fase 7)
+        working-directory: backend
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: pytest (incluye el contrato de OpenAPI, tests/test_openapi_contrato.py)
+        working-directory: backend
+        run: pytest -v --junitxml=junit-backend.xml
+        # TEST_DATABASE_URL apunta al service container de arriba; conftest.py
+        # ya soporta este override sin cambios de código (ver backend/tests/conftest.py).
+
+      - name: Subir reporte JUnit (solo si el job falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-backend
+          path: backend/junit-backend.xml
+          retention-days: 7
+
+  frontend:
+    name: Frontend (lint, type-check, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Tests unitarios y de componentes (Vitest)
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build (standalone)
+        working-directory: frontend
+        run: npm run build
+
+  e2e:
+    name: E2E (Playwright)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Service Postgres aislado y propio de este job: no depende de datos
+      # ni procesos de los jobs backend/frontend, que ya terminaron.
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: reservas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d reservas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependencias backend
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Configurar Node 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Cache de navegadores Playwright
+        uses: actions/cache@v4
+        id: cache-playwright
+        with:
+          path: ~/.cache/ms-playwright
+          # @playwright/test está fijado exacto (1.61.0) en package.json:
+          # la clave de caché es estable mientras no cambie esa versión.
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Instalar Chromium (con dependencias del sistema)
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Arrancar backend en segundo plano (Python del runner, sin .venv de Windows)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          SECRET_KEY: ${{ env.TEST_SECRET_KEY }}
+          INITIAL_ADMIN_USERNAME: ${{ env.INITIAL_ADMIN_USERNAME }}
+          INITIAL_ADMIN_EMAIL: ${{ env.INITIAL_ADMIN_EMAIL }}
+          INITIAL_ADMIN_PASSWORD: ${{ env.INITIAL_ADMIN_PASSWORD }}
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          echo "Esperando http://127.0.0.1:8000/health ..."
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then
+              echo "Backend listo."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "El backend no respondió a tiempo." >&2
+          exit 1
+
+      - name: Arrancar frontend en segundo plano
+        working-directory: frontend
+        env:
+          BACKEND_URL: http://127.0.0.1:8000
+        run: |
+          npm run dev &
+          echo "Esperando http://127.0.0.1:3000 ..."
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3000 > /dev/null; then
+              echo "Frontend listo."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "El frontend no respondió a tiempo." >&2
+          exit 1
+
+      - name: E2E — suite completa (Playwright)
+        working-directory: frontend
+        # GitHub Actions define CI=true automáticamente en los runners
+        # hospedados; eso activa la rama CI de frontend/playwright.config.ts
+        # (backend/frontend ya arrancados arriba, Playwright no intenta
+        # levantar el backend y reutiliza el frontend ya corriendo).
+        run: npm run test:e2e:all
+
+      - name: Subir reporte y trazas de Playwright (solo si el job falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          # Nunca frontend/e2e/.auth/ (storageState) ni ningún otro
+          # directorio de credenciales: solo el reporte HTML y los
+          # test-results (trazas/capturas), igual que documenta
+          # frontend/e2e/README.md.
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7

@@ -1,0 +1,2973 @@
+{
+  "components": {
+    "schemas": {
+      "AdminDashboardSummary": {
+        "properties": {
+          "espacio_nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Nombre"
+          },
+          "ocupacion_global": {
+            "$ref": "#/components/schemas/OcupacionGlobal"
+          },
+          "ocupacion_por_dia_hora": {
+            "items": {
+              "$ref": "#/components/schemas/OcupacionDiaHora"
+            },
+            "title": "Ocupacion Por Dia Hora",
+            "type": "array"
+          },
+          "recursos_activos": {
+            "title": "Recursos Activos",
+            "type": "integer"
+          },
+          "recursos_mas_reservados": {
+            "items": {
+              "$ref": "#/components/schemas/RecursoMasReservado"
+            },
+            "title": "Recursos Mas Reservados",
+            "type": "array"
+          },
+          "reservas_pendientes": {
+            "title": "Reservas Pendientes",
+            "type": "integer"
+          },
+          "reservas_por_espacio": {
+            "items": {
+              "$ref": "#/components/schemas/ReservasPorEspacio"
+            },
+            "title": "Reservas Por Espacio",
+            "type": "array"
+          },
+          "reservas_por_estado": {
+            "$ref": "#/components/schemas/ReservasPorEstado"
+          },
+          "reservas_por_fecha": {
+            "items": {
+              "$ref": "#/components/schemas/ReservasPorFecha"
+            },
+            "title": "Reservas Por Fecha",
+            "type": "array"
+          },
+          "total_reservas": {
+            "title": "Total Reservas",
+            "type": "integer"
+          },
+          "usuarios": {
+            "title": "Usuarios",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_reservas",
+          "reservas_pendientes",
+          "recursos_activos",
+          "usuarios",
+          "reservas_por_estado",
+          "reservas_por_fecha",
+          "reservas_por_espacio",
+          "recursos_mas_reservados",
+          "ocupacion_por_dia_hora",
+          "ocupacion_global"
+        ],
+        "title": "AdminDashboardSummary",
+        "type": "object"
+      },
+      "AdminUsuarioCreate": {
+        "description": "Permite al admin asignar un rol al crear un usuario.",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "password": {
+            "minLength": 6,
+            "title": "Password",
+            "type": "string"
+          },
+          "rol": {
+            "$ref": "#/components/schemas/Rol",
+            "default": "usuario"
+          },
+          "username": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "title": "AdminUsuarioCreate",
+        "type": "object"
+      },
+      "ConfiguracionEspacioResponse": {
+        "properties": {
+          "aprobacion_automatica": {
+            "title": "Aprobacion Automatica",
+            "type": "boolean"
+          },
+          "dias_atencion": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Dias Atencion",
+            "type": "array"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "espacio_nombre": {
+            "title": "Espacio Nombre",
+            "type": "string"
+          },
+          "hora_apertura": {
+            "format": "time",
+            "title": "Hora Apertura",
+            "type": "string"
+          },
+          "hora_cierre": {
+            "format": "time",
+            "title": "Hora Cierre",
+            "type": "string"
+          },
+          "horario_atencion": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Horario Atencion",
+            "type": "object"
+          },
+          "horas_antelacion": {
+            "title": "Horas Antelacion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "espacio_id",
+          "espacio_nombre",
+          "dias_atencion",
+          "hora_apertura",
+          "hora_cierre",
+          "horario_atencion",
+          "horas_antelacion",
+          "aprobacion_automatica"
+        ],
+        "title": "ConfiguracionEspacioResponse",
+        "type": "object"
+      },
+      "ConfiguracionEspacioUpdate": {
+        "properties": {
+          "aprobacion_automatica": {
+            "title": "Aprobacion Automatica",
+            "type": "boolean"
+          },
+          "horario_atencion": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Horario Atencion",
+            "type": "object"
+          },
+          "horas_antelacion": {
+            "maximum": 8760.0,
+            "minimum": 0.0,
+            "title": "Horas Antelacion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "horario_atencion",
+          "horas_antelacion",
+          "aprobacion_automatica"
+        ],
+        "title": "ConfiguracionEspacioUpdate",
+        "type": "object"
+      },
+      "ControlCambioResponse": {
+        "properties": {
+          "accion": {
+            "title": "Accion",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "descripcion": {
+            "title": "Descripcion",
+            "type": "string"
+          },
+          "entidad": {
+            "title": "Entidad",
+            "type": "string"
+          },
+          "entidad_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entidad Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "usuario": {
+            "title": "Usuario",
+            "type": "string"
+          },
+          "usuario_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Id"
+          }
+        },
+        "required": [
+          "id",
+          "usuario_id",
+          "usuario",
+          "accion",
+          "entidad",
+          "entidad_id",
+          "descripcion",
+          "created_at"
+        ],
+        "title": "ControlCambioResponse",
+        "type": "object"
+      },
+      "DisponibilidadSlot": {
+        "properties": {
+          "estado": {
+            "$ref": "#/components/schemas/EstadoSlot"
+          },
+          "hora_fin": {
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "title": "Hora Inicio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hora_inicio",
+          "hora_fin",
+          "estado"
+        ],
+        "title": "DisponibilidadSlot",
+        "type": "object"
+      },
+      "EspacioCreate": {
+        "properties": {
+          "capacidad": {
+            "exclusiveMinimum": 0.0,
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad",
+            "default": "activo"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "ubicacion": {
+            "default": "Sede Central",
+            "maxLength": 200,
+            "title": "Ubicacion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "capacidad"
+        ],
+        "title": "EspacioCreate",
+        "type": "object"
+      },
+      "EspacioReservaResponse": {
+        "properties": {
+          "capacidad": {
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "capacidad",
+          "estado"
+        ],
+        "title": "EspacioReservaResponse",
+        "type": "object"
+      },
+      "EspacioResponse": {
+        "properties": {
+          "capacidad": {
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "dias_atencion": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Dias Atencion",
+            "type": "array"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "hora_apertura": {
+            "format": "time",
+            "title": "Hora Apertura",
+            "type": "string"
+          },
+          "hora_cierre": {
+            "format": "time",
+            "title": "Hora Cierre",
+            "type": "string"
+          },
+          "horario_atencion": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Horario Atencion",
+            "type": "object"
+          },
+          "horas_antelacion": {
+            "title": "Horas Antelacion",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "ubicacion": {
+            "title": "Ubicacion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "ubicacion",
+          "capacidad",
+          "estado",
+          "dias_atencion",
+          "hora_apertura",
+          "hora_cierre",
+          "horario_atencion",
+          "horas_antelacion"
+        ],
+        "title": "EspacioResponse",
+        "type": "object"
+      },
+      "EspacioUpdate": {
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "estado": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstadoEntidad"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "ubicacion": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ubicacion"
+          }
+        },
+        "title": "EspacioUpdate",
+        "type": "object"
+      },
+      "EstadoEntidad": {
+        "description": "Estado de entidades gestionables (espacios y recursos).",
+        "enum": [
+          "activo",
+          "inactivo",
+          "mantenimiento"
+        ],
+        "title": "EstadoEntidad",
+        "type": "string"
+      },
+      "EstadoReserva": {
+        "description": "Estados del ciclo de vida de una reserva.",
+        "enum": [
+          "esperando",
+          "aprobada",
+          "rechazada",
+          "cancelada"
+        ],
+        "title": "EstadoReserva",
+        "type": "string"
+      },
+      "EstadoSlot": {
+        "description": "Estado de una franja horaria en la respuesta de disponibilidad.",
+        "enum": [
+          "libre",
+          "ocupado",
+          "mantenimiento"
+        ],
+        "title": "EstadoSlot",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "NotificacionResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "leida": {
+            "title": "Leida",
+            "type": "boolean"
+          },
+          "mensaje": {
+            "title": "Mensaje",
+            "type": "string"
+          },
+          "reserva_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reserva Id"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoNotificacion"
+          },
+          "usuario_id": {
+            "title": "Usuario Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "usuario_id",
+          "reserva_id",
+          "tipo",
+          "leida",
+          "created_at",
+          "mensaje"
+        ],
+        "title": "NotificacionResponse",
+        "type": "object"
+      },
+      "NotificacionesSinLeerResponse": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cantidad"
+        ],
+        "title": "NotificacionesSinLeerResponse",
+        "type": "object"
+      },
+      "OcupacionDiaHora": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          },
+          "dia": {
+            "title": "Dia",
+            "type": "string"
+          },
+          "dia_orden": {
+            "title": "Dia Orden",
+            "type": "integer"
+          },
+          "hora": {
+            "title": "Hora",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dia",
+          "dia_orden",
+          "hora",
+          "cantidad"
+        ],
+        "title": "OcupacionDiaHora",
+        "type": "object"
+      },
+      "OcupacionGlobal": {
+        "properties": {
+          "horas_disponibles": {
+            "title": "Horas Disponibles",
+            "type": "number"
+          },
+          "horas_ocupadas": {
+            "title": "Horas Ocupadas",
+            "type": "number"
+          },
+          "porcentaje": {
+            "title": "Porcentaje",
+            "type": "number"
+          }
+        },
+        "required": [
+          "horas_ocupadas",
+          "horas_disponibles",
+          "porcentaje"
+        ],
+        "title": "OcupacionGlobal",
+        "type": "object"
+      },
+      "RecursoCreate": {
+        "properties": {
+          "capacidad": {
+            "exclusiveMinimum": 0.0,
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad",
+            "default": "activo"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "tipo_recurso_id": {
+            "title": "Tipo Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nombre",
+          "tipo_recurso_id",
+          "capacidad"
+        ],
+        "title": "RecursoCreate",
+        "type": "object"
+      },
+      "RecursoMasReservado": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "recurso_id": {
+            "title": "Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recurso_id",
+          "nombre",
+          "cantidad"
+        ],
+        "title": "RecursoMasReservado",
+        "type": "object"
+      },
+      "RecursoReservaResponse": {
+        "properties": {
+          "capacidad": {
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "espacio": {
+            "$ref": "#/components/schemas/EspacioReservaResponse"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "capacidad",
+          "estado",
+          "espacio"
+        ],
+        "title": "RecursoReservaResponse",
+        "type": "object"
+      },
+      "RecursoResponse": {
+        "properties": {
+          "capacidad": {
+            "title": "Capacidad",
+            "type": "integer"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio": {
+            "$ref": "#/components/schemas/EspacioResponse"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoRecursoResponse"
+          },
+          "tipo_recurso_id": {
+            "title": "Tipo Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "espacio_id",
+          "tipo_recurso_id",
+          "descripcion",
+          "capacidad",
+          "estado",
+          "espacio",
+          "tipo"
+        ],
+        "title": "RecursoResponse",
+        "type": "object"
+      },
+      "RecursoUpdate": {
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "estado": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstadoEntidad"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "tipo_recurso_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Recurso Id"
+          }
+        },
+        "title": "RecursoUpdate",
+        "type": "object"
+      },
+      "ReservaCreate": {
+        "properties": {
+          "asistentes": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asistentes",
+            "type": "integer"
+          },
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "recurso_id": {
+            "title": "Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recurso_id",
+          "fecha",
+          "hora_inicio",
+          "hora_fin",
+          "asistentes"
+        ],
+        "title": "ReservaCreate",
+        "type": "object"
+      },
+      "ReservaEstadoUpdate": {
+        "properties": {
+          "nuevo_estado": {
+            "enum": [
+              "aprobada",
+              "rechazada",
+              "cancelada"
+            ],
+            "title": "Nuevo Estado",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nuevo_estado"
+        ],
+        "title": "ReservaEstadoUpdate",
+        "type": "object"
+      },
+      "ReservaResponse": {
+        "properties": {
+          "asistentes": {
+            "title": "Asistentes",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "espacio": {
+            "$ref": "#/components/schemas/EspacioReservaResponse"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoReserva"
+          },
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "recurso": {
+            "$ref": "#/components/schemas/RecursoReservaResponse"
+          },
+          "recurso_id": {
+            "title": "Recurso Id",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/UsuarioReservaResponse"
+          },
+          "usuario_id": {
+            "title": "Usuario Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "usuario_id",
+          "espacio_id",
+          "recurso_id",
+          "fecha",
+          "hora_inicio",
+          "hora_fin",
+          "estado",
+          "asistentes",
+          "created_at",
+          "updated_at",
+          "usuario",
+          "espacio",
+          "recurso"
+        ],
+        "title": "ReservaResponse",
+        "type": "object"
+      },
+      "ReservaUpdate": {
+        "properties": {
+          "asistentes": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asistentes"
+          },
+          "fecha": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha"
+          },
+          "hora_fin": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hora Fin"
+          },
+          "hora_inicio": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hora Inicio"
+          },
+          "recurso_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurso Id"
+          }
+        },
+        "title": "ReservaUpdate",
+        "type": "object"
+      },
+      "ReservasPorEspacio": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "espacio_id",
+          "nombre",
+          "cantidad"
+        ],
+        "title": "ReservasPorEspacio",
+        "type": "object"
+      },
+      "ReservasPorEstado": {
+        "properties": {
+          "aprobadas": {
+            "title": "Aprobadas",
+            "type": "integer"
+          },
+          "canceladas": {
+            "title": "Canceladas",
+            "type": "integer"
+          },
+          "pendientes": {
+            "title": "Pendientes",
+            "type": "integer"
+          },
+          "rechazadas": {
+            "title": "Rechazadas",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pendientes",
+          "aprobadas",
+          "rechazadas",
+          "canceladas"
+        ],
+        "title": "ReservasPorEstado",
+        "type": "object"
+      },
+      "ReservasPorFecha": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          },
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "cantidad"
+        ],
+        "title": "ReservasPorFecha",
+        "type": "object"
+      },
+      "Rol": {
+        "description": "Rol funcional de un usuario. Espejo del patrón\n`^(admin|gestor|usuario)$` de `app/schemas/usuario.py`.",
+        "enum": [
+          "usuario",
+          "gestor",
+          "admin"
+        ],
+        "title": "Rol",
+        "type": "string"
+      },
+      "TipoNotificacion": {
+        "description": "Tipos de notificación internos.\n\nOrigen verificado de los valores: el constraint `notificaciones_tipo_check`\nexiste en base de datos — declarado en `app/models/notificacion.py`\n(`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +\nADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')`).\nSe conservan exactamente esos valores.",
+        "enum": [
+          "Pendiente",
+          "Aprobada",
+          "Rechazada",
+          "Cancelada"
+        ],
+        "title": "TipoNotificacion",
+        "type": "string"
+      },
+      "TipoRecursoResponse": {
+        "properties": {
+          "activo": {
+            "title": "Activo",
+            "type": "string"
+          },
+          "descripcion": {
+            "title": "Descripcion",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "descripcion",
+          "activo"
+        ],
+        "title": "TipoRecursoResponse",
+        "type": "object"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UsuarioResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "user"
+        ],
+        "title": "TokenResponse",
+        "type": "object"
+      },
+      "UsuarioEspacioResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "ubicacion": {
+            "title": "Ubicacion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "ubicacion"
+        ],
+        "title": "UsuarioEspacioResponse",
+        "type": "object"
+      },
+      "UsuarioLogin": {
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UsuarioLogin",
+        "type": "object"
+      },
+      "UsuarioReservaResponse": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "rol": {
+            "$ref": "#/components/schemas/Rol"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "email",
+          "rol"
+        ],
+        "title": "UsuarioReservaResponse",
+        "type": "object"
+      },
+      "UsuarioResponse": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "espacio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UsuarioEspacioResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "rol": {
+            "$ref": "#/components/schemas/Rol"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "email",
+          "rol"
+        ],
+        "title": "UsuarioResponse",
+        "type": "object"
+      },
+      "UsuarioUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "minLength": 6,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "rol": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rol"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "UsuarioUpdate",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/auth/login"
+          }
+        },
+        "type": "oauth2"
+      }
+    }
+  },
+  "info": {
+    "description": "API para gestionar recursos y sus reservas",
+    "title": "Gestión de Reservas de Recursos Institucionales",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "read_root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Read Root",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/admin/control-cambios": {
+      "get": {
+        "operationId": "listar_control_cambios_admin_control_cambios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ControlCambioResponse"
+                  },
+                  "title": "Response Listar Control Cambios Admin Control Cambios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Control Cambios",
+        "tags": [
+          "control-cambios"
+        ]
+      }
+    },
+    "/admin/dashboard/summary": {
+      "get": {
+        "description": "Resumen global de reservas de recursos para todos los espacios.",
+        "operationId": "obtener_resumen_dashboard_admin_admin_dashboard_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obtener Resumen Dashboard Admin",
+        "tags": [
+          "admin-dashboard"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/espacios": {
+      "get": {
+        "description": "Listar espacios públicos. No requiere autenticación.",
+        "operationId": "listar_espacios_espacios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EspacioResponse"
+                  },
+                  "title": "Response Listar Espacios Espacios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Espacios",
+        "tags": [
+          "espacios"
+        ]
+      },
+      "post": {
+        "description": "Crear un espacio. Solo admin.",
+        "operationId": "crear_espacio_espacios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EspacioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EspacioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Crear Espacio",
+        "tags": [
+          "espacios"
+        ]
+      }
+    },
+    "/espacios/gestion/configuracion": {
+      "get": {
+        "operationId": "obtener_configuracion_gestion_espacios_gestion_configuracion_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionEspacioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obtener Configuracion Gestion",
+        "tags": [
+          "espacios"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_configuracion_gestion_espacios_gestion_configuracion_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfiguracionEspacioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionEspacioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Configuracion Gestion",
+        "tags": [
+          "espacios"
+        ]
+      }
+    },
+    "/espacios/{espacio_id}": {
+      "delete": {
+        "description": "Eliminar un espacio. Solo admin.",
+        "operationId": "eliminar_espacio_espacios__espacio_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "espacio_id",
+            "required": true,
+            "schema": {
+              "title": "Espacio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Eliminar Espacio",
+        "tags": [
+          "espacios"
+        ]
+      },
+      "get": {
+        "description": "Obtener un espacio por ID.",
+        "operationId": "obtener_espacio_espacios__espacio_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "espacio_id",
+            "required": true,
+            "schema": {
+              "title": "Espacio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EspacioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Obtener Espacio",
+        "tags": [
+          "espacios"
+        ]
+      },
+      "put": {
+        "description": "Actualizar un espacio. Solo admin.",
+        "operationId": "actualizar_espacio_espacios__espacio_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "espacio_id",
+            "required": true,
+            "schema": {
+              "title": "Espacio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EspacioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EspacioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Espacio",
+        "tags": [
+          "espacios"
+        ]
+      }
+    },
+    "/espacios/{espacio_id}/disponibilidad": {
+      "get": {
+        "description": "Obtener disponibilidad horaria de un espacio para una fecha dada. No requiere autenticación.",
+        "operationId": "obtener_disponibilidad_espacios__espacio_id__disponibilidad_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "espacio_id",
+            "required": true,
+            "schema": {
+              "title": "Espacio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Fecha en formato YYYY-MM-DD",
+            "in": "query",
+            "name": "fecha",
+            "required": true,
+            "schema": {
+              "description": "Fecha en formato YYYY-MM-DD",
+              "format": "date",
+              "title": "Fecha",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DisponibilidadSlot"
+                  },
+                  "title": "Response Obtener Disponibilidad Espacios  Espacio Id  Disponibilidad Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Obtener Disponibilidad",
+        "tags": [
+          "espacios"
+        ]
+      }
+    },
+    "/gestion/dashboard/summary": {
+      "get": {
+        "operationId": "obtener_resumen_dashboard_gestor_gestion_dashboard_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obtener Resumen Dashboard Gestor",
+        "tags": [
+          "gestion-dashboard"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/notificaciones": {
+      "get": {
+        "operationId": "listar_mis_notificaciones_notificaciones_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NotificacionResponse"
+                  },
+                  "title": "Response Listar Mis Notificaciones Notificaciones Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Mis Notificaciones",
+        "tags": [
+          "notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/leer-todas": {
+      "patch": {
+        "operationId": "marcar_todas_como_leidas_notificaciones_leer_todas_patch",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificacionesSinLeerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Marcar Todas Como Leidas",
+        "tags": [
+          "notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/sin-leer/count": {
+      "get": {
+        "operationId": "contar_mis_notificaciones_sin_leer_notificaciones_sin_leer_count_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificacionesSinLeerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Contar Mis Notificaciones Sin Leer",
+        "tags": [
+          "notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/{notificacion_id}/leer": {
+      "patch": {
+        "operationId": "marcar_como_leida_notificaciones__notificacion_id__leer_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notificacion_id",
+            "required": true,
+            "schema": {
+              "title": "Notificacion Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificacionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Marcar Como Leida",
+        "tags": [
+          "notificaciones"
+        ]
+      }
+    },
+    "/recursos": {
+      "get": {
+        "operationId": "listar_recursos_recursos_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "espacio_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Espacio Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "solo_activos",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Solo Activos",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecursoResponse"
+                  },
+                  "title": "Response Listar Recursos Recursos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Recursos",
+        "tags": [
+          "recursos"
+        ]
+      },
+      "post": {
+        "operationId": "crear_recurso_recursos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecursoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecursoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Crear Recurso",
+        "tags": [
+          "recursos"
+        ]
+      }
+    },
+    "/recursos/gestion": {
+      "get": {
+        "operationId": "listar_recursos_gestion_recursos_gestion_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecursoResponse"
+                  },
+                  "title": "Response Listar Recursos Gestion Recursos Gestion Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Recursos Gestion",
+        "tags": [
+          "recursos"
+        ]
+      }
+    },
+    "/recursos/tipos": {
+      "get": {
+        "operationId": "listar_tipos_recursos_recursos_tipos_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TipoRecursoResponse"
+                  },
+                  "title": "Response Listar Tipos Recursos Recursos Tipos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Listar Tipos Recursos",
+        "tags": [
+          "recursos"
+        ]
+      }
+    },
+    "/recursos/{recurso_id}": {
+      "delete": {
+        "operationId": "eliminar_recurso_recursos__recurso_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recurso_id",
+            "required": true,
+            "schema": {
+              "title": "Recurso Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Eliminar Recurso",
+        "tags": [
+          "recursos"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_recurso_recursos__recurso_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recurso_id",
+            "required": true,
+            "schema": {
+              "title": "Recurso Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecursoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecursoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Recurso",
+        "tags": [
+          "recursos"
+        ]
+      }
+    },
+    "/recursos/{recurso_id}/disponibilidad": {
+      "get": {
+        "operationId": "obtener_disponibilidad_recurso_recursos__recurso_id__disponibilidad_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recurso_id",
+            "required": true,
+            "schema": {
+              "title": "Recurso Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fecha",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Fecha",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DisponibilidadSlot"
+                  },
+                  "title": "Response Obtener Disponibilidad Recurso Recursos  Recurso Id  Disponibilidad Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Obtener Disponibilidad Recurso",
+        "tags": [
+          "recursos"
+        ]
+      }
+    },
+    "/reservas": {
+      "get": {
+        "operationId": "listar_reservas_endpoint_reservas_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReservaResponse"
+                  },
+                  "title": "Response Listar Reservas Endpoint Reservas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Reservas Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      },
+      "post": {
+        "operationId": "crear_reserva_endpoint_reservas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Crear Reserva Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/mis-reservas": {
+      "get": {
+        "operationId": "listar_mis_reservas_endpoint_reservas_mis_reservas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReservaResponse"
+                  },
+                  "title": "Response Listar Mis Reservas Endpoint Reservas Mis Reservas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Mis Reservas Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}": {
+      "delete": {
+        "operationId": "eliminar_reserva_endpoint_reservas__reserva_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Eliminar Reserva Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      },
+      "patch": {
+        "operationId": "actualizar_reserva_endpoint_reservas__reserva_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Reserva Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}/cancelar": {
+      "put": {
+        "operationId": "cancelar_reserva_usuario_endpoint_reservas__reserva_id__cancelar_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancelar Reserva Usuario Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}/estado": {
+      "put": {
+        "operationId": "cambiar_estado_endpoint_reservas__reserva_id__estado_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaEstadoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cambiar Estado Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "operationId": "list_usuarios_usuarios_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioResponse"
+                  },
+                  "title": "Response List Usuarios Usuarios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Usuarios",
+        "tags": [
+          "usuarios"
+        ]
+      },
+      "post": {
+        "operationId": "create_usuario_admin_usuarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUsuarioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Usuario Admin",
+        "tags": [
+          "usuarios"
+        ]
+      }
+    },
+    "/usuarios/me": {
+      "get": {
+        "operationId": "get_me_usuarios_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Me",
+        "tags": [
+          "usuarios"
+        ]
+      }
+    },
+    "/usuarios/{usuario_id}": {
+      "delete": {
+        "operationId": "delete_usuario_endpoint_usuarios__usuario_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "title": "Usuario Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Usuario Endpoint",
+        "tags": [
+          "usuarios"
+        ]
+      },
+      "put": {
+        "operationId": "update_usuario_endpoint_usuarios__usuario_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "title": "Usuario Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Usuario Endpoint",
+        "tags": [
+          "usuarios"
+        ]
+      }
+    }
+  }
+}
