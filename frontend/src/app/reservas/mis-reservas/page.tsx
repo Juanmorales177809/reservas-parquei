@@ -2,29 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { actualizarReserva, cancelarMiReserva, listarMisReservas } from '@/services/reservas';
 import type { Reserva } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
-
-const badgeEstado: Record<string, string> = {
-  esperando: 'badge-warning',
-  aprobada: 'badge-success',
-  rechazada: 'badge-danger',
-  cancelada: 'badge-neutral',
-};
-
-const labelEstado: Record<string, string> = {
-  esperando: 'Pendiente',
-  aprobada: 'Aprobada',
-  rechazada: 'Rechazada',
-  cancelada: 'Cancelada',
-};
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
 
 export default function MisReservasPage() {
-  const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,12 +21,6 @@ export default function MisReservasPage() {
     const reservaId = Number(new URLSearchParams(window.location.search).get('reserva_id'));
     setHighlightedReservaId(Number.isInteger(reservaId) && reservaId > 0 ? reservaId : null);
   }, []);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   async function loadReservas() {
     setLoading(true);
@@ -95,11 +75,8 @@ export default function MisReservasPage() {
     }
   }
 
-  if (authLoading || !isAuthenticated) {
-    return <LoadingSpinner />;
-  }
-
   return (
+    <ProtectedRoute>
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Mis reservas</h1>
@@ -158,6 +135,7 @@ export default function MisReservasPage() {
                         <input
                           className="input"
                           type="date"
+                          aria-label="Fecha de la reserva"
                           value={editing.fecha}
                           onChange={(e) => setEditing({ ...editing, fecha: e.target.value })}
                         />
@@ -169,12 +147,14 @@ export default function MisReservasPage() {
                           <input
                             className="input"
                             type="time"
+                            aria-label="Hora de inicio de la reserva"
                             value={editing.hora_inicio.slice(0, 5)}
                             onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })}
                           />
                           <input
                             className="input"
                             type="time"
+                            aria-label="Hora de fin de la reserva"
                             value={editing.hora_fin.slice(0, 5)}
                             onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
                           />
@@ -187,14 +167,15 @@ export default function MisReservasPage() {
                           className="input w-20"
                           type="number"
                           min={1}
+                          aria-label="Asistentes"
                           value={editing.asistentes}
                           onChange={(e) => setEditing({ ...editing, asistentes: Number(e.target.value) })}
                         />
                       ) : reserva.asistentes}
                     </td>
                     <td>
-                      <span className={`badge ${badgeEstado[reserva.estado] ?? 'badge-neutral'}`}>
-                        {labelEstado[reserva.estado] ?? reserva.estado}
+                      <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
+                        {labelEstadoReserva(reserva.estado)}
                       </span>
                     </td>
                     <td>
@@ -234,5 +215,6 @@ export default function MisReservasPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

@@ -2,29 +2,15 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { actualizarReserva, cambiarEstado, eliminarReserva, listarReservas } from '@/services/reservas';
 import type { Reserva, ReservaEstadoUpdate } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
-
-const badgeEstado: Record<string, string> = {
-  esperando: 'badge-warning',
-  aprobada: 'badge-success',
-  rechazada: 'badge-danger',
-  cancelada: 'badge-neutral',
-};
-
-const labelEstado: Record<string, string> = {
-  esperando: 'Pendiente',
-  aprobada: 'Aprobada',
-  rechazada: 'Rechazada',
-  cancelada: 'Cancelada',
-};
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
 
 export default function AdminReservasPage() {
-  const router = useRouter();
-  const { canManageResources, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,14 +35,8 @@ export default function AdminReservasPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    } else if (isAuthenticated && canManageResources) {
-      void loadReservas();
-    } else if (!authLoading && isAuthenticated && !canManageResources) {
-      router.push('/');
-    }
-  }, [isAuthenticated, canManageResources, authLoading, loadReservas, router]);
+    if (isAuthenticated) void loadReservas();
+  }, [isAuthenticated, loadReservas]);
 
   useEffect(() => {
     if (!loading && highlightedReservaId && reservas.some((reserva) => reserva.id === highlightedReservaId)) {
@@ -105,11 +85,12 @@ export default function AdminReservasPage() {
     }
   }
 
-  if (authLoading || !isAuthenticated || !canManageResources) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
+    <ProtectedRoute roles={['admin', 'gestor']} redirectForbidden="/">
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Administrar reservas</h1>
@@ -168,6 +149,7 @@ export default function AdminReservasPage() {
                         <input
                           className="input"
                           type="date"
+                          aria-label="Fecha de la reserva"
                           value={editing.fecha}
                           onChange={(e) => setEditing({ ...editing, fecha: e.target.value })}
                         />
@@ -179,12 +161,14 @@ export default function AdminReservasPage() {
                           <input
                             className="input"
                             type="time"
+                            aria-label="Hora de inicio de la reserva"
                             value={editing.hora_inicio.slice(0, 5)}
                             onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })}
                           />
                           <input
                             className="input"
                             type="time"
+                            aria-label="Hora de fin de la reserva"
                             value={editing.hora_fin.slice(0, 5)}
                             onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
                           />
@@ -197,14 +181,15 @@ export default function AdminReservasPage() {
                           className="input w-20"
                           type="number"
                           min={1}
+                          aria-label="Asistentes"
                           value={editing.asistentes}
                           onChange={(e) => setEditing({ ...editing, asistentes: Number(e.target.value) })}
                         />
                       ) : reserva.asistentes}
                     </td>
                     <td>
-                      <span className={`badge ${badgeEstado[reserva.estado] ?? 'badge-neutral'}`}>
-                        {labelEstado[reserva.estado] ?? reserva.estado}
+                      <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
+                        {labelEstadoReserva(reserva.estado)}
                       </span>
                     </td>
                     <td>
@@ -269,5 +254,6 @@ export default function AdminReservasPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

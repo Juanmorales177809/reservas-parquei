@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { actualizarEspacio, crearEspacio, eliminarEspacio, listarEspacios } from '@/services/espacios';
 import type { Espacio, EspacioCreate, EspacioUpdate } from '@/types/espacio';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { badgeEstadoEntidad } from '@/utils/estados';
 
 interface EditingState {
   id: number;
@@ -13,12 +14,6 @@ interface EditingState {
   ubicacion: string;
   capacidad: number;
 }
-
-const estadoBadge: Record<string, string> = {
-  activo: 'badge-success',
-  inactivo: 'badge-neutral',
-  mantenimiento: 'badge-warning',
-};
 
 const estadoSiguiente: Record<string, 'activo' | 'inactivo' | 'mantenimiento'> = {
   activo: 'inactivo',
@@ -33,8 +28,7 @@ const etiquetaEstadoSiguiente: Record<string, string> = {
 };
 
 export default function AdminEspaciosPage() {
-  const router = useRouter();
-  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,14 +54,8 @@ export default function AdminEspaciosPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    } else if (isAuthenticated && isAdmin) {
-      void loadEspacios();
-    } else if (!authLoading && isAuthenticated && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAuthenticated, isAdmin, authLoading, loadEspacios, router]);
+    if (isAuthenticated) void loadEspacios();
+  }, [isAuthenticated, loadEspacios]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -136,11 +124,12 @@ export default function AdminEspaciosPage() {
     }
   }
 
-  if (authLoading || !isAuthenticated || !isAdmin) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
+    <ProtectedRoute adminOnly>
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Administrar espacios</h1>
@@ -233,6 +222,7 @@ export default function AdminEspaciosPage() {
                         <td>
                           <input
                             className="input"
+                            aria-label="Ubicación del espacio"
                             value={editing.ubicacion}
                             onChange={(e) => setEditing({ ...editing, ubicacion: e.target.value })}
                             maxLength={200}
@@ -242,13 +232,14 @@ export default function AdminEspaciosPage() {
                           <input
                             className="input w-20"
                             type="number"
+                            aria-label="Capacidad del espacio"
                             value={editing.capacidad}
                             onChange={(e) => setEditing({ ...editing, capacidad: Number(e.target.value) })}
                             min={1}
                           />
                         </td>
                         <td>
-                          <span className={`badge ${estadoBadge[espacio.estado] ?? 'badge-neutral'}`}>
+                          <span className={`badge ${badgeEstadoEntidad(espacio.estado)}`}>
                             {espacio.estado}
                           </span>
                         </td>
@@ -269,7 +260,7 @@ export default function AdminEspaciosPage() {
                         <td>{espacio.ubicacion}</td>
                         <td>{espacio.capacidad}</td>
                         <td>
-                          <span className={`badge ${estadoBadge[espacio.estado] ?? 'badge-neutral'}`}>
+                          <span className={`badge ${badgeEstadoEntidad(espacio.estado)}`}>
                             {espacio.estado}
                           </span>
                         </td>
@@ -296,5 +287,6 @@ export default function AdminEspaciosPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

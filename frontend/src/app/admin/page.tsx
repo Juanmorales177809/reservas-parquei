@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { cambiarEstado, listarReservas } from '@/services/reservas';
@@ -10,24 +9,11 @@ import type { Reserva } from '@/types/reserva';
 import type { AdminDashboardSummary } from '@/types/admin-dashboard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AdminDashboardCharts from '@/components/AdminDashboardCharts';
-
-const badgeEstado: Record<string, string> = {
-  esperando: 'badge-warning',
-  aprobada: 'badge-success',
-  rechazada: 'badge-danger',
-  cancelada: 'badge-neutral',
-};
-
-const labelEstado: Record<string, string> = {
-  esperando: 'Pendiente',
-  aprobada: 'Aprobada',
-  rechazada: 'Rechazada',
-  cancelada: 'Cancelada',
-};
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
-  const { isAdmin, canManageResources, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAdmin, isAuthenticated, user } = useAuth();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,14 +38,8 @@ export default function AdminDashboardPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
-    } else if (isAuthenticated && canManageResources) {
-      void loadData();
-    } else if (!authLoading && isAuthenticated && !canManageResources) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthenticated, canManageResources, authLoading, loadData, router]);
+    if (isAuthenticated) void loadData();
+  }, [isAuthenticated, loadData]);
 
   async function handleAprobar(id: number) {
     try {
@@ -79,7 +59,7 @@ export default function AdminDashboardPage() {
     }
   }
 
-  if (authLoading || !isAuthenticated || !canManageResources) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
@@ -88,6 +68,7 @@ export default function AdminDashboardPage() {
   const totalPendientes = summary?.reservas_pendientes ?? pendientes.length;
 
   return (
+    <ProtectedRoute roles={['admin', 'gestor']} redirectForbidden="/dashboard">
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Welcome */}
       <div className="mb-8">
@@ -207,8 +188,8 @@ export default function AdminDashboardPage() {
                         </td>
                         <td>{reserva.asistentes}</td>
                         <td>
-                          <span className={`badge ${badgeEstado[reserva.estado] ?? 'badge-neutral'}`}>
-                            {labelEstado[reserva.estado] ?? reserva.estado}
+                          <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
+                            {labelEstadoReserva(reserva.estado)}
                           </span>
                         </td>
                         <td>
@@ -276,11 +257,12 @@ export default function AdminDashboardPage() {
               <div><dt className="text-text-muted">Fecha</dt><dd className="font-medium">{selectedReserva.fecha}</dd></div>
               <div><dt className="text-text-muted">Horario</dt><dd className="font-medium">{selectedReserva.hora_inicio.slice(0, 5)} - {selectedReserva.hora_fin.slice(0, 5)}</dd></div>
               <div><dt className="text-text-muted">Asistentes</dt><dd className="font-medium">{selectedReserva.asistentes}</dd></div>
-              <div><dt className="text-text-muted">Estado</dt><dd><span className={`badge ${badgeEstado[selectedReserva.estado] ?? 'badge-neutral'}`}>{labelEstado[selectedReserva.estado] ?? selectedReserva.estado}</span></dd></div>
+              <div><dt className="text-text-muted">Estado</dt><dd><span className={`badge ${badgeEstadoReserva(selectedReserva.estado)}`}>{labelEstadoReserva(selectedReserva.estado)}</span></dd></div>
             </dl>
           </div>
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

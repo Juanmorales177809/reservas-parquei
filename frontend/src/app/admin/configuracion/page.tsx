@@ -1,8 +1,8 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import {
   actualizarConfiguracionEspacio,
@@ -29,8 +29,7 @@ const initialForm: ConfiguracionEspacioUpdate = {
 };
 
 export default function ConfiguracionEspacioPage() {
-  const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [espacioNombre, setEspacioNombre] = useState('');
   const [form, setForm] = useState<ConfiguracionEspacioUpdate>(initialForm);
   const [loading, setLoading] = useState(true);
@@ -39,15 +38,7 @@ export default function ConfiguracionEspacioPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
-    if (user?.rol !== 'gestor') {
-      router.replace(user?.rol === 'admin' ? '/admin' : '/dashboard');
-      return;
-    }
+    if (!isAuthenticated) return;
 
     obtenerConfiguracionEspacio()
       .then((data) => {
@@ -60,7 +51,7 @@ export default function ConfiguracionEspacioPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated, router, user?.rol]);
+  }, [isAuthenticated]);
 
   function toggleFranja(dia: number, hora: number) {
     setSuccess(null);
@@ -100,11 +91,15 @@ export default function ConfiguracionEspacioPage() {
     }
   }
 
-  if (authLoading || loading || !isAuthenticated || user?.rol !== 'gestor') {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
+    <ProtectedRoute
+      roles={['gestor']}
+      redirectForbidden={(usuario) => (usuario.rol === 'admin' ? '/admin' : '/dashboard')}
+    >
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Configuración</h1>
@@ -218,5 +213,6 @@ export default function ConfiguracionEspacioPage() {
         </div>
       </form>
     </div>
+    </ProtectedRoute>
   );
 }

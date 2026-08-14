@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { listarEspacios } from '@/services/espacios';
@@ -34,6 +34,8 @@ export default function EspaciosPage() {
   const [reservaCreadaId, setReservaCreadaId] = useState<number | null>(null);
   const [reservaCreadaEstado, setReservaCreadaEstado] = useState<string | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const botonCerrarRef = useRef<HTMLButtonElement>(null);
+  const focoPrevioRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     Promise.all([listarEspacios(), listarRecursos(true)])
@@ -69,7 +71,23 @@ export default function EspaciosPage() {
     }
   }
 
+  function cerrarModal() {
+    setSeleccionado(null);
+    focoPrevioRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!seleccionado) return;
+    botonCerrarRef.current?.focus();
+    function alPresionarTecla(event: KeyboardEvent) {
+      if (event.key === 'Escape') cerrarModal();
+    }
+    window.addEventListener('keydown', alPresionarTecla);
+    return () => window.removeEventListener('keydown', alPresionarTecla);
+  }, [seleccionado]);
+
   function abrirDisponibilidad(item: EspacioConRecursos) {
+    focoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSeleccionado(item);
     setSlots([]);
     setHorasSeleccionadas([]);
@@ -186,18 +204,26 @@ export default function EspaciosPage() {
       {seleccionado && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
-          onClick={() => setSeleccionado(null)}
+          onClick={cerrarModal}
         >
           <div
             className="card max-h-[85vh] w-full max-w-lg overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-disponibilidad-titulo"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">{seleccionado.espacio.nombre}</h2>
+                <h2 id="modal-disponibilidad-titulo" className="text-lg font-semibold">{seleccionado.espacio.nombre}</h2>
                 <p className="text-sm text-text-muted">{seleccionado.espacio.ubicacion}</p>
               </div>
-              <button className="btn btn-secondary btn-sm" type="button" onClick={() => setSeleccionado(null)}>
+              <button
+                ref={botonCerrarRef}
+                className="btn btn-secondary btn-sm"
+                type="button"
+                onClick={cerrarModal}
+              >
                 Cerrar
               </button>
             </div>
@@ -210,7 +236,7 @@ export default function EspaciosPage() {
                     ? ' y aprobada automáticamente.'
                     : ' y pendiente de aprobación.'}
                 </div>
-                <button className="btn btn-primary mt-5" type="button" onClick={() => setSeleccionado(null)}>
+                <button className="btn btn-primary mt-5" type="button" onClick={cerrarModal}>
                   Finalizar
                 </button>
               </div>

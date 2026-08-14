@@ -3,7 +3,7 @@ export interface Espacio {
   nombre: string;
   ubicacion: string;
   capacidad: number;
-  estado: 'activo' | 'inactivo' | 'mantenimiento' | string;
+  estado: 'activo' | 'inactivo' | 'mantenimiento';
   dias_atencion: number[];
   hora_apertura: string;
   hora_cierre: string;

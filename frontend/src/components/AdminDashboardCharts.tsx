@@ -212,7 +212,10 @@ export default function AdminDashboardCharts({
 
         <article className="card overflow-hidden lg:col-span-2">
           <h3 className="mb-1 font-semibold text-text-primary">Ocupación por día y hora</h3>
-          <p className="mb-4 text-sm text-text-muted">Reservas pendientes y aprobadas.</p>
+          <p className="mb-4 text-sm text-text-muted">
+            Heatmap visual: 07:00–19:00. El porcentaje global considera el horario completo
+            configurado.
+          </p>
           {maxOcupacion === 0 ? (
             <EmptyChart message="No hay ocupación registrada." />
           ) : (

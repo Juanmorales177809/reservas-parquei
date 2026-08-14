@@ -1,7 +1,6 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { listarEspacios } from '@/services/espacios';
 import {
@@ -14,6 +13,7 @@ import {
 import type { Espacio } from '@/types/espacio';
 import type { Recurso, RecursoCreate, TipoRecurso } from '@/types/recurso';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const initialForm: RecursoCreate = {
   nombre: '',
@@ -24,8 +24,7 @@ const initialForm: RecursoCreate = {
 };
 
 export default function AdminRecursosPage() {
-  const router = useRouter();
-  const { isAuthenticated, canManageResources, isAdmin, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [tipos, setTipos] = useState<TipoRecurso[]>([]);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
@@ -59,10 +58,8 @@ export default function AdminRecursosPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.replace('/login');
-    else if (!authLoading && isAuthenticated && !canManageResources) router.replace('/dashboard');
-    else if (isAuthenticated && canManageResources) void loadData();
-  }, [authLoading, isAuthenticated, canManageResources, loadData, router]);
+    if (isAuthenticated) void loadData();
+  }, [isAuthenticated, loadData]);
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
@@ -115,9 +112,10 @@ export default function AdminRecursosPage() {
     }
   }
 
-  if (authLoading || !isAuthenticated || !canManageResources) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner />;
 
   return (
+    <ProtectedRoute roles={['admin', 'gestor']} redirectForbidden="/dashboard">
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold sm:text-3xl">Administrar recursos</h1>
@@ -143,11 +141,11 @@ export default function AdminRecursosPage() {
               <tbody>
                 {recursos.map((recurso) => (
                   <tr key={recurso.id}>
-                    <td>{editing?.id === recurso.id ? <input className="input" value={editing.nombre} onChange={(event) => setEditing({ ...editing, nombre: event.target.value })} /> : <><strong>{recurso.nombre}</strong><div className="text-xs text-text-muted">{recurso.descripcion}</div></>}</td>
-                    <td>{editing?.id === recurso.id ? <select className="input" value={editing.tipo_recurso_id} onChange={(event) => setEditing({ ...editing, tipo_recurso_id: Number(event.target.value) })}>{tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}</select> : recurso.tipo.nombre}</td>
+                    <td>{editing?.id === recurso.id ? <input className="input" aria-label="Nombre del recurso" value={editing.nombre} onChange={(event) => setEditing({ ...editing, nombre: event.target.value })} /> : <><strong>{recurso.nombre}</strong><div className="text-xs text-text-muted">{recurso.descripcion}</div></>}</td>
+                    <td>{editing?.id === recurso.id ? <select className="input" aria-label="Tipo del recurso" value={editing.tipo_recurso_id} onChange={(event) => setEditing({ ...editing, tipo_recurso_id: Number(event.target.value) })}>{tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}</select> : recurso.tipo.nombre}</td>
                     <td>{recurso.espacio.nombre}</td>
-                    <td>{editing?.id === recurso.id ? <input className="input w-24" type="number" min={1} value={editing.capacidad} onChange={(event) => setEditing({ ...editing, capacidad: Number(event.target.value) })} /> : recurso.capacidad}</td>
-                    <td>{editing?.id === recurso.id ? <select className="input" value={editing.estado} onChange={(event) => setEditing({ ...editing, estado: event.target.value })}><option value="activo">Activo</option><option value="inactivo">Inactivo</option><option value="mantenimiento">Mantenimiento</option></select> : <span className={`badge ${recurso.estado === 'activo' ? 'badge-success' : 'badge-warning'}`}>{recurso.estado}</span>}</td>
+                    <td>{editing?.id === recurso.id ? <input className="input w-24" type="number" min={1} aria-label="Capacidad del recurso" value={editing.capacidad} onChange={(event) => setEditing({ ...editing, capacidad: Number(event.target.value) })} /> : recurso.capacidad}</td>
+                    <td>{editing?.id === recurso.id ? <select className="input" aria-label="Estado del recurso" value={editing.estado} onChange={(event) => setEditing({ ...editing, estado: event.target.value as Recurso['estado'] })}><option value="activo">Activo</option><option value="inactivo">Inactivo</option><option value="mantenimiento">Mantenimiento</option></select> : <span className={`badge ${recurso.estado === 'activo' ? 'badge-success' : 'badge-warning'}`}>{recurso.estado}</span>}</td>
                     <td>{editing?.id === recurso.id ? <div className="flex gap-2"><button className="btn btn-success btn-sm" type="button" onClick={handleUpdate}>Guardar</button><button className="btn btn-secondary btn-sm" type="button" onClick={() => setEditing(null)}>Cancelar</button></div> : <div className="flex gap-2"><button className="btn btn-secondary btn-sm" type="button" onClick={() => setEditing({ ...recurso })}>Editar</button><button className="btn btn-danger btn-sm" type="button" onClick={() => handleDelete(recurso)}>Eliminar</button></div>}</td>
                   </tr>
                 ))}
@@ -157,5 +155,6 @@ export default function AdminRecursosPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

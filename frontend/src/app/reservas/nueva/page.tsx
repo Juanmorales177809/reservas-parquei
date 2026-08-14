@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { listarRecursos } from '@/services/recursos';
 import { listarEspacios } from '@/services/espacios';
@@ -10,12 +10,12 @@ import type { Espacio } from '@/types/espacio';
 import type { Recurso } from '@/types/recurso';
 import type { Reserva, ReservaCreate } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { getLocalDateInputValue } from '@/utils/date';
 
 function NuevaReservaForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [espacioId, setEspacioId] = useState(0);
@@ -29,10 +29,6 @@ function NuevaReservaForm() {
   const [created, setCreated] = useState<Reserva | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push('/login');
-  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     const recursoInicial = Number(searchParams.get('recurso_id')) || 0;
@@ -76,9 +72,8 @@ function NuevaReservaForm() {
     }
   }
 
-  if (authLoading || !isAuthenticated) return <LoadingSpinner />;
-
   return (
+    <ProtectedRoute>
     <div className="mx-auto max-w-lg px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">Nueva reserva de recurso</h1>
       <p className="mt-1 text-sm text-text-secondary">El estado de la solicitud dependerá del espacio seleccionado.</p>
@@ -128,6 +123,7 @@ function NuevaReservaForm() {
         </button>
       </form>
     </div>
+    </ProtectedRoute>
   );
 }
 

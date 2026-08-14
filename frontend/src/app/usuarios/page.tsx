@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
   crearUsuario,
@@ -15,6 +14,7 @@ import type { AuthUser } from '@/types/auth';
 import type { Espacio } from '@/types/espacio';
 import { listarEspacios } from '@/services/espacios';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const initialForm: AdminUsuarioCreate = {
   username: '',
@@ -33,8 +33,7 @@ interface EditingState {
 }
 
 export default function UsuariosPage() {
-  const router = useRouter();
-  const { isAdmin, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [usuarios, setUsuarios] = useState<AuthUser[]>([]);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -59,14 +58,8 @@ export default function UsuariosPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    } else if (isAuthenticated && isAdmin) {
-      void loadUsuarios();
-    } else if (!authLoading && isAuthenticated && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAuthenticated, isAdmin, authLoading, loadUsuarios, router]);
+    if (isAuthenticated) void loadUsuarios();
+  }, [isAuthenticated, loadUsuarios]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -128,11 +121,12 @@ export default function UsuariosPage() {
     });
   }
 
-  if (authLoading || !isAuthenticated || !isAdmin) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
+    <ProtectedRoute adminOnly>
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Administrar usuarios</h1>
@@ -239,6 +233,7 @@ export default function UsuariosPage() {
                         <td>
                           <input
                             className="input"
+                            aria-label="Nombre de usuario"
                             value={editing.username}
                             onChange={(e) => setEditing({ ...editing, username: e.target.value })}
                             minLength={3}
@@ -250,6 +245,7 @@ export default function UsuariosPage() {
                           <input
                             className="input"
                             type="email"
+                            aria-label="Email"
                             value={editing.email}
                             onChange={(e) => setEditing({ ...editing, email: e.target.value })}
                             required
@@ -258,6 +254,7 @@ export default function UsuariosPage() {
                         <td>
                           <select
                             className="input"
+                            aria-label="Rol del usuario"
                             value={editing.rol}
                             onChange={(e) => setEditing({ ...editing, rol: e.target.value as EditingState['rol'] })}
                           >
@@ -268,7 +265,7 @@ export default function UsuariosPage() {
                         </td>
                         <td>
                           {editing.rol === 'gestor' ? (
-                            <select className="input" value={editing.espacio_id ?? ''} onChange={(e) => setEditing({ ...editing, espacio_id: Number(e.target.value) })} required>
+                            <select className="input" aria-label="Espacio asignado al gestor" value={editing.espacio_id ?? ''} onChange={(e) => setEditing({ ...editing, espacio_id: Number(e.target.value) })} required>
                               <option value="" disabled>Selecciona un espacio</option>
                               {espacios.map((espacio) => <option key={espacio.id} value={espacio.id}>{espacio.nombre}</option>)}
                             </select>
@@ -279,6 +276,7 @@ export default function UsuariosPage() {
                             <input
                               className="input"
                               type="password"
+                              aria-label="Nueva clave (opcional)"
                               value={editing.password}
                               onChange={(e) => setEditing({ ...editing, password: e.target.value })}
                               placeholder="Nueva clave (opcional)"
@@ -328,5 +326,6 @@ export default function UsuariosPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

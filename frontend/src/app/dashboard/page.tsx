@@ -1,39 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { listarMisReservas } from '@/services/reservas';
 import type { Reserva } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
-
-const badgeEstado: Record<string, string> = {
-  esperando: 'badge-warning',
-  aprobada: 'badge-success',
-  rechazada: 'badge-danger',
-  cancelada: 'badge-neutral',
-};
-
-const labelEstado: Record<string, string> = {
-  esperando: 'Pendiente',
-  aprobada: 'Aprobada',
-  rechazada: 'Rechazada',
-  cancelada: 'Cancelada',
-};
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -44,10 +24,6 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
 
-  if (authLoading || !isAuthenticated) {
-    return <LoadingSpinner />;
-  }
-
   const pendientes = reservas.filter((r) => r.estado === 'esperando');
   const aprobadas = reservas.filter((r) => r.estado === 'aprobada');
   // upcoming: approved reservations with future dates
@@ -56,6 +32,7 @@ export default function DashboardPage() {
   );
 
   return (
+    <ProtectedRoute>
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Welcome */}
       <div className="mb-8">
@@ -143,8 +120,8 @@ export default function DashboardPage() {
                       {reserva.hora_inicio.slice(0, 5)} - {reserva.hora_fin.slice(0, 5)}
                     </td>
                     <td>
-                      <span className={`badge ${badgeEstado[reserva.estado] ?? 'badge-neutral'}`}>
-                        {labelEstado[reserva.estado] ?? reserva.estado}
+                      <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
+                        {labelEstadoReserva(reserva.estado)}
                       </span>
                     </td>
                   </tr>
@@ -155,5 +132,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

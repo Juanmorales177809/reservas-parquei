@@ -260,3 +260,14 @@
     background-color: var(--color-surface-hover);
   }
 }
+
+/* Foco de teclado visible en controles interactivos (Fase 5A). */
+.btn:focus-visible,
+.input:focus-visible,
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--color-primary-600, #0891b2);
+  outline-offset: 2px;
+}

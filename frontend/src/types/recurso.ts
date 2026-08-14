@@ -14,7 +14,7 @@ export interface Recurso {
   tipo_recurso_id: number;
   descripcion: string | null;
   capacidad: number;
-  estado: 'activo' | 'inactivo' | 'mantenimiento' | string;
+  estado: 'activo' | 'inactivo' | 'mantenimiento';
   espacio: Espacio;
   tipo: TipoRecurso;
 }

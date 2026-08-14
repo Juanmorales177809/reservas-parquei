@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { listarControlCambios } from '@/services/control-cambios';
 import type { ControlCambio } from '@/types/control-cambio';
@@ -16,31 +16,23 @@ const accionBadge: Record<string, string> = {
 };
 
 export default function ControlCambiosPage() {
-  const router = useRouter();
-  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [cambios, setCambios] = useState<ControlCambio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
-    if (!isAdmin) {
-      router.replace('/admin');
-      return;
-    }
+    if (!isAuthenticated) return;
     listarControlCambios()
       .then(setCambios)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [authLoading, isAdmin, isAuthenticated, router]);
+  }, [isAuthenticated]);
 
-  if (authLoading || loading || !isAuthenticated || !isAdmin) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner />;
 
   return (
+    <ProtectedRoute adminOnly redirectForbidden="/admin">
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Control de cambios</h1>
@@ -91,5 +83,6 @@ export default function ControlCambiosPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

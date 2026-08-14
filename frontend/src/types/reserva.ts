@@ -11,7 +11,7 @@ export interface ReservaEspacio {
   id: number;
   nombre: string;
   capacidad: number;
-  estado: 'activo' | 'inactivo' | 'mantenimiento' | string;
+  estado: 'activo' | 'inactivo' | 'mantenimiento';
 }
 
 export interface Reserva {
