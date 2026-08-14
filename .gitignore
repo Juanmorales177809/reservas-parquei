@@ -26,6 +26,11 @@ build/
 *.tsbuildinfo
 coverage/
 
+# Playwright (Fase 5C)
+**/.auth/
+test-results/
+playwright-report/
+
 # Logs y SO
 *.log
 .DS_Store

@@ -1,5 +1,11 @@
 export const API_BASE_URL = '/api';
 
+// Ruta de autenticación inicial: un 401 aquí son credenciales inválidas,
+// no una sesión expirada. El error debe llegar al formulario de login
+// (login/page.tsx) sin el redirect global, que solo aplica a endpoints
+// protegidos para cerrar sesiones vencidas.
+const RUTA_LOGIN = '/auth/login';
+
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
   return window.localStorage.getItem('token');
@@ -29,7 +35,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers,
   });
 
-  if (response.status === 401 && typeof window !== 'undefined') {
+  if (response.status === 401 && typeof window !== 'undefined' && path !== RUTA_LOGIN) {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user');
     window.location.href = '/login';
