@@ -5,21 +5,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.crud.reservas import get_reserva, get_reservas_bloqueantes
-from app.models import Espacio, Notificacion, Recurso, Reserva, Usuario, UsuarioEspacio
 from app.deps import get_managed_space_id
+from app.domain.enums import EstadoEntidad, EstadoReserva, Rol, TipoNotificacion
+from app.domain.protocols import Reloj
+from app.models import Espacio, Notificacion, Recurso, Reserva, Usuario, UsuarioEspacio
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.auditoria import registrar_cambio
 from app.services.horarios import horario_cubre_reserva
-from app.services.reloj import ahora_local
+from app.services.reloj import RelojLocal
 
 
 SOLAPAMIENTO_CONSTRAINT = "reservas_sin_solapamiento"
-TRANSICIONES_ESTADO = {
-    "esperando": {"aprobada", "rechazada", "cancelada"},
-    "aprobada": {"cancelada"},
-    "rechazada": set(),
-    "cancelada": set(),
-}
 
 
 def _es_conflicto_solapamiento(exc: IntegrityError) -> bool:
@@ -64,9 +60,14 @@ def validar_horario(espacio: Espacio, fecha: date, hora_inicio: time, hora_fin: 
         )
 
 
-def validar_anticipacion(espacio: Espacio, fecha: date, hora_inicio: time) -> None:
+def validar_anticipacion(
+    espacio: Espacio,
+    fecha: date,
+    hora_inicio: time,
+    reloj: Reloj | None = None,
+) -> None:
     inicio = datetime.combine(fecha, hora_inicio)
-    fecha_minima = ahora_local() + timedelta(hours=espacio.horas_antelacion)
+    fecha_minima = (reloj or RelojLocal()).ahora() + timedelta(hours=espacio.horas_antelacion)
     if inicio < fecha_minima:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,21 +88,23 @@ def validar_solapamiento(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El recurso ya tiene una reserva en ese horario")
 
 
-def validar_transicion_estado(estado_actual: str, nuevo_estado: str) -> None:
-    if nuevo_estado == estado_actual:
-        return
-    estados_permitidos = TRANSICIONES_ESTADO.get(estado_actual, set())
-    if nuevo_estado not in estados_permitidos:
+def validar_transicion_estado(
+    estado_actual: str | EstadoReserva,
+    nuevo_estado: str | EstadoReserva,
+) -> None:
+    actual = EstadoReserva(estado_actual)
+    nuevo = EstadoReserva(nuevo_estado)
+    if not actual.puede_transicionar_a(nuevo):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"No se puede cambiar una reserva de {estado_actual} a {nuevo_estado}",
+            detail=f"No se puede cambiar una reserva de {actual.value} a {nuevo.value}",
         )
 
 
 def validar_recurso_activo(recurso: Recurso | None) -> None:
     if recurso is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El recurso solicitado no existe")
-    if recurso.estado != "activo" or recurso.espacio.estado != "activo":
+    if recurso.estado != EstadoEntidad.ACTIVO.value or recurso.espacio.estado != EstadoEntidad.ACTIVO.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El recurso no está activo para reservas")
 
 
@@ -123,7 +126,7 @@ def validar_creacion(db: Session, data: ReservaCreate, usuario: Usuario, recurso
 def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva:
     recurso = db.query(Recurso).filter(Recurso.id == data.recurso_id).first()
     validar_creacion(db, data, usuario, recurso)
-    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == "gestor" else None
+    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
     aprobacion_automatica = recurso.espacio.aprobacion_automatica or espacio_gestionado == recurso.espacio_id
 
     reserva = Reserva(
@@ -134,7 +137,9 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         hora_inicio=data.hora_inicio,
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
-        estado="aprobada" if aprobacion_automatica else "esperando",
+        estado=(
+            EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
+        ),
     )
     db.add(reserva)
     preparar_reserva(db)
@@ -143,7 +148,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
             db.query(Usuario.id)
             .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Usuario.id)
             .filter(
-                Usuario.rol == "gestor",
+                Usuario.rol == Rol.GESTOR.value,
                 UsuarioEspacio.espacio_id == recurso.espacio_id,
             )
             .all()
@@ -153,7 +158,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
                 Notificacion(
                     usuario_id=gestor_id,
                     reserva_id=reserva.id,
-                    tipo="Pendiente",
+                    tipo=TipoNotificacion.PENDIENTE.value,
                 )
             )
     registrar_cambio(
@@ -170,9 +175,10 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
 
 
 def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: Usuario) -> Reserva:
-    if admin_user.rol not in {"admin", "gestor"}:
+    if admin_user.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para cambiar el estado de una reserva")
-    if nuevo_estado not in {"aprobada", "rechazada", "cancelada"}:
+    nuevo = EstadoReserva(nuevo_estado)
+    if nuevo not in {EstadoReserva.APROBADA, EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El estado solo puede cambiarse a aprobada, rechazada o cancelada",
@@ -184,8 +190,8 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
     espacio_gestionado = get_managed_space_id(db, admin_user)
     if espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
-    validar_transicion_estado(reserva.estado, nuevo_estado)
-    if nuevo_estado == "aprobada" and reserva.estado != nuevo_estado:
+    validar_transicion_estado(reserva.estado, nuevo)
+    if nuevo == EstadoReserva.APROBADA and reserva.estado != nuevo.value:
         validar_solapamiento(
             db,
             reserva.recurso_id,
@@ -195,13 +201,13 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
             exclude_id=reserva.id,
         )
     estado_anterior = reserva.estado
-    reserva.estado = nuevo_estado
-    if estado_anterior != nuevo_estado:
+    reserva.estado = nuevo.value
+    if estado_anterior != nuevo.value:
         tipo_notificacion = {
-            "aprobada": "Aprobada",
-            "rechazada": "Rechazada",
-            "cancelada": "Cancelada",
-        }[nuevo_estado]
+            EstadoReserva.APROBADA: TipoNotificacion.APROBADA,
+            EstadoReserva.RECHAZADA: TipoNotificacion.RECHAZADA,
+            EstadoReserva.CANCELADA: TipoNotificacion.CANCELADA,
+        }[nuevo].value
         db.add(
             Notificacion(
                 usuario_id=reserva.usuario_id,
@@ -215,7 +221,7 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
             "cambiar estado",
             "reserva",
             reserva.id,
-            f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo_estado}",
+            f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}",
         )
     confirmar_cambios_reserva(db)
     db.refresh(reserva)
@@ -228,13 +234,13 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
     if reserva.usuario_id != usuario.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes cancelar tus propias reservas")
-    if reserva.estado != "aprobada":
+    if reserva.estado != EstadoReserva.APROBADA.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo puedes cancelar reservas aprobadas",
         )
 
-    reserva.estado = "cancelada"
+    reserva.estado = EstadoReserva.CANCELADA.value
     registrar_cambio(
         db,
         usuario,
@@ -253,15 +259,15 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
     es_propietario = reserva.usuario_id == usuario.id
-    es_gestor = usuario.rol in {"admin", "gestor"}
+    es_gestor = usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}
     if not es_propietario and not es_gestor:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes editar tus propias reservas")
-    if es_propietario and usuario.rol == "usuario" and reserva.estado != "esperando":
+    if es_propietario and usuario.rol == Rol.USUARIO.value and reserva.estado != EstadoReserva.ESPERANDO.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo puedes editar reservas pendientes",
         )
-    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == "gestor" else None
+    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
     if not es_propietario and espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
 
@@ -299,15 +305,15 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Usuario) -> None:
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
     es_propietario = reserva.usuario_id == usuario.id
-    es_gestor = usuario.rol in {"admin", "gestor"}
+    es_gestor = usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}
     if not es_propietario and not es_gestor:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes eliminar tus propias reservas")
-    if usuario.rol == "usuario":
+    if usuario.rol == Rol.USUARIO.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Los usuarios no pueden eliminar reservas",
         )
-    if usuario.rol == "gestor" and not es_propietario:
+    if usuario.rol == Rol.GESTOR.value and not es_propietario:
         espacio_gestionado = get_managed_space_id(db, usuario)
         if reserva.espacio_id != espacio_gestionado:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")

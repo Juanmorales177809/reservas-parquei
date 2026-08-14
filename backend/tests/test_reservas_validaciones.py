@@ -14,8 +14,17 @@ from datetime import date, datetime, time
 import pytest
 from fastapi import HTTPException
 
+from app.domain.enums import EstadoReserva
 from app.models import Espacio, Recurso
 from app.services import reservas as servicios
+
+
+class _RelojFijo:
+    def __init__(self, valor: datetime):
+        self._valor = valor
+
+    def ahora(self) -> datetime:
+        return self._valor
 
 
 def _espacio(horario=None, horas_antelacion=24, estado="activo"):
@@ -57,17 +66,17 @@ class TestValidarHorario:
 
 
 class TestValidarAnticipacion:
-    def test_dentro_de_antelacion_da_400(self, monkeypatch):
-        monkeypatch.setattr(servicios, "ahora_local", lambda: datetime(2026, 8, 17, 10, 0))
+    def test_dentro_de_antelacion_da_400(self):
         espacio = _espacio(horas_antelacion=24)
+        reloj = _RelojFijo(datetime(2026, 8, 17, 10, 0))
         with pytest.raises(HTTPException) as exc:
-            servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(9, 0))
+            servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(9, 0), reloj=reloj)
         assert exc.value.status_code == 400
 
-    def test_fuera_de_antelacion_no_levanta(self, monkeypatch):
-        monkeypatch.setattr(servicios, "ahora_local", lambda: datetime(2026, 8, 17, 10, 0))
+    def test_fuera_de_antelacion_no_levanta(self):
         espacio = _espacio(horas_antelacion=24)
-        servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(11, 0))
+        reloj = _RelojFijo(datetime(2026, 8, 17, 10, 0))
+        servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(11, 0), reloj=reloj)
 
 
 class TestValidarTransicion:
@@ -98,6 +107,12 @@ class TestValidarTransicion:
 
     def test_mismo_estado_es_no_op(self):
         servicios.validar_transicion_estado("esperando", "esperando")
+
+    def test_acepta_estados_del_dominio_y_conserva_mensaje(self):
+        with pytest.raises(HTTPException) as exc:
+            servicios.validar_transicion_estado(EstadoReserva.RECHAZADA, EstadoReserva.APROBADA)
+        assert exc.value.status_code == 409
+        assert "de rechazada a aprobada" in exc.value.detail
 
 
 class TestValidarCapacidad:

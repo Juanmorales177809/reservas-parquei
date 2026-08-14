@@ -1,12 +1,24 @@
+# -*- coding: utf-8 -*-
+"""Reglas de horario de atención, delegadas a los value objects del dominio.
+
+Guard de compatibilidad: un horario totalmente vacío conserva el
+comportamiento actual (lista vacía / False) y NO se trata como error; un
+horario con horas fuera de rango (0..22) se deja propagar como error de
+configuración, sin ocultarlo.
+"""
+
 from datetime import time
 
+from app.domain.valor import FranjaHoraria, HorarioAtencion
 from app.models import Espacio
 
 
 def horas_atencion_dia(espacio: Espacio, dia_semana: int) -> list[int]:
-    horario = espacio.horario_atencion or {}
-    horas = horario.get(str(dia_semana), horario.get(dia_semana, []))
-    return sorted({int(hora) for hora in horas})
+    horario_dict = espacio.horario_atencion or {}
+    if not any(horario_dict.values()):
+        return []
+    horario = HorarioAtencion(horario_dict)
+    return list(horario.horas_del_dia(dia_semana))
 
 
 def horario_cubre_reserva(
@@ -15,12 +27,11 @@ def horario_cubre_reserva(
     hora_inicio: time,
     hora_fin: time,
 ) -> bool:
-    if hora_inicio.minute != 0 or hora_inicio.second != 0:
+    try:
+        franja = FranjaHoraria(hora_inicio, hora_fin)
+    except ValueError:
         return False
-    if hora_fin.minute != 0 or hora_fin.second != 0:
+    horario_dict = espacio.horario_atencion or {}
+    if not any(horario_dict.values()):
         return False
-    if hora_inicio >= hora_fin:
-        return False
-
-    horas_habilitadas = set(horas_atencion_dia(espacio, dia_semana))
-    return all(hora in horas_habilitadas for hora in range(hora_inicio.hour, hora_fin.hour))
+    return HorarioAtencion(horario_dict).cubre_franja(dia_semana, franja)

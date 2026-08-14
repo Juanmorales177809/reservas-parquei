@@ -2,10 +2,13 @@ from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Inde
 from sqlalchemy.orm import relationship
 
 from app.db import Base
+from app.domain.enums import ESTADOS_RESERVA_BLOQUEANTES, EstadoReserva
 
 
-ESTADOS_RESERVA = ("esperando", "aprobada", "rechazada", "cancelada")
-ESTADOS_BLOQUEANTES = ("esperando", "aprobada")
+# Alias derivados de los enums del dominio: misma tupla de strings que antes,
+# sin duplicar los literales. Sin cambios de esquema ni migraciones.
+ESTADOS_RESERVA = tuple(estado.value for estado in EstadoReserva)
+ESTADOS_BLOQUEANTES = tuple(estado.value for estado in ESTADOS_RESERVA_BLOQUEANTES)
 
 
 class Reserva(Base):

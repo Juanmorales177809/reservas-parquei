@@ -21,6 +21,9 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 | test_domain_valor.py | Creado | Unitarias de `FranjaHoraria` y `HorarioAtencion` (Fase 1) |
 | test_domain_protocols.py | Creado | Contrato estructural de `Reloj` y `RegistroAuditoria` (Fase 1) |
 | test_schemas_contrato.py | Creado | Contrato de los schemas alineados con enums del dominio (Fase 2) |
+| test_reloj.py | Creado | `RelojLocal` (protocolo, naive, wrapper) (Fase 3) |
+| test_auditoria_dominio.py | Creado | Adaptador `AuditoriaSesion` y wrapper `registrar_cambio` (Fase 3) |
+| test_lifespan_arranque.py | Creado | Lifespan con `with TestClient`, `/health` e idempotencia (Fase 3) |
 
 ## Reglas de negocio relacionadas
 
@@ -30,6 +33,7 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 - Reglas adicionales del código: bloques de hora completa, anticipación mínima, solapamiento con exclusión `btree_gist` (409), estados terminales, autorización por rol, notificaciones internas.
 - Fase 1 (dominio): valores JSON de enums, transiciones de estado, invariantes de `FranjaHoraria`/`HorarioAtencion` y contrato de `Reloj`/`RegistroAuditoria` (detalle en `app/domain/README.md`).
 - Fase 2 (schemas): contrato JSON conservado (incluida la opción A de horario: días vacíos con `[]`), campos tipados con enums y valores rechazados (detalle en `app/schemas/README.md`).
+- Fase 3 (services/models/crud/lifespan): `Reloj` inyectable (los tests de anticipación usan `_RelojFijo` en lugar de `monkeypatch`), guard de horario vacío, adaptador de auditoría y arranque con lifespan (detalle en los READMEs de `app/services/`, `app/`, `app/models/` y `app/crud/`).
 
 ## Decisiones técnicas
 

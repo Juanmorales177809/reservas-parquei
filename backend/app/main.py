@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -10,10 +12,23 @@ from app import models  # noqa: F401
 from app.migrations import migrate_resource_reservations
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Orden conservado: create_all → migraciones → seed. Idempotente.
+    Base.metadata.create_all(bind=engine)
+    migrate_resource_reservations()
+    seed_admin_user()
+    yield
+    # engine.dispose() solo cierra conexiones del pool; el engine global de
+    # app.db sigue siendo utilizable después (nuevas conexiones al usarlo).
+    engine.dispose()
+
+
 app = FastAPI(
     title="Gestión de Reservas de Recursos Institucionales",
     description="API para gestionar recursos y sus reservas",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configurar CORS
@@ -24,18 +39,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    Base.metadata.create_all(bind=engine)
-    migrate_resource_reservations()
-    seed_admin_user()
-
-
-@app.on_event("shutdown")
-def on_shutdown() -> None:
-    engine.dispose()
 
 
 @app.get("/", tags=["health"])

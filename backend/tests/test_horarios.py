@@ -56,3 +56,15 @@ class TestHorasAtencionDia:
     def test_dia_sin_entrada_devuelve_vacio(self):
         espacio = _espacio({"1": [8]})
         assert horas_atencion_dia(espacio, 2) == []
+
+    def test_horario_totalmente_vacio_devuelve_vacio(self):
+        # Guard de compatibilidad: un horario vacío conserva el comportamiento
+        # actual (lista vacía) y no se trata como error de configuración.
+        espacio = _espacio({})
+        assert horas_atencion_dia(espacio, 1) == []
+
+
+class TestHorarioCubreReservaVacio:
+    def test_horario_totalmente_vacio_no_cubre(self):
+        espacio = _espacio({})
+        assert horario_cubre_reserva(espacio, 1, time(8, 0), time(9, 0)) is False
