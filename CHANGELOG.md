@@ -223,7 +223,7 @@ escribir ni migrar la base de datos de desarrollo (`reservas_db`); solo
 ## Estado actual (2026-08-18, tras Fase 10-G)
 
 - **Fase 9G cerrada**: commit `6eabc92b9cfb6719884212179146cb77c7cf1871` — "test: close security audit coverage gap" (precede a toda la serie Fase 10; agrega cobertura de test a `backend/tests/test_api_auth_cookie.py` y una nota de auditoría posterior en este changelog — no debe confundirse con el corte de `access_token`/`Authorization` descrito más abajo en "Fases pendientes", que sigue sin implementar).
-- **Fase 10-B, 10-C, 10-D y 10-G implementadas y commiteadas localmente en `feature/soV0.1`**, en este orden: `c7f8129edac2fc14ff95c30f377479f21be61885`, `80164873b6ac613927e6449eba933866a03a9bef`, `daa4dfe60087013914b99f8196ff352540139b1c`, `1e53307b9d1bc61003c49db5063fe4ab8e560f69`. **Ninguno de los cuatro tiene `git push` todavía** — no existe ejecución de CI para ninguno de ellos; no debe asumirse ni inventarse un resultado de CI posterior a estos commits.
+- **Fase 10-B, 10-C, 10-D y 10-G implementadas**, en este orden: `c7f8129edac2fc14ff95c30f377479f21be61885`, `80164873b6ac613927e6449eba933866a03a9bef`, `daa4dfe60087013914b99f8196ff352540139b1c`, `1e53307b9d1bc61003c49db5063fe4ab8e560f69`. **Actualización posterior (Fase 12A):** estos cuatro commits, junto con `f8ac24a` (documentación de la Fase 10) y `259dc59` (informe de la Fase 12), ya tienen `git push` a `origin/feature/soV0.1` — ver "Estado actual" de la Fase 12A más abajo. No hay ejecución de CI propia de este repositorio observada todavía para ninguno de ellos (no se confirmó un run de GitHub Actions); no inventar un resultado de CI no verificado.
 - **Fase 10-E pospuesta**: no existe volumen de desarrollo en este entorno; la migración de PostgreSQL de desarrollo de 13 a 17 no se ha iniciado, queda condicionada a disponer de un entorno con datos reales.
 - **Fase 10-F**: análisis de pinning completado, sin cambios de archivo — su único efecto práctico fue identificar el hallazgo resuelto en la Fase 10-G.
 - **Flaky E2E conocido, sin cambios en toda la serie**: `frontend/e2e/tests/smoke/05-heatmap.spec.ts` (proyecto `admin`), reproducido de forma idéntica (falla en el primer intento, pasa en retry #1) en las Fases 10-B, 10-C y 10-D — mismo patrón documentado desde la Fase 9A, no introducido ni agravado por esta serie.
@@ -235,13 +235,113 @@ escribir ni migrar la base de datos de desarrollo (`reservas_db`); solo
 - **`docker-compose.test.yml` (`postgres:17`) no tiene fijado el minor/patch exacto** — evaluado en la Fase 10-F como tarea separada, no decidida todavía.
 - Los resultados de regresión de la Fase 10 (10-B, 10-C, 10-D, 10-G) están verificados localmente, pero **sin ejecución de CI real** (sin push) — un futuro `git push` podría revelar diferencias de entorno no visibles en las verificaciones locales de esta serie.
 
+## Fase 12A — Cierre documental: decisiones de dominio (2026-08-18)
+
+**Fase exclusivamente documental — ningún archivo de código, test, schema, migración, OpenAPI, Docker o CI fue modificado.** Cierra el análisis funcional previo (`Auditoria_Funcional_Fase12.pdf`, commiteado en la raíz del repositorio, commit `259dc59`) con diez decisiones aprobadas explícitamente por el usuario, que fijan el rumbo de las Fases 12B–12H.
+
+### Contraste Word vs. repositorio (resumen — detalle completo en el PDF)
+
+El documento `Documentacion_AppReserva_Solucion-2.docx` describe un sistema distinto ("Sistema de Reservas de Laboratorios" sobre SharePoint/Power Apps/Power Automate, roles Investigador/Laboratorista, entidades Laboratorio/Equipo/Zona/Ensayo/Proyecto/Acompañante) del dominio actual de `reservas-parquei` (espacios institucionales genéricos, roles `usuario`/`gestor`/`admin`). De sus 30 reglas de negocio (RN-001 a RN-030), el análisis encontró: 10 implementadas con equivalente funcional (vocabulario distinto: espacio↔laboratorio, recurso↔equipo), 2 parciales, 13 ausentes, 2 contradictorias (RN-018, RN-019) y 3 no verificables por depender de reglas ausentes. Detalle regla por regla, con cita de archivo y línea para cada hallazgo, en `Auditoria_Funcional_Fase12.pdf`.
+
+### Decisiones aprobadas
+
+1. **El Word es el sistema funcional que `reservas-parquei` debe migrar** — deja de ser "documentación histórica sin relación con el roadmap" y pasa a ser la fuente funcional primaria de las Fases 12B en adelante.
+2. **`aprobacion_automatica` se mantiene para cualquier usuario** — el comportamiento actual del código (ver corrección de RN-021 abajo) queda confirmado como el diseño deseado, no como un defecto a corregir. Esto formaliza una divergencia deliberada frente a RN-019 del Word (que exige aprobación siempre para solicitudes de investigador): en `reservas-parquei`, un espacio con el flag activo auto-aprueba también a `usuario`.
+3. **Se implementará historial mediante soft-delete o estado histórico** — `Reserva` dejará de permitir borrado físico (hoy `DELETE /reservas/{id}` hace `db.delete()` real, `backend/app/services/reservas.py:322`); queda pendiente para 12G decidir el mecanismo exacto (ver preguntas abiertas).
+4. **Se implementarán zonas y reservas multi-recurso** — nueva entidad `Zona` (N:1 `Espacio`, N:N con `Recurso`) y ruptura de la cardinalidad actual "1 reserva = 1 recurso" (`Reserva.recurso_id`, FK simple) hacia una relación 0..N. Es el cambio estructural de mayor riesgo técnico de toda la serie: rompe el contrato de OpenAPI de `Reserva`.
+5. **Se implementará `Proyecto` con alta manual por administrador** — sin dependencia de archivo externo (a diferencia de DT-004 del sistema legado, que dependía de un Excel administrado por la Dirección de Investigación); evita repetir esa deuda técnica desde el diseño.
+6. **El correo real es obligatorio** — se añadirá un canal SMTP/proveedor transaccional real, hoy inexistente en el backend (sin variables `SMTP_*`/`EMAIL_*` en `config.py`, sin librería de correo en `requirements.txt`). Es infraestructura nueva, no una extensión menor de `Notificacion` (hoy 100% in-app).
+7. **Los informes serán mensuales, programados y persistidos** — reemplaza el dashboard on-demand actual (`GET /admin/dashboard/summary`, calculado por request) por un mecanismo periódico que genera y guarda un artefacto. Requiere infraestructura de tareas programadas hoy inexistente en el backend (sin Celery/APScheduler/cron en `requirements.txt`).
+8. **La disponibilidad se validará en todas las fechas** — al implementar reservas multi-fecha (12F), se descarta explícitamente replicar DT-003 del sistema legado (que el propio Word marca como deuda de prioridad **alta**: solo valida la primera fecha del rango).
+9. **Acompañantes serán entidades relacionales identificables** — nueva tabla `Acompañante` (N:1 `Reserva`), no el campo numérico `asistentes` actual, que se conserva para aforo/capacidad.
+10. **Corregir ahora la documentación de RN-021** — aplicado en este mismo commit, ver siguiente apartado.
+
+### Mapeo de roles aprobado (resuelve la pregunta abierta 1 de este mismo cierre de Fase 12A)
+
+Añadido al cierre de la sesión del 2026-08-18, junto con las diez decisiones de arriba:
+
+| Rol actual (`reservas-parquei`) | Rol del Word (sistema a migrar) |
+| --- | --- |
+| `usuario` | Investigador |
+| `gestor` | Laboratorista |
+| `admin` | Administrador técnico |
+
+Esto resuelve la pregunta abierta 1 original (mapeo exacto de roles) y desbloquea 12B (visibilidad de equipos PS por rol: restringida a `gestor`/`admin`, equivalente a "solo laboratoristas" del Word). Ningún rol nuevo se crea — el catálogo `usuario`/`gestor`/`admin` (`backend/app/domain/enums.py:19-25`) se conserva sin cambios; el mapeo es una equivalencia funcional para la migración del dominio, no una migración de esquema de roles.
+
+### RN-021 corregida
+
+`README.md:11` documentaba el mecanismo de auto-aprobación de forma incompleta ("Aprobación automática configurable por espacio"), describiendo solo una de las dos rutas reales. Mecanismo completo, verificado en `backend/app/services/reservas.py:126-141` (función `crear_reserva`, sin cambios en esta fase):
+
+```python
+espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
+aprobacion_automatica = recurso.espacio.aprobacion_automatica or espacio_gestionado == recurso.espacio_id
+```
+
+Dos rutas independientes, unidas por `OR`, ambas ahora documentadas explícitamente en `README.md`:
+
+- **Ruta 1 — flag por espacio**: si `Espacio.aprobacion_automatica` es `True` (configurable vía `PUT /espacios/gestion/configuracion`), la reserva se auto-aprueba **sin importar el rol de quien la crea** — incluye al rol `usuario`. Confirmado como comportamiento deseado por la decisión 2.
+- **Ruta 2 — gestor en su propio espacio**: si quien crea la reserva es un `gestor` y el recurso pertenece al espacio que administra (`espacio_gestionado == recurso.espacio_id`), la reserva se auto-aprueba **independientemente del valor del flag**, incluso si está en `False`. Esta ruta es la que `README.md` no mencionaba antes de esta fase.
+
+Ambas rutas conviven: un espacio puede tener el flag en `False` y aun así auto-aprobar las reservas de su propio gestor; o tener el flag en `True` y auto-aprobar también a investigadores externos. Ninguna de las dos rutas se modificó en esta fase — es documentación alcanzando al código, no un cambio de comportamiento.
+
+### Fases 12B–12H (aprobadas, vinculadas a reglas concretas)
+
+Roadmap aprobado a partir de las diez decisiones de arriba. Ninguna fase de esta lista está implementada; ninguna tiene alcance de código aprobado todavía — cada una requeriría su propia aprobación explícita de cambio de contrato (OpenAPI, schemas, migraciones) antes de tocar código, igual que el resto de fases de este proyecto.
+
+- **12B — Modalidad de espacio y equipos PS**: campo de modalidad (equipos/zonas/mixto) y correo propio en `Espacio` (RN-006, RN-007); campo booleano PS en `Recurso` con regla de visibilidad restringida a `gestor`/`admin` (equivalente a "laboratorista" tras el mapeo de roles aprobado arriba) para servicio de ensayo (RN-009).
+- **12C — Entidad Zona y multi-recurso por reserva**: tabla `Zona` (N:1 `Espacio`), relación N:N `Zona`↔`Recurso`, y la ruptura de `Reserva` de "1 recurso" a "0..N recursos/zonas" (RN-011, RN-016; decisión 4). El cambio de mayor riesgo técnico — toca el contrato de OpenAPI de `Reserva`.
+- **12D — Tipo de reserva académico y Proyectos**: campo de tipo (investigación/grado/servicio de ensayo) en `Reserva`; entidad `Proyecto` con alta manual por administrador, sin dependencia de archivo externo (RN-012, RN-013, RN-014, RN-015; decisión 5).
+- **12E — Acompañantes y ensayos**: tabla `Acompañante` (N:1 `Reserva`, entidad relacional identificable — decisión 9); tabla `Ensayo` (N:1 `Zona`) y su selección durante la reserva (RN-015, RN-016). Depende de 12C (Zona debe existir).
+- **12F — Reservas multi-fecha**: aceptar rango/lista de fechas en una sola solicitud, con validación de disponibilidad en **todas** las fechas desde el diseño (RN-025, RN-026; decisión 8, descarta replicar DT-003).
+- **12G — Historial e informes mensuales**: soft-delete o estado histórico en `Reserva` (RN-018; decisión 3); mecanismo periódico de generación y persistencia de informes mensuales, con infraestructura de tareas programadas nueva (RN-027, RN-028; decisión 7).
+- **12H — Canal de correo real**: implementación del canal SMTP/proveedor transaccional obligatorio (RN-022, RN-024; decisión 6), incluyendo la decisión pendiente de si sustituye o complementa las notificaciones in-app actuales.
+
+### Riesgos y dependencias
+
+- **Ruptura de contrato de OpenAPI en `Reserva`** (12C, 12D, 12F): agregar tipo de reserva, multi-recurso y multi-fecha cambia el schema `ReservaCreate`/`ReservaResponse` de forma incompatible con el contrato actual — cada cambio requiere aprobación explícita por separado, según la política de este repositorio (`CLAUDE.md`, "Política de cambios de API/OpenAPI").
+- **Infraestructura externa nueva sin precedente en el repo**: correo real (12H) y tareas programadas (12G) no tienen ningún componente equivalente hoy — son las dos fases con mayor riesgo de introducir dependencias, variables de entorno y puntos de fallo nuevos (proveedor de correo caído, job de informe fallido) que el resto del proyecto no maneja todavía.
+- **Integridad referencial de las entidades nuevas**: `Zona`, `Proyecto`, `Acompañante` y `Ensayo` deben mantener el mismo estándar que ya tiene el esquema actual (FKs reales, `CheckConstraint`, sin columnas de texto consolidado) para no reintroducir DT-006 del sistema legado (relaciones sin integridad referencial real) dentro de este propio repositorio.
+- **Rendimiento de validación multi-fecha** (12F, decisión 8): validar disponibilidad en todas las fechas de un rango, en vez de solo la primera, tiene costo computacional a evaluar según el tamaño típico de rango antes de implementar.
+- **Orden de dependencias entre fases**: 12C es prerrequisito de 12E (Ensayo depende de Zona). El mapeo de roles, que bloqueaba en particular a 12B (visibilidad de equipos PS por rol), ya quedó resuelto en esta misma fase (ver "Mapeo de roles aprobado" arriba).
+- Ninguna de estas fases está implementada — esta fase (12A) es puramente documental.
+
+### Cambios estructurales previstos (sin código en esta fase)
+
+- **`Reserva`**: agregar tipo de reserva académico; romper cardinalidad 1:1 con `Recurso` hacia 1:N; agregar mecanismo de historial (soft-delete o estado); dejar de tener exactamente una `fecha`.
+- **Entidades nuevas**: `Zona`, `Ensayo`, `Proyecto`, `Acompañante`.
+- **`Espacio`**: nuevo campo de modalidad (equipos/zonas/mixto); nuevo campo de correo propio.
+- **`Recurso`**: nuevo campo booleano PS (prestación de servicios).
+- **Infraestructura nueva**: canal de correo real; mecanismo de tareas programadas para informes mensuales.
+- Todo lo anterior implicará, cuando se implemente, cambios de migraciones, schemas, OpenAPI, frontend y tests — explícitamente fuera de alcance de esta fase.
+
+### Preguntas abiertas (no resueltas por las diez decisiones)
+
+Las diez decisiones fijan el rumbo pero dejan detalles de implementación sin resolver — no se asume ninguna respuesta:
+
+1. ~~Mapeo exacto de roles~~ — **Resuelta** en el cierre de esta misma fase: ver "Mapeo de roles aprobado" arriba (`usuario`→Investigador, `gestor`→Laboratorista, `admin`→Administrador técnico).
+2. **Alcance de "correo real obligatorio"** (decisión 6): ¿reemplaza las notificaciones in-app actuales o las complementa? ¿incluye aprobación por enlace de correo de un solo uso (RN-022/DT-005) o solo notificación informativa?
+3. **Mecanismo técnico de informes programados** (decisión 7): ¿tarea programada dentro del propio backend (requiere elegir y agregar una dependencia de scheduling) o un proceso/servicio externo?
+4. **Modelo exacto de soft-delete** (decisión 3): ¿un estado nuevo dentro de `EstadoReserva`, o una columna independiente (p. ej. `deleted_at`) separada del campo `estado` actual?
+5. **Cardinalidad exacta de `Zona`** (decisión 4): ¿obligatoria solo para espacios de modalidad "zonas"/"mixto", o toda reserva puede tener cero zonas incluso en esa modalidad?
+6. **Estructura de datos de `Acompañante`** (decisión 9): ¿qué campos lo identifican (nombre, documento, correo)? ¿tiene cuenta de usuario propia o es un registro estructurado sin cuenta?
+7. **Gobernanza de `Proyecto`** (decisión 5): con alta manual por administrador, ¿el administrador vincula usuario↔proyecto al crear el proyecto, o el investigador se autoasocia a un proyecto ya existente?
+8. **Orden real de implementación 12B–12H**: dado que las decisiones estructurales ya están tomadas, ¿se mantiene el orden de dependencias propuesto, o hay una prioridad de negocio distinta (por ejemplo, adelantar 12H sobre 12C)?
+
+### Estado actual (2026-08-18, tras Fase 12A)
+
+- Fase 12A cerrada documentalmente — sin commit todavía (pendiente de autorización explícita, igual que el resto de fases de este repositorio).
+- Los seis commits de la serie Fase 10 + el informe de Fase 12 (`c7f8129`, `8016487`, `daa4dfe`, `1e53307`, `f8ac24a`, `259dc59`) ya están en `origin/feature/soV0.1` — `git push` realizado.
+- `Auditoria_Funcional_Fase12.pdf` (commit `259dc59`) es la fuente de evidencia detallada de todas las decisiones de esta sección.
+- Ninguna fase 12B–12H tiene código implementado — el roadmap queda aprobado, no ejecutado.
+
 ## Fases pendientes (no aprobadas ni iniciadas)
 
 Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 
 - **Fase 9G** (fase de corte, sin alcance formalmente aprobado todavía): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `backend/app/deps.py`, ahora que frontend y E2E ya no dependen de ellos (Fase 9F-B). Cambiaría el contrato de OpenAPI y requeriría aprobación explícita, igual que 9F-A/9F-B. También pendiente: evaluar si conviene agregar una defensa CSRF adicional (token de doble envío) antes o como parte de este corte.
-- **Fase 10** (imágenes base de Docker EOL): 10-B, 10-C, 10-D y 10-G implementadas y commiteadas localmente (ver sección "Fase 10" y "Estado actual" arriba); **10-E** (migración de PostgreSQL de desarrollo 13→17) queda explícitamente pospuesta hasta disponer de un entorno con datos reales que migrar; 10-F (análisis de pinning por digest) completado sin cambios de archivo.
-- Fase 11 y Fase 12: mencionadas como continuación numérica de la serie; **sin alcance definido en ningún documento de este repositorio** — no existe roadmap aprobado más allá de la Fase 10. No inventar contenido para ellas hasta que se definan explícitamente.
+- **Fase 10** (imágenes base de Docker EOL): 10-B, 10-C, 10-D y 10-G implementadas y ya en `origin/feature/soV0.1` (ver sección "Fase 10" y "Estado actual" arriba); **10-E** (migración de PostgreSQL de desarrollo 13→17) queda explícitamente pospuesta hasta disponer de un entorno con datos reales que migrar; 10-F (análisis de pinning por digest) completado sin cambios de archivo.
+- **Fase 12** (migración funcional del dominio del Word): **12A cerrada documentalmente** (ver sección "Fase 12A" arriba) — diez decisiones aprobadas y roadmap 12B–12H definido, pero **sin código implementado todavía** para ninguna de esas sub-fases; quedan además ocho preguntas de implementación sin resolver (ver "Preguntas abiertas" de la Fase 12A).
+- Fase 11: sin alcance definido en ningún documento de este repositorio — no existe roadmap aprobado para ella. No inventar contenido hasta que se defina explícitamente.
 - Deuda técnica de frontend adicional a lo ya resuelto en esta serie.
 - Backlog de negocio (reglas RN-006 en adelante).
 - Decidir si se actualiza `next`/`postcss` (salto mayor, ver riesgos arriba).

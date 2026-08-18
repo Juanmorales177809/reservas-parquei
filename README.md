@@ -8,7 +8,7 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 - Reservas de uno o varios bloques horarios consecutivos.
 - Validación de capacidad, anticipación, estado y horario de atención.
 - Prevención transaccional de reservas superpuestas en PostgreSQL.
-- Aprobación automática configurable por espacio.
+- Aprobación automática de reservas: se aplica tanto por un flag configurable por espacio (afecta a cualquier rol, incluido `usuario`) como, de forma independiente, cuando un `gestor` reserva en el espacio que administra — detalle exacto y referencias de código en [`CHANGELOG.md`](CHANGELOG.md) (Fase 12A, corrección de RN-021).
 - Gestión de solicitudes por administradores y gestores.
 - Notificaciones de solicitudes pendientes, aprobaciones, rechazos y cancelaciones.
 - Dashboard con estadísticas de reservas y ocupación.
