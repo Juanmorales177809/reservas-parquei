@@ -414,4 +414,8 @@ Una respuesta HTTP `409` indica que otro usuario reservó el mismo recurso y hor
 - No usar credenciales predeterminadas en producción.
 - Servir la aplicación detrás de HTTPS en entornos públicos.
 - El JWT se almacena actualmente en `localStorage`; por ello deben evitarse scripts de terceros y revisarse cuidadosamente los cambios de frontend que puedan introducir XSS.
+- Cabeceras de seguridad (CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en todas las respuestas de backend y frontend. `Strict-Transport-Security` y `Cross-Origin-Opener-Policy` requieren fijar `ENVIRONMENT=production` explícitamente — no se activan solo por desplegar con Docker Compose.
+- `POST /auth/login` aplica límite de intentos (5 fallos por ventana deslizante de 15 minutos, por IP + username) para mitigar fuerza bruta. Es una mitigación en memoria del proceso, no distribuida: si el backend llega a correr con varios workers o réplicas, cada uno cuenta por separado.
+- Cualquier excepción no controlada del backend responde siempre `500` con un mensaje genérico; el detalle (traceback, tipo de excepción) solo se registra en el log del servidor, nunca en la respuesta al cliente.
+- Detalle completo de estas decisiones, valores y riesgos aceptados en [`CHANGELOG.md`](CHANGELOG.md).
 
