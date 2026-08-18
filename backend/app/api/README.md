@@ -53,14 +53,15 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; 22 de autenticac
 ## Riesgos
 
 - El heatmap `ocupacion_por_dia_hora` mantiene su grid 7..19 (contrato del gráfico): horas atendidas fuera de ese rango se cuentan en `ocupacion_global` pero no aparecen en el gráfico. Limitación documentada, no bloqueante.
-- **CSRF (Fase 9F-A, riesgo nuevo, mitigado, no eliminado)**: al aceptar cookie, el navegador la adjuntará automáticamente en peticiones same-origin. `SameSite=Lax` bloquea el envío de la cookie en peticiones state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) disparadas por `fetch`/XHR desde otro origen, pero no hay un token CSRF de doble envío como defensa adicional. Aceptable mientras el frontend actual no envíe `credentials: 'include'` (no lo hace: `frontend/src/services/api.ts` no cambió en esta fase), y a revisar de nuevo en la fase de migración del frontend.
+- **CSRF (riesgo aceptado, mitigado, no eliminado)**: al aceptar cookie, el navegador la adjunta automáticamente en peticiones same-origin. Desde la Fase 9F-B, `frontend/src/services/api.ts` sí envía `credentials: 'same-origin'` en cada request, así que la cookie viaja en cada llamada del frontend. `SameSite=Lax` bloquea el envío de la cookie en peticiones state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) disparadas por `fetch`/XHR desde otro origen, pero no se agregó ningún token CSRF de doble envío ni otra defensa adicional — decisión explícita, fuera de alcance de 9F-A y 9F-B. No se afirma que el riesgo esté resuelto, solo mitigado por `SameSite=Lax` mientras la arquitectura siga dependiendo del proxy same-origin de Next.js (`frontend/next.config.js`).
 - **`require_admin_dashboard` no tiene cobertura de test propia** (ni antes ni después de esta fase): función sin uso en ningún router actual (verificado); se actualizó por consistencia con `oauth2_scheme`, pero queda sin ejercitar directamente.
 
 ## Pendientes
 
 - Si el frontend del panel admin migrara a un endpoint propio de gestión, el filtro podría volverse incondicional (sin distinción por rol).
 - Limpiar el docstring/descripción del endpoint requeriría aprobación explícita (cambia OpenAPI).
-- Fase 9F-B (no iniciada, requiere aprobación aparte): migrar `AuthContext`, `api.ts`, `localStorage` y los fixtures E2E (`global-setup.ts`, `06-401.spec.ts`) para dejar de depender del header como mecanismo primario, y decidir si se retira `access_token` del body de `TokenResponse`.
+- ~~Fase 9F-B: migrar `AuthContext`, `api.ts`, `localStorage` y los fixtures E2E para dejar de depender del header como mecanismo primario.~~ **Hecho** — commit `13c341d3c93ae86deb709aad1f5f659cdc74c9bf`, local, pendiente de push.
+- Fase 9G (no aprobada ni iniciada): decidir si se retira `access_token` del body de `TokenResponse` y el soporte de `Authorization`, ahora que frontend y E2E ya no dependen de ellos.
 
 ## Fase de implementación
 

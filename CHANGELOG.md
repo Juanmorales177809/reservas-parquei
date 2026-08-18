@@ -13,10 +13,15 @@ Convención de commits de esta serie: `<tipo>: <resumen>` (`security:`,
 
 ## Fase 9 — Hardening de seguridad (2026-08-18)
 
-Serie de sub-fases (9A–9E) sobre `feature/soV0.1`, sin cambiar métodos,
-rutas ni payloads de la API salvo aprobación explícita caso por caso (Fase
-9E). Punto de partida: 187 tests de backend, 45 de frontend, suite E2E con
-1 flaky conocido.
+Serie de sub-fases (9A–9F-B) sobre `feature/soV0.1`, sin cambiar métodos,
+rutas ni payloads de la API salvo aprobación explícita caso por caso (Fases
+9E, 9F-A). Punto de partida: 187 tests de backend, 45 de frontend, suite
+E2E con 1 flaky conocido.
+
+Las Fases 9F-A y 9F-B (migración del JWT de `localStorage` a cookie
+HttpOnly) son commits **locales en `feature/soV0.1`, todavía sin `git
+push`** al momento de escribir estas dos secciones — a diferencia de
+9A–9E, no hay ejecución de CI que reportar para ellas todavía.
 
 ### Fase 9A — Cabeceras de seguridad, CORS y contenedor no root
 
@@ -99,7 +104,36 @@ rutas ni payloads de la API salvo aprobación explícita caso por caso (Fase
 - **No implementado** (explícitamente fuera de alcance de esta fase): normalización de username, complejidad de contraseña, cambios de mensajes existentes, cambios a rate limiting/auth/cookies/JWT/frontend/Docker/CI/migraciones.
 - **Resultados**: backend 267/267 (236 previos + 31 nuevos); `test_openapi_contrato.py` verde con el snapshot regenerado; frontend 53/53 + type-check/lint/build limpios (sin cambios de código, backend-only); E2E 26 passed / 0 failed / 0 flaky / 78 skipped.
 
-## Riesgos aceptados y limitaciones conocidas (vigentes tras Fase 9E)
+### Fase 9F-A — Backend dual de autenticación (cookie HttpOnly)
+
+- **Commit**: `49bf9f393dc80ac10c2c0498c57c0ad393247112` — "security: add dual JWT cookie authentication". **Local en `feature/soV0.1`, pendiente de push** al momento de escribir esta entrada — sin ejecución de CI todavía para este commit.
+- **Archivos**: `backend/app/auth/auth.py`, `backend/app/api/auth.py`, `backend/app/deps.py`, `backend/tests/test_api_auth_cookie.py` (nuevo), `backend/tests/openapi.snapshot.json` (regenerado), `backend/app/auth/README.md` (nuevo), `backend/app/api/README.md`, `backend/app/README.md`.
+- **Decisión de producto aprobada explícitamente — fase dual, no reemplazo**: `POST /auth/login` conserva `access_token` en el body (`TokenResponse` sin cambios de contrato) y además fija una cookie HttpOnly `access_token` con el mismo token, para no romper clientes existentes (frontend previo a la migración, E2E) mientras dura la transición. Los endpoints protegidos aceptan cookie **o** header `Authorization: Bearer`; cuando ambos están presentes, **el header tiene prioridad** (`app/deps.py`) — es la señal explícita de un cliente que declara sus propias credenciales por request, la cookie es un fallback ambiental para clientes de navegador.
+- **Atributos de la cookie** (`app/auth/auth.py`, `atributos_cookie_acceso()`/`max_age_cookie_acceso()`): `HttpOnly=true`; `SameSite=Lax`; `Path=/`; `Domain` **no fijado** explícitamente (el navegador la asocia al host de la respuesta); `Secure=true` **solo** cuando `ENVIRONMENT=production` está confirmado explícitamente (mismo gate que HSTS/COOP desde la Fase 9A — no se activa solo por desplegar con Docker Compose); `Max-Age` igual a `ACCESS_TOKEN_EXPIRE_MINUTES * 60`, el mismo tiempo de vida que ya tenía el JWT.
+- **`SameSite=Lax` es suficiente porque el navegador nunca cruza orígenes**: `frontend/next.config.js` reescribe `/api/:path*` hacia el backend en el propio servidor de Next.js; el navegador solo ve el origen del frontend. No hizo falta `SameSite=None` ni fijar `Domain` manualmente.
+- **`POST /auth/logout` (nuevo)**: borra la cookie (`response.delete_cookie`), responde `204 No Content`, **no exige autenticación** y es **idempotente** (no falla si no existe cookie previa) — un cliente con sesión inválida o expirada debe poder limpiar su cookie igual.
+- **Sin cambios de CORS ni de rate limiting**: el navegador real solo llega al backend vía el proxy `/api` de Next.js (mismo origen visible desde el navegador), así que la fase dual no requirió tocar `allow_credentials` de CORS (Fase 9A) ni el limitador de intentos de login (Fase 9C) — ambos quedaron explícitamente fuera de alcance y sin cambios.
+- **RED → GREEN**: `backend/tests/test_api_auth_cookie.py` (22 tests) escrito primero contra el backend sin modificar (10 fallos esperados, confirmados antes de implementar), implementado hasta verde.
+- **Resultados**: backend **289/289** (267 previos + 22 nuevos); frontend 53/53 + type-check/lint/build limpios (sin cambios de código, backend-only); E2E 26 passed / 0 failed / 0 flaky / 78 skipped (baseline sin cambios, fase backend-only).
+- **OpenAPI**: cambio de contrato **aprobado explícitamente**. Snapshot regenerado con el mecanismo documentado en `test_openapi_contrato.py`; diff exacto verificado: **15 líneas insertadas, 0 eliminadas** — solo agrega la ruta `/auth/logout`. `TokenResponse` y el resto de paths/schemas quedaron byte-idénticos.
+
+### Fase 9F-B — Migración de frontend y E2E a cookie HttpOnly
+
+- **Commit**: `13c341d3c93ae86deb709aad1f5f659cdc74c9bf` — "security: migrate frontend auth to httpOnly cookie". **Local en `feature/soV0.1`, pendiente de push** al momento de escribir esta entrada — sin ejecución de CI todavía para este commit.
+- **Archivos**: `frontend/src/services/api.ts`, `frontend/src/services/auth.ts`, `frontend/src/context/AuthContext.tsx`, `frontend/src/app/login/page.tsx`, `frontend/src/services/api.test.ts`, `frontend/src/context/AuthContext.test.tsx` (nuevo), `frontend/src/app/espacios/page.test.tsx`, `frontend/src/components/ProtectedRoute.test.tsx`, `frontend/e2e/global-setup.ts`, `frontend/e2e/tests/smoke/06-401.spec.ts`, `frontend/CLAUDE.md`, `frontend/e2e/CLAUDE.md`, `frontend/src/app/README.md`, `frontend/src/components/README.md`.
+- **`apiFetch` (`api.ts`)**: deja de leer `localStorage.token` y de generar el header `Authorization`; envía `credentials: 'same-origin'` en cada `fetch` para que el navegador adjunte la cookie `access_token` (vía el mismo proxy `/api` de Next.js). El interceptor de 401 ya no limpia `localStorage` (no queda nada que limpiar) ni intenta manipular la cookie HttpOnly — no es posible desde JS ni es el objetivo; el backend la expira por `Max-Age` o la borra en `POST /auth/logout`.
+- **Exención de `/usuarios/me` del redirect global de 401** (`RUTAS_SIN_REDIRECT_401`, junto con `/auth/login`): `AuthContext` usa `GET /usuarios/me` como sondeo pasivo de sesión al montar; un visitante anónimo en una página pública recibe 401 ahí normalmente. Sin esta exención, el interceptor global habría redirigido a `/login` a cualquier visitante anónimo de una página pública, rompiendo la navegación anónima. `ProtectedRoute` sigue siendo quien redirige en rutas protegidas cuando `isAuthenticated` es falso. Documentado en `frontend/CLAUDE.md`.
+- **`AuthContext.tsx`**: ya no expone `token` (no hay valor de JWT accesible en JS). Determina la sesión con `getProfile()` (`GET /usuarios/me`) al montar, con `loading` correcto durante la consulta asíncrona (antes era síncrono, vía `localStorage`). `login()` guarda solo el `user` de la respuesta y **descarta `access_token` sin almacenarlo**. `logout()` llama `authService.logout()` (`POST /auth/logout`) y limpia el estado local siempre, incluso si la llamada de red falla (`catch` vacío + `setUser(null)` en `finally`) — bug real encontrado y corregido durante GREEN: sin ese `catch`, un fallo de red producía un *unhandled rejection* porque `Navbar.tsx` llama `logout()` sin `await`.
+- **`ProtectedRoute.tsx` sin cambios**: cero diff en el componente — ya consumía `isAuthenticated`/`loading`/`user` de forma agnóstica al mecanismo de sesión subyacente; solo se ajustó el mock de su test (campo `token` retirado, ya no existe en el tipo `AuthContextValue`).
+- **E2E — cookies reales, no simuladas**: `global-setup.ts` genera `storageState` con `ctx.storageState()`, que captura la cookie real que el backend fija en `POST /auth/login` (Playwright la retiene sola en el cookie-jar del `APIRequestContext`), en vez de construir `localStorage` a mano. `06-401.spec.ts` usa `context.addCookies()` en vez de `page.evaluate(() => localStorage...)` para simular una sesión inválida (una cookie HttpOnly no es accesible desde `page.evaluate`, por diseño). `frontend/e2e/fixtures/fixtures.ts` revisado, **sin cambios**: llama al backend directamente con `Authorization`, mecanismo que el backend sigue soportando (fase dual).
+- **Backend dual permanece intacto**: `git diff --stat -- backend/` vacío en este commit — ningún archivo de `backend/` tocado. `TokenResponse.access_token` y el soporte de `Authorization` en `deps.py` (Fase 9F-A) **no se retiraron**; siguen siendo la vía de compatibilidad temporal (ver Fase 9G, pendiente, en "Fases pendientes" más abajo).
+- **RED → GREEN**: `api.test.ts` (reescrito) y `AuthContext.test.tsx` (nuevo, no existía) escritos primero contra el código sin modificar (10 fallos esperados, confirmados antes de implementar). Hallazgo no previsto durante la implementación: 4 tests de `espacios/page.test.tsx` sembraban `localStorage` para simular sesión y quedaron rotos por el nuevo modelo asíncrono; se adaptaron mockeando `authService.getProfile`, igual que el resto de servicios de esa página.
+- **Resultados backend**: **289/289**, confirmado sin tocar (`git diff --stat -- backend/` vacío); `test_openapi_contrato.py` verde (sin cambios, fase frontend/E2E-only).
+- **Resultados frontend**: Vitest **66/66** (53 previos + 13 nuevos, principalmente `AuthContext.test.tsx`); `type-check`, `lint` y `build` verdes.
+- **Resultados E2E**: **26 passed, 0 failed, 1 flaky recuperado por retry, 81 skipped.** El flaky (`frontend/e2e/tests/smoke/05-heatmap.spec.ts`, escenario "una reserva dentro del horario incrementa la ocupación global", proyecto `admin`) es **preexistente y no relacionado con esta fase** — la aserción que falla crea una reserva vía API directa con header `Authorization`, sin tocar cookies ni `AuthContext`, y coincide con el "1 flaky conocido" que este changelog documenta desde la Fase 9A. Antes de la corrida final fue necesario reiniciar `reservas_test` (`docker compose -f docker-compose.test.yml down -v` + `up -d --wait`): las múltiples corridas de E2E ejecutadas en la misma sesión de trabajo (Fases 9F-A y 9F-B) habían acumulado reservas en la base persistente — los specs usan offsets de fecha fijos, diseñados para no colisionar *dentro* de una corrida, no para ser idempotentes entre corridas repetidas el mismo día sin reinicio. Es el comportamiento ya documentado de la suite (`backend/tests/CLAUDE.md`, `frontend/e2e/CLAUDE.md`), no un fallo nuevo introducido por esta fase.
+- **OpenAPI**: sin cambios — cambio frontend/E2E-only, ningún archivo de `backend/` tocado.
+
+## Riesgos aceptados y limitaciones conocidas (vigentes tras Fase 9F-B)
 
 - **CSP con `'unsafe-inline'` en `script-src`** (frontend, Fase 9A): necesario porque el App Router de Next.js 14 no soporta nonces sin `middleware.ts` adicional (no implementado, fuera de alcance). Reduce la protección contra XSS por script inline, aunque la CSP sigue bloqueando fuentes externas, `object-src`, `frame-ancestors` y fija `base-uri`/`form-action`.
 - **Rate limiting no distribuido** (Fase 9C): en memoria de proceso, válido mientras el backend corra como un único proceso (confirmado hoy). Requiere Redis u otro backend compartido si se despliega con múltiples workers o réplicas.
@@ -109,14 +143,21 @@ rutas ni payloads de la API salvo aprobación explícita caso por caso (Fase
 - **`next`/`postcss` con advisories de `npm audit`** (Fase 9B): requieren un salto mayor de Next 14 a Next 16 (breaking change) para resolverse; fuera de alcance de esta serie.
 - **`frontend/services/espacioService.js`** (hallazgo de la Fase 9B): archivo legado con `import axios from 'axios'`, fuera de `src/`, no importado por nada, no compilado ni linteado. No se eliminó (fuera de alcance); si alguna vez se importa, fallaría al resolver `axios` (ya no instalado).
 - **E2E cubre solo Chromium**: Firefox/WebKit quedan como trabajo futuro (limitación preexistente a esta serie, no cambiada).
+- **CSRF sin defensa adicional más allá de `SameSite=Lax`** (Fase 9F-A/9F-B): al aceptar cookie, el navegador la adjunta automáticamente en peticiones same-origin, y desde la Fase 9F-B el frontend sí envía `credentials: 'same-origin'` en cada request. `SameSite=Lax` bloquea el envío de la cookie en peticiones state-changing disparadas desde otro origen, pero no se agregó un token CSRF de doble envío ni ningún otro mecanismo adicional — decisión explícita, fuera de alcance de ambas fases. **El riesgo está mitigado, no resuelto.**
+- **Dependencia del proxy same-origin de Next.js** (Fase 9F-A/9F-B): que `SameSite=Lax` sea suficiente (sin `SameSite=None` ni CORS con credentials) depende por completo de que el navegador nunca hable directo con el backend — todo pasa por el proxy `/api` de `frontend/next.config.js`. Si en el futuro un cliente accede al backend cross-origin (app móvil, `/docs` servido con CORS directo en producción, etc.), este análisis debe revisarse desde cero.
+- **`access_token` en el body y `Authorization` son compatibilidad temporal, no el estado final** (Fase 9F-A/9F-B): ambos se mantuvieron activos a propósito para no romper clientes durante la migración. Frontend y E2E ya migraron a cookie (Fase 9F-B), pero el backend todavía acepta y expone ambos mecanismos. Su retiro queda para una fase de corte futura (Fase 9G, ver abajo) — no asumir que ya están deprecados o que se van a retirar automáticamente.
+- **Commits `49bf9f3` (Fase 9F-A) y `13c341d` (Fase 9F-B) sin `git push`** al momento de escribir esta entrada: ambos son commits locales en `feature/soV0.1`. No existe ejecución de CI para ninguno de los dos todavía — no inventar ni asumir un resultado de CI posterior a estos commits.
 
 ## Fases pendientes (no aprobadas ni iniciadas)
 
 Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 
+- **Fase 9G** (fase de corte, sin alcance formalmente aprobado todavía): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `backend/app/deps.py`, ahora que frontend y E2E ya no dependen de ellos (Fase 9F-B). Cambiaría el contrato de OpenAPI y requeriría aprobación explícita, igual que 9F-A/9F-B. También pendiente: evaluar si conviene agregar una defensa CSRF adicional (token de doble envío) antes o como parte de este corte.
 - Fase 10 (imágenes base de Docker EOL).
+- Fase 11 y Fase 12: mencionadas como continuación numérica de la serie; **sin alcance definido en ningún documento de este repositorio** — no existe roadmap aprobado más allá de la Fase 10. No inventar contenido para ellas hasta que se definan explícitamente.
 - Deuda técnica de frontend adicional a lo ya resuelto en esta serie.
 - Backlog de negocio (reglas RN-006 en adelante).
 - Decidir si se actualiza `next`/`postcss` (salto mayor, ver riesgos arriba).
 - Decidir si se implementa un backend de rate limiting distribuido (Redis) si el despliegue pasa a múltiples workers/réplicas.
 - Decidir si se agrega infraestructura de request ID.
+- Hacer `git push` de los commits `49bf9f3` (Fase 9F-A) y `13c341d` (Fase 9F-B) — pendiente de decisión del usuario, no ejecutado en ninguna de las dos fases.

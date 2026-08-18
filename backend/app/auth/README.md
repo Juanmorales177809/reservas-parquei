@@ -12,7 +12,7 @@ Mecánica de autenticación: hash/verificación de contraseñas (bcrypt vía `pa
 
 ## Decisiones técnicas
 
-- **Fase dual, no reemplazo**: `POST /auth/login` sigue devolviendo `access_token` en el body (`TokenResponse` sin cambios de contrato) y además fija una cookie HttpOnly con el mismo valor. Decisión de producto explícita: mantener compatibilidad con clientes existentes (E2E, frontend actual) mientras el frontend se migra en una fase posterior (Fase 9F-B, no iniciada).
+- **Fase dual, no reemplazo**: `POST /auth/login` sigue devolviendo `access_token` en el body (`TokenResponse` sin cambios de contrato) y además fija una cookie HttpOnly con el mismo valor. Decisión de producto explícita: mantener compatibilidad con clientes existentes mientras el frontend se migra. La migración de frontend/E2E ya se completó (Fase 9F-B, commit `13c341d3c93ae86deb709aad1f5f659cdc74c9bf`); `access_token` en el body y el header `Authorization` se conservan como compatibilidad temporal — su retiro queda para una fase de corte futura (Fase 9G, no aprobada ni iniciada).
 - **Atributos de la cookie** (`atributos_cookie_acceso()`): `HttpOnly=true`, `SameSite=Lax`, `Path=/`, sin `Domain` explícito, `Secure` solo cuando `ENVIRONMENT=production` está confirmado — mismo gate que `Strict-Transport-Security`/`Cross-Origin-Opener-Policy` en `app/main.py`, para no romper el login en desarrollo local sobre HTTP simple. `Max-Age` (`max_age_cookie_acceso()`) es `ACCESS_TOKEN_EXPIRE_MINUTES * 60`, el mismo tiempo de vida que ya tenía el JWT — no se introduce una expiración distinta.
 - **SameSite=Lax es suficiente porque el navegador nunca cruza orígenes**: `frontend/next.config.js` reescribe `/api/:path*` hacia el backend en el servidor de Next.js; el navegador solo ve el origen del frontend. No hace falta `SameSite=None` ni fijar `Domain` manualmente (análisis completo en la Fase 9F, previa a esta implementación).
 - **Helpers compartidos entre set y delete**: `atributos_cookie_acceso()` devuelve solo los atributos que ambos métodos de `Response` aceptan (`httponly`, `samesite`, `path`, `secure`); `max_age` queda aparte porque `Response.delete_cookie` no lo acepta.
@@ -37,7 +37,8 @@ Ver también `backend/app/api/README.md` (endpoints `/auth/login` y `/auth/logou
 
 ## Pendientes
 
-- Fase 9F-B (no iniciada, requiere aprobación aparte): migrar `frontend/src/context/AuthContext.tsx`, `frontend/src/services/api.ts`, `frontend/e2e/global-setup.ts` y `frontend/e2e/tests/smoke/06-401.spec.ts` para dejar de depender de `localStorage`, y evaluar si se retira `access_token` del body de `TokenResponse` una vez migrados todos los clientes.
+- ~~Fase 9F-B: migrar `frontend/src/context/AuthContext.tsx`, `frontend/src/services/api.ts`, `frontend/e2e/global-setup.ts` y `frontend/e2e/tests/smoke/06-401.spec.ts` para dejar de depender de `localStorage`.~~ **Hecho** — commit `13c341d3c93ae86deb709aad1f5f659cdc74c9bf` ("security: migrate frontend auth to httpOnly cookie"), local, pendiente de push al momento de escribir esto.
+- Fase 9G (no aprobada ni iniciada): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `app/deps.py`, ahora que frontend y E2E ya no dependen de ellos.
 
 ## Fase de implementación
 

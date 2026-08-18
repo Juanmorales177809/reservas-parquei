@@ -50,7 +50,7 @@ Resultado esperado: 3 tests verdes de lifespan; 22 tests verdes de autenticació
 ## Pendientes
 
 - N/A para la Fase 3.
-- Fase 9F-A: ver Pendientes en `backend/app/api/README.md` y `backend/app/auth/README.md` (migración de frontend/E2E, Fase 9F-B).
+- Fase 9F-A: la migración de frontend/E2E (Fase 9F-B) ya se completó (commit `13c341d3c93ae86deb709aad1f5f659cdc74c9bf`, local, pendiente de push). Ver Pendientes en `backend/app/api/README.md` y `backend/app/auth/README.md` para el pendiente actual (Fase 9G, retiro de `access_token`/`Authorization`).
 
 ## Fase de implementación
 
