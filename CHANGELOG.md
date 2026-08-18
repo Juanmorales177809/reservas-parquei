@@ -149,12 +149,98 @@ push`** al momento de escribir estas dos secciones — a diferencia de
 - **`access_token` en el body y `Authorization` son compatibilidad temporal, no el estado final** (Fase 9F-A/9F-B): ambos se mantuvieron activos a propósito para no romper clientes durante la migración. Frontend y E2E ya migraron a cookie (Fase 9F-B), pero el backend todavía acepta y expone ambos mecanismos. Su retiro queda para una fase de corte futura (Fase 9G, ver abajo) — no asumir que ya están deprecados o que se van a retirar automáticamente.
 - **Commits `49bf9f3` (Fase 9F-A) y `13c341d` (Fase 9F-B) sin `git push`** al momento de escribir esta entrada: ambos son commits locales en `feature/soV0.1`. No existe ejecución de CI para ninguno de los dos todavía — no inventar ni asumir un resultado de CI posterior a estos commits.
 
+## Fase 10 — Estabilización y fijado de versiones de imágenes base (2026-08-18)
+
+Serie de sub-fases (10-B a 10-G — no existe una "Fase 10-A" documentada; el
+roadmap original (`handoff-casa.md`) solo registra "Fase 10 (imágenes base
+EOL de Docker)" en bloque, sin sub-fases; la numeración B–G es la usada al
+ejecutar el trabajo real) sobre imágenes base de Docker próximas a EOL,
+reproducibilidad de builds y compatibilidad de dependencias tras el salto de
+versión, en `feature/soV0.1`. Alcance explícito de toda la serie: nunca leer,
+escribir ni migrar la base de datos de desarrollo (`reservas_db`); solo
+`reservas_test` (puerto 5433) es válida para pruebas e inspección.
+
+### Fase 10-B — PostgreSQL de la base de pruebas a la versión 17
+
+- **Commit**: `c7f8129edac2fc14ff95c30f377479f21be61885` — "build: upgrade test database to postgres 17".
+- **Archivo**: `docker-compose.test.yml` (`postgres:13` → `postgres:17`, exclusivo de `reservas_test`, puerto 5433).
+- PostgreSQL real verificado en el contenedor: **17.11**.
+- Extensión `btree_gist` y la restricción de exclusión `reservas_sin_solapamiento` (específicas de PostgreSQL, ver `backend/CLAUDE.md`) validadas contra el servidor 17.
+- **Resultados**: backend 290 passed; `test_openapi_contrato.py` 2 passed (OpenAPI sin cambios); frontend 66 passed; `type-check`, `lint` y `build` verdes; E2E 26 passed, 0 failed, 1 flaky, 81 skipped.
+- Flaky: `frontend/e2e/tests/smoke/05-heatmap.spec.ts` (proyecto `admin`, "una reserva dentro del horario incrementa la ocupación global") — preexistente, ya documentado desde la Fase 9A, recuperado en retry.
+- **Alcance**: únicamente `reservas_test` fue actualizada. **La base de datos de desarrollo (`reservas_db`, `docker-compose.yml`) no se tocó y sigue en PostgreSQL 13** — su eventual migración es un trabajo aparte, pospuesto explícitamente (ver Fase 10-E).
+
+### Fase 10-C — Imagen Docker del frontend a Node 24.19.0
+
+- **Commit**: `80164873b6ac613927e6449eba933866a03a9bef` — "build: upgrade frontend image to node 24".
+- **Archivo**: `frontend/Dockerfile` (`node:20-alpine` → `node:24.19.0-alpine` en las dos etapas `builder` y `runner`; usuario no root `node` conservado sin cambios).
+- Build real ejecutado y verificado: `docker build -f frontend/Dockerfile -t reservas-frontend:node24 ./frontend` (contexto `./frontend`, no la raíz del repo — el comando con contexto `.` falla porque el Dockerfile espera `package-lock.json` en la raíz del contexto, igual que ya usa `docker-compose.yml`).
+- Contenedor real: `node --version` → `v24.19.0` en ambas etapas; usuario efectivo `node` (`uid=1000`).
+- Smoke test contra un backend real (alias de red `backend`, `reservas_test` como base de datos): `GET /` → 200; `GET /api/espacios` (proxy `/api` de Next.js) → 200 con datos reales; `/docs` y `/openapi.json` → 200.
+- **Resultados**: backend 290 passed; frontend 66 passed; `type-check`/`lint`/`build` verdes; E2E 26 passed, 0 failed, 1 flaky, 81 skipped (mismo flaky de `05-heatmap.spec.ts`).
+- No se modificó CI, `package-lock.json` ni `docker-compose.yml` en esta fase.
+
+### Fase 10-D — Imagen Docker del backend a Python 3.12 y CI
+
+- **Commit**: `daa4dfe60087013914b99f8196ff352540139b1c` — "build: upgrade backend to python 3.12".
+- **Archivos**: `backend/Dockerfile` (`python:3.10-slim` → `python:3.12-slim-bookworm`) y `.github/workflows/ci.yml` (jobs `backend` y `e2e`: `python-version: '3.10'` → `'3.12'`).
+- Python real verificado en la imagen: **3.12.14**.
+- **Compatibilidad passlib/bcrypt probada explícitamente** (motivo: `bcrypt==3.2.2` está pineado en `backend/requirements.txt` porque passlib no funciona con bcrypt≥4, ver `backend/CLAUDE.md`) — flujo real de la aplicación, dentro de la imagen: hash bcrypt real vía `hash_password()`, verificación de contraseña correcta (`True`), rechazo de contraseña incorrecta (`False`), usuario de prueba real creado vía `create_usuario()` contra `reservas_test`, login real (`POST /auth/login` → 200), JWT emitido en el body y cookie `access_token` (`HttpOnly`, `SameSite=Lax`, `Path=/`) emitida. Ni la contraseña, ni el hash, ni el JWT ni la cookie se registraron en ningún log.
+- `backend/requirements.txt` y `backend/requirements-dev.txt` **sin cambios** — no hizo falta actualizar bcrypt, passlib ni python-jose.
+- **Resultados**: backend 290 passed; `test_openapi_contrato.py` 2 passed (OpenAPI sin cambios); frontend 66 passed; E2E 26 passed, 0 failed, 1 flaky, 81 skipped (mismo flaky de `05-heatmap.spec.ts`).
+- Usuario no root `appuser` (`uid=1000, gid=0`) conservado sin cambios.
+
+### Fase 10-E — Análisis previo de la migración de PostgreSQL de desarrollo (pospuesta)
+
+- **Sin commit — solo análisis de solo lectura, ningún archivo modificado.**
+- Hallazgo determinante: el volumen `reservas_postgres_data` **no existe** en este entorno, y el stack de desarrollo (`docker-compose.yml`) **no está levantado** (sin `.env`, sin contenedores `reservas_db`/`reservas_backend`/`reservas_frontend` activos).
+- No se ejecutó `docker compose up` ni `down -v` sobre el entorno de desarrollo en ningún momento de este análisis.
+- **La migración de PostgreSQL de desarrollo de 13 a 17 queda pospuesta** hasta disponer de un entorno con datos reales que migrar — `docker-compose.yml` sigue declarando `postgres:13` sin cambios.
+- Procedimiento futuro documentado (a ejecutar cuando exista el entorno): backup lógico con `pg_dump --format=custom` sobre el volumen 13 original, restauración en un **volumen nuevo** para PostgreSQL 17, validación completa (conteo de filas, extensión `btree_gist`, restricción `reservas_sin_solapamiento`, migraciones idempotentes, suite completa) antes de reapuntar `docker-compose.yml`. El volumen PostgreSQL 13 original debe conservarse intacto y sin modificar hasta que esa validación termine.
+- **No se afirma en ningún punto que PostgreSQL de desarrollo haya sido migrado** — sigue en 13, sin cambios, en todos los entornos donde exista.
+
+### Fase 10-F — Análisis de pinning y reproducibilidad de imágenes
+
+- **Sin commit — solo análisis de solo lectura, ningún archivo modificado.**
+- Confirmado con `docker buildx imagetools inspect` contra el registry oficial: `node:24.19.0-alpine` y `python:3.12-slim-bookworm` ya usan **tags versionados explícitos** (patch exacto y minor+variante de Debian respectivamente), no `latest`.
+- Digests multi-arquitectura reales verificados para las cinco imágenes relevantes (`node:24.19.0-alpine`, `python:3.12-slim-bookworm`, `postgres:13`, `postgres:17`, `dpage/pgadmin4:latest`) — **verificados, pero no incorporados al código**: ningún `FROM`/`image:` se reescribió a formato `imagen@sha256:...`.
+- **Estrategia recomendada y adoptada: tag versionado explícito, no pin por digest** — un digest congelaría también los parches de seguridad transitivos del sistema operativo base (Alpine/Debian) que el tag versionado sí sigue recibiendo automáticamente, a cambio de una ganancia de reproducibilidad que no es el patrón que sigue el resto del proyecto (sin Alembic, sin SBOM/firma de supply chain).
+- PostgreSQL de desarrollo continúa declarado en `postgres:13`, sin cambios (fuera de alcance, ver Fase 10-E).
+- Hallazgo que originó la Fase 10-G: `dpage/pgadmin4:latest` era la única imagen del stack sin ningún tipo de fijación de versión — resuelta a `latest` como versión real `9.17` en el momento de la verificación.
+- No se modificó ningún archivo en esta fase.
+
+### Fase 10-G — Fijado de la versión de pgAdmin
+
+- **Commit**: `1e53307b9d1bc61003c49db5063fe4ab8e560f69` — "build: pin pgadmin image version".
+- **Archivo**: `docker-compose.yml` (`dpage/pgadmin4:latest` → `dpage/pgadmin4:9.17`, única línea modificada).
+- Digest verificado contra el registry oficial: `sha256:2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d` — **la versión `9.17` coincide exactamente con lo que `latest` resolvía en el momento de la verificación** (Fase 10-F), no es un downgrade ni un adelanto de versión.
+- `docker compose config` validado (variables ficticias, sin `.env` real disponible; salida filtrada para no exponer ningún valor de `PASSWORD`/`SECRET_KEY`) — estructura YAML correcta, los 4 servicios (`db`, `backend`, `frontend`, `pgadmin`) resueltos, `db` intacto en `postgres:13`, `backend`/`frontend` sin cambios.
+- **No fue posible verificar el arranque vía `docker compose up -d pgadmin`**: ese servicio depende de `db: condition: service_healthy`, que a su vez requiere el volumen `reservas_postgres_data` — inexistente en este entorno (Fase 10-E) — y no hay `.env`/`SECRET_KEY` configurados. Levantarlo por esa vía habría creado el volumen de desarrollo, prohibido explícitamente.
+- Verificación alternativa: contenedor aislado y efímero (`docker run --rm dpage/pgadmin4:9.17`, sin `docker-compose.yml`, credenciales ficticias) — arrancó correctamente, imagen y digest confirmados por `docker inspect`.
+- **Hallazgo durante la verificación, corregido de inmediato**: la propia imagen `dpage/pgadmin4` declara `VOLUME /var/lib/pgadmin` en su Dockerfile, así que el contenedor aislado creó un volumen anónimo aunque no se pasó `-v`. Se detuvo el contenedor (`--rm` liberó también el volumen anónimo al detenerse) y se confirmó que no quedó ningún volumen remanente (`docker volume ls`) — sin residuos.
+- **No se afirma que pgAdmin haya sido validado contra una base de datos de desarrollo real** — solo se verificó de forma aislada, sin conexión a `reservas_db`.
+
+## Estado actual (2026-08-18, tras Fase 10-G)
+
+- **Fase 9G cerrada**: commit `6eabc92b9cfb6719884212179146cb77c7cf1871` — "test: close security audit coverage gap" (precede a toda la serie Fase 10; agrega cobertura de test a `backend/tests/test_api_auth_cookie.py` y una nota de auditoría posterior en este changelog — no debe confundirse con el corte de `access_token`/`Authorization` descrito más abajo en "Fases pendientes", que sigue sin implementar).
+- **Fase 10-B, 10-C, 10-D y 10-G implementadas y commiteadas localmente en `feature/soV0.1`**, en este orden: `c7f8129edac2fc14ff95c30f377479f21be61885`, `80164873b6ac613927e6449eba933866a03a9bef`, `daa4dfe60087013914b99f8196ff352540139b1c`, `1e53307b9d1bc61003c49db5063fe4ab8e560f69`. **Ninguno de los cuatro tiene `git push` todavía** — no existe ejecución de CI para ninguno de ellos; no debe asumirse ni inventarse un resultado de CI posterior a estos commits.
+- **Fase 10-E pospuesta**: no existe volumen de desarrollo en este entorno; la migración de PostgreSQL de desarrollo de 13 a 17 no se ha iniciado, queda condicionada a disponer de un entorno con datos reales.
+- **Fase 10-F**: análisis de pinning completado, sin cambios de archivo — su único efecto práctico fue identificar el hallazgo resuelto en la Fase 10-G.
+- **Flaky E2E conocido, sin cambios en toda la serie**: `frontend/e2e/tests/smoke/05-heatmap.spec.ts` (proyecto `admin`), reproducido de forma idéntica (falla en el primer intento, pasa en retry #1) en las Fases 10-B, 10-C y 10-D — mismo patrón documentado desde la Fase 9A, no introducido ni agravado por esta serie.
+
+## Riesgos aceptados y limitaciones conocidas (vigentes tras Fase 10-G)
+
+- **PostgreSQL de desarrollo sigue en 13**, con una migración a 17 documentada pero no ejecutada (Fase 10-E) — no confundir con `reservas_test`, que ya corre en 17 desde la Fase 10-B.
+- **Ninguna imagen base está fijada por digest**, solo por tag versionado (decisión explícita de la Fase 10-F) — un futuro rebuild de `node:24.19.0-alpine` o `python:3.12-slim-bookworm` por parte de sus mantenedores (parche de seguridad del SO base) cambiará el digest resultante sin que cambie ningún archivo de este repo.
+- **`docker-compose.test.yml` (`postgres:17`) no tiene fijado el minor/patch exacto** — evaluado en la Fase 10-F como tarea separada, no decidida todavía.
+- Los resultados de regresión de la Fase 10 (10-B, 10-C, 10-D, 10-G) están verificados localmente, pero **sin ejecución de CI real** (sin push) — un futuro `git push` podría revelar diferencias de entorno no visibles en las verificaciones locales de esta serie.
+
 ## Fases pendientes (no aprobadas ni iniciadas)
 
 Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 
 - **Fase 9G** (fase de corte, sin alcance formalmente aprobado todavía): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `backend/app/deps.py`, ahora que frontend y E2E ya no dependen de ellos (Fase 9F-B). Cambiaría el contrato de OpenAPI y requeriría aprobación explícita, igual que 9F-A/9F-B. También pendiente: evaluar si conviene agregar una defensa CSRF adicional (token de doble envío) antes o como parte de este corte.
-- Fase 10 (imágenes base de Docker EOL).
+- **Fase 10** (imágenes base de Docker EOL): 10-B, 10-C, 10-D y 10-G implementadas y commiteadas localmente (ver sección "Fase 10" y "Estado actual" arriba); **10-E** (migración de PostgreSQL de desarrollo 13→17) queda explícitamente pospuesta hasta disponer de un entorno con datos reales que migrar; 10-F (análisis de pinning por digest) completado sin cambios de archivo.
 - Fase 11 y Fase 12: mencionadas como continuación numérica de la serie; **sin alcance definido en ningún documento de este repositorio** — no existe roadmap aprobado más allá de la Fase 10. No inventar contenido para ellas hasta que se definan explícitamente.
 - Deuda técnica de frontend adicional a lo ya resuelto en esta serie.
 - Backlog de negocio (reglas RN-006 en adelante).
@@ -162,3 +248,4 @@ Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 - Decidir si se implementa un backend de rate limiting distribuido (Redis) si el despliegue pasa a múltiples workers/réplicas.
 - Decidir si se agrega infraestructura de request ID.
 - Hacer `git push` de los commits `49bf9f3` (Fase 9F-A) y `13c341d` (Fase 9F-B) — pendiente de decisión del usuario, no ejecutado en ninguna de las dos fases.
+- Hacer `git push` de los commits de la Fase 10 (`c7f8129`, `8016487`, `daa4dfe`, `1e53307`) y del commit documental que los describe — pendiente de decisión del usuario, no ejecutado en esta serie.

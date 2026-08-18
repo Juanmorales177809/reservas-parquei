@@ -25,6 +25,18 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 | Base de datos | PostgreSQL 13 |
 | Contenedores | Docker y Docker Compose |
 
+## Imágenes base y runtimes
+
+| Imagen | Uso | Versión fijada |
+| --- | --- | --- |
+| `node:24.19.0-alpine` | `frontend/Dockerfile` (builder y runner) | Tag versionado exacto |
+| `python:3.12-slim-bookworm` | `backend/Dockerfile` | Tag versionado (minor + variante) |
+| `postgres:13` | `docker-compose.yml` (desarrollo) | Sin cambios |
+| `postgres:17` | `docker-compose.test.yml` (`reservas_test`) | Sin cambios |
+| `dpage/pgadmin4:9.17` | `docker-compose.yml` (pgAdmin) | Tag versionado exacto |
+
+Detalle de cada cambio, verificación, digest y riesgos aceptados en [`CHANGELOG.md`](CHANGELOG.md) (Fase 10).
+
 ## Arquitectura
 
 ```text
