@@ -19,7 +19,7 @@ services:
       start_period: 10s
 
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.17
     container_name: reservas_pgadmin
     restart: unless-stopped
     environment:
