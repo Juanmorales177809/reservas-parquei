@@ -1,6 +1,6 @@
 services:
   test_db:
-    image: postgres:13
+    image: postgres:17
     container_name: reservas_test_db
     restart: "no"
     environment:
