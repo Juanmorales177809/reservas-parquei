@@ -11,6 +11,7 @@ from app.auth.auth import hash_password
 from app.config import settings
 from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
+from app.middleware.request_id import HEADER, RequestIdMiddleware, resolver_request_id
 from app.migrations import migrate_resource_reservations
 
 
@@ -32,6 +33,11 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Request ID: primer middleware (más externo del stack, ver
+# app/middleware/request_id.py): resuelve/valida el X-Request-ID y lo agrega a
+# toda respuesta normal y controlada.
+app.add_middleware(RequestIdMiddleware)
 
 # Configurar CORS
 app.add_middleware(
@@ -80,23 +86,29 @@ async def manejar_excepcion_no_controlada(request: Request, exc: Exception) -> J
     422/429 entre otros): esos siguen resolviéndose con ese handler propio,
     nunca con este, así que su comportamiento no cambia.
 
-    Log: método, ruta y tipo de excepción en el mensaje, más el traceback
-    completo vía exc_info — todo queda solo en el log del servidor, nunca en
-    la respuesta. No se registra el cuerpo de la petición, headers,
+    Log: método, ruta, request_id y tipo de excepción en el mensaje, más el
+    traceback completo vía exc_info — todo queda solo en el log del servidor,
+    nunca en la respuesta. No se registra el cuerpo de la petición, headers,
     Authorization ni ninguna credencial.
 
     Respuesta al cliente: siempre 500 con un mensaje genérico y estable,
     igual sin importar el tipo de excepción real, para no filtrar detalles
-    internos ni permitir distinguir un tipo de fallo de otro.
+    internos ni permitir distinguir un tipo de fallo de otro. Incluye el
+    X-Request-ID de la petición (el mismo que registró el middleware en
+    request.state y que se anotó en el log), sin alterar el body genérico.
     """
+    request_id = getattr(request.state, "request_id", None) or resolver_request_id(None)
     _logger_errores.error(
-        "Excepción no controlada en %s %s: %s",
+        "Excepción no controlada en %s %s [request_id=%s]: %s",
         request.method,
         request.url.path,
+        request_id,
         type(exc).__name__,
         exc_info=exc,
     )
-    return JSONResponse(status_code=500, content={"detail": _MENSAJE_ERROR_GENERICO})
+    respuesta = JSONResponse(status_code=500, content={"detail": _MENSAJE_ERROR_GENERICO})
+    respuesta.headers[HEADER] = request_id
+    return respuesta
 
 
 @app.get("/", tags=["health"])
