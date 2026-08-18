@@ -8,7 +8,7 @@ test.describe('Notificaciones', () => {
     const headersUsuario = await headersPara(backend, 'usuario');
     const recurso = await primerRecurso(backend);
     const creada = await crearReservaApi(backend, headersUsuario, {
-      recurso_id: recurso.id,
+      recurso_ids: [recurso.id],
       // Offset 22, no 14: reserva el mismo primer recurso y el mismo horario
       // 10:00-11:00 que e2e/tests/smoke/08-disponibilidad.spec.ts (offset 13).
       // fechaFutura salta al lunes cuando el offset crudo cae domingo, así

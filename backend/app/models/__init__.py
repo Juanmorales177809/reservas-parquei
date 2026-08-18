@@ -3,7 +3,11 @@ from app.models.espacio import Espacio
 from app.models.notificacion import Notificacion
 from app.models.recurso import Recurso, TipoRecurso
 from app.models.reserva import Reserva
+from app.models.reserva_recurso import ReservaRecurso
+from app.models.reserva_zona import ReservaZona
 from app.models.usuario import Usuario
 from app.models.usuario_espacio import UsuarioEspacio
+from app.models.zona import Zona
+from app.models.zona_recurso import ZonaRecurso
 
-__all__ = ["ControlCambio", "Espacio", "Notificacion", "Recurso", "Reserva", "TipoRecurso", "Usuario", "UsuarioEspacio"]
+__all__ = ["ControlCambio", "Espacio", "Notificacion", "Recurso", "Reserva", "ReservaRecurso", "ReservaZona", "TipoRecurso", "Usuario", "UsuarioEspacio", "Zona", "ZonaRecurso"]

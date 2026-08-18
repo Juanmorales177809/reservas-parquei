@@ -4,18 +4,34 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { listarEspacios } from '@/services/espacios';
+import { listarZonas } from '@/services/zonas';
 import { getDisponibilidadRecurso, listarRecursos } from '@/services/recursos';
 import { crearReserva } from '@/services/reservas';
 import type { DisponibilidadSlot, Espacio } from '@/types/espacio';
 import type { Recurso } from '@/types/recurso';
+import type { Zona } from '@/types/zona';
 import { getLocalDateInputValue } from '@/utils/date';
 
 interface EspacioConRecursos {
   espacio: Espacio;
   recursos: Recurso[];
+  zonas: Zona[];
 }
 
 type PasoReserva = 'editar' | 'resumen' | 'exito';
+
+function slotsDesdeHorario(espacio: Espacio, fecha: string): DisponibilidadSlot[] {
+  // Fase 12C-6: no existe un endpoint de disponibilidad por zona; la grilla
+  // se construye desde el horario de atención del espacio. La autoridad del
+  // solapamiento real de una zona es el backend (409).
+  const dia = new Date(`${fecha}T12:00:00`).getDay();
+  const horas = espacio.horario_atencion[dia] ?? [];
+  return horas.map((hora) => ({
+    hora_inicio: `${String(hora).padStart(2, '0')}:00`,
+    hora_fin: `${String(hora + 1).padStart(2, '0')}:00`,
+    estado: 'libre',
+  }));
+}
 
 export default function EspaciosPage() {
   const { isAuthenticated } = useAuth();
@@ -23,7 +39,8 @@ export default function EspaciosPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [seleccionado, setSeleccionado] = useState<EspacioConRecursos | null>(null);
-  const [recursoId, setRecursoId] = useState(0);
+  const [recursoIds, setRecursoIds] = useState<number[]>([]);
+  const [zonaIds, setZonaIds] = useState<number[]>([]);
   const [fecha, setFecha] = useState(() => getLocalDateInputValue());
   const [slots, setSlots] = useState<DisponibilidadSlot[]>([]);
   const [horasSeleccionadas, setHorasSeleccionadas] = useState<number[]>([]);
@@ -38,14 +55,15 @@ export default function EspaciosPage() {
   const focoPrevioRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    Promise.all([listarEspacios(), listarRecursos(true)])
-      .then(([espaciosData, recursosData]) => {
+    Promise.all([listarEspacios(), listarRecursos(true), listarZonas()])
+      .then(([espaciosData, recursosData, zonasData]) => {
         setEspacios(
           espaciosData
             .filter((espacio) => espacio.estado === 'activo')
             .map((espacio) => ({
               espacio,
               recursos: recursosData.filter((recurso) => recurso.espacio_id === espacio.id),
+              zonas: zonasData.filter((zona) => zona.espacio_id === espacio.id),
             })),
         );
       })
@@ -53,22 +71,56 @@ export default function EspaciosPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function consultarDisponibilidad(id: number, nuevaFecha: string) {
-    setRecursoId(id);
-    setFecha(nuevaFecha);
-    setHorasSeleccionadas([]);
-    setPaso('editar');
-    setAceptaTerminos(false);
+  async function recargarSlots(
+    item: EspacioConRecursos,
+    recs: number[],
+    zonas: number[],
+    nuevaFecha: string,
+  ) {
+    const primario = recs[0] ?? null;
     setLoadingSlots(true);
     setError(null);
     try {
-      setSlots(await getDisponibilidadRecurso(id, nuevaFecha));
+      if (primario !== null) {
+        setSlots(await getDisponibilidadRecurso(primario, nuevaFecha));
+      } else if (item.espacio.modalidad_reserva !== 'equipos' && zonas.length > 0) {
+        setSlots(slotsDesdeHorario(item.espacio, nuevaFecha));
+      } else {
+        setSlots([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cargar la disponibilidad');
       setSlots([]);
     } finally {
       setLoadingSlots(false);
     }
+  }
+
+  function cambiarFecha(nuevaFecha: string) {
+    if (!seleccionado) return;
+    setFecha(nuevaFecha);
+    setHorasSeleccionadas([]);
+    setPaso('editar');
+    setAceptaTerminos(false);
+    void recargarSlots(seleccionado, recursoIds, zonaIds, nuevaFecha);
+  }
+
+  function alternarRecurso(id: number) {
+    const nuevos = recursoIds.includes(id) ? recursoIds.filter((item) => item !== id) : [...recursoIds, id];
+    setRecursoIds(nuevos);
+    setHorasSeleccionadas([]);
+    setPaso('editar');
+    setAceptaTerminos(false);
+    if (seleccionado) void recargarSlots(seleccionado, nuevos, zonaIds, fecha);
+  }
+
+  function alternarZona(id: number) {
+    const nuevos = zonaIds.includes(id) ? zonaIds.filter((item) => item !== id) : [...zonaIds, id];
+    setZonaIds(nuevos);
+    setHorasSeleccionadas([]);
+    setPaso('editar');
+    setAceptaTerminos(false);
+    if (seleccionado) void recargarSlots(seleccionado, recursoIds, nuevos, fecha);
   }
 
   function cerrarModal() {
@@ -96,18 +148,39 @@ export default function EspaciosPage() {
     setAceptaTerminos(false);
     setReservaCreadaId(null);
     setReservaCreadaEstado(null);
-    const primerRecurso = item.recursos[0];
-    if (primerRecurso) {
-      void consultarDisponibilidad(primerRecurso.id, fecha);
-    } else {
-      setRecursoId(0);
-    }
+    const recursosIniciales: number[] =
+      item.espacio.modalidad_reserva !== 'zonas' && item.recursos.length > 0 ? [item.recursos[0].id] : [];
+    // En mixto solo se preselecciona el primer recurso; las zonas se agregan
+    // a elección del usuario. En modalidad zonas se preselecciona la primera.
+    const zonasIniciales: number[] =
+      recursosIniciales.length === 0 && item.espacio.modalidad_reserva !== 'equipos' && item.zonas.length > 0
+        ? [item.zonas[0].id]
+        : [];
+    setRecursoIds(recursosIniciales);
+    setZonaIds(zonasIniciales);
+    void recargarSlots(item, recursosIniciales, zonasIniciales, fecha);
   }
 
-  const recursoSeleccionado = seleccionado?.recursos.find((recurso) => recurso.id === recursoId);
+  const recursosSeleccionados = seleccionado?.recursos.filter((recurso) => recursoIds.includes(recurso.id)) ?? [];
+  const zonasSeleccionadas = seleccionado?.zonas.filter((zona) => zonaIds.includes(zona.id)) ?? [];
+  const etiquetaObjetivo = [...zonasSeleccionadas, ...recursosSeleccionados]
+    .map((item) => item.nombre)
+    .sort()
+    .join(', ');
+  const capacidadMaxima = seleccionado
+    ? (() => {
+        const capacidades = [
+          ...recursosSeleccionados.map((recurso) => recurso.capacidad),
+          ...zonasSeleccionadas.map((zona) => zona.capacidad).filter((valor): valor is number => valor !== null),
+        ];
+        return capacidades.length > 0 ? Math.min(...capacidades) : seleccionado.espacio.capacidad;
+      })()
+    : 1;
   const indicesOrdenados = [...horasSeleccionadas].sort((a, b) => a - b);
   const primerSlot = indicesOrdenados.length > 0 ? slots[indicesOrdenados[0]] : null;
   const ultimoSlot = indicesOrdenados.length > 0 ? slots[indicesOrdenados[indicesOrdenados.length - 1]] : null;
+  const hayObjetivo = recursoIds.length > 0 || zonaIds.length > 0;
+  const modalidad = seleccionado?.espacio.modalidad_reserva ?? 'equipos';
 
   function seleccionarHora(index: number) {
     if (slots[index]?.estado !== 'libre') return;
@@ -132,12 +205,13 @@ export default function EspaciosPage() {
   }
 
   async function confirmarReserva() {
-    if (!recursoSeleccionado || !primerSlot || !ultimoSlot || !aceptaTerminos) return;
+    if (!hayObjetivo || !primerSlot || !ultimoSlot || !aceptaTerminos) return;
     setGuardandoReserva(true);
     setError(null);
     try {
       const reserva = await crearReserva({
-        recurso_id: recursoSeleccionado.id,
+        recurso_ids: recursoIds,
+        zona_ids: zonaIds,
         fecha,
         hora_inicio: primerSlot.hora_inicio,
         hora_fin: ultimoSlot.hora_fin,
@@ -159,7 +233,7 @@ export default function EspaciosPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">Espacios</h1>
         <p className="mt-1 text-text-secondary">
-          Elegí un espacio para consultar la disponibilidad de sus recursos.
+          Elegí un espacio para consultar la disponibilidad de sus recursos y zonas.
         </p>
       </div>
 
@@ -189,6 +263,12 @@ export default function EspaciosPage() {
                 <dt className="inline text-text-muted">Recursos activos: </dt>
                 <dd className="inline font-medium">{item.recursos.length}</dd>
               </div>
+              {item.espacio.modalidad_reserva !== 'equipos' && (
+                <div>
+                  <dt className="inline text-text-muted">Zonas activas: </dt>
+                  <dd className="inline font-medium">{item.zonas.length}</dd>
+                </div>
+              )}
             </dl>
             <button
               className="btn btn-primary btn-sm mt-5 w-full justify-center"
@@ -240,26 +320,69 @@ export default function EspaciosPage() {
                   Finalizar
                 </button>
               </div>
-            ) : seleccionado.recursos.length === 0 ? (
+            ) : !hayObjetivo && seleccionado.recursos.length === 0 && seleccionado.zonas.length === 0 ? (
               <p className="py-10 text-center text-text-muted">
-                Este espacio no tiene recursos activos disponibles.
+                {modalidad === 'equipos'
+                  ? 'Este espacio no tiene recursos activos disponibles.'
+                  : modalidad === 'zonas'
+                    ? 'Este espacio no tiene zonas activas disponibles.'
+                    : 'Este espacio no tiene recursos ni zonas activos disponibles.'}
               </p>
             ) : paso === 'editar' ? (
               <>
-                <label className="input-label mt-4">
-                  Recurso
-                  <select
-                    className="input"
-                    value={recursoId}
-                    onChange={(event) => void consultarDisponibilidad(Number(event.target.value), fecha)}
-                  >
-                    {seleccionado.recursos.map((recurso) => (
-                      <option key={recurso.id} value={recurso.id}>
-                        {recurso.nombre} · {recurso.tipo.nombre} · Cap. {recurso.capacidad}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {modalidad !== 'zonas' && (
+                  <fieldset className="mt-4">
+                    <legend className="input-label">Recursos</legend>
+                    {seleccionado.recursos.length === 0 ? (
+                      <p className="text-sm text-text-muted">Este espacio no tiene recursos activos disponibles.</p>
+                    ) : (
+                      <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-border p-2">
+                        {seleccionado.recursos.map((recurso) => (
+                          <label key={recurso.id} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4"
+                              checked={recursoIds.includes(recurso.id)}
+                              onChange={() => alternarRecurso(recurso.id)}
+                            />
+                            {recurso.nombre} · {recurso.tipo.nombre} · Cap. {recurso.capacidad}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </fieldset>
+                )}
+
+                {modalidad !== 'equipos' && (
+                  <fieldset className="mt-4">
+                    <legend className="input-label">Zonas</legend>
+                    {seleccionado.zonas.length === 0 ? (
+                      <p className="text-sm text-text-muted">Este espacio no tiene zonas activas disponibles.</p>
+                    ) : (
+                      <>
+                        <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-border p-2">
+                          {seleccionado.zonas.map((zona) => (
+                            <label key={zona.id} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={zonaIds.includes(zona.id)}
+                                onChange={() => alternarZona(zona.id)}
+                              />
+                              {zona.nombre}
+                              {zona.capacidad !== null ? ` · Cap. ${zona.capacidad}` : ''}
+                            </label>
+                          ))}
+                        </div>
+                        {modalidad === 'zonas' && (
+                          <p className="mt-1 text-xs text-text-muted">
+                            Podés reservar una zona aunque no tenga recursos asociados.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </fieldset>
+                )}
 
                 <label className="input-label mt-4">
                   Fecha
@@ -268,11 +391,15 @@ export default function EspaciosPage() {
                     type="date"
                     min={getLocalDateInputValue()}
                     value={fecha}
-                    onChange={(event) => void consultarDisponibilidad(recursoId, event.target.value)}
+                    onChange={(event) => cambiarFecha(event.target.value)}
                   />
                 </label>
 
-                {loadingSlots ? (
+                {!hayObjetivo ? (
+                  <p className="py-6 text-center text-sm text-text-muted">
+                    Seleccioná al menos un recurso o una zona.
+                  </p>
+                ) : loadingSlots ? (
                   <p className="py-8 text-center text-text-muted">Cargando disponibilidad...</p>
                 ) : (
                   <>
@@ -307,7 +434,7 @@ export default function EspaciosPage() {
                   </>
                 )}
 
-                {isAuthenticated && recursoSeleccionado && primerSlot && ultimoSlot && (
+                {isAuthenticated && hayObjetivo && primerSlot && ultimoSlot && (
                   <>
                     <label className="input-label mt-4">
                       Asistentes
@@ -315,7 +442,7 @@ export default function EspaciosPage() {
                         className="input"
                         type="number"
                         min={1}
-                        max={recursoSeleccionado.capacidad}
+                        max={capacidadMaxima}
                         value={asistentes}
                         onChange={(event) => setAsistentes(Number(event.target.value))}
                       />
@@ -328,11 +455,11 @@ export default function EspaciosPage() {
                         setPaso('resumen');
                       }}
                     >
-                      Reservar recurso
+                      {modalidad === 'equipos' ? 'Reservar recurso' : 'Reservar'}
                     </button>
                   </>
                 )}
-                {!isAuthenticated && (
+                {!isAuthenticated && hayObjetivo && (
                   <Link className="btn btn-primary mt-4 w-full justify-center" href="/login">
                     Iniciá sesión para reservar
                   </Link>
@@ -343,7 +470,7 @@ export default function EspaciosPage() {
                 <h3 className="text-lg font-semibold">Resumen de la reserva</h3>
                 <dl className="mt-4 grid gap-3 rounded-lg border border-border bg-surface-hover p-4 text-sm">
                   <div><dt className="text-text-muted">Espacio</dt><dd className="font-medium">{seleccionado.espacio.nombre}</dd></div>
-                  <div><dt className="text-text-muted">Recurso</dt><dd className="font-medium">{recursoSeleccionado?.nombre}</dd></div>
+                  <div><dt className="text-text-muted">Recursos / Zonas</dt><dd className="font-medium">{etiquetaObjetivo}</dd></div>
                   <div><dt className="text-text-muted">Fecha</dt><dd className="font-medium">{fecha}</dd></div>
                   <div><dt className="text-text-muted">Horario</dt><dd className="font-medium">{primerSlot?.hora_inicio.slice(0, 5)} - {ultimoSlot?.hora_fin.slice(0, 5)}</dd></div>
                   <div><dt className="text-text-muted">Asistentes</dt><dd className="font-medium">{asistentes}</dd></div>

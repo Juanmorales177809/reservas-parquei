@@ -14,7 +14,16 @@ Reglas cubiertas (Fase 12B):
   nace en `false`).
 """
 
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
+from tests.conftest import (
+    asociar_zona_recurso,
+    crear_espacio,
+    crear_recurso,
+    crear_usuario,
+    crear_zona,
+    fecha_habilitada,
+    headers_para,
+    payload_reserva_objetivos,
+)
 
 
 def _escenario(db):
@@ -170,3 +179,50 @@ class TestGestionPS:
         cuerpo = [r for r in respuesta.json() if r["nombre"] == "Recurso Legado"]
         assert len(cuerpo) == 1
         assert cuerpo[0]["es_prestacion_servicio"] is False
+
+
+class TestGuardConReservaDeZona:
+    """Fase 12C-6: los guards de mover/eliminar recurso consultan
+    `reserva_recursos`, no solo la columna histórica `Reserva.recurso_id`.
+    Un recurso reclamado por una reserva de zona (fila de asociación sin ser
+    el `recurso_id` ancla) debe bloquear el movimiento y la eliminación."""
+
+    def _escenario_reserva_zona(self, client, db):
+        espacio = crear_espacio(db, nombre="Sala Guard Zona", modalidad_reserva="mixto")
+        admin = crear_usuario(db, username="admin_guard_zona", email="admin_guard_zona@test.com", rol="admin")
+        r_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Ancla Guard")
+        r_secundario = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Secundario Guard")
+        zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona Guard")
+        asociar_zona_recurso(db, zona, r_ancla)
+        asociar_zona_recurso(db, zona, r_secundario)
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+            headers=headers_para(admin),
+        )
+        assert creada.status_code == 201
+        return espacio, admin, r_ancla, r_secundario
+
+    def test_eliminar_recurso_no_ancla_reservado_por_zona_da_409(self, client, db):
+        _, admin, _, r_secundario = self._escenario_reserva_zona(client, db)
+        respuesta = client.delete(
+            f"/recursos/{r_secundario.id}", headers=headers_para(admin)
+        )
+        assert respuesta.status_code == 409
+
+    def test_mover_recurso_no_ancla_reservado_por_zona_da_409(self, client, db):
+        espacio, admin, _, r_secundario = self._escenario_reserva_zona(client, db)
+        otro_espacio = crear_espacio(db, nombre="Otro Espacio Guard", modalidad_reserva="mixto")
+        respuesta = client.put(
+            f"/recursos/{r_secundario.id}",
+            json={"espacio_id": otro_espacio.id},
+            headers=headers_para(admin),
+        )
+        assert respuesta.status_code == 409
+
+    def test_eliminar_recurso_ancla_reservado_sigue_bloqueado(self, client, db):
+        _, admin, r_ancla, _ = self._escenario_reserva_zona(client, db)
+        respuesta = client.delete(
+            f"/recursos/{r_ancla.id}", headers=headers_para(admin)
+        )
+        assert respuesta.status_code == 409

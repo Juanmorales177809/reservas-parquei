@@ -14,7 +14,13 @@ from app.schemas.disponibilidad import DisponibilidadSlot
 from app.schemas.espacio import ConfiguracionEspacioUpdate, EspacioCreate, EspacioResponse
 from app.schemas.notificacion import NotificacionResponse
 from app.schemas.recurso import RecursoCreate
-from app.schemas.reserva import ReservaEstadoUpdate, ReservaResponse
+from app.schemas.reserva import (
+    ReservaCreate,
+    ReservaEstadoUpdate,
+    ReservaResponse,
+    ReservaUpdate,
+    ZonaReservaResponse,
+)
 from app.schemas.usuario import AdminUsuarioCreate, UsuarioResponse, UsuarioUpdate
 
 
@@ -184,6 +190,102 @@ class TestValoresRechazados:
         for valor in ("aprobada", "rechazada", "cancelada"):
             modelo = ReservaEstadoUpdate(nuevo_estado=valor)
             assert modelo.nuevo_estado.value == valor
+
+
+class TestContratoReservasPorObjetivos:
+    """Fase 12C-6: `ReservaCreate`/`ReservaUpdate` usan `recurso_ids`/
+    `zona_ids`; `recurso_id` legacy se rechaza (`extra="forbid")."""
+
+    def test_zona_reserva_response_acepta_estado_como_enum(self):
+        modelo = ZonaReservaResponse.model_validate(
+            {
+                "id": 1,
+                "nombre": "Z",
+                "espacio_id": 1,
+                "descripcion": None,
+                "capacidad": 5,
+                "estado": "activo",
+            }
+        )
+        assert isinstance(modelo.estado, EstadoEntidad)
+        assert modelo.capacidad == 5
+
+    def test_reserva_create_acepta_listas_y_exige_al_menos_una(self):
+        modelo = ReservaCreate(
+            recurso_ids=[1],
+            zona_ids=[],
+            fecha="2026-08-17",
+            hora_inicio="08:00",
+            hora_fin="09:00",
+            asistentes=2,
+        )
+        assert modelo.recurso_ids == [1]
+        assert modelo.zona_ids == []
+        _validacion_exc(
+            ReservaCreate,
+            recurso_ids=[],
+            zona_ids=[],
+            fecha="2026-08-17",
+            hora_inicio="08:00",
+            hora_fin="09:00",
+            asistentes=2,
+        )
+
+    def test_reserva_create_rechaza_recurso_id_legacy(self):
+        _validacion_exc(
+            ReservaCreate,
+            recurso_id=1,
+            fecha="2026-08-17",
+            hora_inicio="08:00",
+            hora_fin="09:00",
+            asistentes=2,
+        )
+
+    def test_reserva_update_rechaza_recurso_id_legacy(self):
+        _validacion_exc(ReservaUpdate, recurso_id=1)
+
+    def test_reserva_response_acepta_listas_y_zonas(self):
+        datos = _datos_reserva_response()
+        datos["recurso_ids"] = [1]
+        datos["zona_ids"] = [5]
+        datos["zonas"] = [
+            {"id": 5, "nombre": "Z", "espacio_id": 1, "descripcion": None, "capacidad": 5, "estado": "activo"}
+        ]
+        modelo = ReservaResponse.model_validate(datos)
+        assert modelo.recurso_ids == [1]
+        assert modelo.zona_ids == [5]
+        assert modelo.zonas[0].nombre == "Z"
+
+    def test_reserva_response_sin_campos_nuevos_usa_defaults(self):
+        modelo = ReservaResponse.model_validate(_datos_reserva_response())
+        assert modelo.recurso_ids == []
+        assert modelo.zona_ids == []
+        assert modelo.zonas == []
+
+
+def _datos_reserva_response():
+    return {
+        "id": 1,
+        "usuario_id": 1,
+        "espacio_id": 1,
+        "recurso_id": 1,
+        "fecha": "2026-08-17",
+        "hora_inicio": "08:00:00",
+        "hora_fin": "10:00:00",
+        "estado": "aprobada",
+        "asistentes": 2,
+        "created_at": "2026-08-13T10:00:00",
+        "updated_at": "2026-08-13T10:00:00",
+        "usuario": {"id": 1, "username": "u", "email": "u@test.com", "rol": "usuario"},
+        "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+        "recurso": {
+            "id": 1,
+            "nombre": "R",
+            "capacidad": 10,
+            "estado": "activo",
+            "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+        },
+    }
 
 
 class TestValidacionHorarioConservada:

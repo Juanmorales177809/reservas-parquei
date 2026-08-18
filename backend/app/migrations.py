@@ -3,8 +3,105 @@ from sqlalchemy import text
 from app.db import engine
 
 
+# Fase 12C-4b: backfill idempotente de reserva_recursos desde
+# Reserva.recurso_id, y su gate de cobertura. Extraídos como constantes de
+# módulo (a diferencia del resto de `migrate_resource_reservations()`, que
+# usa literales inline) para que los tests puedan ejercitar el gate de
+# forma aislada sin depender de que el backfill ya lo haya sanado --
+# ver backend/tests/test_migrations_reserva_recursos.py.
+_BACKFILL_RESERVA_RECURSOS = """
+    INSERT INTO reserva_recursos (reserva_id, recurso_id, fecha, hora_inicio, hora_fin, estado)
+    SELECT id, recurso_id, fecha, hora_inicio, hora_fin, estado
+    FROM reservas
+    WHERE recurso_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM reserva_recursos rr WHERE rr.reserva_id = reservas.id
+      )
+"""
+
+_GATE_RESERVA_RECURSOS_COMPLETO = """
+    DO $$
+    DECLARE
+        huerfanas INTEGER;
+    BEGIN
+        SELECT COUNT(*) INTO huerfanas FROM reservas r
+        WHERE NOT EXISTS (SELECT 1 FROM reserva_recursos WHERE reserva_id = r.id);
+        IF huerfanas > 0 THEN
+            RAISE EXCEPTION 'Backfill de reserva_recursos incompleto: % reservas sin fila asociada', huerfanas;
+        END IF;
+    END $$;
+"""
+
+# Fase 12C-4c: constraints EXCLUDE nuevas sobre reserva_recursos y
+# reserva_zonas -- mismo patrón exacto que reservas_sin_solapamiento
+# (btree_gist, ya instalada más arriba en este mismo archivo antes de
+# este bloque). Un ALTER TABLE ADD CONSTRAINT EXCLUDE valida TODAS las
+# filas ya existentes de la tabla en el momento de agregarse; si alguna
+# violara la exclusión, el ALTER TABLE falla y, por el contrato
+# transaccional de esta función (ver docstring de
+# migrate_resource_reservations), toda la migración de esta ejecución se
+# revierte -- nunca queda una constraint a medio aplicar ni un backfill
+# parcial. No hay manejo especial de excepción aquí: un fallo por
+# solapamiento real o por ausencia de btree_gist se propaga tal cual,
+# igual que el resto de este archivo.
+_CONSTRAINTS_EXCLUDE_RESERVA_ASOCIACIONES = """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'reserva_recursos_sin_solapamiento'
+              AND conrelid = 'reserva_recursos'::regclass
+        ) THEN
+            ALTER TABLE reserva_recursos
+            ADD CONSTRAINT reserva_recursos_sin_solapamiento
+            EXCLUDE USING gist (
+                recurso_id WITH =,
+                fecha WITH =,
+                tsrange(
+                    fecha + hora_inicio,
+                    fecha + hora_fin,
+                    '[)'
+                ) WITH &&
+            )
+            WHERE (estado IN ('esperando', 'aprobada'));
+        END IF;
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'reserva_zonas_sin_solapamiento'
+              AND conrelid = 'reserva_zonas'::regclass
+        ) THEN
+            ALTER TABLE reserva_zonas
+            ADD CONSTRAINT reserva_zonas_sin_solapamiento
+            EXCLUDE USING gist (
+                zona_id WITH =,
+                fecha WITH =,
+                tsrange(
+                    fecha + hora_inicio,
+                    fecha + hora_fin,
+                    '[)'
+                ) WITH &&
+            )
+            WHERE (estado IN ('esperando', 'aprobada'));
+        END IF;
+    END $$;
+"""
+
+
 def migrate_resource_reservations() -> None:
-    """Bring older installations to the resource-based reservation model."""
+    """Bring older installations to the resource-based reservation model.
+
+    Contrato transaccional: todos los `statements` de esta función se
+    ejecutan dentro de una única transacción (`with engine.begin() as
+    connection: ...`, ver el final de esta función). Si cualquier
+    statement falla -- un `RAISE EXCEPTION` de un gate, una constraint
+    `EXCLUDE`/`CHECK` violada, o cualquier otro error de PostgreSQL --
+    la excepción se propaga sin capturarse y toda la transacción se
+    revierte: nada de lo ejecutado en esa llamada (backfills, nuevas
+    columnas, constraints) queda aplicado a medias. La siguiente vez que
+    se llame a esta función (p. ej. en el próximo arranque) vuelve a
+    intentar desde el principio, de forma idempotente. No se silencia ni
+    se reintenta en bucle dentro de esta función.
+    """
     statements = (
         """
         DO $$
@@ -184,6 +281,15 @@ def migrate_resource_reservations() -> None:
             END IF;
         END $$;
         """,
+        # Fase 12C-4b: reserva_recursos y reserva_zonas ya existen (creadas
+        # por Base.metadata.create_all() antes de esta función, igual que
+        # zonas/zona_recursos en 12C-1/12C-3) -- ningún guard de existencia
+        # de tabla es necesario, mismo patrón que el resto de este archivo,
+        # que nunca verifica la existencia de una tabla ya creada por
+        # create_all antes de insertar en ella.
+        _BACKFILL_RESERVA_RECURSOS,
+        _GATE_RESERVA_RECURSOS_COMPLETO,
+        _CONSTRAINTS_EXCLUDE_RESERVA_ASOCIACIONES,
     )
 
     with engine.begin() as connection:

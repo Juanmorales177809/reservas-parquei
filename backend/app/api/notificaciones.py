@@ -11,16 +11,28 @@ from app.schemas.notificacion import NotificacionResponse, NotificacionesSinLeer
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 
 
-def _mensaje(notificacion: Notificacion) -> str:
+def _etiqueta_objetivo(notificacion: Notificacion) -> str:
+    """Nombre mostrable de una reserva para los mensajes (Fase 12C-6):
+    la/s zona/s si la reserva las tiene; si no, el recurso ancla singular."""
     reserva = notificacion.reserva
-    recurso = reserva.recurso.nombre if reserva and reserva.recurso else "el recurso"
+    if reserva is None:
+        return "el recurso"
+    zonas = list(reserva.zonas or [])
+    if zonas:
+        return "la zona " + ", ".join(z.nombre for z in zonas)
+    recurso = reserva.recurso
+    return recurso.nombre if recurso is not None else "el recurso"
+
+
+def _mensaje(notificacion: Notificacion) -> str:
+    etiqueta = _etiqueta_objetivo(notificacion)
     if notificacion.tipo == "Pendiente":
-        return f"Nueva reserva pendiente para {recurso}"
+        return f"Nueva reserva pendiente para {etiqueta}"
     if notificacion.tipo == "Aprobada":
-        return f"Tu reserva de {recurso} fue aprobada"
+        return f"Tu reserva de {etiqueta} fue aprobada"
     if notificacion.tipo == "Rechazada":
-        return f"Tu reserva de {recurso} fue rechazada"
-    return f"Tu reserva de {recurso} fue cancelada"
+        return f"Tu reserva de {etiqueta} fue rechazada"
+    return f"Tu reserva de {etiqueta} fue cancelada"
 
 
 def _respuesta(notificacion: Notificacion) -> NotificacionResponse:
@@ -38,7 +50,10 @@ def _respuesta(notificacion: Notificacion) -> NotificacionResponse:
 def _query_usuario(db: Session, usuario_id: int):
     return (
         db.query(Notificacion)
-        .options(joinedload(Notificacion.reserva).joinedload(Reserva.recurso).joinedload(Recurso.espacio))
+        .options(
+            joinedload(Notificacion.reserva).joinedload(Reserva.recurso).joinedload(Recurso.espacio),
+            joinedload(Notificacion.reserva).joinedload(Reserva.zonas),
+        )
         .filter(Notificacion.usuario_id == usuario_id)
     )
 

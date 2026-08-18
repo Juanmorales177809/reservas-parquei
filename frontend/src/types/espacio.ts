@@ -1,3 +1,5 @@
+export type ModalidadEspacio = 'equipos' | 'zonas' | 'mixto';
+
 export interface Espacio {
   id: number;
   nombre: string;
@@ -9,6 +11,7 @@ export interface Espacio {
   hora_cierre: string;
   horario_atencion: Record<number, number[]>;
   horas_antelacion: number;
+  modalidad_reserva: ModalidadEspacio;
 }
 
 export interface EspacioCreate {

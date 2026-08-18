@@ -8,12 +8,15 @@ Reglas cubiertas:
 """
 
 from tests.conftest import (
+    asociar_zona_recurso,
     crear_espacio,
     crear_recurso,
     crear_usuario,
+    crear_zona,
     fecha_habilitada,
     headers_para,
     payload_reserva,
+    payload_reserva_objetivos,
 )
 
 
@@ -93,3 +96,28 @@ def test_aprobacion_notifica_al_solicitante(client, db):
     items = client.get("/notificaciones", headers=headers_para(solicitante)).json()
     assert len(items) == 1
     assert items[0]["tipo"] == "Aprobada"
+
+
+def test_reserva_de_zona_notifica_la_zona(client, db):
+    """Fase 12C-6: una reserva por zona menciona la zona en el mensaje al
+    gestor, no el recurso ancla."""
+    espacio = crear_espacio(db, nombre="Sala Notif Zona", modalidad_reserva="zonas")
+    gestor = crear_usuario(
+        db, username="gestor_notif_zona", email="gestor_notif_zona@test.com",
+        rol="gestor", espacio_id=espacio.id,
+    )
+    solicitante = crear_usuario(db, username="solicitante_zona", email="solicitante_zona@test.com")
+    recurso = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Recurso Zona")
+    zona = crear_zona(db, espacio=espacio, usuario=solicitante, nombre="Zona Notif")
+    asociar_zona_recurso(db, zona, recurso)
+
+    creada = client.post(
+        "/reservas",
+        json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+        headers=headers_para(solicitante),
+    )
+    assert creada.status_code == 201
+
+    items = client.get("/notificaciones", headers=headers_para(gestor)).json()
+    assert len(items) == 1
+    assert "Zona Notif" in items[0]["mensaje"]

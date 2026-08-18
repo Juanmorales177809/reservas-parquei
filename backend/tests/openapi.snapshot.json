@@ -954,6 +954,7 @@
         "type": "object"
       },
       "ReservaCreate": {
+        "additionalProperties": false,
         "properties": {
           "asistentes": {
             "exclusiveMinimum": 0.0,
@@ -975,13 +976,22 @@
             "title": "Hora Inicio",
             "type": "string"
           },
-          "recurso_id": {
-            "title": "Recurso Id",
-            "type": "integer"
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          },
+          "zona_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Zona Ids",
+            "type": "array"
           }
         },
         "required": [
-          "recurso_id",
           "fecha",
           "hora_inicio",
           "hora_fin",
@@ -1055,6 +1065,13 @@
             "title": "Recurso Id",
             "type": "integer"
           },
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -1066,6 +1083,20 @@
           "usuario_id": {
             "title": "Usuario Id",
             "type": "integer"
+          },
+          "zona_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Zona Ids",
+            "type": "array"
+          },
+          "zonas": {
+            "items": {
+              "$ref": "#/components/schemas/ZonaReservaResponse"
+            },
+            "title": "Zonas",
+            "type": "array"
           }
         },
         "required": [
@@ -1088,6 +1119,7 @@
         "type": "object"
       },
       "ReservaUpdate": {
+        "additionalProperties": false,
         "properties": {
           "asistentes": {
             "anyOf": [
@@ -1137,16 +1169,33 @@
             ],
             "title": "Hora Inicio"
           },
-          "recurso_id": {
+          "recurso_ids": {
             "anyOf": [
               {
-                "type": "integer"
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Recurso Id"
+            "title": "Recurso Ids"
+          },
+          "zona_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zona Ids"
           }
         },
         "title": "ReservaUpdate",
@@ -1505,6 +1554,277 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ZonaCreate": {
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad",
+            "default": "activo"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "espacio_id"
+        ],
+        "title": "ZonaCreate",
+        "type": "object"
+      },
+      "ZonaRecursosResponse": {
+        "description": "Respuesta de PUT /zonas/{zona_id}/recursos. Deliberadamente no\nextiende ZonaResponse (que no incluye `recursos` todavía, ver 12C-2) —\nesta subfase agrega su propio schema mínimo en vez de ampliar el\ncontrato ya aprobado de ZonaResponse sin necesidad.",
+        "properties": {
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          },
+          "zona_id": {
+            "title": "Zona Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "zona_id",
+          "recurso_ids"
+        ],
+        "title": "ZonaRecursosResponse",
+        "type": "object"
+      },
+      "ZonaRecursosUpdate": {
+        "description": "Fase 12C-3: reemplazo completo de la asociación Zona<->Recurso.",
+        "properties": {
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          }
+        },
+        "title": "ZonaRecursosUpdate",
+        "type": "object"
+      },
+      "ZonaReservaResponse": {
+        "description": "Zona asociada a una reserva (Fase 12C-6). Misma base mínima que\n`ZonaResponse` sin timestamps/auditoría — suficiente para la respuesta\nde la reserva y los mensajes de notificación.",
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "espacio_id",
+          "descripcion",
+          "capacidad",
+          "estado"
+        ],
+        "title": "ZonaReservaResponse",
+        "type": "object"
+      },
+      "ZonaResponse": {
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "integer"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "title": "Updated By",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "espacio_id",
+          "descripcion",
+          "capacidad",
+          "estado",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by"
+        ],
+        "title": "ZonaResponse",
+        "type": "object"
+      },
+      "ZonaUpdate": {
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "estado": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstadoEntidad"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          }
+        },
+        "title": "ZonaUpdate",
         "type": "object"
       }
     },
@@ -3067,6 +3387,257 @@
         "summary": "Update Usuario Endpoint",
         "tags": [
           "usuarios"
+        ]
+      }
+    },
+    "/zonas": {
+      "get": {
+        "description": "Listar zonas. No requiere autenticacion (mismo criterio RN-005 que\nGET /espacios): anonimo/usuario solo ven zonas activas de espacios\nactivos; gestor/admin ven todo.",
+        "operationId": "listar_zonas_zonas_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "espacio_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Espacio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ZonaResponse"
+                  },
+                  "title": "Response Listar Zonas Zonas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Zonas",
+        "tags": [
+          "zonas"
+        ]
+      },
+      "post": {
+        "operationId": "crear_zona_zonas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZonaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZonaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Crear Zona",
+        "tags": [
+          "zonas"
+        ]
+      }
+    },
+    "/zonas/{zona_id}": {
+      "delete": {
+        "operationId": "eliminar_zona_zonas__zona_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zona_id",
+            "required": true,
+            "schema": {
+              "title": "Zona Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Eliminar Zona",
+        "tags": [
+          "zonas"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_zona_zonas__zona_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zona_id",
+            "required": true,
+            "schema": {
+              "title": "Zona Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZonaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZonaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Zona",
+        "tags": [
+          "zonas"
+        ]
+      }
+    },
+    "/zonas/{zona_id}/recursos": {
+      "put": {
+        "description": "Reemplazo completo de la asociación Zona<->Recurso (Fase 12C-3):\nla lista recibida sustituye por completo a la actual -- lo ausente se\nelimina, lo nuevo se inserta. Unicidad funcional: un recurso ya\nasociado a OTRA zona responde 409 sin dejar cambios parciales (todas\nlas validaciones se resuelven antes de tocar la base de datos).",
+        "operationId": "actualizar_recursos_de_zona_zonas__zona_id__recursos_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zona_id",
+            "required": true,
+            "schema": {
+              "title": "Zona Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZonaRecursosUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZonaRecursosResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Actualizar Recursos De Zona",
+        "tags": [
+          "zonas"
         ]
       }
     }

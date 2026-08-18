@@ -4,23 +4,32 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import EspaciosPage from './page';
 import { AuthProvider } from '@/context/AuthContext';
-import type { DisponibilidadSlot, Espacio } from '@/types/espacio';
+import type { DisponibilidadSlot, Espacio, ModalidadEspacio } from '@/types/espacio';
 import type { Recurso } from '@/types/recurso';
+import type { Zona } from '@/types/zona';
 
-const { listarEspaciosMock, listarRecursosMock, getDisponibilidadMock, crearReservaMock, getProfileMock } =
-  vi.hoisted(() => ({
-    listarEspaciosMock: vi.fn(),
-    listarRecursosMock: vi.fn(),
-    getDisponibilidadMock: vi.fn(),
-    crearReservaMock: vi.fn(),
-    getProfileMock: vi.fn(),
-  }));
+const {
+  listarEspaciosMock,
+  listarRecursosMock,
+  listarZonasMock,
+  getDisponibilidadMock,
+  crearReservaMock,
+  getProfileMock,
+} = vi.hoisted(() => ({
+  listarEspaciosMock: vi.fn(),
+  listarRecursosMock: vi.fn(),
+  listarZonasMock: vi.fn(),
+  getDisponibilidadMock: vi.fn(),
+  crearReservaMock: vi.fn(),
+  getProfileMock: vi.fn(),
+}));
 
 vi.mock('@/services/espacios', () => ({ listarEspacios: listarEspaciosMock }));
 vi.mock('@/services/recursos', () => ({
   listarRecursos: listarRecursosMock,
   getDisponibilidadRecurso: getDisponibilidadMock,
 }));
+vi.mock('@/services/zonas', () => ({ listarZonas: listarZonasMock }));
 vi.mock('@/services/reservas', () => ({ crearReserva: crearReservaMock }));
 // Fase 9F-B: AuthContext ya no lee localStorage, consulta GET /usuarios/me
 // (authService.getProfile) al montar. Se mockea aquí en vez de depender
@@ -41,6 +50,7 @@ function espacio(parcial: Partial<Espacio> = {}): Espacio {
     hora_cierre: '20:00:00',
     horario_atencion: { 0: [7, 8, 9, 10, 11] },
     horas_antelacion: 24,
+    modalidad_reserva: 'equipos',
     ...parcial,
   };
 }
@@ -60,6 +70,22 @@ function recurso(parcial: Partial<Recurso> = {}): Recurso {
   };
 }
 
+function zona(parcial: Partial<Zona> = {}): Zona {
+  return {
+    id: 1,
+    nombre: 'Zona A',
+    espacio_id: 1,
+    descripcion: null,
+    capacidad: null,
+    estado: 'activo',
+    created_at: '2026-08-01T00:00:00Z',
+    updated_at: '2026-08-01T00:00:00Z',
+    created_by: 1,
+    updated_by: 1,
+    ...parcial,
+  };
+}
+
 const SLOTS: DisponibilidadSlot[] = [
   { hora_inicio: '08:00', hora_fin: '09:00', estado: 'libre' },
   { hora_inicio: '09:00', hora_fin: '10:00', estado: 'libre' },
@@ -67,14 +93,20 @@ const SLOTS: DisponibilidadSlot[] = [
   { hora_inicio: '11:00', hora_fin: '12:00', estado: 'libre' },
 ];
 
+const HORARIO_TODOS_LOS_DIAS: Record<number, number[]> = Object.fromEntries(
+  Array.from({ length: 7 }, (_, dia) => [dia, [8, 9, 10]]),
+);
+
 beforeEach(() => {
   listarEspaciosMock.mockReset();
   listarRecursosMock.mockReset();
+  listarZonasMock.mockReset();
   getDisponibilidadMock.mockReset();
   crearReservaMock.mockReset();
   getProfileMock.mockReset();
   listarEspaciosMock.mockResolvedValue([espacio()]);
   listarRecursosMock.mockResolvedValue([recurso()]);
+  listarZonasMock.mockResolvedValue([]);
   getDisponibilidadMock.mockResolvedValue(SLOTS);
   crearReservaMock.mockResolvedValue({ id: 42, estado: 'esperando' });
   // Anónimo por defecto (igual que un visitante sin cookie de sesión); los
@@ -88,6 +120,16 @@ function renderPagina() {
       <EspaciosPage />
     </AuthProvider>,
   );
+}
+
+async function reservarConPayload(modalidad: ModalidadEspacio) {
+  renderPagina();
+  const usuario = userEvent.setup();
+  await usuario.click(await screen.findByRole('button', { name: 'Disponibilidad' }));
+  await usuario.click(await screen.findByRole('button', { name: /08:00 - 09:00/ }));
+  await usuario.click(await screen.findByRole('button', { name: modalidad === 'equipos' ? 'Reservar recurso' : 'Reservar' }));
+  await usuario.click(await screen.findByRole('checkbox'));
+  await usuario.click(await screen.findByRole('button', { name: 'Aceptar y reservar' }));
 }
 
 describe('EspaciosPage: listado público', () => {
@@ -106,6 +148,7 @@ describe('EspaciosPage: listado público', () => {
   it('muestra el mensaje vacío cuando no hay espacios activos', async () => {
     listarEspaciosMock.mockResolvedValue([]);
     listarRecursosMock.mockResolvedValue([]);
+    listarZonasMock.mockResolvedValue([]);
     renderPagina();
     expect(await screen.findByText('No hay espacios activos.')).toBeInTheDocument();
   });
@@ -124,7 +167,7 @@ describe('EspaciosPage: listado público', () => {
   });
 });
 
-describe('EspaciosPage: modal de reserva', () => {
+describe('EspaciosPage: modal de reserva (modalidad equipos)', () => {
   it('abre un diálogo accesible con nombre accesible', async () => {
     const usuario = userEvent.setup();
     renderPagina();
@@ -183,7 +226,7 @@ describe('EspaciosPage: modal de reserva', () => {
     expect(confirmar).toBeDisabled();
   });
 
-  it('envía el payload completo al confirmar la reserva', async () => {
+  it('envía recurso_ids y zona_ids al confirmar la reserva', async () => {
     getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
     const usuario = userEvent.setup();
     renderPagina();
@@ -195,7 +238,8 @@ describe('EspaciosPage: modal de reserva', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aceptar y reservar' }));
     await waitFor(() =>
       expect(crearReservaMock).toHaveBeenCalledWith({
-        recurso_id: 7,
+        recurso_ids: [7],
+        zona_ids: [],
         fecha: expect.any(String),
         hora_inicio: '08:00',
         hora_fin: '10:00',
@@ -227,5 +271,80 @@ describe('EspaciosPage: modal de reserva', () => {
     expect(
       await screen.findByRole('link', { name: 'Iniciá sesión para reservar' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('EspaciosPage: modal de reserva (modalidad zonas)', () => {
+  function configurarEspacioZonas(zonasData: Zona[]) {
+    listarEspaciosMock.mockResolvedValue([
+      espacio({ modalidad_reserva: 'zonas', nombre: 'Sala Zonas', horario_atencion: HORARIO_TODOS_LOS_DIAS }),
+    ]);
+    listarRecursosMock.mockResolvedValue([]);
+    listarZonasMock.mockResolvedValue(zonasData);
+  }
+
+  it('selecciona una zona y envía el payload con zona_ids (zona sin recursos)', async () => {
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
+    configurarEspacioZonas([zona({ id: 1, nombre: 'Zona A', capacidad: null })]);
+    await reservarConPayload('zonas');
+    await waitFor(() =>
+      expect(crearReservaMock).toHaveBeenCalledWith({
+        recurso_ids: [],
+        zona_ids: [1],
+        fecha: expect.any(String),
+        hora_inicio: '08:00',
+        hora_fin: '09:00',
+        asistentes: 1,
+      }),
+    );
+  });
+
+  it('muestra el aviso de que una zona sin recursos puede reservarse', async () => {
+    configurarEspacioZonas([zona()]);
+    renderPagina();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Disponibilidad' }));
+    expect(
+      await screen.findByText('Podés reservar una zona aunque no tenga recursos asociados.'),
+    ).toBeInTheDocument();
+  });
+
+  it('muestra el mensaje cuando la modalidad de zonas no tiene zonas', async () => {
+    configurarEspacioZonas([]);
+    renderPagina();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Disponibilidad' }));
+    expect(
+      await screen.findByText('Este espacio no tiene zonas activas disponibles.'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('EspaciosPage: modal de reserva (modalidad mixto)', () => {
+  it('permite combinar recursos y zonas en el payload', async () => {
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
+    listarEspaciosMock.mockResolvedValue([
+      espacio({ modalidad_reserva: 'mixto', nombre: 'Sala Mixta', horario_atencion: HORARIO_TODOS_LOS_DIAS }),
+    ]);
+    listarRecursosMock.mockResolvedValue([recurso()]);
+    listarZonasMock.mockResolvedValue([zona()]);
+    renderPagina();
+    const usuario = userEvent.setup();
+    await usuario.click(await screen.findByRole('button', { name: 'Disponibilidad' }));
+    await usuario.click(await screen.findByRole('checkbox', { name: /Zona A/ }));
+    await usuario.click(await screen.findByRole('button', { name: /08:00 - 09:00/ }));
+    await usuario.click(await screen.findByRole('button', { name: /09:00 - 10:00/ }));
+    await usuario.click(await screen.findByRole('button', { name: 'Reservar' }));
+    expect(await screen.findByText(/Proyector, Zona A/)).toBeInTheDocument();
+    await usuario.click(await screen.findByRole('checkbox'));
+    await usuario.click(await screen.findByRole('button', { name: 'Aceptar y reservar' }));
+    await waitFor(() =>
+      expect(crearReservaMock).toHaveBeenCalledWith({
+        recurso_ids: [7],
+        zona_ids: [1],
+        fecha: expect.any(String),
+        hora_inicio: '08:00',
+        hora_fin: '10:00',
+        asistentes: 1,
+      }),
+    );
   });
 });

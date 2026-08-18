@@ -241,7 +241,7 @@ class TestRecursosPS:
         ).json()
         respuesta = client.patch(
             f"/reservas/{creada['id']}",
-            json={"recurso_id": recurso_ps.id},
+            json={"recurso_ids": [recurso_ps.id]},
             headers=headers_para(usuario),
         )
         assert respuesta.status_code == 403

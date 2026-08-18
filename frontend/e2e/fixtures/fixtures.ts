@@ -45,12 +45,14 @@ export async function primerRecurso(backend: import('@playwright/test').APIReque
   return recursos[0];
 }
 
-/** Creación de reserva directa por API (payload idéntico al contrato). */
+/** Creación de reserva directa por API (payload nuevo 12C-6: `recurso_ids`
+ *  y `zona_ids`; nunca `recurso_id`). */
 export async function crearReservaApi(
   backend: import('@playwright/test').APIRequestContext,
   headers: { Authorization: string },
   datos: {
-    recurso_id: number;
+    recurso_ids?: number[];
+    zona_ids?: number[];
     fecha: string;
     hora_inicio: string;
     hora_fin: string;
@@ -59,6 +61,6 @@ export async function crearReservaApi(
 ) {
   return backend.post('/reservas', {
     headers,
-    data: { asistentes: 1, ...datos },
+    data: { recurso_ids: [], zona_ids: [], asistentes: 1, ...datos },
   });
 }

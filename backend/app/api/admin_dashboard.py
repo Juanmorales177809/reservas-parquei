@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import get_managed_space_id, require_admin, require_resource_manager
 from app.domain.valor import HorarioAtencion
-from app.models import Espacio, Recurso, Reserva, Usuario
+from app.models import Espacio, Recurso, Reserva, ReservaRecurso, Usuario
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
 from app.services.horarios import horas_atencion_dia
@@ -59,9 +59,13 @@ def _construir_resumen(db: Session, espacio_id: int | None) -> dict:
         )
     ]
 
+    # Fase 12C-6: "el dashboard cuenta por recurso" -> JOIN contra
+    # `reserva_recursos` (los recursos efectivos materializados), no contra la
+    # columna histórica `Reserva.recurso_id`. Una reserva de zona con N
+    # recursos efectivos cuenta N veces (cada fila reclamada).
     recursos_mas_reservados_query = (
-        db.query(Recurso.id, Recurso.nombre, func.count(Reserva.id).label("cantidad"))
-        .join(Reserva, Reserva.recurso_id == Recurso.id)
+        db.query(Recurso.id, Recurso.nombre, func.count(ReservaRecurso.id).label("cantidad"))
+        .join(ReservaRecurso, ReservaRecurso.recurso_id == Recurso.id)
     )
     if espacio_id is not None:
         recursos_mas_reservados_query = recursos_mas_reservados_query.filter(Recurso.espacio_id == espacio_id)
@@ -70,7 +74,7 @@ def _construir_resumen(db: Session, espacio_id: int | None) -> dict:
         for recurso_id, nombre, cantidad in (
             recursos_mas_reservados_query
             .group_by(Recurso.id, Recurso.nombre)
-            .order_by(func.count(Reserva.id).desc(), Recurso.nombre.asc())
+            .order_by(func.count(ReservaRecurso.id).desc(), Recurso.nombre.asc())
             .limit(5)
             .all()
         )

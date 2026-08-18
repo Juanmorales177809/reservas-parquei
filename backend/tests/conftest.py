@@ -38,7 +38,7 @@ from app.auth.auth import create_access_token, hash_password  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.migrations import migrate_resource_reservations  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Espacio, Recurso, TipoRecurso, Usuario, UsuarioEspacio  # noqa: E402
+from app.models import Espacio, Recurso, TipoRecurso, Usuario, UsuarioEspacio, Zona, ZonaRecurso  # noqa: E402
 
 TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -105,11 +105,12 @@ def crear_espacio(
     horario_atencion=None,
     modalidad_reserva="equipos",
     correo=None,
+    capacidad=20,
 ):
     espacio = Espacio(
         nombre=nombre,
         ubicacion="Sede de pruebas",
-        capacidad=20,
+        capacidad=capacidad,
         estado=estado,
         horas_antelacion=horas_antelacion,
         horario_atencion=(
@@ -167,13 +168,66 @@ def headers_para(usuario):
 
 
 def payload_reserva(recurso_id, fecha, hora_inicio="08:00", hora_fin="10:00", asistentes=2):
+    """Payload de reserva por recursos directos (Fase 12C-6).
+
+    `recurso_id` desaparece del contrato: la reserva se expresa con
+    `recurso_ids`/`zona_ids`. Este helper conserva su firma (un recurso)
+    y lo traduce al nuevo payload.
+    """
+    return payload_reserva_objetivos(
+        recurso_ids=[recurso_id],
+        fecha=fecha,
+        hora_inicio=hora_inicio,
+        hora_fin=hora_fin,
+        asistentes=asistentes,
+    )
+
+
+def payload_reserva_objetivos(
+    recurso_ids=None,
+    zona_ids=None,
+    fecha=None,
+    hora_inicio="08:00",
+    hora_fin="10:00",
+    asistentes=2,
+):
     return {
-        "recurso_id": recurso_id,
+        "recurso_ids": recurso_ids or [],
+        "zona_ids": zona_ids or [],
         "fecha": fecha.isoformat(),
         "hora_inicio": hora_inicio,
         "hora_fin": hora_fin,
         "asistentes": asistentes,
     }
+
+
+def crear_zona(
+    db,
+    *,
+    espacio,
+    usuario,
+    nombre="Zona de pruebas",
+    capacidad=None,
+    estado="activo",
+):
+    zona = Zona(
+        nombre=nombre,
+        espacio_id=espacio.id,
+        descripcion="",
+        capacidad=capacidad,
+        estado=estado,
+        created_by=usuario.id,
+        updated_by=usuario.id,
+    )
+    db.add(zona)
+    db.commit()
+    db.refresh(zona)
+    return zona
+
+
+def asociar_zona_recurso(db, zona, recurso):
+    db.add(ZonaRecurso(zona_id=zona.id, recurso_id=recurso.id))
+    db.commit()
 
 
 def fecha_habilitada(dias=8):

@@ -10,7 +10,7 @@ test.describe('Dashboard y heatmap', () => {
     const headers = await headersPara(backend, 'admin');
     const recurso = await primerRecurso(backend);
     const creada = await crearReservaApi(backend, headers, {
-      recurso_id: recurso.id,
+      recurso_ids: [recurso.id],
       fecha: fechaFutura(16, testInfo.retry),
       hora_inicio: '10:00',
       hora_fin: '11:00',
@@ -30,9 +30,15 @@ test.describe('Dashboard y heatmap', () => {
   test('una reserva dentro del horario incrementa la ocupación global', async ({ page, backend }, testInfo) => {
     const headers = await headersPara(backend, 'admin');
     const recurso = await primerRecurso(backend);
+    // Offset 20, no 12: los offsets 12 y 13 pueden converger a la misma
+    // fecha efectiva cuando el día+12 cae en domingo (fechaFutura salta al
+    // lunes), colisionando con smoke/08-disponibilidad.spec.ts (mismo
+    // recurso y 10:00-11:00) en un 409 real de reservas_sin_solapamiento
+    // entre proyectos. El 20 mantiene margen de al menos 2 días respecto a
+    // todos los demás offsets (ver regresion/05-notificaciones.spec.ts).
     const creada = await crearReservaApi(backend, headers, {
-      recurso_id: recurso.id,
-      fecha: fechaFutura(12, testInfo.retry),
+      recurso_ids: [recurso.id],
+      fecha: fechaFutura(20, testInfo.retry),
       hora_inicio: '10:00',
       hora_fin: '11:00',
     });

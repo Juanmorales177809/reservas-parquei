@@ -7,7 +7,8 @@ from app.crud.reservas import get_reservas_bloqueantes
 from app.db import get_db
 from app.deps import get_current_user_optional, get_managed_space_id, require_resource_manager
 from app.domain.enums import Rol
-from app.models import Espacio, Recurso, TipoRecurso, Usuario
+from app.models import Espacio, Recurso, Reserva, TipoRecurso, Usuario
+from app.models.reserva_recurso import ReservaRecurso
 from app.schemas.disponibilidad import DisponibilidadSlot
 from app.schemas.recurso import RecursoCreate, RecursoResponse, RecursoUpdate, TipoRecursoResponse
 from app.services.auditoria import registrar_cambio
@@ -132,6 +133,17 @@ def crear_recurso(
     return _query_recursos(db).filter(Recurso.id == recurso.id).one()
 
 
+def _recurso_tiene_reservas(db: Session, recurso_id: int) -> bool:
+    """Fase 12C-6: un recurso no puede moverse/eliminarse si tiene reservas.
+    Consulta `reserva_recursos` (fuente de verdad de los conjuntos: incluye
+    recursos reclamados por reservas de zona que no son el ancla) y además la
+    columna histórica `Reserva.recurso_id` (el ancla de una zona sin recursos,
+    que conserva el FK)."""
+    if db.query(ReservaRecurso).filter(ReservaRecurso.recurso_id == recurso_id).first() is not None:
+        return True
+    return db.query(Reserva).filter(Reserva.recurso_id == recurso_id).first() is not None
+
+
 @router.put("/{recurso_id}", response_model=RecursoResponse)
 def actualizar_recurso(
     recurso_id: int,
@@ -155,7 +167,7 @@ def actualizar_recurso(
         raise HTTPException(status_code=404, detail="Espacio no encontrado")
     if db.query(TipoRecurso).filter(TipoRecurso.id == nuevo_tipo_id).first() is None:
         raise HTTPException(status_code=404, detail="Tipo de recurso no encontrado")
-    if nuevo_espacio_id != recurso.espacio_id and recurso.reservas:
+    if nuevo_espacio_id != recurso.espacio_id and _recurso_tiene_reservas(db, recurso.id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="No se puede mover un recurso con reservas a otro espacio",
@@ -180,7 +192,7 @@ def eliminar_recurso(
     espacio_gestionado = get_managed_space_id(db, current_user)
     if espacio_gestionado is not None and recurso.espacio_id != espacio_gestionado:
         raise HTTPException(status_code=403, detail="Solo puedes gestionar recursos de tu espacio")
-    if recurso.reservas:
+    if _recurso_tiene_reservas(db, recurso.id):
         raise HTTPException(status_code=409, detail="No se puede eliminar un recurso con reservas")
     descripcion = f"Eliminó el recurso {recurso.nombre}"
     db.delete(recurso)

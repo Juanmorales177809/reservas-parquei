@@ -397,13 +397,300 @@ Idempotente (`backend/app/migrations.py`): `ADD COLUMN IF NOT EXISTS` + backfill
 1. Las 8 preguntas abiertas de la Fase 12A siguen sin resolver (mapeo de roles ya resuelto aparte; correo real SMTP, informes programados, soft-delete, cardinalidad de Zona, estructura de Acompañante, gobernanza de Proyecto, orden 12C–12H).
 2. ¿Se debe reemplazar `correo.itm.edu.co` por un dominio de pruebas reservado (`example.com`) en los tests de backend de esta fase, antes de commitear? (ver hallazgo arriba).
 
+## Fase 12C — Entidad Zona y multi-recurso por reserva (en curso, 2026-08-18)
+
+Precedida por un análisis previo de solo lectura (sin commit) que produjo el modelo propuesto, la estrategia de compatibilidad, el contrato de API objetivo, las reglas de integridad y once decisiones aprobadas explícitamente por el usuario (cardinalidad mínima de la selección, gate de modalidad, transitividad zona→recursos, unicidad funcional recurso→zona, retiro de `Reserva.recurso_id` sin alias, fórmula de capacidad efectiva, endpoint de reemplazo completo para `Zona`↔`Recurso`, visibilidad pública de `GET /zonas`, ocupación por recurso en el dashboard, y rollback de migración creado y probado). El roadmap se dividió en ocho subfases (12C-1 a 12C-8), cada una con su propio ciclo RED → GREEN y su propia aprobación de alcance.
+
+### Fase 12C-1 — Entidad `Zona` aislada
+
+**Backend-only, RED → GREEN.** Introduce la entidad `Zona` como tabla nueva, sin ninguna asociación con `Recurso` ni integración con `Reserva` todavía — deliberadamente aislada, para no tocar el contrato de OpenAPI ni el comportamiento de las entidades existentes en esta subfase.
+
+**Archivos**: `backend/app/models/zona.py` (nuevo), `backend/app/models/__init__.py` (registro de `Zona`), `backend/tests/test_models_zona.py` (nuevo, 13 tests), `backend/app/models/README.md`.
+
+**Modelo**: `id`, `nombre` (`String(100)` NOT NULL), `espacio_id` (FK `espacios.id` NOT NULL, index), `descripcion` (`Text` nullable), `capacidad` (`Integer` nullable, sin `CheckConstraint` en BD — mismo criterio que `Espacio.capacidad`/`Recurso.capacidad`, que tampoco lo tienen), `estado` (`String(20)` NOT NULL default `'activo'` + `CheckConstraint ck_zonas_estado`), `created_at`/`updated_at`, `created_by`/`updated_by` (FK `usuarios.id` NOT NULL — comportamiento real de `Recurso`, ortografía de `Espacio`). Relación `Zona.espacio` unidireccional (sin `back_populates`, ya que `app/models/espacio.py` no se modificó en esta subfase).
+
+**Migración**: ninguna entrada manual en `app/migrations.py`. `zonas` es una tabla nueva y se crea completa (columnas + `CheckConstraint`) vía `Base.metadata.create_all()` al registrarse en `app/models/__init__.py` — mismo mecanismo ya usado por `tipos_recursos`/`usuarios_espacios` en fases anteriores. Verificado con `test_lifespan_arranque.py` (arranque idempotente en dos ciclos, sin error).
+
+**RED → GREEN**: 13 tests nuevos en `test_models_zona.py`, escritos primero contra el código sin `Zona` (confirmados en rojo: `ModuleNotFoundError: No module named 'app.models.zona'`), implementados hasta verde: campos obligatorios (`nombre`, `espacio_id`, `created_by`, `updated_by`), `CheckConstraint` de `estado` (rechaza valores fuera de `activo/inactivo/mantenimiento`, acepta los tres válidos), `capacidad` opcional (nula, positiva, y explícitamente **no** rechazada por BD si es no-positiva — documenta la decisión de no inventar un constraint que Espacio/Recurso tampoco tienen), y la relación `Zona.espacio`.
+
+**Resultados**: backend **331/331** (318 previos + 13 nuevos). `test_lifespan_arranque.py`: 3/3. Ningún archivo de `Reserva`, `Recurso` ni `Espacio` fue modificado — verificado por la suite completa en verde sin cambios de comportamiento en ninguno de los tres.
+
+**Fuera de alcance de esta subfase** (confirmado explícitamente, no omitido): asociación `Zona`↔`Recurso` (12C-3), schema Pydantic/router de `Zona` (12C-2), migración de `Reserva.recurso_id` a `reserva_recursos` (12C-4), validaciones de modalidad/PS/solapamiento (12C-5), cambio de contrato de `ReservaCreate`/`ReservaResponse` (12C-6), frontend (12C-7), correo real, multi-fecha, informes.
+
+**Riesgos**: ninguno funcional — `Zona` es una entidad huérfana desde el punto de vista de negocio hasta 12C-2. **El rollback de `Reserva.recurso_id` (decisión 11) sigue pendiente**: corresponde a la subfase 12C-4 (donde se retira esa columna), no a esta — en 12C-1 no existe ningún cambio que revertir sobre `Reserva`.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-2 — CRUD y API de `Zona`
+
+**Backend-only, RED → GREEN.** Expone `Zona` vía HTTP: CRUD completo (salvo `GET` de un solo elemento, deliberadamente omitido) y autorización, todavía sin asociación con `Recurso` ni integración con `Reserva`.
+
+**Archivos**: `backend/app/schemas/zona.py` (nuevo), `backend/app/crud/zonas.py` (nuevo), `backend/app/api/zonas.py` (nuevo), `backend/app/main.py` (registro del router), `backend/tests/test_api_zonas.py` (nuevo, 33 tests), READMEs de `schemas/`, `crud/` y `api/`.
+
+**Contrato** (pendiente de aprobación de OpenAPI, ver abajo): `ZonaCreate` (`nombre` obligatorio ≤100, `espacio_id` obligatorio, `descripcion` opcional, `capacidad` opcional `>0`, `estado` default `activo`), `ZonaUpdate` (todo opcional, sin `created_by`/`updated_by`), `ZonaResponse` (id, nombre, espacio_id, descripcion, capacidad, estado, `created_at`/`updated_at`, `created_by`/`updated_by` como enteros; sin `recursos`).
+
+**Endpoints**: `GET /zonas?espacio_id=` (público, criterio RN-005-like: anónimo/`usuario` ven solo zonas `activo` de espacios `activo`; `gestor`/`admin` ven todo), `POST /zonas`, `PUT /zonas/{zona_id}`, `DELETE /zonas/{zona_id}` — los tres de escritura restringidos a `gestor`/`admin` (`require_resource_manager`), con `gestor` limitado a su espacio asignado (`get_managed_space_id`, mismo patrón que `Recurso`). **Deliberadamente sin `GET /zonas/{zona_id}`**: `Recurso` tampoco tiene un GET de un solo elemento; una petición a esa ruta responde 405 (el path existe para `PUT`/`DELETE`), verificado con test explícito.
+
+**Decisiones de diseño**: `ZonaCreate.espacio_id` es obligatorio (a diferencia del opcional-con-fallback de `RecursoCreate`), así que la autorización de "gestor limitado a su espacio" se aplica como 403 explícito en vez de sustitución silenciosa. `created_by`/`updated_by` no se declaran en ningún schema de entrada (Pydantic v2 ignora campos extra no declarados) y se fijan siempre desde el usuario autenticado. `DELETE /zonas/{zona_id}` no tiene guard de dependencias — no existe todavía ninguna asociación real que consultar (`zona_recursos` es 12C-3, `reserva_zonas` es 12C-4); inventar esa consulta habría violado la instrucción explícita de no construir consultas sobre asociaciones inexistentes.
+
+**RED → GREEN**: 33 tests nuevos en `test_api_zonas.py`, confirmados en rojo (endpoints inexistentes) antes de implementar `schemas/zona.py` + `crud/zonas.py` + `api/zonas.py` + registro en `main.py`, verde después.
+
+**Resultados**: backend **363 passed, 1 failed** (364 tests totales: 331 previos + 33 nuevos). El único fallo es `test_openapi_contrato.py::test_openapi_coincide_con_snapshot_versionado`, **esperado y no un bug** — hay endpoints nuevos y el snapshot no se tocó. `test_models_zona.py` (13/13) y `test_lifespan_arranque.py` (3/3) sin regresión.
+
+**Diff de OpenAPI (generado y revisado, snapshot NO sobrescrito)**: puramente aditivo — nuevos componentes `ZonaCreate`, `ZonaResponse`, `ZonaUpdate`; nuevos paths `/zonas` (`GET`, `POST`) y `/zonas/{zona_id}` (`PUT`, `DELETE`). Ningún path, método ni schema existente fue modificado. **Pendiente de aprobación explícita antes de regenerar `tests/openapi.snapshot.json`.**
+
+**Validaciones de frontend**: no ejecutadas en esta subfase — ningún archivo de `frontend/` se modificó, y el snapshot de OpenAPI no es un artefacto que el build/type-check del frontend consuma.
+
+**Riesgos**: ninguno funcional. El rollback de `Reserva.recurso_id` (decisión 11 del análisis de 12C) sigue pendiente — corresponde a 12C-4. La asociación `Zona`↔`Recurso` (12C-3) sigue sin implementar.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+**Actualización posterior**: el diff de OpenAPI de esta subfase fue aprobado explícitamente por el usuario; `tests/openapi.snapshot.json` fue regenerado con el mecanismo documentado en `test_openapi_contrato.py` (376 líneas insertadas, 0 eliminadas — limitado a `ZonaCreate`/`ZonaUpdate`/`ZonaResponse` y los paths `/zonas`, `/zonas/{zona_id}`, verificado antes y después de regenerar). Backend: 364/364 (incluye `test_openapi_contrato.py` en verde).
+
+### Fase 12C-3 — Asociación Zona↔Recurso
+
+**Backend-only, RED → GREEN.** Introduce `zona_recursos` (asociación técnica N:N entre `Zona` y `Recurso`, con unicidad funcional que restringe cada recurso a como máximo una zona), el endpoint de reemplazo completo `PUT /zonas/{zona_id}/recursos`, y el guard de eliminación en `DELETE /zonas/{zona_id}`. Sin integración con `Reserva` todavía.
+
+**Archivos**: `backend/app/models/zona_recurso.py` (nuevo), `backend/app/models/__init__.py` (registro), `backend/app/schemas/zona.py` (`ZonaRecursosUpdate`, `ZonaRecursosResponse`), `backend/app/crud/zonas.py` (`reemplazar_recursos_de_zona`), `backend/app/api/zonas.py` (`PUT /{zona_id}/recursos`, guard en `DELETE /{zona_id}`), `backend/tests/test_models_zona_recurso.py` (nuevo, 5 tests), `backend/tests/test_api_zonas_recursos.py` (nuevo, 12 tests), `backend/tests/test_api_zonas.py` (1 test extendido), READMEs de `models/`, `schemas/`, `crud/` y `api/`.
+
+**Constraint aprobada**: `UniqueConstraint` sobre `recurso_id` solo (no sobre el par `zona_id`+`recurso_id`) en `zona_recursos` — la tabla sigue siendo N:N estructuralmente, pero la constraint de BD impone que un recurso pertenezca, como máximo, a una zona. Mismo patrón exacto ya usado por `UsuarioEspacio.uq_usuarios_espacios_usuario`. FKs con `ondelete="CASCADE"` en ambos lados (`zona_id`, `recurso_id`) — único patrón disponible sin modificar `app/models/zona.py` ni `app/models/recurso.py` (fuera de alcance); mismo mecanismo que ya usa `Notificacion`.
+
+**`PUT /zonas/{zona_id}/recursos`**: recibe la lista completa de `recurso_ids` y la persiste como reemplazo total (quita las asociaciones ausentes, agrega las nuevas). Validación completa antes de escribir: 404 si algún recurso no existe, 400 si algún recurso pertenece a un espacio distinto al de la zona, 409 si algún recurso ya está asociado a **otra** zona — en los tres casos, ningún cambio se persiste (atomicidad verificada con test explícito: una lista mixta de un recurso válido y uno conflictivo no deja ni siquiera el válido asociado). Lista vacía permitida (desasocia todo). Autorización idéntica al resto del router: `require_resource_manager` + `get_managed_space_id` (gestor limitado a su espacio, admin sin restricción, `usuario` 403).
+
+**`DELETE /zonas/{zona_id}` actualizado**: ahora responde 409 si la zona tiene asociaciones en `zona_recursos`, mismo patrón que `eliminar_recurso`/`eliminar_espacio`.
+
+**RED → GREEN**: 18 tests nuevos (5 de modelo + 12 de API + 1 extendido), confirmados en rojo (`ModuleNotFoundError: No module named 'app.models.zona_recurso'`) antes de implementar, verde después.
+
+**Resultados**: backend **381 passed, 1 failed** de 382 (364 previos + 18 nuevos). El único fallo es `test_openapi_contrato.py::test_openapi_coincide_con_snapshot_versionado`, **esperado, no un bug** — hay un endpoint nuevo y el snapshot de esta subfase no se tocó. `test_models_zona.py` (13/13) y `test_lifespan_arranque.py` (3/3) sin regresión.
+
+**Diff de OpenAPI (generado y revisado, snapshot NO sobrescrito)**: puramente aditivo — nuevos componentes `ZonaRecursosUpdate`, `ZonaRecursosResponse`; nuevo path `/zonas/{zona_id}/recursos` (`PUT`). Ningún path/schema existente fue modificado (94 líneas insertadas, 0 eliminadas). El nuevo 409 de `DELETE /zonas/{zona_id}` no aparece en el diff — es un cambio de comportamiento vía `HTTPException` inline, no de contrato declarado, mismo criterio que el resto de errores de este router. **Pendiente de aprobación explícita antes de regenerar `tests/openapi.snapshot.json`.**
+
+**Riesgo aceptado y documentado (no silenciado)**: `PUT /recursos/{id}` (fuera de alcance de 12C-3, no listado en los archivos autorizados) no valida si el recurso tiene una asociación de zona antes de permitir moverlo a otro espacio; `DELETE /recursos/{id}` tampoco bloquea por asociación de zona (solo por reservas) — si se elimina, `ondelete="CASCADE"` limpia la fila de `zona_recursos` silenciosamente. Ambos requieren un guard en `api/recursos.py` en una fase posterior.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+**Actualización posterior**: el diff de OpenAPI de esta subfase fue aprobado explícitamente por el usuario; `tests/openapi.snapshot.json` fue regenerado (94 líneas insertadas, 0 eliminadas, verificado contra el snapshot ya aprobado de 12C-2 — limitado exactamente a `ZonaRecursosUpdate`, `ZonaRecursosResponse` y `PUT /zonas/{zona_id}/recursos`). Backend: 382/382 (incluye `test_openapi_contrato.py` en verde).
+
+## Fase 12C-4 — Migración de `Reserva.recurso_id` (en curso)
+
+### Análisis previo y prueba ejecutable (sin código de aplicación)
+
+Antes de escribir cualquier modelo, se entregó un análisis con: inventario real de referencias a `Reserva.recurso_id`/`Reserva.recurso` en todo el repositorio (backend, tests, frontend — incluye un hallazgo no identificado en el análisis original de 12C: `app/api/notificaciones.py` construye el texto de cada notificación leyendo `reserva.recurso.nombre`), diseño final de `reserva_recursos`/`reserva_zonas`, el SQL exacto de backfill/gate/constraints/retiro, y una **prueba ejecutada realmente contra PostgreSQL 17** (`reservas_test`) dentro de un esquema desechable (`CREATE SCHEMA proof_12c4`, eliminado al finalizar) que demostró: idempotencia del backfill y de los bloques `DO $$` de `EXCLUDE` (ejecutados dos veces cada uno); una reserva con dos recursos simultáneos sin conflicto y detección real de solapamiento (`IntegrityError` de PostgreSQL) al intentar un tercero; una reserva de zona con el mismo comportamiento; y un ensayo de rollback que reveló el caso crítico — **una reserva con más de un recurso asociado no puede volver, sin pérdida, a una sola columna `recurso_id`** — que el script de esa primera versión señalaba explícitamente (dejando `NULL` en vez de inventar un valor) pero sin abortar la operación como tal. Verificado explícitamente que `public.reservas` (columna `recurso_id`, constraint `reservas_sin_solapamiento`, todos los índices) quedó intacto tras la prueba. Cero archivos de la aplicación creados o modificados en este análisis.
+
+**Corrección de alcance pedida por el usuario tras revisar el análisis**: el script de rollback debe **endurecerse** antes de escribirse en `migrations.py` — no basta con señalar los casos no representables, debe **abortar** la operación completa si detecta (a) alguna reserva con más de un recurso asociado, o (b) alguna reserva asociada solo por zona (sin ningún recurso), ejecutarse dentro de una única transacción, y verificar al final que el esquema resultante coincide exactamente con el esquema anterior a la migración. Explícitamente prohibido: usar un `UPDATE` parcial seguido de `SET NOT NULL` como mecanismo para ocultar reservas no representables — el rollback debe fallar de forma ruidosa, no silenciosa, ante datos que no puede revertir sin pérdida. Este endurecimiento se implementará en `migrations.py` como parte de 12C-4b, no en esta subfase (12C-4a no toca `migrations.py`).
+
+**Secuencia de subfases aprobada** (reemplaza la numeración informal del análisis previo): 12C-4a (modelos de asociación, sin migración) → 12C-4b (creación/verificación de tablas, backfill idempotente y gates, sin retirar columna) → 12C-4c (constraints `EXCLUDE` nuevas, sin retirar columna) → 12C-4d (doble escritura controlada, todavía leyendo desde el esquema antiguo) → 12C-5 (servicios y CRUD leen las asociaciones) → 12C-6 (ruptura de contrato, dashboard y notificaciones) → 12C-4e (retiro de `recurso_id`, solo al cierre de toda la transición).
+
+### Fase 12C-4a — Modelos de asociación `ReservaRecurso`/`ReservaZona`, aislados
+
+**Backend-only, RED → GREEN.** Introduce `reserva_recursos` y `reserva_zonas` como tablas nuevas, completamente aisladas — sin backfill, sin lectura ni escritura desde `services/reservas.py`, sin ningún cambio en `Reserva`, `Recurso`, `Zona`, `migrations.py`, schemas, CRUD, API, dashboard, notificaciones, OpenAPI ni frontend.
+
+**Archivos**: `backend/app/models/reserva_recurso.py` (nuevo), `backend/app/models/reserva_zona.py` (nuevo), `backend/app/models/__init__.py` (registro), `backend/tests/test_models_reserva_asociaciones.py` (nuevo, 17 tests), `backend/app/models/README.md`.
+
+**Modelo**: ambas tablas siguen el patrón `id` PK + FK + `fecha`/`hora_inicio`/`hora_fin`/`estado` desnormalizados (necesarios para el futuro `EXCLUDE USING gist` de 12C-4c, que no puede indexar a través de un `JOIN`). Diferencias deliberadas frente a `zona_recursos` (12C-3):
+- **`UniqueConstraint` por PAR** (`reserva_id`+`recurso_id`/`zona_id`), no por columna sola — un recurso o zona puede aparecer en muchas reservas distintas; solo la fila exacta no puede repetirse.
+- **`recurso_id`/`zona_id` sin `ondelete="CASCADE"`** — un recurso o zona ya referenciado en una reserva no puede eliminarse silenciosamente; la FK lo bloquea con `IntegrityError` (verificado con test que aísla este caso de la restricción NOT NULL de la columna vieja `Reserva.recurso_id`, usando un recurso "ancla" distinto para la reserva base). `reserva_id` sí mantiene `ondelete="CASCADE"` en ambas tablas.
+- Relaciones `reserva`/`recurso`/`zona` unidireccionales, sin `back_populates` — `app/models/reserva.py`, `recurso.py` y `zona.py` no se modificaron.
+
+**Migración**: ninguna entrada en `migrations.py` — mismo mecanismo que toda tabla nueva de esta serie (`create_all` al registrarse en `models/__init__.py`).
+
+**RED → GREEN**: 17 tests nuevos en `test_models_reserva_asociaciones.py`, confirmados en rojo (`ModuleNotFoundError: No module named 'app.models.reserva_recurso'`) antes de implementar, verde después. Cubren: creación básica, FK/nulabilidad (`reserva_id`/`recurso_id`/`zona_id` obligatorios y validados contra IDs inexistentes), unicidad por par (incluye la prueba explícita de que un mismo recurso SÍ puede repetirse en reservas distintas, a diferencia de `zona_recursos`), `ON DELETE CASCADE` selectivo (cascada desde `Reserva`, rechazo sin cascada desde `Recurso`/`Zona`), y `create_all` idempotente.
+
+**Resultados**: backend **399/399** (382 previos + 17 nuevos). Sin fallo de `test_openapi_contrato.py` — correcto, ningún schema ni endpoint cambió. `test_lifespan_arranque.py`: 3/3.
+
+**No se afirma que 12C-4 esté migrada**: `Reserva.recurso_id` sigue siendo la única fuente de verdad real; `reserva_recursos`/`reserva_zonas` existen como tablas vacías, sin ningún consumidor todavía.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-4b — Backfill idempotente y gate de cobertura
+
+**Backend-only, RED → GREEN.** Puebla `reserva_recursos` con exactamente una fila por cada `Reserva` histórica con `recurso_id`, y agrega un gate que aborta la migración con una excepción real de PostgreSQL si alguna reserva queda sin fila asociada. `Reserva.recurso_id`, sus índices y `reservas_sin_solapamiento` no se tocan. Sin constraints `EXCLUDE`, sin doble escritura, sin lectura desde asociaciones, sin cambios en `models/reserva.py`.
+
+**Verificación previa (antes de tocar `migrations.py`)**: se confirmó el comportamiento real de borrado consultando `pg_constraint.confdeltype` directamente en `reservas_test` (no solo el código Python) — `reserva_id → CASCADE`, `recurso_id → NO ACTION`, `zona_id → NO ACTION`, exactamente lo aprobado en 12C-4a. No hizo falta ajustar ni modelos ni tests.
+
+**Archivos**: `backend/app/migrations.py` (backfill + gate), `backend/tests/test_migrations_reserva_recursos.py` (nuevo, 10 tests), `backend/app/models/README.md`.
+
+**SQL exacto** (extraído como constantes de módulo `_BACKFILL_RESERVA_RECURSOS`/`_GATE_RESERVA_RECURSOS_COMPLETO`, a diferencia del resto de `migrations.py` que usa literales inline — para que los tests puedan ejercitar el gate de forma aislada):
+
+```sql
+INSERT INTO reserva_recursos (reserva_id, recurso_id, fecha, hora_inicio, hora_fin, estado)
+SELECT id, recurso_id, fecha, hora_inicio, hora_fin, estado
+FROM reservas
+WHERE recurso_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM reserva_recursos rr WHERE rr.reserva_id = reservas.id);
+
+DO $$
+DECLARE huerfanas INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO huerfanas FROM reservas r
+    WHERE NOT EXISTS (SELECT 1 FROM reserva_recursos WHERE reserva_id = r.id);
+    IF huerfanas > 0 THEN
+        RAISE EXCEPTION 'Backfill de reserva_recursos incompleto: % reservas sin fila asociada', huerfanas;
+    END IF;
+END $$;
+```
+
+Sin guard de existencia de tabla: `reserva_recursos` ya existe (creada por `create_all` antes de `migrate_resource_reservations()`), mismo criterio que el resto del archivo, que nunca verifica la existencia de una tabla ya creada por `create_all`.
+
+**RED → GREEN**: 10 tests nuevos en `test_migrations_reserva_recursos.py`, confirmados en rojo genuinamente — se revirtió temporalmente `migrations.py` con `git stash` a su estado anterior a esta subfase, se confirmó `ImportError: cannot import name '_GATE_RESERVA_RECURSOS_COMPLETO'`, y se restauró la implementación con `git stash pop` antes de continuar. Cubren: backfill de una reserva histórica sin asociación previa, conservación exacta de `fecha`/`hora_inicio`/`hora_fin`/`estado`, correspondencia exacta 1:1 con `Reserva`, no modificación de la tabla `reservas`, idempotencia (2 y 3 ejecuciones consecutivas sin duplicar), el gate en verde cuando el backfill está completo, el gate detectando una inconsistencia simulada, y verificación explícita de que `recurso_id`/índices/`reservas_sin_solapamiento` siguen intactos tras la migración.
+
+**Hallazgo operativo durante el desarrollo (corregido, no un defecto de la migración)**: llamar a `migrate_resource_reservations()` desde un test mientras la sesión `db` de ese test tenía una transacción implícita abierta sobre `reservas` producía un auto-deadlock de un solo hilo (la conexión de la migración esperaba un lock `ACCESS EXCLUSIVE` para el `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` que el propio test bloqueaba sin poder liberarlo, porque ambas conexiones vivían en el mismo proceso síncrono). Diagnosticado inspeccionando `pg_stat_activity` en `reservas_test`, con dos backends `idle in transaction`/`active...Lock` reales que hubo que terminar con `pg_terminate_backend` antes de poder continuar. Corregido agregando `db.commit()` explícito antes de cada llamada a `migrate_resource_reservations()` en el archivo de test; documentado ahí y en `models/README.md` como nota de aislamiento de conexión.
+
+**Resultados**: backend **409/409** (399 previos + 10 nuevos). `test_models_reserva_asociaciones.py` (17/17) y `test_lifespan_arranque.py` (3/3) sin regresión. Sin fallo de `test_openapi_contrato.py` — ningún schema ni endpoint cambió.
+
+**Estado verificado de `public.reservas` tras la migración**: columna `recurso_id` sigue `NOT NULL`; índices `ix_reservas_recurso_id`, `ix_reservas_recurso_fecha_estado` presentes; constraint `reservas_sin_solapamiento` presente; 0 reservas huérfanas (sin fila en `reserva_recursos`) en cada ejecución de prueba.
+
+**Confirmaciones explícitas**: `reserva_recursos`/`reserva_zonas` contienen únicamente filas producidas por el backfill (verificado con test dedicado) — **no hay doble escritura**, ningún archivo de `services/`, `crud/`, `api/` de reservas fue tocado. **12C-4c (constraints `EXCLUDE`) sigue pendiente**, igual que 12C-4d, 12C-5, 12C-6 y el retiro final de `recurso_id` (12C-4e).
+
+**Rollback endurecido — pendiente, no implementado en esta subfase**: el usuario pidió que el script de rollback (a) aborte explícitamente ante reservas con más de un recurso o reservas asociadas solo por zona, (b) se ejecute dentro de una única transacción, y (c) verifique que el esquema final coincide con el esquema anterior, prohibiendo el patrón "`UPDATE` parcial + `SET NOT NULL`" para ocultar casos no representables. Este endurecimiento **no se escribió en `migrations.py`** en 12C-4b — el análisis previo ya había señalado el caso crítico (reserva multi-recurso) pero sin el mecanismo de abortar exigido ahora; queda como trabajo explícito para cuando se decida implementar el rollback ejecutable completo, no como parte automática de esta subfase.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-4c — Constraints EXCLUDE de `reserva_recursos`/`reserva_zonas`
+
+**Backend-only, RED → GREEN.** Agrega `reserva_recursos_sin_solapamiento` y `reserva_zonas_sin_solapamiento` (`EXCLUDE USING gist`, mismo patrón que `reservas_sin_solapamiento`), de forma idempotente. `Reserva.recurso_id`, `reservas_sin_solapamiento` y todos los índices históricos siguen intactos. Sin doble escritura, sin lectura desde las asociaciones, sin cambios en `models/reserva.py`, schemas, CRUD, servicios, APIs, dashboard, notificaciones ni frontend.
+
+**Verificación previa**: se reconfirmó `pg_constraint.confdeltype` de 12C-4a/12C-4b sin encontrar ningún cambio necesario (ya documentado en la sección de 12C-4b).
+
+**Archivos**: `backend/app/migrations.py` (constraints `EXCLUDE` + docstring del contrato transaccional), `backend/tests/test_migrations_reserva_recursos.py` (extendido, 9 tests nuevos en `TestConstraintsExcludeSolapamiento`), `backend/app/models/README.md`.
+
+**SQL exacto**:
+
+```sql
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'reserva_recursos_sin_solapamiento' AND conrelid = 'reserva_recursos'::regclass
+    ) THEN
+        ALTER TABLE reserva_recursos
+        ADD CONSTRAINT reserva_recursos_sin_solapamiento
+        EXCLUDE USING gist (
+            recurso_id WITH =, fecha WITH =,
+            tsrange(fecha + hora_inicio, fecha + hora_fin, '[)') WITH &&
+        )
+        WHERE (estado IN ('esperando', 'aprobada'));
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'reserva_zonas_sin_solapamiento' AND conrelid = 'reserva_zonas'::regclass
+    ) THEN
+        ALTER TABLE reserva_zonas
+        ADD CONSTRAINT reserva_zonas_sin_solapamiento
+        EXCLUDE USING gist (
+            zona_id WITH =, fecha WITH =,
+            tsrange(fecha + hora_inicio, fecha + hora_fin, '[)') WITH &&
+        )
+        WHERE (estado IN ('esperando', 'aprobada'));
+    END IF;
+END $$;
+```
+
+`btree_gist` reutilizada (ya se crea más arriba en la misma función); sin re-declararla.
+
+**Documentación del contrato transaccional** (agregada al docstring de `migrate_resource_reservations()`): toda la función corre dentro de una única transacción (`engine.begin()`); cualquier fallo — `RAISE EXCEPTION` del gate, violación de `EXCLUDE`, ausencia de `btree_gist` — se propaga sin capturarse y revierte *todo* lo aplicado en esa llamada, sin excepción oculta ni reintento en bucle.
+
+**RED → GREEN**: 9 tests nuevos, confirmados en rojo comentando temporalmente solo la línea que agrega el statement de constraints en la tupla de `migrate_resource_reservations()` (sin revertir 12C-4a/12C-4b, ya aprobados) — 7 de 9 fallaron por la razón correcta (las constraints todavía no existían); verde tras restaurar la línea. **Hallazgo corregido durante el desarrollo**: las primeras versiones de varios tests reutilizaban, para la `Reserva` ancla, el mismo recurso que el recurso bajo prueba — colisionaban con la fila que el backfill de 12C-4b ya había insertado automáticamente para esa reserva, en la `UniqueConstraint(reserva_id, recurso_id)`, antes de poder ejercitar la constraint `EXCLUDE`. Corregido usando un "recurso ancla" distinto en cada test (`reserva_zonas` no tiene este problema, nunca se backfillea).
+
+**Resultados**: backend **418/418** (409 previos + 9 nuevos). `test_models_reserva_asociaciones.py` (17/17) y `test_lifespan_arranque.py` (3/3) sin regresión. Sin fallo de `test_openapi_contrato.py`.
+
+**Verificación final contra `pg_constraint` real** (no solo contra el código):
+
+| Verificación | Resultado |
+|---|---|
+| `reserva_recursos_sin_solapamiento` | presente, `contype = 'x'` (exclusion), sobre `reserva_recursos` |
+| `reserva_zonas_sin_solapamiento` | presente, `contype = 'x'`, sobre `reserva_zonas` |
+| `reservas_sin_solapamiento` | presente, sin cambios |
+| `reservas.recurso_id` | `NOT NULL`, sin cambios |
+| `ix_reservas_recurso_id`, `ix_reservas_recurso_fecha_estado` | presentes, sin cambios |
+| Sesiones bloqueadas/`idle in transaction` tras la migración | ninguna (verificado con `pg_stat_activity`, y con test dedicado) |
+
+**Confirmaciones explícitas**: `reserva_recursos`/`reserva_zonas` siguen sin validación cruzada entre sí (una zona y uno de sus recursos pueden reservarse en el mismo horario sin que nada lo detecte — transitividad pendiente para 12C-5, verificado con test explícito). **12C-4d (doble escritura), 12C-5 (servicios/CRUD), 12C-6 (ruptura de contrato) y 12C-4e (retiro de `recurso_id`) siguen pendientes.** El rollback endurecido sigue sin implementarse — sin cambios respecto a lo señalado en 12C-4b.
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-4d — Doble escritura controlada de `reserva_recursos`
+
+**Backend-only, RED → GREEN.** `services/reservas.py` escribe `reserva_recursos` al crear y al modificar reservas singulares, manteniendo una única fila por reserva sincronizada con `reservas.recurso_id`, `fecha`, `hora_inicio`, `hora_fin` y `estado`. Los consumidores siguen leyendo desde el esquema histórico (`Reserva.recurso`); NO se habilita multi-recurso ni reservas solo por zona; `reserva_zonas` no se escribe. Sin cambios en `models/`, schemas, rutas, OpenAPI, `migrations.py`, dashboard, notificaciones ni frontend.
+
+**Archivos**: `backend/app/services/reservas.py` (`_sincronizar_reserva_recurso()` nueva — crea o actualiza la única fila, nunca duplica, nunca hace commit/rollback — invocada en `crear_reserva`, `actualizar_reserva`, `cambiar_estado` y `cancelar_reserva_usuario`; `_es_conflicto_solapamiento` ampliada a `reserva_recursos_sin_solapamiento`), `backend/tests/test_doble_escritura_reserva_recursos.py` (nuevo, 16 tests), `backend/app/services/README.md`.
+
+**Diseño**: `eliminar_reserva` no requiere cambio (`reserva_recursos.reserva_id` lleva `ON DELETE CASCADE`, 12C-4a). El flujo de servicio sigue siendo el dueño de commit/rollback (`preparar_reserva`/`confirmar_cambios_reserva` flush/commit, `_traducir_error_integridad` rollback + 409): ante un `IntegrityError` en el commit (p. ej. la constraint `reserva_recursos_sin_solapamiento` de 12C-4c), la transacción se revierte completa — reserva y fila asociada como una sola unidad, sin filas parciales. Una reserva histórica backfillada por 12C-4b actualiza su fila existente en lugar de duplicarla.
+
+**RED → GREEN**: 16 tests nuevos (creación, recurso, fecha/hora, estados, solapamiento por la constraint histórica y por la nueva, fallo de integridad sin filas parciales, reserva histórica backfilled, invariantes exactas en cada paso del ciclo de vida, ausencia de sesiones bloqueadas/`idle in transaction`) — 15 en rojo por ausencia de doble escritura (`NoResultFound` en `reserva_recursos` y `DID NOT RAISE` en los escenarios de la constraint nueva); verde tras la implementación. Un test (guard de ausencia de bloqueos) pasa correctamente en ambos estados por diseño.
+
+**Resultados**: backend **434/434** (418 previos + 16 nuevos). `test_openapi_contrato.py`, `test_api_reservas.py`, `test_migrations_reserva_recursos.py`, `test_models_reserva_asociaciones.py`, `test_admin_dashboard_ocupacion.py`, `test_lifespan_arranque.py` sin regresión. Verificación directa contra PostgreSQL real (`pg_constraint`, `pg_stat_activity` y doble escritura real vía servicio): invariantes exactas cumplidas, `recurso_id` NOT NULL, las tres constraints `EXCLUDE` y los dos `UNIQUE` presentes, sin sesiones bloqueadas.
+
+**Confirmaciones explícitas**: **12C-5 (servicios/CRUD leen las asociaciones), 12C-6 (ruptura de contrato/dashboard/notificaciones) y 12C-4e (retiro de `recurso_id`) NO fueron implementadas** en esta subfase. El rollback endurecido sigue pendiente (sin cambios respecto a 12C-4b/12C-4c).
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-5 — Servicios y CRUD leen desde las asociaciones
+
+**Backend-only, RED → GREEN.** La lectura interna de la reserva por recurso y la resolución del recurso actual de una reserva pasan a `reserva_recursos` (la misma tabla que sostiene la constraint `reserva_recursos_sin_solapamiento` y la doble escritura de 12C-4d). El contrato público sigue siendo singular (`Reserva.recurso`/`recurso_id`) y no se retira la columna histórica. Dashboard, notificaciones, frontend, OpenAPI, `migrations.py`, constraints e índices históricos intactos.
+
+**Inventario de lectores (previo a la implementación)**: `crud/reservas.py::get_reservas_bloqueantes` (por recurso), `services/reservas.py::cambiar_estado` y `::actualizar_reserva` (recurso actual) → **migrados**. `get_reservas`/`get_reservas_gestion`/`get_mis_reservas`/`get_reserva` (construyen la respuesta singular vía `Reserva.recurso`) → **conservados**. `api/admin_dashboard.py` (ocupación por recurso), `api/notificaciones.py` (`reserva.recurso.nombre`) y el guard de mover/eliminar recurso en `api/recursos.py` (`recurso.reservas`) → **conservados, fueran de alcance** (gap conocido para 12C-6; coherentes para datos singulares por la doble escritura). La consulta de espacio de `api/espacios.py` no es por recurso y no lee `recurso_id` → intacta. Ninguna consulta migrada altera la semántica pública para datos legítimos (asociación == columna para doble escritura y backfill).
+
+**Archivos**: `backend/app/crud/reservas.py` (`get_reservas_bloqueantes` con JOIN contra `reserva_recursos` + `distinct()`; nuevo `get_recurso_ids_reserva`), `backend/app/services/reservas.py` (nuevo `_recurso_id_reserva`, usado por `cambiar_estado` y `actualizar_reserva`), `backend/tests/test_crud_reservas_lectura_asociaciones.py` (nuevo, 10 tests), `backend/app/crud/README.md`, `backend/app/services/README.md`.
+
+**RED → GREEN**: 10 tests nuevos. RED demostrado en dos frentes: (1) `get_reservas_bloqueantes` devolvía `[]` para un recurso presente solo en la asociación; (2) `actualizar_reserva` permitía mover una reserva a un horario que solapaba otra en el recurso de la asociación (sin 409), porque la columna histórica no coincidía. Verde tras la migración. Un efecto esperado y verificado: los 4 tests de 12C-4d que ejercitaban la constraint nueva siguen pasando — el 409 que antes producía el commit ahora lo produce la validación de servicio vía asociación (mismo HTTP, mismo "sin filas parciales").
+
+**Resultados**: backend **444/444** (434 previos + 10 nuevos). `test_openapi_contrato.py` en verde (sin cambios de contrato). Verificación directa contra PostgreSQL real: lectura por asociación confirmada en flujo legítimo y divergente, `recurso_id` NOT NULL, tres constraints `EXCLUDE` y dos `UNIQUE` presentes, sin sesiones bloqueadas/`idle in transaction`.
+
+**Confirmaciones explícitas**: **la doble escritura de 12C-4d se mantiene** (solo cambia la lectura); **12C-6 (ruptura de contrato/dashboard/notificaciones) y 12C-4e (retiro de `recurso_id`) NO fueron implementadas.** El rollback endurecido sigue pendiente (sin cambios).
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
+### Fase 12C-6 — Ruptura de contrato de Reserva (ejes plurales) y consumidores; Fase 12C-7 — Frontend y E2E
+
+**12C-6 backend-only y 12C-7 frontend/E2E, RED → GREEN, implementadas en la misma iteración.** 12C-6 materializa la decisión 4 de la Fase 12A: rompe el contrato de `Reserva` hacia los ejes plurales, completa la validación multi-recurso/zona y migra dashboard, notificaciones y guards a las asociaciones. 12C-7 migra los consumidores del frontend y los fixtures/specs E2E al payload nuevo. El cambio de OpenAPI de 12C-6 fue aprobado explícitamente; el snapshot se regeneró únicamente después de verificar por script estructural y por diff que no cambiaba ninguna ruta ni esquema de seguridad.
+
+#### 12C-6 — Contrato y backend
+
+**Archivos**: `backend/app/schemas/reserva.py`, `backend/app/crud/reservas.py`, `backend/app/services/reservas.py`, `backend/app/api/admin_dashboard.py`, `backend/app/api/notificaciones.py`, `backend/app/api/recursos.py`, `backend/app/models/reserva.py`, `backend/tests/conftest.py` (`payload_reserva_objetivos` + `crear_zona`/`asociar_zona_recurso`), `backend/tests/test_reservas_zonas.py` (nuevo), `backend/tests/test_dashboard_recursos_efectivos.py` (nuevo), `backend/tests/test_api_notificaciones.py`, `backend/tests/test_api_recursos.py`, `backend/tests/test_schemas_contrato.py`, `backend/tests/test_doble_escritura_reserva_recursos.py`, `backend/tests/test_crud_reservas_lectura_asociaciones.py`, `backend/tests/test_api_reservas.py`, `backend/tests/openapi.snapshot.json` (regenerado), READMEs de `schemas/`, `crud/`, `services/` y `api/`.
+
+**Contrato plural (aprobado)**:
+- `ReservaCreate` con `extra="forbid"`: el legacy `recurso_id` responde **422** (`extra_forbidden`), nunca como alias; ejes `recurso_ids`/`zona_ids` (`list[int]`, default `[]`) con al menos uno obligatorio.
+- `ReservaUpdate` por ejes de **reemplazo completo** (`extra="forbid"`, todo opcional): un eje ausente conserva su conjunto; uno presente lo reemplaza entero; el conjunto final se valida en el servicio.
+- `ReservaResponse` **aditiva**: gana `recurso_ids`/`zona_ids`/`zonas` (`ZonaReservaResponse`, nuevo); `recurso_id`/`recurso` se conservan como forma singular temporal (ancla) hasta 12C-4e.
+
+**Servicio** (`services/reservas.py`): `validar_creacion` reemplazada por `_validar_objetivo`; nueva maquinaria `_resolver_objetivo`/`_resolver_efectivos`/`_capacidad_efectiva`/`_recurso_ancla`/`_validar_solapamiento_efectivos`/`_reescribir_asociaciones`/`_sincronizar_campos_asociaciones`/`_etiqueta_objetivo`; flujos migrados (`crear_reserva`, `actualizar_reserva`, `cambiar_estado`, `cancelar_reserva_usuario`). Reglas implementadas: gate de modalidad `equipos`/`zonas`/`mixto` (400 si incompatible), mismidad de espacio del conjunto (edición con `espacio_id_fijo`: 403 gestor/admin, 400 resto), **materialización zona → recursos efectivos** (directos ∪ miembros de zonas, sin duplicados, orden estable), **zona sin recursos permitida** (ancla = recurso de menor id del espacio; 400 si el espacio no tiene recursos — riesgo residual de la EXCLUDE histórica sobre el ancla documentado en `tests/test_reservas_zonas.py`), **capacidad efectiva = min(espacio, zonas definidas, recursos efectivos)**, **solapamiento transitivo** (cada efectivo contra `reserva_recursos`, cada zona contra `reserva_zonas`, con `exclude_id` en edición/aprobación), re-escritura de asociaciones dentro de una única transacción (sin filas parciales). La función `_recurso_id_reserva` de 12C-5 se retiró en favor de `crud::get_recurso_ids_reserva`/`get_zona_ids_reserva`; `validar_solapamiento` queda sin referencias (`validar_recurso_activo`/`validar_capacidad` solo las ejercitan tests unitarios).
+
+**CRUD** (`crud/reservas.py`): nuevos `get_zona_ids_reserva`/`get_zonas_bloqueantes` (espejo de los de recurso contra `reserva_zonas`); getters de listado/individual enriquecidos con los conjuntos desde las asociaciones (`_enriquecer_con_asociaciones` + `_OPTIONS_CARGA` con `joinedload` de `recursos_asociados`/`zonas_asociadas`/`zonas`) — la respuesta es aditiva, el singular sigue leyéndose de la columna ancla.
+
+**Dashboard/notificaciones/guares**: `recursos_mas_reservados` cuenta por **recurso efectivo** (JOIN `reserva_recursos`, `func.count(ReservaRecurso.id)`); `_etiqueta_objetivo` de notificaciones es **zona-aware** (`_query_usuario` precarga `Reserva.zonas`); `api/recursos.py::_recurso_tiene_reservas` consulta `reserva_recursos` + columna histórica para mover/eliminar un recurso (409).
+
+**Modelos** (`models/reserva.py`): relaciones aditivas de lectura `recursos_asociados`/`zonas_asociadas` (`passive_deletes=True` + `overlaps="reserva"`) y `zonas` (many-to-many `viewonly`) — corrigió el cascade del ORM que rompía los tests de borrado de recurso/zona (22 fallos → 0) y eliminó los SAWarnings. Sin cambio de esquema.
+
+**RED → GREEN**: tests nuevos/extendidos (conjunto, modalidad, capacidad efectiva, solapamiento transitivo, dashboard, notificaciones zona-aware, guards) escritos primero contra el código sin implementar. Tres fallos RED iniciales eran bugs de los **propios tests**, no del servicio: (1) zona sin recursos → el ancla (menor id del espacio) sí choca con una reserva directa de ese recurso por la EXCLUDE histórica, escenario corregido y documentado en `test_zona_sin_recursos_ancla_al_recurso_de_menor_id`; (2) el escenario de aprobación transitiva exigía modalidad `mixto`; (3) el escenario de gestor en zona de otro espacio exigía asociar el recurso a la zona. Ports de payload legacy: `test_doble_escritura_reserva_recursos.py`/`test_crud_reservas_lectura_asociaciones.py`/`test_api_reservas.py` pasan `recurso_ids`.
+
+**Resultados backend**: **482/482** (444 previos + 38 nuevos/extendidos; 1 warning preexistente de Starlette). `test_openapi_contrato.py` verde con el snapshot regenerado.
+
+**OpenAPI (12C-6, aprobado)**: snapshot regenerado con el mecanismo documentado del docstring de `test_openapi_contrato.py` tras aprobación explícita. Verificación estructural previa: `paths` idénticos, `security`/`securitySchemes` idénticos, ningún otro schema compartido alterado — únicamente `ReservaCreate`/`ReservaUpdate` (`+ additionalProperties: false`, ejes `recurso_ids`/`zona_ids`, sin `recurso_id`), `ReservaResponse` (+ `recurso_ids`/`zona_ids`/`zonas`, conservando `recurso_id`/`recurso`) y `ZonaReservaResponse` nuevo. Diff: 578 insertadas, 7 eliminadas.
+
+#### 12C-7 — Frontend y E2E
+
+**Archivos**: `frontend/src/types/reserva.ts` (ejes plurales; `Reserva` aditiva con `recurso_ids?`/`zona_ids?`/`zonas?`, conservando lectura singular `recurso_id`/`recurso`), `frontend/src/types/espacio.ts` (+ `modalidad_reserva`), `frontend/src/types/zona.ts` (nuevo), `frontend/src/services/zonas.ts` (nuevo), `frontend/src/app/espacios/page.tsx`, `frontend/src/app/reservas/nueva/page.tsx`, `frontend/src/app/espacios/page.test.tsx`, `frontend/e2e/fixtures/fixtures.ts`, las **8 specs** que creaban reservas (`smoke/05`, `smoke/08`, `regresion/02..05`, `07`, `08`), `frontend/e2e/README.md`. `frontend/src/app/admin/README.md` revisado y **no modificado** — no documenta estos flujos (panel admin, no reservas).
+
+**UI**: el modal de `espacios` y el form de `reservas/nueva` soportan **modalidad equipos/zonas/mixto** con **selección múltiple** (checkboxes) de recursos y/o zonas; grilla de slots construida desde `horario_atencion` para las reservas de zona (no existe endpoint de disponibilidad de zona; la autoridad del solapamiento es el backend, 409); aviso "podés reservar una zona aunque no tenga recursos asociados" y estados vacíos por modalidad; payload siempre `recurso_ids`/`zona_ids` (nunca `recurso_id`); lectura singular conservada para mostrar el recurso creado.
+
+**E2E**: `crearReservaApi` y los 8 specs migrados a `recurso_ids: [recurso.id]` (incl. el POST inline de `07-domingo`). Verificación real del contrato contra el backend: plural → **201**, `recurso_id` singular → **422** `extra_forbidden`, plural + `zona_ids` → 201.
+
+**Hallazgo durante la validación E2E — colisión de offsets 12/13 (bug **preexistente** de la suite, no de la migración)**: al correr la suite completa aparecía un flaky determinista en `smoke/05-heatmap` (proyecto `admin`). Con BD limpia e instrumentación temporal (status + body) se confirmó la causa raíz: `fechaFutura(12)` y `fechaFutura(13)` convergen a la misma fecha efectiva cuando el día+12 cae domingo (2026-08-30 lo es), y ambos specs reservan el mismo recurso y 10:00–11:00 en proyectos distintos (admin y usuario) → 409 real de `reservas_sin_solapamiento` dejado en la base por la corrida anterior dentro de la misma suite. Es la misma clase de colisión ya documentada en `05-notificaciones` y en `e2e/README.md`. Fix mínimo en la spec autorizada: `05-heatmap` offset **12 → 20** (margen ≥2 días), con comentario que sigue el precedente. La corrida final se ejecutó sobre `reservas_test` recién creada (`docker compose -f docker-compose.test.yml down -v` + `up -d --wait`, limpieza manual según lo documentado) para medir conteos reales.
+
+**Resultados frontend**: Vitest **70/70** (7 archivos; `espacios/page.test.tsx` 18 tests, incl. modalidades `zonas` y `mixto`); `type-check`, `lint` y `build` verdes.
+
+**Resultados E2E** (`test:e2e:all` sobre BD limpia): **27 passed, 0 failed, 0 flaky, 81 skipped** (1.4 min, `workers=1`; los skips son por diseño `solo([rol])`).
+
+**Sin commit ni push** — pendiente de autorización explícita separada.
+
 ## Fases pendientes (no aprobadas ni iniciadas)
 
 Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 
 - **Fase 9G** (fase de corte, sin alcance formalmente aprobado todavía): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `backend/app/deps.py`, ahora que frontend y E2E ya no dependen de ellos (Fase 9F-B). Cambiaría el contrato de OpenAPI y requeriría aprobación explícita, igual que 9F-A/9F-B. También pendiente: evaluar si conviene agregar una defensa CSRF adicional (token de doble envío) antes o como parte de este corte.
 - **Fase 10** (imágenes base de Docker EOL): 10-B, 10-C, 10-D y 10-G implementadas y ya en `origin/feature/soV0.1` (ver sección "Fase 10" y "Estado actual" arriba); **10-E** (migración de PostgreSQL de desarrollo 13→17) queda explícitamente pospuesta hasta disponer de un entorno con datos reales que migrar; 10-F (análisis de pinning por digest) completado sin cambios de archivo.
-- **Fase 12** (migración funcional del dominio del Word): 12A cerrada documentalmente (diez decisiones + mapeo de roles). **12B implementada** (RN-006/007/009: modalidad, correo, PS — ver sección "Fase 12B" arriba), backend-only, 318/318 tests, con un hallazgo de compatibilidad frontend pendiente de aprobación (`frontend/src/app/admin/espacios/page.tsx` no envía `correo`). 12C–12H: sin código todavía; quedan preguntas de implementación sin resolver (ver "Preguntas abiertas" de las Fases 12A/12B).
+- **Fase 12** (migración funcional del dominio del Word): 12A cerrada documentalmente (diez decisiones + mapeo de roles). **12B implementada** (RN-006/007/009: modalidad, correo, PS — ver sección "Fase 12B" arriba), backend-only, 318/318 tests, con un hallazgo de compatibilidad frontend pendiente de aprobación (`frontend/src/app/admin/espacios/page.tsx` no envía `correo`). **12C en curso**: análisis previo aprobado (once decisiones), **12C-1 implementada** (entidad `Zona` aislada, 331/331 tests), **12C-2 implementada** (CRUD/API de `Zona`, 364/364, snapshot aprobado y regenerado), **12C-3 implementada** (asociación Zona↔Recurso, 382/382, snapshot aprobado y regenerado), **12C-4a implementada** (modelos `ReservaRecurso`/`ReservaZona` aislados, 399/399), **12C-4b implementada** (backfill idempotente + gate de cobertura en `migrations.py`, 409/409), **12C-4c implementada** (constraints `EXCLUDE` `reserva_recursos_sin_solapamiento`/`reserva_zonas_sin_solapamiento`, 418/418, rollback endurecido pendiente — ver sección "Fase 12C-4" arriba) y **12C-4d implementada** (doble escritura controlada de `reserva_recursos` en `services/reservas.py`, 434/434, sin retirar `recurso_id`) y **12C-5 implementada** (servicios/CRUD leen desde las asociaciones, 444/444, sin ruptura de contrato), **12C-6 implementada** (ruptura de contrato plural de `Reserva` + dashboard/notificaciones/guares por recurso efectivo, 482/482, snapshot aprobado y regenerado) y **12C-7 implementada** (frontend y E2E con payload `recurso_ids`/`zona_ids`, Vitest 70/70 y E2E 27/0/0/81 en BD limpia — ver sección "Fase 12C-6 / Fase 12C-7" arriba); 12C-4e (retiro de `recurso_id`) y 12C-8 sin código todavía. 12D–12H: sin código todavía; quedan preguntas de implementación sin resolver (ver "Preguntas abiertas" de las Fases 12A/12B).
 - Fase 11: sin alcance definido en ningún documento de este repositorio — no existe roadmap aprobado para ella. No inventar contenido hasta que se defina explícitamente.
 - Deuda técnica de frontend adicional a lo ya resuelto en esta serie.
 - Backlog de negocio (reglas RN-006 en adelante).

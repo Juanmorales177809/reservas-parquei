@@ -31,6 +31,34 @@ class Reserva(Base):
     recurso = relationship("Recurso", back_populates="reservas")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
 
+    # Fase 12C-6: relaciones aditivas de lectura hacia las tablas de
+    # asociación (sin cambio de esquema). `reserva_recursos`/`reserva_zonas`
+    # son la fuente de verdad de los conjuntos de la reserva; la columna
+    # histórica `recurso_id` se conserva como ancla temporal (12C-4e).
+    # `foreign_keys` es necesario porque ambas asociaciones tienen dos FK.
+    recursos_asociados = relationship(
+        "ReservaRecurso",
+        foreign_keys="ReservaRecurso.reserva_id",
+        uselist=True,
+        passive_deletes=True,
+        overlaps="reserva",
+    )
+    zonas_asociadas = relationship(
+        "ReservaZona",
+        foreign_keys="ReservaZona.reserva_id",
+        uselist=True,
+        passive_deletes=True,
+        overlaps="reserva",
+    )
+    zonas = relationship(
+        "Zona",
+        secondary="reserva_zonas",
+        primaryjoin="Reserva.id == ReservaZona.reserva_id",
+        secondaryjoin="ReservaZona.zona_id == Zona.id",
+        uselist=True,
+        viewonly=True,
+    )
+
     __table_args__ = (
         CheckConstraint("estado IN ('esperando', 'aprobada', 'rechazada', 'cancelada')", name="ck_reservas_estado"),
         CheckConstraint("hora_inicio < hora_fin", name="ck_reservas_horario_valido"),

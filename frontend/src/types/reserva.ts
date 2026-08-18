@@ -1,3 +1,5 @@
+import type { ZonaReserva } from './zona';
+
 export type ReservaEstado = 'esperando' | 'aprobada' | 'rechazada' | 'cancelada';
 
 export interface ReservaUsuario {
@@ -19,6 +21,12 @@ export interface Reserva {
   usuario_id: number;
   espacio_id: number;
   recurso_id: number;
+  // Fase 12C-6: el backend expone además los conjuntos resueltos desde las
+  // tablas de asociación. Se leen como opcionales para conservar la lectura
+  // singular (`recurso`/`recurso_id`) mientras el backend la exponga.
+  recurso_ids?: number[];
+  zona_ids?: number[];
+  zonas?: ZonaReserva[];
   fecha: string;
   hora_inicio: string;
   hora_fin: string;
@@ -38,7 +46,10 @@ export interface Reserva {
 }
 
 export interface ReservaCreate {
-  recurso_id: number;
+  // Fase 12C-6: el contrato pasa a ejes de conjuntos. Al menos un recurso o
+  // una zona; nunca se envía `recurso_id` (422 si se enviara).
+  recurso_ids: number[];
+  zona_ids: number[];
   fecha: string;
   hora_inicio: string;
   hora_fin: string;

@@ -9,7 +9,7 @@ test.describe('Cancelación', () => {
     const headersUsuario = await headersPara(backend, 'usuario');
     const recurso = await primerRecurso(backend);
     const creada = await crearReservaApi(backend, headersUsuario, {
-      recurso_id: recurso.id,
+      recurso_ids: [recurso.id],
       fecha: fechaFutura(9, testInfo.retry),
       hora_inicio: '10:00',
       hora_fin: '11:00',

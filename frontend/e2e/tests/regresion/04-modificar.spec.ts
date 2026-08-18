@@ -9,7 +9,7 @@ test.describe('Modificación de reserva pendiente', () => {
     const headers = await headersPara(backend, 'usuario');
     const recurso = await primerRecurso(backend);
     const creada = await crearReservaApi(backend, headers, {
-      recurso_id: recurso.id,
+      recurso_ids: [recurso.id],
       fecha: fechaFutura(18, testInfo.retry),
       hora_inicio: '12:00',
       hora_fin: '13:00',
