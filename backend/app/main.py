@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -35,10 +35,35 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.backend_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # False porque el JWT viaja en la cabecera Authorization (frontend/src/services/api.ts),
+    # nunca en cookies: no hay credencial que el navegador deba adjuntar automáticamente.
+    allow_credentials=False,
+    # Únicos verbos que emite el frontend (frontend/src/services/*.ts); GET es
+    # el default de fetch cuando no se especifica method.
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    # Únicas cabeceras que agrega apiFetch (frontend/src/services/api.ts).
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+# Rutas de documentación interactiva: Swagger UI/ReDoc cargan script/CSS desde
+# cdn.jsdelivr.net e inyectan un <script> inline de inicialización, incompatibles
+# con la CSP restrictiva del resto de la API. Se excluyen solo de esa cabecera.
+_RUTAS_SIN_CSP = {"/docs", "/redoc"}
+
+
+@app.middleware("http")
+async def agregar_cabeceras_seguridad(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if request.url.path not in _RUTAS_SIN_CSP:
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    if settings.environment == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    return response
 
 
 @app.get("/", tags=["health"])

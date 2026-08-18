@@ -18,6 +18,7 @@ class Settings:
         for origin in os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
     ]
+    environment: str = os.getenv("ENVIRONMENT", "development")
 
     def validate(self) -> None:
         if len(self.secret_key) < 32 or self.secret_key == "change-me-in-production":

@@ -104,6 +104,15 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Auditoría de dependencias (informativa, no bloqueante — Fase 9A)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+        # No falla el pipeline: es solo visibilidad. No hay pip-audit
+        # equivalente en el job backend porque no está entre las
+        # dependencias ya pineadas (backend/requirements-dev.txt) y esta
+        # fase no agrega dependencias nuevas sin aprobación explícita.
+
       - name: Lint
         working-directory: frontend
         run: npm run lint
