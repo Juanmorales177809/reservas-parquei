@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -25,6 +25,7 @@ class Recurso(Base):
     descripcion = Column(Text, nullable=True)
     capacidad = Column(Integer, nullable=False)
     estado = Column(String(30), nullable=False, default="activo")
+    es_prestacion_servicio = Column(Boolean, nullable=False, default=False)
     create_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     update_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     created_by = Column(Integer, ForeignKey("usuarios.id"), nullable=False)

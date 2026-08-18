@@ -25,6 +25,11 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 | test_auditoria_dominio.py | Creado | Adaptador `AuditoriaSesion` y wrapper `registrar_cambio` (Fase 3) |
 | test_lifespan_arranque.py | Creado | Lifespan con `with TestClient`, `/health` e idempotencia (Fase 3) |
 | test_admin_dashboard_ocupacion.py | Creado | Ocupación real con `horario_atencion` (Fase 4) |
+| test_api_espacios.py | Modificado (Fase 12B) | Nueva `TestModalidadYCorreo` (10 tests: modalidad válida/inválida, correo válido/vacío/ausente/formato inválido, compatibilidad de espacio existente, actualización de correo) |
+| test_api_recursos.py | Creado (Fase 12B) | Visibilidad y gestión de recursos PS: `TestVisibilidadPS` (10 tests) y `TestGestionPS` (3 tests) |
+| test_api_reservas.py | Modificado (Fase 12B) | Nueva `TestRecursosPS` (5 tests: bloqueo a `usuario`, permiso a `gestor`/`admin`, edición hacia PS, reserva normal sin cambios) |
+| test_schemas_contrato.py | Modificado (Fase 12B) | 3 tests preexistentes actualizados para incluir `correo`/`modalidad_reserva` (contrato ya no acepta `EspacioCreate` sin `correo`) |
+| conftest.py | Modificado (Fase 12B) | `crear_espacio`/`crear_recurso` aceptan `modalidad_reserva`, `correo`, `es_prestacion_servicio` opcionales |
 
 ## Reglas de negocio relacionadas
 
@@ -36,6 +41,7 @@ Suite automatizada de regresión del backend. Captura el comportamiento actual d
 - Fase 2 (schemas): contrato JSON conservado (incluida la opción A de horario: días vacíos con `[]`), campos tipados con enums y valores rechazados (detalle en `app/schemas/README.md`).
 - Fase 3 (services/models/crud/lifespan): `Reloj` inyectable (los tests de anticipación usan `_RelojFijo` en lugar de `monkeypatch`), guard de horario vacío, adaptador de auditoría y arranque con lifespan (detalle en los READMEs de `app/services/`, `app/`, `app/models/` y `app/crud/`).
 - Fase 4 (RN-005 y ocupación): `TestRN005ListadoPublico` en `test_api_espacios.py` (8 tests) y `test_admin_dashboard_ocupacion.py` (7 tests, fechas fijas y reservas legacy insertadas directamente en la DB; detalle en `app/api/README.md`).
+- Fase 12B (RN-006, RN-007, RN-009): `TestModalidadYCorreo` en `test_api_espacios.py` (10 tests), `test_api_recursos.py` completo (13 tests), `TestRecursosPS` en `test_api_reservas.py` (5 tests) — 28 tests nuevos en total. Detalle de las nueve decisiones de diseño (valores del enum, formato de correo, nombre del campo PS, compatibilidad) en `CHANGELOG.md`.
 
 ## Decisiones técnicas
 
@@ -55,7 +61,7 @@ cd backend
 docker compose -f docker-compose.test.yml down -v        # limpieza opcional
 ```
 
-Resultado esperado: todos los tests en verde. Los 409 por solapamiento ejercitan la constraint de la base, no solo la validación del servicio.
+Resultado esperado: todos los tests en verde. Los 409 por solapamiento ejercitan la constraint de la base, no solo la validación del servicio. Fase 12B: 318/318 (290 previos + 28 nuevos), migración de `modalidad_reserva`/`correo`/`es_prestacion_servicio` verificada idempotente ejecutándola dos veces seguidas contra el mismo esquema.
 
 ## Impacto y compatibilidad
 
@@ -67,6 +73,7 @@ Resultado esperado: todos los tests en verde. Los 409 por solapamiento ejercitan
 - Requiere Docker y el puerto 5433 libre; si el puerto está ocupado, la ejecución se detiene y se reporta (no se cambia silenciosamente).
 - En Windows, `zoneinfo` exige el paquete `tzdata` (añadido a `requirements-dev.txt`); sin él, las pruebas que invocan `ahora_local()` fallan con `ZoneInfoNotFoundError`.
 - Si falla una prueba o la migración, la fase se detiene y se reporta el error tal cual.
+- **Fase 12B**: al correr la suite E2E completa (`frontend`, fuera de esta carpeta) se confirmó una regresión real y determinista en `frontend/e2e/tests/smoke/03-admin.spec.ts` por `correo` ahora obligatorio — no es un fallo de esta suite backend, documentado en `backend/app/api/README.md` y `CHANGELOG.md`.
 
 ## Pendientes
 

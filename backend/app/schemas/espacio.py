@@ -2,8 +2,14 @@ from datetime import time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.domain.enums import EstadoEntidad
+from app.domain.enums import EstadoEntidad, ModalidadEspacio
 from app.domain.valor import HorarioAtencion
+
+
+def _validar_formato_correo(value: str) -> str:
+    if "@" not in value or "." not in value.split("@")[-1]:
+        raise ValueError("El correo debe tener un formato válido")
+    return value
 
 
 class EspacioResponse(BaseModel):
@@ -19,6 +25,8 @@ class EspacioResponse(BaseModel):
     hora_cierre: time
     horario_atencion: dict[int, list[int]]
     horas_antelacion: int
+    modalidad_reserva: ModalidadEspacio
+    correo: str | None = None
 
 
 class EspacioCreate(BaseModel):
@@ -26,6 +34,17 @@ class EspacioCreate(BaseModel):
     ubicacion: str = Field(default="Sede Central", max_length=200)
     capacidad: int = Field(gt=0)
     estado: EstadoEntidad = EstadoEntidad.ACTIVO
+    modalidad_reserva: ModalidadEspacio = ModalidadEspacio.EQUIPOS
+    # RN-007: correo propio del espacio, obligatorio para altas nuevas
+    # (Fase 12A, decisión 6 y 10.2 del análisis Word→código). La columna en
+    # BD es nullable para no fabricar datos falsos en espacios existentes
+    # sembrados antes de esta fase — ver EspacioUpdate.
+    correo: str = Field(min_length=1, max_length=255)
+
+    @field_validator("correo")
+    @classmethod
+    def validar_correo(cls, value: str) -> str:
+        return _validar_formato_correo(value)
 
 
 class EspacioUpdate(BaseModel):
@@ -33,6 +52,15 @@ class EspacioUpdate(BaseModel):
     ubicacion: str | None = Field(default=None, max_length=200)
     capacidad: int | None = Field(default=None, gt=0)
     estado: EstadoEntidad | None = None
+    modalidad_reserva: ModalidadEspacio | None = None
+    correo: str | None = Field(default=None, min_length=1, max_length=255)
+
+    @field_validator("correo")
+    @classmethod
+    def validar_correo(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return _validar_formato_correo(value)
 
 
 class ConfiguracionEspacioResponse(BaseModel):

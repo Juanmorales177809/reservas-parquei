@@ -176,6 +176,89 @@ class TestCrearReserva:
         assert respuesta.status_code == 401
 
 
+class TestRecursosPS:
+    """RN-009 (Fase 12B): un recurso marcado como PS (prestación de
+    servicios) no puede reservarse por el rol `usuario`. `gestor`/`admin`
+    sí pueden reservarlo directamente en esta fase — el condicionamiento a
+    un tipo de reserva "servicio de ensayo" (RN-015) queda para la Fase
+    12D, que debe integrarse sin duplicar este gate de rol."""
+
+    def _setup_ps(self, db, *, rol_creador="admin"):
+        espacio = crear_espacio(db, nombre="Sala PS Reserva")
+        creador = crear_usuario(
+            db, username=f"creador_{rol_creador}", email=f"creador_{rol_creador}@test.com", rol=rol_creador
+        )
+        recurso_ps = crear_recurso(
+            db, espacio=espacio, usuario=creador, nombre="Equipo PS Reserva", es_prestacion_servicio=True
+        )
+        return espacio, recurso_ps
+
+    def test_usuario_no_puede_reservar_recurso_ps(self, client, db):
+        _, recurso_ps = self._setup_ps(db)
+        usuario = crear_usuario(db, username="user_reserva_ps", email="user_reserva_ps@test.com")
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_ps.id, fecha_habilitada()),
+            headers=headers_para(usuario),
+        )
+        assert respuesta.status_code == 403
+
+    def test_gestor_puede_reservar_recurso_ps_de_su_espacio(self, client, db):
+        espacio, recurso_ps = self._setup_ps(db)
+        gestor = crear_usuario(
+            db, username="gestor_reserva_ps", email="gestor_reserva_ps@test.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_ps.id, fecha_habilitada()),
+            headers=headers_para(gestor),
+        )
+        assert respuesta.status_code == 201
+
+    def test_admin_puede_reservar_recurso_ps(self, client, db):
+        _, recurso_ps = self._setup_ps(db)
+        admin = crear_usuario(db, username="admin_reserva_ps", email="admin_reserva_ps@test.com", rol="admin")
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_ps.id, fecha_habilitada()),
+            headers=headers_para(admin),
+        )
+        assert respuesta.status_code == 201
+
+    def test_usuario_no_puede_editar_reserva_hacia_recurso_ps(self, client, db):
+        espacio = crear_espacio(db, nombre="Sala PS Editar")
+        admin = crear_usuario(db, username="admin_edit_ps", email="admin_edit_ps@test.com", rol="admin")
+        usuario = crear_usuario(db, username="user_edit_ps", email="user_edit_ps@test.com")
+        recurso_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Normal Editar")
+        recurso_ps = crear_recurso(
+            db, espacio=espacio, usuario=admin, nombre="PS Editar", es_prestacion_servicio=True
+        )
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_normal.id, fecha_habilitada()),
+            headers=headers_para(usuario),
+        ).json()
+        respuesta = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"recurso_id": recurso_ps.id},
+            headers=headers_para(usuario),
+        )
+        assert respuesta.status_code == 403
+
+    def test_reserva_normal_sin_cambios(self, client, db):
+        """Un recurso no-PS sigue reservable por cualquier rol autenticado,
+        sin ningún cambio de comportamiento por esta fase."""
+        usuario, _, recurso = _setup(db)
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=headers_para(usuario),
+        )
+        assert respuesta.status_code == 201
+        assert respuesta.json()["estado"] == "esperando"
+
+
 class TestSolapamiento:
     def test_solapamiento_exacto_da_409(self, client, db):
         usuario, _, recurso = _setup(db)

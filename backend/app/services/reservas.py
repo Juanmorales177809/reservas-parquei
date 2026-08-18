@@ -113,10 +113,29 @@ def validar_capacidad(asistentes: int, recurso_capacidad: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La cantidad de asistentes supera la capacidad del recurso")
 
 
+def validar_acceso_ps(recurso: Recurso, usuario: Usuario) -> None:
+    """RN-009 (Fase 12B): un recurso de prestación de servicios (PS) no
+    puede reservarse por el rol `usuario` (investigador). `gestor`
+    (laboratorista) y `admin` (administrador técnico) sí pueden.
+
+    Punto de extensión para la Fase 12D: cuando exista el tipo de reserva
+    (RN-012/RN-015, "servicio de ensayo"), esa fase debe agregar su propio
+    chequeo -- p. ej. exigir `data.tipo == TipoReserva.SERVICIO_DE_ENSAYO`
+    cuando `recurso.es_prestacion_servicio` sea verdadero -- como una
+    validación adicional, sin tocar ni duplicar este gate de rol.
+    """
+    if recurso.es_prestacion_servicio and usuario.rol == Rol.USUARIO.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Los recursos de prestación de servicios no están disponibles para tu rol",
+        )
+
+
 def validar_creacion(db: Session, data: ReservaCreate, usuario: Usuario, recurso: Recurso | None) -> None:
     if usuario is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Debes iniciar sesión para crear reservas")
     validar_recurso_activo(recurso)
+    validar_acceso_ps(recurso, usuario)
     validar_capacidad(data.asistentes, recurso.capacidad)
     validar_horario(recurso.espacio, data.fecha, data.hora_inicio, data.hora_fin)
     validar_anticipacion(recurso.espacio, data.fecha, data.hora_inicio)
@@ -285,6 +304,7 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     validar_recurso_activo(recurso)
     if not es_propietario and espacio_gestionado is not None and recurso.espacio_id != espacio_gestionado:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes usar recursos de tu espacio")
+    validar_acceso_ps(recurso, usuario)
     validar_capacidad(asistentes, recurso.capacidad)
     validar_horario(recurso.espacio, fecha, hora_inicio, hora_fin)
     validar_anticipacion(recurso.espacio, fecha, hora_inicio)

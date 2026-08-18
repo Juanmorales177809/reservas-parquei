@@ -29,6 +29,9 @@ def migrate_resource_reservations() -> None:
         "ALTER TABLE espacios ADD COLUMN IF NOT EXISTS horario_atencion JSONB DEFAULT '{}'::jsonb",
         "ALTER TABLE espacios ADD COLUMN IF NOT EXISTS horas_antelacion INTEGER DEFAULT 24",
         "ALTER TABLE espacios ADD COLUMN IF NOT EXISTS aprobacion_automatica BOOLEAN DEFAULT false",
+        "ALTER TABLE espacios ADD COLUMN IF NOT EXISTS modalidad_reserva VARCHAR(20) DEFAULT 'equipos'",
+        "ALTER TABLE espacios ADD COLUMN IF NOT EXISTS correo VARCHAR(255)",
+        "ALTER TABLE recursos ADD COLUMN IF NOT EXISTS es_prestacion_servicio BOOLEAN DEFAULT false",
         "ALTER TABLE espacios ALTER COLUMN dias_atencion SET DEFAULT '[0,1,2,3,4,5]'::jsonb",
         "ALTER TABLE espacios ALTER COLUMN hora_apertura SET DEFAULT '07:00'",
         "ALTER TABLE espacios ALTER COLUMN hora_cierre SET DEFAULT '20:00'",
@@ -59,6 +62,8 @@ def migrate_resource_reservations() -> None:
         """,
         "UPDATE espacios SET horas_antelacion = 24 WHERE horas_antelacion IS NULL",
         "UPDATE espacios SET aprobacion_automatica = false WHERE aprobacion_automatica IS NULL",
+        "UPDATE espacios SET modalidad_reserva = 'equipos' WHERE modalidad_reserva IS NULL",
+        "UPDATE recursos SET es_prestacion_servicio = false WHERE es_prestacion_servicio IS NULL",
         "ALTER TABLE espacios ALTER COLUMN dias_atencion SET NOT NULL",
         "ALTER TABLE espacios ALTER COLUMN hora_apertura SET NOT NULL",
         "ALTER TABLE espacios ALTER COLUMN hora_cierre SET NOT NULL",
@@ -66,6 +71,10 @@ def migrate_resource_reservations() -> None:
         "ALTER TABLE espacios ALTER COLUMN horas_antelacion SET NOT NULL",
         "ALTER TABLE espacios ALTER COLUMN aprobacion_automatica SET DEFAULT false",
         "ALTER TABLE espacios ALTER COLUMN aprobacion_automatica SET NOT NULL",
+        "ALTER TABLE espacios ALTER COLUMN modalidad_reserva SET DEFAULT 'equipos'",
+        "ALTER TABLE espacios ALTER COLUMN modalidad_reserva SET NOT NULL",
+        "ALTER TABLE recursos ALTER COLUMN es_prestacion_servicio SET DEFAULT false",
+        "ALTER TABLE recursos ALTER COLUMN es_prestacion_servicio SET NOT NULL",
         "ALTER TABLE recursos ALTER COLUMN create_at SET DEFAULT now()",
         "ALTER TABLE recursos ALTER COLUMN update_at SET DEFAULT now()",
         "UPDATE recursos SET nombre = COALESCE(NULLIF(descripcion, ''), 'Recurso ' || id) WHERE nombre IS NULL",
@@ -168,6 +177,10 @@ def migrate_resource_reservations() -> None:
             IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_espacios_horas_antelacion') THEN
                 ALTER TABLE espacios ADD CONSTRAINT ck_espacios_horas_antelacion
                 CHECK (horas_antelacion >= 0);
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_espacios_modalidad_reserva') THEN
+                ALTER TABLE espacios ADD CONSTRAINT ck_espacios_modalidad_reserva
+                CHECK (modalidad_reserva IN ('equipos', 'zonas', 'mixto'));
             END IF;
         END $$;
         """,

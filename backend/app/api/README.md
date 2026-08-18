@@ -11,6 +11,7 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 | espacios.py | Modificado | `GET /espacios` aplica RN-005 con autenticación opcional: anónimos y rol `usuario` ven solo espacios `activo`; admin/gestor ven todos. El docstring del endpoint se conservó EXACTO para mantener el OpenAPI byte-idéntico |
 | admin_dashboard.py | Modificado | El cálculo de ocupación usa el `horario_atencion` real de cada espacio (`HorarioAtencion`) en lugar del rango fijo 7-20; el grid del heatmap conserva el rango 7..19 del contrato del gráfico |
 | auth.py | Modificado | `POST /auth/login` (Fase 9F-A) además de devolver `TokenResponse` sin cambios, fija una cookie HttpOnly con el mismo token. Nuevo `POST /auth/logout`: borra la cookie, `204 No Content`, no exige autenticación, idempotente si no existe cookie previa |
+| recursos.py | Modificado (Fase 12B) | `GET /recursos` y `GET /recursos/{id}/disponibilidad` filtran/bloquean recursos PS (`es_prestacion_servicio`) para `usuario` y anónimos; `POST /recursos` propaga el campo. `GET /recursos/gestion` no requirió cambios (ya restringido a gestor/admin) |
 
 ## Reglas de negocio relacionadas
 
@@ -26,6 +27,14 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 - **Límites de franjas**: inicio inclusivo, fin exclusivo (convención vigente).
 - **Denominador cero**: cuando no hay horas atendidas, `porcentaje` es 0 (guard existente conservado).
 
+### Fase 12B — Visibilidad y autorización de recursos PS
+
+- **RN-009**: recursos marcados `es_prestacion_servicio=True` no son visibles ni reservables por el rol `usuario` (investigador). `gestor` (laboratorista) y `admin` (administrador técnico) sí.
+- **Reutilización del patrón RN-005**: `_puede_ver_ps(usuario)` sigue exactamente el mismo criterio ya usado en `listar_espacios` (`usuario is None or usuario.rol == Rol.USUARIO.value` → sin acceso), aplicado ahora a `listar_recursos` y `obtener_disponibilidad_recurso`, ambos antes públicos sin ninguna dependencia de autenticación.
+- **`get_current_user_optional` reutilizado sin cambiar el esquema de seguridad en OpenAPI**: mismo mecanismo ya verificado en la Fase 4 para `GET /espacios` (lee el header manualmente, sin `Depends(oauth2_scheme)`) — confirmado que el diff del snapshot no agrega ningún nuevo requisito de seguridad a estos endpoints.
+- **`GET /recursos/gestion` sin cambios**: ya requería `require_resource_manager` (solo gestor/admin), así que cualquiera que llegue a ese endpoint ya está autorizado a ver PS por diseño previo — no hizo falta ningún filtro adicional.
+- **Respuesta 403, no 404, para el intento directo de disponibilidad de un recurso PS por un rol no autorizado**: es una restricción de rol (igual que "Solo puedes gestionar recursos de tu espacio"), no una cuestión de existencia del recurso.
+
 ### Fase 9F-A — Autenticación dual por cookie HttpOnly
 
 - **Fase dual aprobada explícitamente**: `POST /auth/login` conserva `TokenResponse.access_token` en el body (sin cambio de contrato) y además fija una cookie HttpOnly con el mismo token, vía los helpers de `app/auth/auth.py` (`atributos_cookie_acceso()`, `max_age_cookie_acceso()`). Objetivo: permitir migrar el frontend a cookie en una fase posterior sin romper clientes existentes (E2E, frontend actual, que siguen usando `Authorization: Bearer`).
@@ -39,9 +48,10 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/test_api_espacios.py tests/test_admin_dashboard_ocupacion.py -v
 .\.venv\Scripts\python.exe -m pytest tests/test_api_auth_cookie.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_api_recursos.py tests/test_api_espacios.py::TestModalidadYCorreo -v   # Fase 12B
 ```
 
-Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; 22 de autenticación dual por cookie). Suite completa del backend: 289/289.
+Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; 22 de autenticación dual por cookie). Suite completa del backend: 289/289. Fase 12B: 318/318 (10 tests de modalidad/correo + 13 de visibilidad/gestión PS + 5 de reserva de recursos PS).
 
 ## Impacto y compatibilidad
 
@@ -49,12 +59,14 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; 22 de autenticac
 - Sin cambios de rutas, métodos, campos, schemas, migraciones ni frontend en Fase 4. Fase 9F-A no toca `TokenResponse`, ni ningún schema existente, ni frontend, ni Docker, ni CI, ni migraciones, ni rate limiting.
 - Cambio de comportamiento intencional (Fase 4): la lista pública ya no expone espacios `inactivo`/`mantenimiento` (corrección de RN-005).
 - Cambio de comportamiento intencional (Fase 9F-A): los endpoints protegidos ahora también aceptan una cookie `access_token` válida como alternativa al header `Authorization`, además de exponer `POST /auth/logout` (antes inexistente). El resto de códigos de estado (401/403/422/429) queda exactamente igual, verificado con tests explícitos.
+- Cambio de comportamiento intencional (Fase 12B): `GET /recursos` y `GET /recursos/{id}/disponibilidad` dejan de ser completamente públicos en su resultado — un anónimo o `usuario` ya no ve/consulta recursos PS (antes visibles a cualquiera). Sin cambios de OpenAPI en estas dos rutas (no se agregó esquema de seguridad); el cambio es de comportamiento, verificado con tests explícitos.
 
 ## Riesgos
 
 - El heatmap `ocupacion_por_dia_hora` mantiene su grid 7..19 (contrato del gráfico): horas atendidas fuera de ese rango se cuentan en `ocupacion_global` pero no aparecen en el gráfico. Limitación documentada, no bloqueante.
 - **CSRF (riesgo aceptado, mitigado, no eliminado)**: al aceptar cookie, el navegador la adjunta automáticamente en peticiones same-origin. Desde la Fase 9F-B, `frontend/src/services/api.ts` sí envía `credentials: 'same-origin'` en cada request, así que la cookie viaja en cada llamada del frontend. `SameSite=Lax` bloquea el envío de la cookie en peticiones state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) disparadas por `fetch`/XHR desde otro origen, pero no se agregó ningún token CSRF de doble envío ni otra defensa adicional — decisión explícita, fuera de alcance de 9F-A y 9F-B. No se afirma que el riesgo esté resuelto, solo mitigado por `SameSite=Lax` mientras la arquitectura siga dependiendo del proxy same-origin de Next.js (`frontend/next.config.js`).
 - **`require_admin_dashboard` no tiene cobertura de test propia** (ni antes ni después de esta fase): función sin uso en ningún router actual (verificado); se actualizó por consistencia con `oauth2_scheme`, pero queda sin ejercitar directamente.
+- **Fase 12B — regresión real de E2E confirmada**: `frontend/e2e/tests/smoke/03-admin.spec.ts:12-14` crea un espacio vía API directa sin `correo`, ahora obligatorio — falla con 422 de forma determinista (no flaky, reproducido en 2 intentos). Requiere ajuste del payload del test (y del formulario admin real, `frontend/src/app/admin/espacios/page.tsx`), fuera del alcance backend-only de esta fase.
 
 ## Pendientes
 
@@ -62,7 +74,9 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; 22 de autenticac
 - Limpiar el docstring/descripción del endpoint requeriría aprobación explícita (cambia OpenAPI).
 - ~~Fase 9F-B: migrar `AuthContext`, `api.ts`, `localStorage` y los fixtures E2E para dejar de depender del header como mecanismo primario.~~ **Hecho** — commit `13c341d3c93ae86deb709aad1f5f659cdc74c9bf`, local, pendiente de push.
 - Fase 9G (no aprobada ni iniciada): decidir si se retira `access_token` del body de `TokenResponse` y el soporte de `Authorization`, ahora que frontend y E2E ya no dependen de ellos.
+- **Fase 12B**: aprobar por separado el ajuste de `frontend/src/app/admin/espacios/page.tsx` y `frontend/e2e/tests/smoke/03-admin.spec.ts` para incluir `correo` (ver Riesgos arriba).
+- **Fase 12D** (pendiente, no iniciada): agregar el condicionamiento de "PS solo reservable en tipo servicio de ensayo" en `services/reservas.py::validar_acceso_ps` (ver `backend/app/services/README.md`).
 
 ## Fase de implementación
 
-Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly).
+Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly). Fase 12B (visibilidad/autorización de recursos PS).

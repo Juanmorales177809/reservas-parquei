@@ -25,6 +25,21 @@ class Rol(str, Enum):
     ADMIN = "admin"
 
 
+class ModalidadEspacio(str, Enum):
+    """Modalidad de reserva configurada por espacio (RN-006, Fase 12B).
+
+    Nombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente
+    distinto de `tipo_reserva` para no colisionar con el futuro campo de
+    tipo de reserva académica de `Reserva` (RN-012, Fase 12D), que es un
+    concepto distinto aunque el documento fuente usa nombres parecidos
+    para ambos.
+    """
+
+    EQUIPOS = "equipos"
+    ZONAS = "zonas"
+    MIXTO = "mixto"
+
+
 class EstadoEntidad(str, Enum):
     """Estado de entidades gestionables (espacios y recursos)."""
 

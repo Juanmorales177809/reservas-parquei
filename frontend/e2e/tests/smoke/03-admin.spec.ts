@@ -9,7 +9,7 @@ test.describe('Admin y RN-005', () => {
     const nombre = `Sala Inactiva ${sufijoUnico()}`;
     const creado = await backend.post('/espacios', {
       headers,
-      data: { nombre, ubicacion: 'E2E', capacidad: 5, estado: 'inactivo' },
+      data: { nombre, ubicacion: 'E2E', capacidad: 5, estado: 'inactivo', correo: 'espacio.e2e@example.com' },
     });
     expect(creado.ok()).toBeTruthy();
 

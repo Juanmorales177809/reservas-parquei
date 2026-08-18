@@ -20,6 +20,10 @@ class RecursoCreate(BaseModel):
     capacidad: int = Field(gt=0)
     estado: EstadoEntidad = EstadoEntidad.ACTIVO
     espacio_id: int | None = None
+    # RN-009: recurso de "prestación de servicios" (PS). Visibilidad y
+    # reserva restringidas a gestor/admin — ver app/api/recursos.py y
+    # app/services/reservas.py (Fase 12B).
+    es_prestacion_servicio: bool = False
 
 
 class RecursoUpdate(BaseModel):
@@ -29,6 +33,7 @@ class RecursoUpdate(BaseModel):
     capacidad: int | None = Field(default=None, gt=0)
     estado: EstadoEntidad | None = None
     espacio_id: int | None = None
+    es_prestacion_servicio: bool | None = None
 
 
 class RecursoResponse(BaseModel):
@@ -43,3 +48,4 @@ class RecursoResponse(BaseModel):
     estado: EstadoEntidad
     espacio: EspacioResponse
     tipo: TipoRecursoResponse
+    es_prestacion_servicio: bool

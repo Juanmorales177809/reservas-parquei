@@ -16,6 +16,8 @@ export interface EspacioCreate {
   ubicacion: string;
   capacidad: number;
   estado?: 'activo' | 'inactivo' | 'mantenimiento';
+  // Obligatorio en el backend desde la Fase 12B (RN-007). Ver CHANGELOG.md.
+  correo: string;
 }
 
 export interface EspacioUpdate {

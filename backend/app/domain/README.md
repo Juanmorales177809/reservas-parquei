@@ -12,6 +12,12 @@ Capa de dominio tipada del backend: enums, value objects y protocols que encapsu
 | valor.py | Creado | `FranjaHoraria` y `HorarioAtencion` (frozen dataclasses con invariantes) |
 | protocols.py | Creado | `Reloj` y `RegistroAuditoria` (`@runtime_checkable`, solo tipos primitivos) |
 | __init__.py | Creado | Re-exporta la API pública de la capa |
+| enums.py | Modificado (Fase 12B) | Nuevo `ModalidadEspacio` (`equipos`/`zonas`/`mixto`, RN-006) |
+
+### Fase 12B — `ModalidadEspacio`
+
+- Valores en minúsculas (`equipos`/`zonas`/`mixto`), consistentes con la mayoría de enums existentes (`EstadoEntidad`, `EstadoReserva`, `Rol`) — no las mayúsculas literales del documento Word (decisión documentada, no una regla legada por un constraint preexistente como `TipoNotificacion`).
+- El campo en `Espacio` se llama `modalidad_reserva`, deliberadamente distinto de `tipo_reserva`, para no colisionar con el futuro campo de tipo de reserva académica de `Reserva` (RN-012, Fase 12D) — ambos conceptos comparten nombre parecido en el documento fuente pero son cosas distintas.
 
 ## Reglas de negocio relacionadas
 
@@ -36,13 +42,15 @@ Capa de dominio tipada del backend: enums, value objects y protocols que encapsu
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m pytest tests/test_domain_enums.py tests/test_domain_valor.py tests/test_domain_protocols.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_api_espacios.py tests/test_api_recursos.py tests/test_api_reservas.py -v   # Fase 12B
 ```
 
-Resultado esperado: verde, incluyendo invariantes, transiciones, solapamiento/contigüidad y el contrato de los protocols.
+Resultado esperado: verde, incluyendo invariantes, transiciones, solapamiento/contigüidad y el contrato de los protocols. Fase 12B: 318/318 en la suite completa (290 previos + 28 nuevos de modalidad/correo/PS).
 
 ## Impacto y compatibilidad
 
 - Cambio estrictamente aditivo: nada importa `domain/` todavía; OpenAPI, base de datos y comportamiento existente intactos. Las 74 pruebas de Fase 0 deben seguir pasando.
+- Fase 12B: `ModalidadEspacio` es aditivo (un enum más, sin tocar los existentes). Cambio de OpenAPI aprobado explícitamente (ver `backend/app/schemas/README.md`).
 
 ## Riesgos
 
@@ -53,8 +61,8 @@ Resultado esperado: verde, incluyendo invariantes, transiciones, solapamiento/co
 
 - Fuente única del horario de atención (Fase 4).
 - Adaptadores de `Reloj` (→ `services/reloj.py`) y de `RegistroAuditoria` (→ `services/auditoria.py` que hoy recibe `Session` + `Usuario`): Fase 3.
-- Contradicciones del documento legado (zonas, tipos de reserva, multi-equipo) fuera del alcance; ver plan v2.
+- ~~Contradicciones del documento legado (zonas, tipos de reserva, multi-equipo) fuera del alcance; ver plan v2.~~ **Superado**: el análisis Word→código real vive en `Auditoria_Funcional_Fase12.pdf` (raíz del repo) y en `CHANGELOG.md` (Fase 12A/12B). Zonas quedan planificadas para la Fase 12C; tipo de reserva académica, para la Fase 12D.
 
 ## Fase de implementación
 
-Fase 1 (capa de dominio tipada).
+Fase 1 (capa de dominio tipada). Fase 12B (`ModalidadEspacio`, RN-006).

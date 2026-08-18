@@ -37,6 +37,7 @@ export default function AdminEspaciosPage() {
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevaUbicacion, setNuevaUbicacion] = useState('');
   const [nuevaCapacidad, setNuevaCapacidad] = useState('');
+  const [nuevoCorreo, setNuevoCorreo] = useState('');
   const [creating, setCreating] = useState(false);
 
   const [editing, setEditing] = useState<EditingState | null>(null);
@@ -59,7 +60,7 @@ export default function AdminEspaciosPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!nuevoNombre.trim() || !nuevaUbicacion.trim() || !nuevaCapacidad) return;
+    if (!nuevoNombre.trim() || !nuevaUbicacion.trim() || !nuevaCapacidad || !nuevoCorreo.trim()) return;
     setCreating(true);
     setError(null);
     try {
@@ -67,10 +68,12 @@ export default function AdminEspaciosPage() {
         nombre: nuevoNombre.trim(),
         ubicacion: nuevaUbicacion.trim(),
         capacidad: Number(nuevaCapacidad),
+        correo: nuevoCorreo.trim(),
       } satisfies EspacioCreate);
       setNuevoNombre('');
       setNuevaUbicacion('');
       setNuevaCapacidad('');
+      setNuevoCorreo('');
       await loadEspacios();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el espacio');
@@ -175,6 +178,18 @@ export default function AdminEspaciosPage() {
               placeholder="Ej. 30"
               required
               min={1}
+            />
+          </label>
+          <label className="input-label flex-1 min-w-[200px]">
+            Correo
+            <input
+              className="input"
+              type="email"
+              value={nuevoCorreo}
+              onChange={(e) => setNuevoCorreo(e.target.value)}
+              placeholder="espacio@ejemplo.com"
+              required
+              maxLength={255}
             />
           </label>
           <button className="btn btn-primary" type="submit" disabled={creating}>

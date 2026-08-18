@@ -329,10 +329,73 @@ Las diez decisiones fijan el rumbo pero dejan detalles de implementación sin re
 
 ### Estado actual (2026-08-18, tras Fase 12A)
 
-- Fase 12A cerrada documentalmente — sin commit todavía (pendiente de autorización explícita, igual que el resto de fases de este repositorio).
+- **Fase 12A cerrada documentalmente y commiteada**: commit `cde3ffbe1a7f555ad59d9598d06d5605f4cb16a7` — "docs: record phase 12 domain decisions", ya en `origin/feature/soV0.1`.
 - Los seis commits de la serie Fase 10 + el informe de Fase 12 (`c7f8129`, `8016487`, `daa4dfe`, `1e53307`, `f8ac24a`, `259dc59`) ya están en `origin/feature/soV0.1` — `git push` realizado.
 - `Auditoria_Funcional_Fase12.pdf` (commit `259dc59`) es la fuente de evidencia detallada de todas las decisiones de esta sección.
-- Ninguna fase 12B–12H tiene código implementado — el roadmap queda aprobado, no ejecutado.
+- Además del mapeo de roles (`usuario`→Investigador, `gestor`→Laboratorista, `admin`→Administrador técnico), añadido al cierre de la sesión — ver "Mapeo de roles aprobado" arriba.
+- Ninguna fase 12B–12H tenía código implementado al cierre de 12A — ver Fase 12B abajo, la primera con código real.
+
+## Fase 12B — Modalidad del espacio, correo y equipos PS (2026-08-18)
+
+**Backend-only**, RED → GREEN. Implementa RN-006 (modalidad de reserva del espacio), RN-007 (correo propio del espacio) y RN-009 (equipos PS), a partir de las diez decisiones aprobadas en la Fase 12A. Ningún archivo de `frontend/` fue tocado — hallazgo de compatibilidad real documentado abajo.
+
+### Alcance y archivos
+
+`backend/app/domain/enums.py` (nuevo `ModalidadEspacio`), `backend/app/models/espacio.py` (`modalidad_reserva`, `correo`), `backend/app/models/recurso.py` (`es_prestacion_servicio`), `backend/app/schemas/espacio.py`, `backend/app/schemas/recurso.py`, `backend/app/crud/espacios.py`, `backend/app/api/recursos.py`, `backend/app/services/reservas.py` (`validar_acceso_ps`), `backend/app/migrations.py`, `backend/tests/conftest.py`, `backend/tests/test_api_espacios.py`, `backend/tests/test_api_reservas.py`, `backend/tests/test_api_recursos.py` (nuevo), `backend/tests/test_schemas_contrato.py`, `backend/tests/openapi.snapshot.json` (regenerado), y los README de `domain/`, `models/`, `schemas/`, `api/`, `services/`, `crud/`, `tests/`.
+
+### Las nueve decisiones de diseño (documentadas antes de codificar)
+
+1. **Enum de modalidad**: `ModalidadEspacio` = `equipos`/`zonas`/`mixto` (minúsculas, como `EstadoEntidad`/`EstadoReserva`/`Rol` — no las mayúsculas del Word). Campo `Espacio.modalidad_reserva`, **no** `tipo_reserva`, para no colisionar con el futuro `Reserva.tipo` de la Fase 12D.
+2. **Correo obligatorio para todos los espacios** de aquí en adelante (RN-007, decisión 6 de 12A) — pero la columna es `nullable` en BD para no fabricar datos falsos en espacios ya sembrados; `EspacioCreate.correo` requerido, `EspacioUpdate.correo` opcional.
+3. **Formato de correo**: mismo validador manual ya usado en `UsuarioCreate`/`UsuarioUpdate`, sin añadir la dependencia `email-validator`.
+4. **Nombre del campo PS**: `Recurso.es_prestacion_servicio` (booleano), descriptivo en vez de la sigla.
+5. **Recursos PS existentes**: backfill `false` — ningún recurso cambia de comportamiento.
+6. **Modalidad incompatible**: en 12B es solo informativa (validación de enum); sin cruce con Zona/Recurso porque Zona no existe todavía (Fase 12C) — dependencia documentada, no omitida en silencio.
+7. **Respuesta no autorizado**: 401 sin sesión (ya existente); **403** para `usuario` intentando ver/reservar un recurso PS (restricción de rol, mismo criterio que "Solo puedes gestionar recursos de tu espacio").
+8. **Admin (y gestor) pueden reservar PS directamente en 12B** — no hay todavía gate de "tipo de reserva" (Fase 12D). `validar_acceso_ps` queda aislada para que 12D extienda sin duplicar el gate de rol.
+9. **Compatibilidad**: las tres columnas nuevas nacen con default seguro (`modalidad_reserva='equipos'`, `es_prestacion_servicio=false`, `correo` nulo) vía migración idempotente con backfill.
+
+### RN-006 / RN-007 / RN-009 — trazabilidad
+
+- **RN-006**: `Espacio.modalidad_reserva` (`ModalidadEspacio`), validado por `CheckConstraint ck_espacios_modalidad_reserva` a nivel de PostgreSQL, no solo en Pydantic.
+- **RN-007**: `Espacio.correo`, obligatorio en `EspacioCreate`, validado con el mismo criterio de formato que `Usuario.email`.
+- **RN-009**: `Recurso.es_prestacion_servicio`. Visibilidad: `GET /recursos` y `GET /recursos/{id}/disponibilidad` (antes completamente públicos) filtran/bloquean PS para `usuario`/anónimos, reutilizando `get_current_user_optional` (mismo mecanismo de RN-005, sin agregar esquema de seguridad al OpenAPI). Reserva: `validar_acceso_ps` en `services/reservas.py`, invocada desde creación (`POST /reservas`) y edición (`PATCH /reservas/{id}` al cambiar de recurso).
+
+### Migración
+
+Idempotente (`backend/app/migrations.py`): `ADD COLUMN IF NOT EXISTS` + backfill + `SET NOT NULL` para `espacios.modalidad_reserva` (default `'equipos'`) y `recursos.es_prestacion_servicio` (default `false`); `espacios.correo` queda nullable, sin backfill de datos falsos. `CheckConstraint ck_espacios_modalidad_reserva` agregada de forma idempotente en el mismo bloque `DO $$` que ya protege `ck_espacios_horario_atencion`/`ck_espacios_horas_antelacion`. **Verificada ejecutándola dos veces seguidas** contra el mismo esquema, sin error.
+
+### RED → GREEN
+
+28 tests nuevos, escritos primero contra el código sin modificar (confirmados en rojo: `TypeError: 'modalidad_reserva' is an invalid keyword argument for Espacio`), implementados hasta verde: `TestModalidadYCorreo` (10, en `test_api_espacios.py`), `test_api_recursos.py` completo (13, nuevo archivo), `TestRecursosPS` (5, en `test_api_reservas.py`). Además, 4 tests preexistentes requirieron actualización mecánica de payload/fixture para reflejar el nuevo contrato (`correo` ahora obligatorio en `EspacioCreate`): `test_crear_espacio_solo_admin` y 3 tests de `test_schemas_contrato.py`.
+
+### Resultados
+
+- Backend: **318/318** (290 previos + 28 nuevos).
+- `test_openapi_contrato.py`: verde tras regenerar el snapshot con el mecanismo documentado. Diff revisado explícitamente: limitado a `correo`, `modalidad_reserva` (+ nuevo componente `ModalidadEspacio`) y `es_prestacion_servicio` en los schemas de `Espacio`/`Recurso` — ninguna ruta, método ni otro schema tocado.
+- Frontend: Vitest 66/66, `type-check` y `lint` limpios, `build` sin cambios de output salvo el tamaño esperado de `/admin/espacios` (+0.06 kB por el campo nuevo).
+- **E2E: 26 passed, 0 failed, 1 flaky (preexistente), 81 skipped.** `03-admin.spec.ts` en verde tras el ajuste de compatibilidad (ver abajo). El único flaky (`05-heatmap.spec.ts:30`, proyecto `admin`) es el mismo caso preexistente documentado desde la Fase 9A, no relacionado con esta fase.
+
+### Compatibilidad frontend — corregida (opción A autorizada)
+
+`frontend/src/app/admin/espacios/page.tsx:66` creaba espacios sin enviar `correo`; con `correo` obligatorio en el backend, la creación desde el panel admin real fallaba con 422. Corregido con autorización explícita separada, alcance mínimo y mecánico:
+
+- **`frontend/src/types/espacio.ts`**: `EspacioCreate.correo: string` (obligatorio, refleja el contrato real del backend).
+- **`frontend/src/app/admin/espacios/page.tsx`**: nuevo campo "Correo" (`type="email"`, `required`, `maxLength={255}`) en el formulario de creación; su valor se incluye en el payload de `crearEspacio` y se limpia tras crear con éxito. Sin cambios en edición/actualización de espacios existentes (fuera del alcance de esta corrección).
+- **`frontend/e2e/tests/smoke/03-admin.spec.ts`**: el payload de creación directa vía API agrega `correo: 'espacio.e2e@example.com'` — dominio reservado para documentación/pruebas (RFC 2606), nunca un dominio institucional real.
+- **RED → GREEN verificado de forma aislada**: `npx playwright test e2e/tests/smoke/03-admin.spec.ts --project=admin` — rojo antes (mismo error 422 en 2 intentos), verde después (2/2).
+- **No se relajó ninguna validación backend**, no cambió la obligatoriedad de `correo` en altas nuevas, ni la compatibilidad `nullable` de espacios existentes — el ajuste es exclusivamente del lado que faltaba enviar el campo.
+
+### Riesgos y dependencias
+
+- El `CheckConstraint` de `modalidad_reserva` protege a nivel de PostgreSQL, no solo Pydantic — un valor inválido nunca llega a persistirse aunque se hubiera evitado la validación de schema.
+- `validar_acceso_ps` queda con una responsabilidad parcial a propósito (sin el gate de tipo de reserva) — si la Fase 12D no lo extiende, un PS seguiría siendo reservable por `gestor`/`admin` sin exigir "servicio de ensayo", que es el estado intermedio esperado, no un olvido.
+- **Hallazgo pendiente de revisión (no corregido, fuera de alcance de este ajuste)**: los tests de backend de esta misma fase (`backend/tests/test_api_espacios.py`, `backend/tests/test_schemas_contrato.py`) usan correos ficticios con dominio `correo.itm.edu.co` — un patrón que podría coincidir con un subdominio institucional real (el dominio raíz `itm.edu.co` es el de esta institución). Ningún dato se envía realmente (no existe infraestructura SMTP todavía), pero se señala para que se decida si conviene reemplazarlo por un dominio reservado tipo `example.com` antes de commitear.
+
+### Preguntas abiertas para continuar
+
+1. Las 8 preguntas abiertas de la Fase 12A siguen sin resolver (mapeo de roles ya resuelto aparte; correo real SMTP, informes programados, soft-delete, cardinalidad de Zona, estructura de Acompañante, gobernanza de Proyecto, orden 12C–12H).
+2. ¿Se debe reemplazar `correo.itm.edu.co` por un dominio de pruebas reservado (`example.com`) en los tests de backend de esta fase, antes de commitear? (ver hallazgo arriba).
 
 ## Fases pendientes (no aprobadas ni iniciadas)
 
@@ -340,7 +403,7 @@ Del roadmap original (`handoff-casa.md`), quedan sin iniciar tras esta serie:
 
 - **Fase 9G** (fase de corte, sin alcance formalmente aprobado todavía): evaluar retirar `access_token` del body de `TokenResponse` y el soporte del header `Authorization` en `backend/app/deps.py`, ahora que frontend y E2E ya no dependen de ellos (Fase 9F-B). Cambiaría el contrato de OpenAPI y requeriría aprobación explícita, igual que 9F-A/9F-B. También pendiente: evaluar si conviene agregar una defensa CSRF adicional (token de doble envío) antes o como parte de este corte.
 - **Fase 10** (imágenes base de Docker EOL): 10-B, 10-C, 10-D y 10-G implementadas y ya en `origin/feature/soV0.1` (ver sección "Fase 10" y "Estado actual" arriba); **10-E** (migración de PostgreSQL de desarrollo 13→17) queda explícitamente pospuesta hasta disponer de un entorno con datos reales que migrar; 10-F (análisis de pinning por digest) completado sin cambios de archivo.
-- **Fase 12** (migración funcional del dominio del Word): **12A cerrada documentalmente** (ver sección "Fase 12A" arriba) — diez decisiones aprobadas y roadmap 12B–12H definido, pero **sin código implementado todavía** para ninguna de esas sub-fases; quedan además ocho preguntas de implementación sin resolver (ver "Preguntas abiertas" de la Fase 12A).
+- **Fase 12** (migración funcional del dominio del Word): 12A cerrada documentalmente (diez decisiones + mapeo de roles). **12B implementada** (RN-006/007/009: modalidad, correo, PS — ver sección "Fase 12B" arriba), backend-only, 318/318 tests, con un hallazgo de compatibilidad frontend pendiente de aprobación (`frontend/src/app/admin/espacios/page.tsx` no envía `correo`). 12C–12H: sin código todavía; quedan preguntas de implementación sin resolver (ver "Preguntas abiertas" de las Fases 12A/12B).
 - Fase 11: sin alcance definido en ningún documento de este repositorio — no existe roadmap aprobado para ella. No inventar contenido hasta que se defina explícitamente.
 - Deuda técnica de frontend adicional a lo ya resuelto en esta serie.
 - Backlog de negocio (reglas RN-006 en adelante).

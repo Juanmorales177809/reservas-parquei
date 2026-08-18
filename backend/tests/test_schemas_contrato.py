@@ -42,7 +42,7 @@ class TestCamposTipadosConEnums:
         assert isinstance(modelo.rol, Rol)
 
     def test_espacio_create_estado_es_enum(self):
-        modelo = EspacioCreate(nombre="Sala", capacidad=10)
+        modelo = EspacioCreate(nombre="Sala", capacidad=10, correo="sala@correo.itm.edu.co")
         assert isinstance(modelo.estado, EstadoEntidad)
         assert modelo.estado == EstadoEntidad.ACTIVO
 
@@ -59,6 +59,8 @@ class TestCamposTipadosConEnums:
                 "hora_cierre": "20:00:00",
                 "horario_atencion": {"0": [7, 8]},
                 "horas_antelacion": 24,
+                "modalidad_reserva": "equipos",
+                "correo": None,
             }
         )
         assert isinstance(modelo.estado, EstadoEntidad)
@@ -128,7 +130,10 @@ class TestContratoJsonConservado:
         )
 
     def test_estados_serializan_como_strings_actuales(self):
-        assert EspacioCreate(nombre="S", capacidad=1).model_dump()["estado"] == "activo"
+        assert (
+            EspacioCreate(nombre="S", capacidad=1, correo="s@correo.itm.edu.co").model_dump()["estado"]
+            == "activo"
+        )
         reserva = ReservaResponse.model_validate(
             {
                 "id": 1,

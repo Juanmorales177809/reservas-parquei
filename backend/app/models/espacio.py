@@ -24,6 +24,8 @@ class Espacio(Base):
     )
     horas_antelacion = Column(Integer, nullable=False, default=24)
     aprobacion_automatica = Column(Boolean, nullable=False, default=False)
+    modalidad_reserva = Column(String(20), nullable=False, default="equipos")
+    correo = Column(String(255), nullable=True)
     create_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
     created_by = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
@@ -36,6 +38,10 @@ class Espacio(Base):
     __table_args__ = (
         CheckConstraint("hora_apertura < hora_cierre", name="ck_espacios_horario_atencion"),
         CheckConstraint("horas_antelacion >= 0", name="ck_espacios_horas_antelacion"),
+        CheckConstraint(
+            "modalidad_reserva IN ('equipos', 'zonas', 'mixto')",
+            name="ck_espacios_modalidad_reserva",
+        ),
     )
 
     def __repr__(self):

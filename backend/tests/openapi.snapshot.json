@@ -306,9 +306,19 @@
             "title": "Capacidad",
             "type": "integer"
           },
+          "correo": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Correo",
+            "type": "string"
+          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad",
             "default": "activo"
+          },
+          "modalidad_reserva": {
+            "$ref": "#/components/schemas/ModalidadEspacio",
+            "default": "equipos"
           },
           "nombre": {
             "maxLength": 100,
@@ -325,7 +335,8 @@
         },
         "required": [
           "nombre",
-          "capacidad"
+          "capacidad",
+          "correo"
         ],
         "title": "EspacioCreate",
         "type": "object"
@@ -362,6 +373,17 @@
           "capacidad": {
             "title": "Capacidad",
             "type": "integer"
+          },
+          "correo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correo"
           },
           "dias_atencion": {
             "items": {
@@ -401,6 +423,9 @@
             "title": "Id",
             "type": "integer"
           },
+          "modalidad_reserva": {
+            "$ref": "#/components/schemas/ModalidadEspacio"
+          },
           "nombre": {
             "title": "Nombre",
             "type": "string"
@@ -420,7 +445,8 @@
           "hora_apertura",
           "hora_cierre",
           "horario_atencion",
-          "horas_antelacion"
+          "horas_antelacion",
+          "modalidad_reserva"
         ],
         "title": "EspacioResponse",
         "type": "object"
@@ -439,10 +465,33 @@
             ],
             "title": "Capacidad"
           },
+          "correo": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correo"
+          },
           "estado": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/EstadoEntidad"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modalidad_reserva": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModalidadEspacio"
               },
               {
                 "type": "null"
@@ -521,6 +570,16 @@
         },
         "title": "HTTPValidationError",
         "type": "object"
+      },
+      "ModalidadEspacio": {
+        "description": "Modalidad de reserva configurada por espacio (RN-006, Fase 12B).\n\nNombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente\ndistinto de `tipo_reserva` para no colisionar con el futuro campo de\ntipo de reserva académica de `Reserva` (RN-012, Fase 12D), que es un\nconcepto distinto aunque el documento fuente usa nombres parecidos\npara ambos.",
+        "enum": [
+          "equipos",
+          "zonas",
+          "mixto"
+        ],
+        "title": "ModalidadEspacio",
+        "type": "string"
       },
       "NotificacionResponse": {
         "properties": {
@@ -654,6 +713,11 @@
             ],
             "title": "Descripcion"
           },
+          "es_prestacion_servicio": {
+            "default": false,
+            "title": "Es Prestacion Servicio",
+            "type": "boolean"
+          },
           "espacio_id": {
             "anyOf": [
               {
@@ -759,6 +823,10 @@
             ],
             "title": "Descripcion"
           },
+          "es_prestacion_servicio": {
+            "title": "Es Prestacion Servicio",
+            "type": "boolean"
+          },
           "espacio": {
             "$ref": "#/components/schemas/EspacioResponse"
           },
@@ -794,7 +862,8 @@
           "capacidad",
           "estado",
           "espacio",
-          "tipo"
+          "tipo",
+          "es_prestacion_servicio"
         ],
         "title": "RecursoResponse",
         "type": "object"
@@ -823,6 +892,17 @@
               }
             ],
             "title": "Descripcion"
+          },
+          "es_prestacion_servicio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Es Prestacion Servicio"
           },
           "espacio_id": {
             "anyOf": [

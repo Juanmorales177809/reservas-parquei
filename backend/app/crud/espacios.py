@@ -25,6 +25,8 @@ def create_espacio(db: Session, data: EspacioCreate) -> Espacio:
         horario_atencion={
             str(dia): list(horario.horas_del_dia(dia)) for dia in horario.dias
         },
+        modalidad_reserva=data.modalidad_reserva,
+        correo=data.correo,
     )
     db.add(db_espacio)
     db.commit()

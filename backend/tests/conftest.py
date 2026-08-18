@@ -96,7 +96,16 @@ def crear_usuario(db, *, username, email, password="password123", rol="usuario",
     return usuario
 
 
-def crear_espacio(db, *, nombre="Sala de pruebas", estado="activo", horas_antelacion=24, horario_atencion=None):
+def crear_espacio(
+    db,
+    *,
+    nombre="Sala de pruebas",
+    estado="activo",
+    horas_antelacion=24,
+    horario_atencion=None,
+    modalidad_reserva="equipos",
+    correo=None,
+):
     espacio = Espacio(
         nombre=nombre,
         ubicacion="Sede de pruebas",
@@ -108,6 +117,8 @@ def crear_espacio(db, *, nombre="Sala de pruebas", estado="activo", horas_antela
             if horario_atencion is not None
             else {str(dia): list(range(7, 20)) for dia in range(6)}
         ),
+        modalidad_reserva=modalidad_reserva,
+        correo=correo,
     )
     db.add(espacio)
     db.commit()
@@ -115,7 +126,16 @@ def crear_espacio(db, *, nombre="Sala de pruebas", estado="activo", horas_antela
     return espacio
 
 
-def crear_recurso(db, *, espacio, usuario, nombre="Recurso de pruebas", capacidad=10, estado="activo"):
+def crear_recurso(
+    db,
+    *,
+    espacio,
+    usuario,
+    nombre="Recurso de pruebas",
+    capacidad=10,
+    estado="activo",
+    es_prestacion_servicio=False,
+):
     tipo = db.query(TipoRecurso).first()
     if tipo is None:
         tipo = TipoRecurso(nombre="General", descripcion="", activo="activo")
@@ -131,6 +151,7 @@ def crear_recurso(db, *, espacio, usuario, nombre="Recurso de pruebas", capacida
         estado=estado,
         created_by=usuario.id,
         update_by=usuario.id,
+        es_prestacion_servicio=es_prestacion_servicio,
     )
     db.add(recurso)
     db.commit()
