@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24.19.0-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -12,7 +12,7 @@ ENV BACKEND_URL=$BACKEND_URL
 RUN mkdir -p public
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:24.19.0-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
