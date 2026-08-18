@@ -1,7 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api import admin_dashboard, auth, control_cambios, espacios, notificaciones, recursos, reservas, usuarios
@@ -64,6 +66,37 @@ async def agregar_cabeceras_seguridad(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     return response
+
+
+_logger_errores = logging.getLogger("app.errores_no_controlados")
+_MENSAJE_ERROR_GENERICO = "Ha ocurrido un error interno. Inténtalo de nuevo más tarde."
+
+
+@app.exception_handler(Exception)
+async def manejar_excepcion_no_controlada(request: Request, exc: Exception) -> JSONResponse:
+    """Único punto de salida para cualquier excepción que ninguna capa
+    superior atrapó. FastAPI ya registra handlers específicos y más
+    concretos para HTTPException y RequestValidationError (401/403/404/409/
+    422/429 entre otros): esos siguen resolviéndose con ese handler propio,
+    nunca con este, así que su comportamiento no cambia.
+
+    Log: método, ruta y tipo de excepción en el mensaje, más el traceback
+    completo vía exc_info — todo queda solo en el log del servidor, nunca en
+    la respuesta. No se registra el cuerpo de la petición, headers,
+    Authorization ni ninguna credencial.
+
+    Respuesta al cliente: siempre 500 con un mensaje genérico y estable,
+    igual sin importar el tipo de excepción real, para no filtrar detalles
+    internos ni permitir distinguir un tipo de fallo de otro.
+    """
+    _logger_errores.error(
+        "Excepción no controlada en %s %s: %s",
+        request.method,
+        request.url.path,
+        type(exc).__name__,
+        exc_info=exc,
+    )
+    return JSONResponse(status_code=500, content={"detail": _MENSAJE_ERROR_GENERICO})
 
 
 @app.get("/", tags=["health"])
