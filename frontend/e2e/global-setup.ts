@@ -6,7 +6,6 @@ import { request, type FullConfig } from '@playwright/test';
 import { USUARIOS, type RolUsuario } from './data/usuarios';
 
 const BACKEND = 'http://localhost:8000';
-const ORIGEN_FRONTEND = 'http://localhost:3000';
 const DIR_AUTH = path.join(__dirname, '.auth');
 
 /**
@@ -107,29 +106,25 @@ async function crearUsuarioSiFalta(
   }
 }
 
-/** Construye el storageState a partir del login por API: guarda el token y el
- *  usuario en el localStorage del origen del frontend (mecanismo real de la
- *  aplicación), sin exponer archivos rastreados. */
+/** Construye el storageState a partir del login real por API (Fase 9F-B):
+ *  el backend fija la cookie HttpOnly `access_token` en la respuesta de
+ *  POST /auth/login (backend/app/api/auth.py); Playwright la captura sola
+ *  en el cookie-jar de este APIRequestContext. La cookie se obtiene contra
+ *  BACKEND (:8000) sin Domain explícito, pero las cookies no se distinguen
+ *  por puerto (RFC 6265): la misma cookie autentica igual cuando el
+ *  navegador visite el frontend en :3000 (baseURL de playwright.config.ts).
+ *  ctx.storageState() vuelca ese cookie-jar directamente al formato que
+ *  Playwright espera — ya no hay que construir localStorage a mano. */
 async function guardarStorageState(rol: RolUsuario) {
   const ctx = await request.newContext({ baseURL: BACKEND });
   try {
-    const token = await iniciarSesion(ctx, rol);
-    const meResp = await ctx.get('/usuarios/me', { headers: autorizacion(token) });
+    await iniciarSesion(ctx, rol);
+    // Verificación de humo: confirma que la cookie recién obtenida
+    // autentica de verdad (sin header Authorization) antes de persistirla.
+    const meResp = await ctx.get('/usuarios/me');
     if (!meResp.ok()) throw new Error(`GET /usuarios/me de ${rol} falló: ${meResp.status()}`);
-    const usuario = await meResp.json();
 
-    const storageState = {
-      cookies: [],
-      origins: [
-        {
-          origin: ORIGEN_FRONTEND,
-          localStorage: [
-            { name: 'token', value: token },
-            { name: 'user', value: JSON.stringify(usuario) },
-          ],
-        },
-      ],
-    };
+    const storageState = await ctx.storageState();
     fs.writeFileSync(path.join(DIR_AUTH, `${rol}.json`), JSON.stringify(storageState, null, 2));
   } finally {
     await ctx.dispose();

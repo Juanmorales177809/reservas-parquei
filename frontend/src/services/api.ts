@@ -1,15 +1,18 @@
 export const API_BASE_URL = '/api';
 
-// Ruta de autenticación inicial: un 401 aquí son credenciales inválidas,
-// no una sesión expirada. El error debe llegar al formulario de login
-// (login/page.tsx) sin el redirect global, que solo aplica a endpoints
-// protegidos para cerrar sesiones vencidas.
-const RUTA_LOGIN = '/auth/login';
-
-export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('token');
-}
+// Rutas donde un 401 NO dispara el interceptor global de sesión expirada
+// (Fase 9F-B):
+// - /auth/login: un 401 aquí son credenciales inválidas, no una sesión
+//   expirada. El error debe llegar al formulario de login (login/page.tsx)
+//   sin redirect.
+// - /usuarios/me: AuthContext lo usa como sondeo pasivo de sesión al
+//   montar (reemplaza la lectura síncrona de localStorage de antes de esta
+//   fase). Un visitante anónimo en una página pública (/, /espacios,
+//   /terminos) SIEMPRE recibe 401 aquí — es el resultado normal de "no hay
+//   sesión", no una sesión vencida, y no debe forzar un redirect global.
+//   ProtectedRoute ya redirige a /login en rutas protegidas cuando
+//   isAuthenticated es false, así que ese caso queda cubierto igual.
+const RUTAS_SIN_REDIRECT_401 = new Set(['/auth/login', '/usuarios/me']);
 
 export async function parseApiError(response: Response): Promise<string> {
   try {
@@ -23,21 +26,26 @@ export async function parseApiError(response: Response): Promise<string> {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  if (token) headers.set('Authorization', `Bearer ${token}`);
 
+  // Fase 9F-B: el JWT viaja en una cookie HttpOnly (backend/app/api/auth.py),
+  // no en el header Authorization ni en localStorage. `credentials:
+  // 'same-origin'` hace que el navegador adjunte esa cookie en cada
+  // petición al mismo origen (el proxy /api de Next.js hacia el backend).
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers,
+    credentials: 'same-origin',
   });
 
-  if (response.status === 401 && typeof window !== 'undefined' && path !== RUTA_LOGIN) {
-    window.localStorage.removeItem('token');
-    window.localStorage.removeItem('user');
+  if (response.status === 401 && typeof window !== 'undefined' && !RUTAS_SIN_REDIRECT_401.has(path)) {
+    // La cookie HttpOnly no es visible ni manipulable desde JavaScript: no
+    // hay nada que "limpiar" aquí (a diferencia de localStorage antes de
+    // esta fase). El backend es quien la expira (Max-Age) o la borra
+    // (POST /auth/logout); el frontend solo redirige.
     window.location.href = '/login';
     throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
   }

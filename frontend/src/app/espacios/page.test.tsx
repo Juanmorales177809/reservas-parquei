@@ -7,12 +7,13 @@ import { AuthProvider } from '@/context/AuthContext';
 import type { DisponibilidadSlot, Espacio } from '@/types/espacio';
 import type { Recurso } from '@/types/recurso';
 
-const { listarEspaciosMock, listarRecursosMock, getDisponibilidadMock, crearReservaMock } =
+const { listarEspaciosMock, listarRecursosMock, getDisponibilidadMock, crearReservaMock, getProfileMock } =
   vi.hoisted(() => ({
     listarEspaciosMock: vi.fn(),
     listarRecursosMock: vi.fn(),
     getDisponibilidadMock: vi.fn(),
     crearReservaMock: vi.fn(),
+    getProfileMock: vi.fn(),
   }));
 
 vi.mock('@/services/espacios', () => ({ listarEspacios: listarEspaciosMock }));
@@ -21,6 +22,12 @@ vi.mock('@/services/recursos', () => ({
   getDisponibilidadRecurso: getDisponibilidadMock,
 }));
 vi.mock('@/services/reservas', () => ({ crearReserva: crearReservaMock }));
+// Fase 9F-B: AuthContext ya no lee localStorage, consulta GET /usuarios/me
+// (authService.getProfile) al montar. Se mockea aquí en vez de depender
+// del fetch real, igual que el resto de servicios de esta página.
+vi.mock('@/services/auth', () => ({ getProfile: getProfileMock }));
+
+const USUARIO_AUTENTICADO = { id: 1, username: 'u', email: 'u@test.com', rol: 'usuario' as const, espacio: null };
 
 function espacio(parcial: Partial<Espacio> = {}): Espacio {
   return {
@@ -65,10 +72,14 @@ beforeEach(() => {
   listarRecursosMock.mockReset();
   getDisponibilidadMock.mockReset();
   crearReservaMock.mockReset();
+  getProfileMock.mockReset();
   listarEspaciosMock.mockResolvedValue([espacio()]);
   listarRecursosMock.mockResolvedValue([recurso()]);
   getDisponibilidadMock.mockResolvedValue(SLOTS);
   crearReservaMock.mockResolvedValue({ id: 42, estado: 'esperando' });
+  // Anónimo por defecto (igual que un visitante sin cookie de sesión); los
+  // tests que necesitan sesión llaman a getProfileMock.mockResolvedValue(...).
+  getProfileMock.mockRejectedValue(new Error('No se pudo validar la autenticación'));
 });
 
 function renderPagina() {
@@ -142,11 +153,7 @@ describe('EspaciosPage: modal de reserva', () => {
   });
 
   it('selecciona horas consecutivas y muestra el rango en el resumen', async () => {
-    window.localStorage.setItem('token', 'token-de-prueba');
-    window.localStorage.setItem(
-      'user',
-      JSON.stringify({ id: 1, username: 'u', email: 'u@test.com', rol: 'usuario', espacio: null }),
-    );
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
     const usuario = userEvent.setup();
     renderPagina();
     await usuario.click(await screen.findByRole('button', { name: 'Disponibilidad' }));
@@ -166,11 +173,7 @@ describe('EspaciosPage: modal de reserva', () => {
   });
 
   it('no permite confirmar sin aceptar los términos', async () => {
-    window.localStorage.setItem('token', 'token-de-prueba');
-    window.localStorage.setItem(
-      'user',
-      JSON.stringify({ id: 1, username: 'u', email: 'u@test.com', rol: 'usuario', espacio: null }),
-    );
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
     const usuario = userEvent.setup();
     renderPagina();
     await usuario.click(await screen.findByRole('button', { name: 'Disponibilidad' }));
@@ -181,11 +184,7 @@ describe('EspaciosPage: modal de reserva', () => {
   });
 
   it('envía el payload completo al confirmar la reserva', async () => {
-    window.localStorage.setItem('token', 'token-de-prueba');
-    window.localStorage.setItem(
-      'user',
-      JSON.stringify({ id: 1, username: 'u', email: 'u@test.com', rol: 'usuario', espacio: null }),
-    );
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
     const usuario = userEvent.setup();
     renderPagina();
     await usuario.click(await screen.findByRole('button', { name: 'Disponibilidad' }));
@@ -207,11 +206,7 @@ describe('EspaciosPage: modal de reserva', () => {
   });
 
   it('muestra el error cuando la reserva falla', async () => {
-    window.localStorage.setItem('token', 'token-de-prueba');
-    window.localStorage.setItem(
-      'user',
-      JSON.stringify({ id: 1, username: 'u', email: 'u@test.com', rol: 'usuario', espacio: null }),
-    );
+    getProfileMock.mockResolvedValue(USUARIO_AUTENTICADO);
     crearReservaMock.mockRejectedValue(new Error('El recurso ya tiene una reserva en ese horario'));
     const usuario = userEvent.setup();
     renderPagina();

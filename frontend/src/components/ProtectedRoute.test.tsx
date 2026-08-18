@@ -34,7 +34,6 @@ function estadoAuth({
 } = {}) {
   useAuthMock.mockReturnValue({
     user: autenticado ? usuarioDePrueba(rol) : null,
-    token: autenticado ? 'token-de-prueba' : null,
     isAdmin: rol === 'admin',
     canManageResources: rol === 'admin' || rol === 'gestor',
     isAuthenticated: autenticado,

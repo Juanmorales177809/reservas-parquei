@@ -10,6 +10,8 @@ Páginas del App Router de Next.js y estilos globales.
 |---|---|---|
 | espacios/page.tsx | Modificado | Modal de reserva accesible: `role="dialog"`, `aria-modal`, `aria-labelledby`, cierre con Escape, foco inicial en el botón Cerrar y retorno de foco al elemento previo |
 | globals.css | Modificado | Estilos `:focus-visible` visibles para `.btn`, `.input`, botones, enlaces, selects y checkboxes |
+| login/page.tsx | Modificado (Fase 9F-B) | `handleSubmit` ya no lee `window.localStorage.getItem('user')` tras `login()` (esa clave dejó de existir). El redirect post-login sigue funcionando igual, ahora solo a través del `useEffect` existente que reacciona a `isAuthenticated`/`canManageResources` de `AuthContext` |
+| espacios/page.test.tsx | Modificado (Fase 9F-B) | Los 4 tests que simulaban sesión ya no siembran `localStorage.token`/`user`; mockean `@/services/auth` (`getProfile`) igual que el resto de servicios de la página, con anónimo como default en `beforeEach` |
 
 ## Reglas de negocio relacionadas
 

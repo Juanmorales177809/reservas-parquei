@@ -12,24 +12,30 @@ Next.js 14 (App Router, código activo en `src/`), React 18, TypeScript estricto
 
 Variable de entorno consumida por `next.config.js` en build/runtime del servidor Next.js; no confundir con una variable de cliente (`NEXT_PUBLIC_*`), no está expuesta al navegador.
 
-## AuthContext
+## AuthContext (Fase 9F-B: sesión por cookie HttpOnly, no localStorage)
 
-`src/context/AuthContext.tsx`: expone `user`, `token`, `isAdmin` (`rol === 'admin'`), `canManageResources` (`rol === 'admin' | 'gestor'`), `isAuthenticated`, `login`, `logout`. En el montaje inicial lee `token`/`user` de `localStorage`. `login` llama `authService.login` y persiste `access_token`/`user` en `localStorage`. `logout` los limpia.
+`src/context/AuthContext.tsx`: expone `user`, `isAdmin` (`rol === 'admin'`), `canManageResources` (`rol === 'admin' | 'gestor'`), `isAuthenticated` (`Boolean(user)`), `loading`, `login`, `logout`. Ya no expone `token` (no hay valor de JWT visible en JS: vive en una cookie HttpOnly que fija el backend).
 
-## localStorage como deuda XSS conocida
+- **Al montar**: llama `GET /usuarios/me` (`authService.getProfile()`) para determinar la sesión — 200 = autenticado (`setUser`), 401/error = anónimo (`setUser(null)`), siempre `loading=false` al terminar. Es asíncrono: `loading` empieza en `true` y solo pasa a `false` cuando la consulta resuelve (antes de esta fase era síncrono, leyendo `localStorage`).
+- **`login(username, password)`**: llama `authService.login`, que hace `POST /auth/login` (el backend fija la cookie vía `Set-Cookie`) y devuelve `user` del body de la respuesta; `access_token` del body se ignora, nunca se guarda. `setUser(usuario)` en éxito; el error se propaga al llamador (`login/page.tsx` lo captura y muestra).
+- **`logout()`**: llama `authService.logout()` (`POST /auth/logout`, borra la cookie en el backend) y siempre hace `setUser(null)` al final (`finally`), incluso si la llamada de red falla — el fallo de red se traga silenciosamente (`catch` vacío) porque `Navbar.tsx` llama `logout()` sin `await`; dejar que el error se propagara produciría un unhandled rejection.
 
-El JWT y el usuario se guardan en `localStorage` (claves `token`, `user`). Es una deuda técnica conocida y aceptada por ahora: evitar scripts de terceros y revisar con cuidado cualquier cambio que pueda introducir XSS.
+## Sin localStorage para la sesión (ya no es deuda XSS de la misma forma)
+
+Desde la Fase 9F-B, ni el JWT ni el usuario se guardan en `localStorage`. El JWT vive en una cookie `access_token` HttpOnly (`backend/app/api/auth.py`, Fase 9F-A): JavaScript de página no puede leerla ni escribirla, lo que reduce (no elimina) el riesgo de robo de token por XSS respecto al modelo anterior. Sigue vigente evitar scripts de terceros. `frontend/src/services/api.ts`/`auth.ts`/`context/AuthContext.tsx` no deben volver a introducir `window.localStorage.setItem('token', ...)` ni equivalente — sería una fuente de verdad paralela a la cookie.
 
 ## apiFetch
 
-`src/services/api.ts`. Añade `Authorization: Bearer <token>` a cada request. Interceptor 401: si `response.status === 401` y la ruta no es `/auth/login`, limpia `token`/`user` de `localStorage` y redirige a `/login` lanzando `Error('Sesión expirada...')`.
+`src/services/api.ts`. Ya no añade `Authorization` (no hay token accesible en JS); envía `credentials: 'same-origin'` en cada `fetch` para que el navegador adjunte la cookie `access_token` en peticiones al mismo origen (el proxy `/api` de Next.js). El backend sigue aceptando `Authorization: Bearer` además de la cookie (fase dual, Fase 9F-A) para otros clientes (E2E vía `fixtures.ts`), pero el frontend ya no lo genera.
 
-## Diferencia entre 401 de login y 401 protegido
+Interceptor 401: si `response.status === 401` y la ruta no está en `RUTAS_SIN_REDIRECT_401`, redirige a `/login` lanzando `Error('Sesión expirada...')`. Ya no limpia `localStorage` (no hay nada que limpiar) ni intenta borrar la cookie HttpOnly (no es posible ni el objetivo — el backend la expira por `Max-Age` o la borra en `POST /auth/logout`).
 
-- `POST /auth/login` está excluido del interceptor global (`RUTA_LOGIN` en `api.ts`): un 401 ahí son credenciales inválidas y debe llegar al formulario de `login/page.tsx` sin redirect ni limpieza de `localStorage`.
-- Cualquier otro endpoint: un 401 dispara el interceptor global (sesión expirada) — limpieza + redirect a `/login`.
+## Rutas excluidas del interceptor global de 401 (`RUTAS_SIN_REDIRECT_401` en `api.ts`)
 
-No revertir esta exclusión sin entender que rompe el mensaje de error de credenciales inválidas (corregido en el commit `914cf36`).
+- `/auth/login`: un 401 ahí son credenciales inválidas, debe llegar al formulario de `login/page.tsx` sin redirect. (Sin cambios respecto a antes de la Fase 9F-B; corregido originalmente en el commit `914cf36`.)
+- `/usuarios/me` (Fase 9F-B): `AuthContext` lo usa como sondeo pasivo de sesión al montar. Un visitante anónimo en una página pública (`/`, `/espacios`, `/terminos`) SIEMPRE recibe 401 aquí — es el resultado normal de "no hay sesión", no una sesión vencida. Si este 401 disparara el interceptor global, redirigiría a `/login` a cualquier visitante anónimo de una página pública, rompiendo la navegación anónima. `ProtectedRoute` ya se encarga de redirigir a `/login` en rutas protegidas cuando `isAuthenticated` es `false`, así que ese caso queda cubierto igual, solo que sin el mensaje "Sesión expirada" (que sigue apareciendo para un 401 real en cualquier otro endpoint protegido, p. ej. una acción disparada desde una página ya autenticada cuya cookie expiró).
+
+No quitar ninguna de las dos exclusiones sin entender el efecto: quitar `/auth/login` rompe el mensaje de credenciales inválidas; quitar `/usuarios/me` rompe la navegación anónima en páginas públicas.
 
 ## Tratamiento de 403
 

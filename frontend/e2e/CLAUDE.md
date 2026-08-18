@@ -36,6 +36,12 @@ Siempre manual y explícita. **Nunca ejecutar `down -v` automáticamente desde P
 
 `e2e/global-setup.ts` crea los usuarios `gestor` y `usuario` vía la API del admin (asignando espacio al gestor) y genera `storageState` por rol en `e2e/.auth/`.
 
+### Cookies reales desde la Fase 9F-B (antes: localStorage simulado)
+
+`guardarStorageState(rol)` hace login real contra `POST /auth/login` con un `APIRequestContext` de Playwright; el backend fija la cookie HttpOnly `access_token` en la respuesta y Playwright la captura sola en el cookie-jar de ese contexto (comportamiento estándar de `APIRequestContext`, sin código adicional). `await ctx.storageState()` vuelca ese cookie-jar directamente al archivo — ya no se construye `origins[].localStorage` a mano. La cookie se obtiene contra el backend en `:8000` sin `Domain` explícito, pero las cookies no se distinguen por puerto (RFC 6265): la misma cookie autentica igual cuando el navegador visita el frontend en `:3000` (`baseURL` de `playwright.config.ts`).
+
+Antes de escribir el archivo, `guardarStorageState` hace un `GET /usuarios/me` sin header `Authorization` como verificación de humo — si eso falla, la cookie no sirve y el setup se detiene ahí en vez de generar un `storageState` inválido en silencio.
+
 ## Usuarios admin/gestor/usuario
 
 - **admin**: creado por el lifespan del backend con `INITIAL_ADMIN_*`.

@@ -11,6 +11,7 @@ Componentes compartidos de la interfaz: protección de rutas, indicadores de car
 | ProtectedRoute.tsx | Modificado | Soporta `roles` (con `adminOnly` como azúcar), `redirectNoAuth` y `redirectForbidden` (string o función); reemplaza los guards manuales de 10 páginas. La autorización real sigue en el backend |
 | LoadingSpinner.tsx | Modificado | `role="status"`, `aria-live="polite"` y texto `sr-only` accesible |
 | AdminDashboardCharts.tsx | Modificado | Leyenda del heatmap: "Heatmap visual: 07:00–19:00. El porcentaje global considera el horario completo configurado." — sin cambios de datos ni del grid |
+| ProtectedRoute.test.tsx | Modificado (Fase 9F-B) | El mock de `useAuth` ya no incluye un campo `token` (retirado de `AuthContextValue` — la sesión vive en cookie HttpOnly, sin valor de token accesible en JS). `ProtectedRoute.tsx` en sí no cambió: ya consumía `isAuthenticated`/`loading`/`user`, agnóstico al mecanismo de sesión |
 
 ## Reglas de negocio relacionadas
 

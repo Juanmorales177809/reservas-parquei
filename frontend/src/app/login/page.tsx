@@ -23,10 +23,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
+      // Fase 9F-B: no leemos el usuario de localStorage (ya no se
+      // persiste ahí). El useEffect de arriba reacciona a isAuthenticated/
+      // canManageResources en cuanto AuthContext actualiza su estado tras
+      // el login y hace el redirect correcto.
       await login(username, password);
-      const rawUser = window.localStorage.getItem('user');
-      const user = rawUser ? (JSON.parse(rawUser) as { rol: string }) : null;
-      router.replace(user?.rol === 'admin' || user?.rol === 'gestor' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
     } finally {
