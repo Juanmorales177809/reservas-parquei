@@ -86,6 +86,135 @@ _CONSTRAINTS_EXCLUDE_RESERVA_ASOCIACIONES = """
     END $$;
 """
 
+# Fase 12C-4e: PROCEDIMIENTO DE ROLLBACK CONDICIONADO. NO forma parte del
+# arranque de la aplicación ni de migrate_resource_reservations() -- es una
+# operación manual/operatoria para revertir el modelo 12C-6 (reserva_recursos/
+# reserva_zonas como fuente de verdad) al esquema histórico exclusivamente
+# cuando TODOS los datos son representables sin pérdida en el modelo antiguo.
+#
+# Contrato exigido (ver backend/app/models/README.md y CHANGELOG.md, Fase
+# 12C-4e):
+#   - Una sola transacción: el bloque DO es UNA sentencia; si falla, PostgreSQL
+#     revierte todo (los DDL van por EXECUTE dentro del mismo bloque).
+#   - Aborta ANTES de modificar datos si existe: (G1) alguna reserva con más de
+#     un recurso, (G2) cualquier reserva con zona (solo-zona, mixta o zona con
+#     recursos efectivos -- todas pierden la dimensión zona en el esquema
+#     antiguo), (G3) divergencia del ancla (reservas.recurso_id distinto de la
+#     única fila de reserva_recursos), (G4) divergencia de fecha/hora/estado
+#     entre reservas y sus asociaciones, o (G5) reservas sin ninguna asociación.
+#   - Nunca usa UPDATE parcial + SET NOT NULL para ocultar datos no
+#     representables: si un gate detecta algo, RAISE EXCEPTION propaga y
+#     revierte; el rollback solo progresa cuando el dataset es EXCLUSIVAMENTE
+#     reservas singulares coherentes (reversible sin pérdida).
+#   - Restaura la columna desde la única asociación (no-op por G3), re-crea la
+#     constraint histórica reservas_sin_solapamiento y los índices históricos
+#     si faltan, y solo entonces elimina constraints/tablas nuevas.
+#   - Idempotencia: la segunda ejecución sobre un esquema ya revertido falla
+#     explícitamente con G0 ("ya_revertido"), sin alterar nada.
+#
+# Esquema-agnóstico a propósito (sin prefijo public.): se resuelve contra el
+# search_path de la conexión, por lo que los tests lo ejercitan en esquemas
+# desechables (CREATE/DROP SCHEMA) dentro de reservas_test, sin tocar public.
+# Este procedimiento NO se debe invocar desde el ciclo de vida de la app ni
+# desde la migración de arranque.
+_ROLLBACK_RESERVA_LEGACY = """
+    DO $rollback$
+    DECLARE
+        v_ids bigint[];
+    BEGIN
+        -- G0: estado ya revertido (idempotencia / fail-fast)
+        IF to_regclass('reserva_recursos') IS NULL
+           OR to_regclass('reserva_zonas') IS NULL THEN
+            RAISE EXCEPTION 'G0 ya_revertido: tablas de asociacion ausentes (reserva_recursos/reserva_zonas)';
+        END IF;
+
+        -- G1: más de un recurso por reserva (no representable en una columna única)
+        SELECT array_agg(r.id) INTO v_ids FROM reservas r
+        JOIN (SELECT reserva_id, COUNT(*) n FROM reserva_recursos GROUP BY reserva_id) x
+          ON x.reserva_id = r.id
+        WHERE x.n > 1;
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G1 multi_recurso no representable: reservas %', v_ids;
+        END IF;
+
+        -- G2: cualquier reserva con zona (pierde la dimensión zona en el esquema antiguo)
+        SELECT array_agg(DISTINCT r.id) INTO v_ids FROM reservas r
+        JOIN reserva_zonas rz ON rz.reserva_id = r.id;
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G2 reserva_con_zona no representable (perdida dimension zona): reservas %', v_ids;
+        END IF;
+
+        -- G3: divergencia del ancla en reservas con exactamente un recurso
+        SELECT array_agg(r.id) INTO v_ids FROM reservas r
+        JOIN (SELECT reserva_id, MIN(recurso_id) m, COUNT(*) n FROM reserva_recursos GROUP BY reserva_id) x
+          ON x.reserva_id = r.id AND x.n = 1
+        WHERE r.recurso_id IS DISTINCT FROM x.m;
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G3 divergencia_ancla (reservas.recurso_id != unica fila de reserva_recursos): reservas %', v_ids;
+        END IF;
+
+        -- G4: divergencias fecha/hora/estado en cualquiera de las dos asociaciones
+        SELECT array_agg(DISTINCT r.id) INTO v_ids FROM reservas r
+        JOIN reserva_recursos rr ON rr.reserva_id = r.id
+        WHERE (rr.fecha, rr.hora_inicio, rr.hora_fin, rr.estado)
+              IS DISTINCT FROM (r.fecha, r.hora_inicio, r.hora_fin, r.estado);
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G4 divergencia_fecha_hora_estado en reserva_recursos: reservas %', v_ids;
+        END IF;
+        SELECT array_agg(DISTINCT r.id) INTO v_ids FROM reservas r
+        JOIN reserva_zonas rz ON rz.reserva_id = r.id
+        WHERE (rz.fecha, rz.hora_inicio, rz.hora_fin, rz.estado)
+              IS DISTINCT FROM (r.fecha, r.hora_inicio, r.hora_fin, r.estado);
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G4b divergencia_fecha_hora_estado en reserva_zonas: reservas %', v_ids;
+        END IF;
+
+        -- G5: reservas sin ninguna asociación
+        SELECT array_agg(r.id) INTO v_ids FROM reservas r
+        WHERE NOT EXISTS (SELECT 1 FROM reserva_recursos WHERE reserva_id = r.id)
+          AND NOT EXISTS (SELECT 1 FROM reserva_zonas WHERE reserva_id = r.id);
+        IF v_ids IS NOT NULL THEN
+            RAISE EXCEPTION 'G5 reserva_huerfana (sin ninguna asociacion): reservas %', v_ids;
+        END IF;
+
+        -- Dataset reversible: restauración de la columna desde la única
+        -- asociación (no-op garantizada por G3; nunca deja NULL).
+        UPDATE reservas r SET recurso_id = x.m
+        FROM (SELECT reserva_id, MIN(recurso_id) m, COUNT(*) n FROM reserva_recursos GROUP BY reserva_id) x
+        WHERE x.reserva_id = r.id AND x.n = 1 AND r.recurso_id IS DISTINCT FROM x.m;
+
+        -- Restaurar la constraint histórica y los índices históricos si faltan
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'reservas_sin_solapamiento'
+              AND conrelid = 'reservas'::regclass
+        ) THEN
+            EXECUTE $ddl$
+                ALTER TABLE reservas ADD CONSTRAINT reservas_sin_solapamiento
+                EXCLUDE USING gist (
+                    recurso_id WITH =,
+                    fecha WITH =,
+                    tsrange(fecha + hora_inicio, fecha + hora_fin, '[)') WITH &&
+                )
+                WHERE (estado IN ('esperando', 'aprobada'))
+            $ddl$;
+        END IF;
+        EXECUTE 'CREATE INDEX IF NOT EXISTS ix_reservas_recurso_id ON reservas (recurso_id)';
+        EXECUTE 'CREATE INDEX IF NOT EXISTS ix_reservas_recurso_fecha_estado ON reservas (recurso_id, fecha, estado)';
+
+        -- Eliminar el esquema nuevo SOLO después de validar todos los gates
+        EXECUTE 'ALTER TABLE reserva_recursos DROP CONSTRAINT IF EXISTS reserva_recursos_sin_solapamiento';
+        EXECUTE 'ALTER TABLE reserva_recursos DROP CONSTRAINT IF EXISTS uq_reserva_recursos_reserva_recurso';
+        EXECUTE 'ALTER TABLE reserva_zonas DROP CONSTRAINT IF EXISTS reserva_zonas_sin_solapamiento';
+        EXECUTE 'ALTER TABLE reserva_zonas DROP CONSTRAINT IF EXISTS uq_reserva_zonas_reserva_zona';
+        EXECUTE 'DROP TABLE reserva_zonas';
+        EXECUTE 'DROP TABLE reserva_recursos';
+
+        RAISE NOTICE 'Rollback 12C-4e completado: esquema legacy restaurado (datos sin perdida)';
+    END
+    $rollback$;
+"""
+
 
 def migrate_resource_reservations() -> None:
     """Bring older installations to the resource-based reservation model.
@@ -101,6 +230,12 @@ def migrate_resource_reservations() -> None:
     se llame a esta función (p. ej. en el próximo arranque) vuelve a
     intentar desde el principio, de forma idempotente. No se silencia ni
     se reintenta en bucle dentro de esta función.
+
+    El procedimiento de ROLLBACK condicionado de la Fase 12C-4e NO se
+    ejecuta aquí (ni en el arranque): es una operación manual/operatoria,
+    disponible como constante `_ROLLBACK_RESERVA_LEGACY` y probada por
+    `backend/tests/test_migrations_rollback_12c4e.py` únicamente contra
+    esquemas desechables.
     """
     statements = (
         """
