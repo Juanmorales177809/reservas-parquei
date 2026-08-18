@@ -100,6 +100,7 @@
             "title": "Espacio Id"
           },
           "password": {
+            "maxLength": 72,
             "minLength": 6,
             "title": "Password",
             "type": "string"
@@ -1238,10 +1239,14 @@
       "UsuarioLogin": {
         "properties": {
           "password": {
+            "maxLength": 72,
+            "minLength": 1,
             "title": "Password",
             "type": "string"
           },
           "username": {
+            "maxLength": 80,
+            "minLength": 1,
             "title": "Username",
             "type": "string"
           }
@@ -1345,6 +1350,7 @@
           "password": {
             "anyOf": [
               {
+                "maxLength": 72,
                 "minLength": 6,
                 "type": "string"
               },

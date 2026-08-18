@@ -14,14 +14,9 @@ class UsuarioEspacioResponse(BaseModel):
 class UsuarioCreate(BaseModel):
     username: str = Field(min_length=3, max_length=80)
     email: str = Field(max_length=255)
-    password: str = Field(min_length=6)
-
-
-class AdminUsuarioCreate(UsuarioCreate):
-    """Permite al admin asignar un rol al crear un usuario."""
-
-    rol: Rol = Rol.USUARIO
-    espacio_id: int | None = None
+    # 72 = límite real de bcrypt (passlib+bcrypt trunca en silencio pasado
+    # ese byte); ver backend/CLAUDE.md sobre el pineo de bcrypt==3.2.2.
+    password: str = Field(min_length=6, max_length=72)
 
     @field_validator("email")
     @classmethod
@@ -31,14 +26,23 @@ class AdminUsuarioCreate(UsuarioCreate):
         return value
 
 
+class AdminUsuarioCreate(UsuarioCreate):
+    """Permite al admin asignar un rol al crear un usuario."""
+
+    rol: Rol = Rol.USUARIO
+    espacio_id: int | None = None
+
+
 class UsuarioLogin(BaseModel):
-    username: str
-    password: str
+    # 80 = mismo máximo ya usado para username en Create/Update; 72 = límite
+    # real de bcrypt para password (ver UsuarioCreate.password arriba).
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=72)
 
 class UsuarioUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=80)
     email: str | None = Field(default=None, max_length=255)
-    password: str | None = Field(default=None, min_length=6)
+    password: str | None = Field(default=None, min_length=6, max_length=72)
     rol: Rol | None = None
     espacio_id: int | None = None
 
