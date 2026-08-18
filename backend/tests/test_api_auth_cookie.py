@@ -20,6 +20,7 @@ from datetime import timedelta
 
 from fastapi.testclient import TestClient
 
+from app.auth.auth import create_access_token
 from app.config import settings
 from app.main import app
 from app.services.rate_limit import LimitadorIntentosLogin
@@ -88,6 +89,25 @@ class TestCookieAutenticaEndpointsProtegidos:
         respuesta = client.get("/usuarios/me")
 
         assert respuesta.status_code == 401
+
+    def test_cookie_con_jwt_expirado_da_401(self, client, db):
+        # Fase 9G (auditoría): a diferencia de los demás tests de "token
+        # inválido" de esta clase (cadenas malformadas), este construye un
+        # JWT estructuralmente válido y correctamente firmado, pero con
+        # `exp` en el pasado (expires_delta negativo) — ejercita la
+        # validación real de expiración de python-jose, no solo el
+        # manejo de tokens corruptos.
+        usuario = crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        token_expirado = create_access_token(
+            data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol},
+            expires_delta=timedelta(minutes=-1),
+        )
+        client.cookies.set(NOMBRE_COOKIE, token_expirado)
+
+        respuesta = client.get("/usuarios/me")
+
+        assert respuesta.status_code == 401
+        assert respuesta.json()["detail"] == "No se pudo validar la autenticación"
 
 
 class TestAuthorizationHeaderSigueFuncionando:
