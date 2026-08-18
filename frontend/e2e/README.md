@@ -50,7 +50,8 @@ npm run test:e2e:report     # reporte HTML (playwright-report/)
 ## Determinismo y aislamiento
 
 - `workers: 1` (base compartida) y retries 1 (2 en CI).
-- Fechas relativas fijas: `fechaFutura(dias)` evita domingo y supera la anticipación de 24 h; cada test de reserva usa un offset distinto (8, 9, 10, 11, 12, 13, 14, 15) para no solaparse entre tests.
+- Fechas relativas fijas: `fechaFutura(dias)` evita domingo y supera la anticipación de 24 h; cada test de reserva usa un offset distinto (8, 9, 11, 12, 13, 15, 16, 18, 22) para no solaparse entre tests.
+- **Regla de separación de offsets**: si dos tests usan el mismo recurso (normalmente `primerRecurso`) y el mismo rango horario, sus offsets deben diferir en **al menos 2 días** entre sí. `fechaFutura` salta al día siguiente cuando el offset crudo cae domingo, así que dos offsets consecutivos (diferencia de 1) pueden converger a la misma fecha efectiva según el día de la semana en que se ejecute la suite — nunca desplaza más de 1 día, así que una separación de 2+ lo hace imposible sin importar el día real. Incidente conocido: `smoke/08-disponibilidad.spec.ts` (offset 13) y `regresion/05-notificaciones.spec.ts` (offset 14, hoy 22) colisionaban y producían un 409 real e intermitente.
 - Nombres únicos por test (`sufijoUnico()`); sin dependencia del orden; sin cleanup destructivo dentro de cada test (la recreación de la base es manual).
 
 ## Reportes y trazas
