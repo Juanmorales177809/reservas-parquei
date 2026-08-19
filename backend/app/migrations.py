@@ -425,13 +425,15 @@ def migrate_resource_reservations() -> None:
         _BACKFILL_RESERVA_RECURSOS,
         _GATE_RESERVA_RECURSOS_COMPLETO,
         _CONSTRAINTS_EXCLUDE_RESERVA_ASOCIACIONES,
-        # Fase 12E (capacidad opcional): datos legado (migración desde el
-        # sistema de reservas de laboratorios) no traen capacidad ni de
-        # espacio ni de recurso. `ALTER COLUMN ... DROP NOT NULL` es
-        # idempotente por sí mismo en PostgreSQL -- no requiere guard
-        # `IF NOT EXISTS`, repetirlo sobre una columna ya nullable no falla.
-        "ALTER TABLE espacios ALTER COLUMN capacidad DROP NOT NULL",
-        "ALTER TABLE recursos ALTER COLUMN capacidad DROP NOT NULL",
+        # Fase 12E: "capacidad opcional" se intentó y se revirtió en la misma
+        # sesión (fuera de alcance de 12D/12E, ver CHANGELOG.md) porque
+        # `ALTER COLUMN ... DROP NOT NULL` ya se había aplicado en algunos
+        # entornos antes del revert -- `SET NOT NULL` restaura la constraint
+        # original. Es idempotente (falla solo si ya quedara una fila NULL,
+        # lo cual no debería ocurrir dado que el campo nunca se expuso como
+        # opcional en un contrato publicado).
+        "ALTER TABLE espacios ALTER COLUMN capacidad SET NOT NULL",
+        "ALTER TABLE recursos ALTER COLUMN capacidad SET NOT NULL",
         # Fase 12D (parcial): `Reserva.tipo` (tipo de reserva académica,
         # RN-012/RN-015). Columna nullable sin backfill ni default: no hay
         # dato legado que migrar en este plan. El guard para el
