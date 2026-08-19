@@ -259,6 +259,10 @@ export default function EspaciosPage() {
         ...(tipo ? { tipo } : {}),
         // Fase 12E: ensayos solo si hay zonas seleccionadas
         ...(ensayoIds.length > 0 ? { ensayo_ids: ensayoIds } : {}),
+        // Fase 12E: acompañantes (se envía solo si hay filas con datos)
+        ...(acompanantes.filter((a) => a.nombre.trim() && a.correo.trim()).length > 0
+          ? { acompanantes: acompanantes.filter((a) => a.nombre.trim() && a.correo.trim()) }
+          : {}),
       });
       setReservaCreadaId(reserva.id);
       setReservaCreadaEstado(reserva.estado);
@@ -523,6 +527,47 @@ export default function EspaciosPage() {
                         <option value="servicio_de_ensayo">Servicio de ensayo</option>
                       </select>
                     </label>
+                    <fieldset className="mt-4">
+                      <legend className="input-label">Acompañantes (opcional)</legend>
+                      {acompanantes.map((ac, idx) => (
+                        <div key={idx} className="mb-2 flex gap-2">
+                          <input
+                            className="input flex-1"
+                            placeholder="Nombre"
+                            value={ac.nombre}
+                            onChange={(event) =>
+                              setAcompanantes((prev) =>
+                                prev.map((item, i) => (i === idx ? { ...item, nombre: event.target.value } : item)),
+                              )
+                            }
+                          />
+                          <input
+                            className="input flex-1"
+                            placeholder="Correo"
+                            value={ac.correo}
+                            onChange={(event) =>
+                              setAcompanantes((prev) =>
+                                prev.map((item, i) => (i === idx ? { ...item, correo: event.target.value } : item)),
+                              )
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setAcompanantes((prev) => prev.filter((_, i) => i !== idx))}
+                          >
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setAcompanantes((prev) => [...prev, { nombre: '', correo: '' }])}
+                      >
+                        Agregar acompañante
+                      </button>
+                    </fieldset>
                     <button
                       className="btn btn-primary mt-4 w-full justify-center"
                       type="button"
