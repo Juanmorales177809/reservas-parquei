@@ -18,7 +18,7 @@ class EspacioResponse(BaseModel):
     id: int
     nombre: str
     ubicacion: str
-    capacidad: int | None = None
+    capacidad: int
     estado: EstadoEntidad
     dias_atencion: list[int]
     hora_apertura: time
@@ -32,10 +32,7 @@ class EspacioResponse(BaseModel):
 class EspacioCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=100)
     ubicacion: str = Field(default="Sede Central", max_length=200)
-    # Opcional (Fase 12E): datos legado migrados no siempre traen capacidad
-    # conocida. Cuando falta, la validación de aforo de la reserva se salta
-    # para ese espacio (ver services/reservas.py::_capacidad_efectiva).
-    capacidad: int | None = Field(default=None, gt=0)
+    capacidad: int = Field(gt=0)
     estado: EstadoEntidad = EstadoEntidad.ACTIVO
     modalidad_reserva: ModalidadEspacio = ModalidadEspacio.EQUIPOS
     # RN-007: correo propio del espacio, obligatorio para altas nuevas

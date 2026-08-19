@@ -18,15 +18,14 @@ export interface ReservaUsuario {
 export interface ReservaEspacio {
   id: number;
   nombre: string;
-  // Opcional (Fase 12E): ver types/espacio.ts.
-  capacidad: number | null;
+  capacidad: number;
   estado: 'activo' | 'inactivo' | 'mantenimiento';
 }
 
 export interface ReservaRecurso {
   id: number;
   nombre: string;
-  capacidad: number | null;
+  capacidad: number;
   estado: string;
   espacio: ReservaEspacio;
 }

@@ -387,35 +387,6 @@ class TestCapacidad:
         )
         assert respuesta.status_code == 400
 
-    def test_sin_capacidad_en_ningun_eje_no_limita_asistentes(self, client, db):
-        """Fase 12E: si el espacio, la zona y el recurso no tienen capacidad
-        definida (dato migrado desde el sistema legado de laboratorios,
-        que no la trae), la reserva no se rechaza por aforo sin importar
-        cuántos asistentes se pidan."""
-        espacio = crear_espacio(db, nombre="Sala Sin Capacidad", modalidad_reserva="mixto", capacidad=None)
-        usuario = crear_usuario(db, username="u_sin_cap", email="u_sin_cap@example.com")
-        r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=None)
-        respuesta = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=999), headers=cookies_para(usuario)
-        )
-        assert respuesta.status_code == 201
-
-    def test_capacidad_del_espacio_sigue_limitando_si_el_recurso_no_la_tiene(self, client, db):
-        """El chequeo de aforo no se salta por completo solo porque falte
-        en un eje -- sigue considerando los ejes que sí tienen capacidad
-        (mismo criterio que ya regía para zonas antes de esta fase)."""
-        espacio = crear_espacio(db, nombre="Sala Cap Solo Espacio", modalidad_reserva="mixto", capacidad=3)
-        usuario = crear_usuario(db, username="u_cap_espacio", email="u_cap_espacio@example.com")
-        r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=None)
-        excede = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=4), headers=cookies_para(usuario)
-        )
-        assert excede.status_code == 400
-        justo = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=3), headers=cookies_para(usuario)
-        )
-        assert justo.status_code == 201
-
 
 class TestPS:
     def test_zona_con_recurso_ps_bloquea_usuario(self, client, db):

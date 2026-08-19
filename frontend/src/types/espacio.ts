@@ -4,9 +4,7 @@ export interface Espacio {
   id: number;
   nombre: string;
   ubicacion: string;
-  // Opcional (Fase 12E): datos migrados desde sistemas legado pueden no
-  // traer capacidad conocida.
-  capacidad: number | null;
+  capacidad: number;
   estado: 'activo' | 'inactivo' | 'mantenimiento';
   dias_atencion: number[];
   hora_apertura: string;
@@ -19,7 +17,7 @@ export interface Espacio {
 export interface EspacioCreate {
   nombre: string;
   ubicacion: string;
-  capacidad?: number | null;
+  capacidad: number;
   estado?: 'activo' | 'inactivo' | 'mantenimiento';
   // Obligatorio en el backend desde la Fase 12B (RN-007). Ver CHANGELOG.md.
   correo: string;
@@ -28,7 +26,7 @@ export interface EspacioCreate {
 export interface EspacioUpdate {
   nombre?: string;
   ubicacion?: string;
-  capacidad?: number | null;
+  capacidad?: number;
   estado?: 'activo' | 'inactivo' | 'mantenimiento';
 }
 

@@ -23,7 +23,7 @@ class Recurso(Base):
     espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
     tipo_recurso_id = Column(Integer, ForeignKey("tipos_recursos.id"), nullable=False)
     descripcion = Column(Text, nullable=True)
-    capacidad = Column(Integer, nullable=True)
+    capacidad = Column(Integer, nullable=False)
     estado = Column(String(30), nullable=False, default="activo")
     es_prestacion_servicio = Column(Boolean, nullable=False, default=False)
     create_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

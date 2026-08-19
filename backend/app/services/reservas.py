@@ -245,23 +245,16 @@ def _resolver_efectivos(
     return directos, zonas, [por_id[i] for i in sorted(por_id)]
 
 
-def _capacidad_efectiva(espacio: Espacio, objetivo: _ObjetivoReserva) -> int | None:
+def _capacidad_efectiva(espacio: Espacio, objetivo: _ObjetivoReserva) -> int:
     """Capacidad efectiva = min(espacio, zonas definidas, recursos efectivos)
-    (decisión aprobada 12C-6), considerando solo los que tienen capacidad
-    definida (Fase 12E: capacidad pasó a ser opcional en espacio y recurso,
-    igual que ya lo era en zona). `None` = ningún dato de capacidad
-    disponible en ningún eje -- sin límite conocido, el llamador se salta
-    el chequeo de aforo en ese caso."""
-    capacidades = []
-    if espacio.capacidad is not None:
-        capacidades.append(espacio.capacidad)
+    (decisión aprobada 12C-6)."""
+    capacidades = [espacio.capacidad]
     capacidades_zonas = [z.capacidad for z in objetivo.zonas if z.capacidad is not None]
     if capacidades_zonas:
         capacidades.append(min(capacidades_zonas))
-    capacidades_recursos = [r.capacidad for r in objetivo.recursos_efectivos if r.capacidad is not None]
-    if capacidades_recursos:
-        capacidades.append(min(capacidades_recursos))
-    return min(capacidades) if capacidades else None
+    if objetivo.recursos_efectivos:
+        capacidades.append(min(r.capacidad for r in objetivo.recursos_efectivos))
+    return min(capacidades)
 
 
 def _recurso_ancla(db: Session, espacio: Espacio, recursos_efectivos: list[Recurso]) -> int:
@@ -554,8 +547,7 @@ def _validar_objetivo(
 ) -> None:
     validar_horario(objetivo.espacio, fecha, hora_inicio, hora_fin)
     validar_anticipacion(objetivo.espacio, fecha, hora_inicio)
-    capacidad_efectiva = _capacidad_efectiva(objetivo.espacio, objetivo)
-    if capacidad_efectiva is not None and asistentes > capacidad_efectiva:
+    if asistentes > _capacidad_efectiva(objetivo.espacio, objetivo):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La cantidad de asistentes supera la capacidad efectiva de la reserva",

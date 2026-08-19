@@ -12,7 +12,7 @@ interface EditingState {
   id: number;
   nombre: string;
   ubicacion: string;
-  capacidad: number | null;
+  capacidad: number;
 }
 
 const estadoSiguiente: Record<string, 'activo' | 'inactivo' | 'mantenimiento'> = {
@@ -60,14 +60,14 @@ export default function AdminEspaciosPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!nuevoNombre.trim() || !nuevaUbicacion.trim() || !nuevoCorreo.trim()) return;
+    if (!nuevoNombre.trim() || !nuevaUbicacion.trim() || !nuevaCapacidad || !nuevoCorreo.trim()) return;
     setCreating(true);
     setError(null);
     try {
       await crearEspacio({
         nombre: nuevoNombre.trim(),
         ubicacion: nuevaUbicacion.trim(),
-        ...(nuevaCapacidad ? { capacidad: Number(nuevaCapacidad) } : {}),
+        capacidad: Number(nuevaCapacidad),
         correo: nuevoCorreo.trim(),
       } satisfies EspacioCreate);
       setNuevoNombre('');
@@ -89,7 +89,7 @@ export default function AdminEspaciosPage() {
       const data: EspacioUpdate = {};
       if (editing.nombre.trim()) data.nombre = editing.nombre.trim();
       if (editing.ubicacion.trim()) data.ubicacion = editing.ubicacion.trim();
-      if (editing.capacidad !== null && editing.capacidad > 0) data.capacidad = editing.capacidad;
+      if (editing.capacidad > 0) data.capacidad = editing.capacidad;
       await actualizarEspacio(id, data);
       setEditing(null);
       await loadEspacios();
@@ -175,7 +175,8 @@ export default function AdminEspaciosPage() {
               type="number"
               value={nuevaCapacidad}
               onChange={(e) => setNuevaCapacidad(e.target.value)}
-              placeholder="Ej. 30 (opcional)"
+              placeholder="Ej. 30"
+              required
               min={1}
             />
           </label>
@@ -247,13 +248,8 @@ export default function AdminEspaciosPage() {
                             className="input w-20"
                             type="number"
                             aria-label="Capacidad del espacio"
-                            value={editing.capacidad ?? ''}
-                            onChange={(e) =>
-                              setEditing({
-                                ...editing,
-                                capacidad: e.target.value === '' ? null : Number(e.target.value),
-                              })
-                            }
+                            value={editing.capacidad}
+                            onChange={(e) => setEditing({ ...editing, capacidad: Number(e.target.value) })}
                             min={1}
                           />
                         </td>
@@ -277,7 +273,7 @@ export default function AdminEspaciosPage() {
                       <>
                         <td className="font-medium">{espacio.nombre}</td>
                         <td>{espacio.ubicacion}</td>
-                        <td>{espacio.capacidad ?? <span className="text-text-muted">Sin definir</span>}</td>
+                        <td>{espacio.capacidad}</td>
                         <td>
                           <span className={`badge ${badgeEstadoEntidad(espacio.estado)}`}>
                             {espacio.estado}

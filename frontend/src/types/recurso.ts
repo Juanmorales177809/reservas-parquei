@@ -13,9 +13,7 @@ export interface Recurso {
   espacio_id: number;
   tipo_recurso_id: number;
   descripcion: string | null;
-  // Opcional (Fase 12E): datos migrados desde sistemas legado pueden no
-  // traer capacidad conocida.
-  capacidad: number | null;
+  capacidad: number;
   estado: 'activo' | 'inactivo' | 'mantenimiento';
   espacio: Espacio;
   tipo: TipoRecurso;
@@ -26,7 +24,7 @@ export interface RecursoCreate {
   espacio_id?: number;
   tipo_recurso_id: number;
   descripcion?: string;
-  capacidad?: number | null;
+  capacidad: number;
   estado?: 'activo' | 'inactivo' | 'mantenimiento';
 }
 

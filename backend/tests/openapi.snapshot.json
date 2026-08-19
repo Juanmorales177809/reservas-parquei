@@ -467,16 +467,9 @@
       "EspacioCreate": {
         "properties": {
           "capacidad": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
+            "exclusiveMinimum": 0.0,
+            "title": "Capacidad",
+            "type": "integer"
           },
           "correo": {
             "maxLength": 255,
@@ -507,6 +500,7 @@
         },
         "required": [
           "nombre",
+          "capacidad",
           "correo"
         ],
         "title": "EspacioCreate",
@@ -548,15 +542,8 @@
       "EspacioResponse": {
         "properties": {
           "capacidad": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
+            "title": "Capacidad",
+            "type": "integer"
           },
           "correo": {
             "anyOf": [
@@ -623,6 +610,7 @@
           "id",
           "nombre",
           "ubicacion",
+          "capacidad",
           "estado",
           "dias_atencion",
           "hora_apertura",
@@ -894,16 +882,9 @@
       "RecursoCreate": {
         "properties": {
           "capacidad": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
+            "exclusiveMinimum": 0.0,
+            "title": "Capacidad",
+            "type": "integer"
           },
           "descripcion": {
             "anyOf": [
@@ -949,7 +930,8 @@
         },
         "required": [
           "nombre",
-          "tipo_recurso_id"
+          "tipo_recurso_id",
+          "capacidad"
         ],
         "title": "RecursoCreate",
         "type": "object"
@@ -1017,15 +999,8 @@
       "RecursoResponse": {
         "properties": {
           "capacidad": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
+            "title": "Capacidad",
+            "type": "integer"
           },
           "descripcion": {
             "anyOf": [

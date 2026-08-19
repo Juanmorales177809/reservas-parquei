@@ -163,7 +163,7 @@ class TestTipoReserva:
                 "espacio": {
                     "id": 1,
                     "nombre": "Sala",
-                    "capacidad": None,
+                    "capacidad": 10,
                     "estado": "activo",
                 },
                 "recurso_ids": [1],
@@ -175,53 +175,6 @@ class TestTipoReserva:
         )
         assert isinstance(modelo.tipo, TipoReserva)
         assert modelo.tipo == TipoReserva.TRABAJO_INVESTIGACION
-
-
-class TestCapacidadOpcional:
-    """Fase 12E: `capacidad` deja de ser obligatoria en `Espacio` y
-    `Recurso` (mismo patrón que ya tenía `Zona` desde 12C-1) -- datos
-    migrados desde el sistema legado de reservas de laboratorios no
-    siempre traen ese dato."""
-
-    def test_espacio_create_sin_capacidad_es_valido(self):
-        modelo = EspacioCreate(nombre="Sala", correo="sala@example.com")
-        assert modelo.capacidad is None
-
-    def test_espacio_create_capacidad_none_explicito_es_valido(self):
-        modelo = EspacioCreate(nombre="Sala", correo="sala@example.com", capacidad=None)
-        assert modelo.capacidad is None
-
-    def test_espacio_create_capacidad_cero_sigue_rechazada(self):
-        _validacion_exc(EspacioCreate, nombre="Sala", correo="sala@example.com", capacidad=0)
-
-    def test_espacio_create_capacidad_negativa_sigue_rechazada(self):
-        _validacion_exc(EspacioCreate, nombre="Sala", correo="sala@example.com", capacidad=-1)
-
-    def test_recurso_create_sin_capacidad_es_valido(self):
-        modelo = RecursoCreate(nombre="Recurso", tipo_recurso_id=1, espacio_id=1)
-        assert modelo.capacidad is None
-
-    def test_recurso_create_capacidad_cero_sigue_rechazada(self):
-        _validacion_exc(RecursoCreate, nombre="Recurso", tipo_recurso_id=1, espacio_id=1, capacidad=0)
-
-    def test_espacio_response_acepta_capacidad_none(self):
-        modelo = EspacioResponse.model_validate(
-            {
-                "id": 1,
-                "nombre": "Sala",
-                "ubicacion": "X",
-                "capacidad": None,
-                "estado": "activo",
-                "dias_atencion": [0],
-                "hora_apertura": "07:00:00",
-                "hora_cierre": "20:00:00",
-                "horario_atencion": {"0": [7, 8]},
-                "horas_antelacion": 24,
-                "modalidad_reserva": "equipos",
-                "correo": None,
-            }
-        )
-        assert modelo.capacidad is None
 
 
 class TestContratoJsonConservado:
