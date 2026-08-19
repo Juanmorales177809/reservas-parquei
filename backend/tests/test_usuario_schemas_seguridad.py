@@ -28,7 +28,7 @@ from tests.conftest import crear_usuario
 
 
 def _payload_admin_create_valido(**overrides):
-    base = {"username": "nuevo_usuario", "email": "nuevo@test.com", "password": "secret123"}
+    base = {"username": "nuevo_usuario", "email": "nuevo@example.com", "password": "secret123"}
     base.update(overrides)
     return base
 
@@ -104,17 +104,17 @@ class TestEmailUsuarioCreate:
             UsuarioCreate(username="ana", email="", password="secret123")
 
     def test_email_valido_aceptado(self):
-        UsuarioCreate(username="ana", email="ana@test.com", password="secret123")
+        UsuarioCreate(username="ana", email="ana@example.com", password="secret123")
 
     def test_email_maximo_255_sigue_vigente(self):
         # max_length=255 ya existía en UsuarioCreate; se confirma que el
         # nuevo validador de formato no lo reemplaza.
-        email_largo_valido = f"{'a' * 240}@test.com"  # <= 255, formato válido
+        email_largo_valido = f"{'a' * 240}@example.com"  # <= 255, formato válido
         assert len(email_largo_valido) <= 255
         UsuarioCreate(username="ana", email=email_largo_valido, password="secret123")
 
     def test_email_256_caracteres_rechazado(self):
-        email_demasiado_largo = f"{'a' * 250}@test.com"  # > 255
+        email_demasiado_largo = f"{'a' * 250}@example.com"  # > 255
         with pytest.raises(ValidationError):
             UsuarioCreate(username="ana", email=email_demasiado_largo, password="secret123")
 
@@ -137,7 +137,7 @@ class TestCompatibilidadPayloadsValidosExistentes:
     """Los payloads que ya pasaban antes de la Fase 9E deben seguir pasando."""
 
     def test_admin_usuario_create_tipico_sigue_valido(self):
-        AdminUsuarioCreate(username="ana", email="ana@test.com", password="secret123")
+        AdminUsuarioCreate(username="ana", email="ana@example.com", password="secret123")
 
     def test_usuario_update_parcial_sigue_valido(self):
         UsuarioUpdate(username="nuevo_nombre")
@@ -155,21 +155,21 @@ class TestUsuarioResponseSinDatosSensibles:
 
 class TestLoginVaciosDan422NoConsumenRateLimit:
     def test_username_vacio_en_login_da_422_no_401(self, client, db):
-        crear_usuario(db, username="ana", email="ana_9e@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana_9e@example.com", password="secret123")
 
         respuesta = client.post("/auth/login", json={"username": "", "password": "secret123"})
 
         assert respuesta.status_code == 422
 
     def test_password_vacia_en_login_da_422_no_401(self, client, db):
-        crear_usuario(db, username="ana", email="ana_9e2@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana_9e2@example.com", password="secret123")
 
         respuesta = client.post("/auth/login", json={"username": "ana", "password": ""})
 
         assert respuesta.status_code == 422
 
     def test_422_por_campos_vacios_no_consume_intento_de_rate_limit(self, client, db):
-        crear_usuario(db, username="ana", email="ana_9e3@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana_9e3@example.com", password="secret123")
 
         for _ in range(10):
             respuesta = client.post("/auth/login", json={"username": "", "password": ""})
@@ -183,7 +183,7 @@ class TestLoginVaciosDan422NoConsumenRateLimit:
 
 class TestCredencialesValidasExistentesSiguenFuncionando:
     def test_login_exitoso_sin_cambios(self, client, db):
-        crear_usuario(db, username="beto", email="beto_9e@test.com", password="secret123")
+        crear_usuario(db, username="beto", email="beto_9e@example.com", password="secret123")
 
         respuesta = client.post("/auth/login", json={"username": "beto", "password": "secret123"})
 

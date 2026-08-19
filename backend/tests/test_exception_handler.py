@@ -147,7 +147,7 @@ class TestLogSeguroConContexto:
 
 class TestErroresControladosSinCambios:
     def test_401_conserva_su_comportamiento(self, client_sin_relanzar, db):
-        crear_usuario(db, username="ana", email="ana_exc@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana_exc@example.com", password="secret123")
 
         respuesta = client_sin_relanzar.post(
             "/auth/login", json={"username": "ana", "password": "incorrecta"}

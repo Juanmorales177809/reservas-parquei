@@ -28,11 +28,11 @@ from tests.conftest import (
 
 def _escenario(db):
     espacio = crear_espacio(db, nombre="Sala PS")
-    admin = crear_usuario(db, username="admin_ps", email="admin_ps@test.com", rol="admin")
+    admin = crear_usuario(db, username="admin_ps", email="admin_ps@example.com", rol="admin")
     gestor = crear_usuario(
-        db, username="gestor_ps", email="gestor_ps@test.com", rol="gestor", espacio_id=espacio.id
+        db, username="gestor_ps", email="gestor_ps@example.com", rol="gestor", espacio_id=espacio.id
     )
-    usuario = crear_usuario(db, username="user_ps", email="user_ps@test.com")
+    usuario = crear_usuario(db, username="user_ps", email="user_ps@example.com")
     recurso_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Microscopio")
     recurso_ps = crear_recurso(
         db, espacio=espacio, usuario=admin, nombre="Equipo de ensayo", es_prestacion_servicio=True
@@ -130,7 +130,7 @@ class TestGestionPS:
     def test_gestor_crea_recurso_ps(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Crear PS")
         gestor = crear_usuario(
-            db, username="gestor_crea_ps", email="gestor_crea_ps@test.com",
+            db, username="gestor_crea_ps", email="gestor_crea_ps@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         tipo_id = client.get("/recursos/tipos").json()
@@ -154,7 +154,7 @@ class TestGestionPS:
 
     def test_usuario_no_puede_crear_recursos(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Crear PS 2")
-        usuario = crear_usuario(db, username="user_crea_ps", email="user_crea_ps@test.com")
+        usuario = crear_usuario(db, username="user_crea_ps", email="user_crea_ps@example.com")
         respuesta = client.post(
             "/recursos",
             json={
@@ -173,7 +173,7 @@ class TestGestionPS:
         """Compatibilidad: si el payload no incluye es_prestacion_servicio,
         el recurso nace visible/reservable como antes de esta fase."""
         espacio = crear_espacio(db, nombre="Sala Default PS")
-        admin = crear_usuario(db, username="admin_default_ps", email="admin_default_ps@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_default_ps", email="admin_default_ps@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Legado")
         respuesta = client.get(f"/recursos", params={"espacio_id": espacio.id})
         cuerpo = [r for r in respuesta.json() if r["nombre"] == "Recurso Legado"]
@@ -189,7 +189,7 @@ class TestGuardConReservaDeZona:
 
     def _escenario_reserva_zona(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Guard Zona", modalidad_reserva="mixto")
-        admin = crear_usuario(db, username="admin_guard_zona", email="admin_guard_zona@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_guard_zona", email="admin_guard_zona@example.com", rol="admin")
         r_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Ancla Guard")
         r_secundario = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Secundario Guard")
         zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona Guard")

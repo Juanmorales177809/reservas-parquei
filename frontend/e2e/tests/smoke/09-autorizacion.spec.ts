@@ -7,7 +7,7 @@ test.describe('Autorización real del backend', () => {
     const headers = await headersPara(backend, 'usuario');
     const respuesta = await backend.post('/usuarios', {
       headers,
-      data: { username: 'intruso-e2e', email: 'intruso-e2e@test.com', password: 'E2e-Intruso-123!', rol: 'admin' },
+      data: { username: 'intruso-e2e', email: 'intruso-e2e@example.com', password: 'E2e-Intruso-123!', rol: 'admin' },
     });
     expect(respuesta.status()).toBe(403);
     const detalle = ((await respuesta.json()) as { detail: string }).detail;

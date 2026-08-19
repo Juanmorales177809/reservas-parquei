@@ -23,7 +23,7 @@ DOMINGO = date(2026, 8, 23)  # weekday 6
 
 
 def _admin_y_headers(db):
-    admin = crear_usuario(db, username="admin_dash", email="admin_dash@test.com", rol="admin")
+    admin = crear_usuario(db, username="admin_dash", email="admin_dash@example.com", rol="admin")
     return admin, headers_para(admin)
 
 

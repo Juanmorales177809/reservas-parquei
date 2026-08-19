@@ -48,7 +48,7 @@ def _crear_zona(db, *, espacio, usuario, nombre="Zona de pruebas"):
 class TestImportacionYCreacionDeTablas:
     def test_reserva_recurso_se_crea(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr1", email="admin_rr1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr1", email="admin_rr1@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -67,7 +67,7 @@ class TestImportacionYCreacionDeTablas:
 
     def test_reserva_zona_se_crea(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz1", email="admin_rz1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz1", email="admin_rz1@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
@@ -89,7 +89,7 @@ class TestImportacionYCreacionDeTablas:
 class TestFKsYNulabilidad:
     def test_reserva_recurso_reserva_id_obligatorio(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr2", email="admin_rr2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr2", email="admin_rr2@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         asociacion = ReservaRecurso(
             recurso_id=recurso.id, fecha=date(2026, 9, 1),
@@ -101,7 +101,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_recurso_recurso_id_obligatorio(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr3", email="admin_rr3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr3", email="admin_rr3@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         asociacion = ReservaRecurso(
@@ -114,7 +114,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_recurso_reserva_id_inexistente_rechazado_por_fk(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr3b", email="admin_rr3b@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr3b", email="admin_rr3b@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         asociacion = ReservaRecurso(
             reserva_id=999999, recurso_id=recurso.id, fecha=date(2026, 9, 1),
@@ -126,7 +126,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_recurso_recurso_id_inexistente_rechazado_por_fk(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr3c", email="admin_rr3c@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr3c", email="admin_rr3c@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         asociacion = ReservaRecurso(
@@ -139,7 +139,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_zona_zona_id_obligatorio(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz2", email="admin_rz2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz2", email="admin_rz2@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         asociacion = ReservaZona(
@@ -152,7 +152,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_zona_reserva_id_inexistente_rechazado_por_fk(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz3b", email="admin_rz3b@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz3b", email="admin_rz3b@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
         asociacion = ReservaZona(
             reserva_id=999999, zona_id=zona.id, fecha=date(2026, 9, 1),
@@ -164,7 +164,7 @@ class TestFKsYNulabilidad:
 
     def test_reserva_zona_zona_id_inexistente_rechazado_por_fk(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz3", email="admin_rz3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz3", email="admin_rz3@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         asociacion = ReservaZona(
@@ -179,7 +179,7 @@ class TestFKsYNulabilidad:
 class TestUnicidadPorPar:
     def test_mismo_par_reserva_recurso_rechazado(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr4", email="admin_rr4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr4", email="admin_rr4@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         db.add(ReservaRecurso(
@@ -200,7 +200,7 @@ class TestUnicidadPorPar:
         de zona_recursos (12C-3), que restringe por recurso_id solo, un
         mismo recurso puede aparecer en varias reservas distintas."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr5", email="admin_rr5@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr5", email="admin_rr5@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva_a = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 1))
         reserva_b = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 2))
@@ -220,7 +220,7 @@ class TestUnicidadPorPar:
 
     def test_mismo_par_reserva_zona_rechazado(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz4", email="admin_rz4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz4", email="admin_rz4@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
@@ -241,7 +241,7 @@ class TestUnicidadPorPar:
 class TestOndeleteCascade:
     def test_eliminar_reserva_elimina_sus_reserva_recursos(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr6", email="admin_rr6@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr6", email="admin_rr6@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         db.add(ReservaRecurso(
@@ -257,7 +257,7 @@ class TestOndeleteCascade:
 
     def test_eliminar_reserva_elimina_sus_reserva_zonas(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz5", email="admin_rz5@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz5", email="admin_rz5@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
@@ -279,7 +279,7 @@ class TestOndeleteCascade:
         aqui usa un recurso "ancla" distinto para aislar exactamente qué
         constraint se ejercita) no puede eliminarse silenciosamente."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rr7", email="admin_rr7@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rr7", email="admin_rr7@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla")
         recurso_bajo_prueba = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba")
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
@@ -296,7 +296,7 @@ class TestOndeleteCascade:
     def test_eliminar_zona_referenciada_es_rechazada_sin_cascada(self, db):
         """zona_id tampoco tiene ondelete=CASCADE en reserva_zonas."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_rz6", email="admin_rz6@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rz6", email="admin_rz6@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)

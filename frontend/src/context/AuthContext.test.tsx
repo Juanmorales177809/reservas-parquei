@@ -19,7 +19,7 @@ vi.mock('@/services/auth', () => ({
 }));
 
 function usuarioDePrueba(rol: AuthUser['rol'] = 'usuario'): AuthUser {
-  return { id: 1, username: 'ana', email: 'ana@test.com', rol, espacio: null };
+  return { id: 1, username: 'ana', email: 'ana@example.com', rol, espacio: null };
 }
 
 /** Componente sonda: expone el estado de AuthContext como texto para

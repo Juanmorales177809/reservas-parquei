@@ -36,7 +36,7 @@ vi.mock('@/services/reservas', () => ({ crearReserva: crearReservaMock }));
 // del fetch real, igual que el resto de servicios de esta página.
 vi.mock('@/services/auth', () => ({ getProfile: getProfileMock }));
 
-const USUARIO_AUTENTICADO = { id: 1, username: 'u', email: 'u@test.com', rol: 'usuario' as const, espacio: null };
+const USUARIO_AUTENTICADO = { id: 1, username: 'u', email: 'u@example.com', rol: 'usuario' as const, espacio: null };
 
 function espacio(parcial: Partial<Espacio> = {}): Espacio {
   return {

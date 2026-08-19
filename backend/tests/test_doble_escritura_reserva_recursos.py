@@ -42,7 +42,7 @@ def _setup(db, *, rol="usuario", es_gestor_del_espacio=False):
     usuario = crear_usuario(
         db,
         username=f"dd_{rol}_{es_gestor_del_espacio}",
-        email=f"dd_{rol}_{es_gestor_del_espacio}@test.com",
+        email=f"dd_{rol}_{es_gestor_del_espacio}@example.com",
         rol=rol,
         espacio_id=espacio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
     )
@@ -200,7 +200,7 @@ class TestCambioEstado:
         return crear_usuario(
             db,
             username="dd_gestor_estado",
-            email="dd_gestor_estado@test.com",
+            email="dd_gestor_estado@example.com",
             rol="gestor",
             espacio_id=espacio.id,
         )
@@ -379,7 +379,7 @@ class TestReservaHistoricaBackfilled:
         al actualizarla por el servicio, la fila existente se actualiza en
         lugar de crearse una nueva."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="dd_hist_bk", email="dd_hist_bk@test.com", rol="admin")
+        admin = crear_usuario(db, username="dd_hist_bk", email="dd_hist_bk@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         fecha = fecha_habilitada()
         reserva = Reserva(
@@ -425,7 +425,7 @@ class TestInvariantesExactas:
         gestor = crear_usuario(
             db,
             username="dd_gestor_inv",
-            email="dd_gestor_inv@test.com",
+            email="dd_gestor_inv@example.com",
             rol="gestor",
             espacio_id=espacio.id,
         )
@@ -484,7 +484,7 @@ class TestAusenciaDeBloqueos:
         gestor = crear_usuario(
             db,
             username="dd_gestor_lock",
-            email="dd_gestor_lock@test.com",
+            email="dd_gestor_lock@example.com",
             rol="gestor",
             espacio_id=espacio.id,
         )

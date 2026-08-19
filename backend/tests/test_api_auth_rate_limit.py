@@ -48,7 +48,7 @@ def _login(client, username, password):
 
 class TestLoginValidoNoSeBloquea:
     def test_login_correcto_repetido_no_dispara_429(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(10):
             respuesta = _login(client, "ana", "secret123")
             assert respuesta.status_code == 200
@@ -56,13 +56,13 @@ class TestLoginValidoNoSeBloquea:
 
 class TestIntentosInvalidosSeCuentan:
     def test_cuarto_intento_fallido_no_bloquea_aun(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(4):
             respuesta = _login(client, "ana", "incorrecta")
             assert respuesta.status_code == 401
 
     def test_sexto_intento_bloquea_tras_cinco_fallos(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(5):
             respuesta = _login(client, "ana", "incorrecta")
             assert respuesta.status_code == 401  # los 5 primeros se procesan normal
@@ -80,7 +80,7 @@ class TestIntentosInvalidosSeCuentan:
 
 class TestBloqueoImpideIncluirCredencialesCorrectas:
     def test_bloqueado_incluso_con_password_correcta(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(5):
             _login(client, "ana", "incorrecta")
 
@@ -91,7 +91,7 @@ class TestBloqueoImpideIncluirCredencialesCorrectas:
 
 class TestReinicioTrasExito:
     def test_login_exitoso_reinicia_el_contador(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(4):
             _login(client, "ana", "incorrecta")
 
@@ -107,8 +107,8 @@ class TestReinicioTrasExito:
 
 class TestClavesSeparadas:
     def test_usuarios_distintos_no_comparten_bloqueo(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
-        crear_usuario(db, username="beto", email="beto@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        crear_usuario(db, username="beto", email="beto@example.com", password="secret123")
         for _ in range(5):
             _login(client, "ana", "incorrecta")
 
@@ -117,7 +117,7 @@ class TestClavesSeparadas:
         assert respuesta.status_code == 200
 
     def test_ips_distintas_no_comparten_bloqueo(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(5):
             client.post(
                 "/auth/login",
@@ -136,7 +136,7 @@ class TestClavesSeparadas:
 
 class TestNoFiltraExistenciaDeUsuario:
     def test_mensaje_429_no_distingue_usuario_existente_o_no(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(5):
             _login(client, "ana", "incorrecta")
         for _ in range(5):
@@ -152,7 +152,7 @@ class TestNoFiltraExistenciaDeUsuario:
 
 class TestVentanaExpira:
     def test_ventana_expirada_permite_login_de_nuevo(self, client, db, reloj):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(5):
             _login(client, "ana", "incorrecta")
         assert _login(client, "ana", "secret123").status_code == 429
@@ -164,7 +164,7 @@ class TestVentanaExpira:
 
 class TestErroresNoRelacionadosNoConsumenIntentos:
     def test_payload_invalido_da_422_y_no_cuenta_como_intento(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         for _ in range(10):
             respuesta = client.post("/auth/login", json={"username": "ana"})  # falta password
             assert respuesta.status_code == 422

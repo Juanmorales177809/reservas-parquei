@@ -158,7 +158,7 @@ export default function UsuariosPage() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="juan@correo.itm.edu.co"
+              placeholder="juan@example.com"
               required
             />
           </label>

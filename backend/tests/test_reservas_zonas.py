@@ -46,7 +46,7 @@ def _setup(db, modalidad="mixto", nombre="Sala Zonas Mixta"):
     usuario = crear_usuario(
         db,
         username=f"u_{nombre.replace(' ', '')}",
-        email=f"u_{nombre.replace(' ', '')}@test.com",
+        email=f"u_{nombre.replace(' ', '')}@example.com",
     )
     r1 = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="R1")
     r2 = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="R2")
@@ -334,7 +334,7 @@ class TestAprobacion:
         zona = crear_zona(db, espacio=espacio, usuario=usuario, nombre="Zona Aprobar")
         asociar_zona_recurso(db, zona, r1)
         gestor = crear_usuario(
-            db, username="gestor_aprob", email="gestor_aprob@test.com",
+            db, username="gestor_aprob", email="gestor_aprob@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         creada = client.post(
@@ -377,7 +377,7 @@ class TestCapacidad:
 
     def test_capacidad_directa_limitada_tambien_por_espacio(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Cap Baja", modalidad_reserva="mixto", capacidad=5)
-        usuario = crear_usuario(db, username="u_cap", email="u_cap@test.com")
+        usuario = crear_usuario(db, username="u_cap", email="u_cap@example.com")
         r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=10)
         respuesta = client.post(
             "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=7), headers=headers_para(usuario)
@@ -388,8 +388,8 @@ class TestCapacidad:
 class TestPS:
     def test_zona_con_recurso_ps_bloquea_usuario(self, client, db):
         espacio = crear_espacio(db, nombre="Sala PS Zona", modalidad_reserva="mixto")
-        admin = crear_usuario(db, username="admin_ps_zonas", email="admin_ps_zonas@test.com", rol="admin")
-        usuario = crear_usuario(db, username="u_ps_zonas", email="u_ps_zonas@test.com")
+        admin = crear_usuario(db, username="admin_ps_zonas", email="admin_ps_zonas@example.com", rol="admin")
+        usuario = crear_usuario(db, username="u_ps_zonas", email="u_ps_zonas@example.com")
         r_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Normal")
         r_ps = crear_recurso(
             db, espacio=espacio, usuario=admin, nombre="PS", es_prestacion_servicio=True
@@ -421,7 +421,7 @@ class TestPermisos:
     def test_gestor_puede_reservar_zona_de_otro_espacio_queda_esperando(self, client, db):
         espacio_a = crear_espacio(db, nombre="Espacio Gestor A", modalidad_reserva="zonas")
         gestor = crear_usuario(
-            db, username="gestor_zonas_a", email="gestor_zonas_a@test.com",
+            db, username="gestor_zonas_a", email="gestor_zonas_a@example.com",
             rol="gestor", espacio_id=espacio_a.id,
         )
         espacio_b = crear_espacio(db, nombre="Espacio Gestor B", modalidad_reserva="zonas")

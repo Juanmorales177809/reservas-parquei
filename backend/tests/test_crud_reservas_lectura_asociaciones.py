@@ -35,8 +35,8 @@ from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_ha
 
 def _setup(db):
     espacio = crear_espacio(db)
-    usuario = crear_usuario(db, username="lec_user", email="lec_user@test.com")
-    admin = crear_usuario(db, username="lec_admin", email="lec_admin@test.com", rol="admin")
+    usuario = crear_usuario(db, username="lec_user", email="lec_user@example.com")
+    admin = crear_usuario(db, username="lec_admin", email="lec_admin@example.com", rol="admin")
     return espacio, usuario, admin
 
 
@@ -228,7 +228,7 @@ class TestCompatibilidadListados:
         espacio, usuario, admin = _setup(db)
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         gestor = crear_usuario(
-            db, username="lec_gestor", email="lec_gestor@test.com",
+            db, username="lec_gestor", email="lec_gestor@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         fecha = fecha_habilitada()

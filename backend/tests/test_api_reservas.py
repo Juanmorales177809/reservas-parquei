@@ -29,7 +29,7 @@ def _setup(db, *, rol="usuario", es_gestor_del_espacio=False, nombre_espacio="Sa
     usuario = crear_usuario(
         db,
         username=f"user_{rol}_{nombre_espacio.replace(' ', '')}",
-        email=f"{rol}-{nombre_espacio.replace(' ', '')}@test.com",
+        email=f"{rol}-{nombre_espacio.replace(' ', '')}@example.com",
         rol=rol,
         espacio_id=espacio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
     )
@@ -63,7 +63,7 @@ class TestCrearReserva:
         usuario = crear_usuario(
             db,
             username="gestor_a",
-            email="gestor_a@test.com",
+            email="gestor_a@example.com",
             rol="gestor",
             espacio_id=espacio_a.id,
         )
@@ -119,7 +119,7 @@ class TestCrearReserva:
 
     def test_anticipacion_insuficiente_da_400(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Antelada", horas_antelacion=720)
-        usuario = crear_usuario(db, username="user_anti", email="user_anti@test.com")
+        usuario = crear_usuario(db, username="user_anti", email="user_anti@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         respuesta = client.post(
             "/reservas",
@@ -148,7 +148,7 @@ class TestCrearReserva:
 
     def test_recurso_inactivo_da_400(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Inactiva Rec")
-        usuario = crear_usuario(db, username="user_rec", email="user_rec@test.com")
+        usuario = crear_usuario(db, username="user_rec", email="user_rec@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario, estado="inactivo")
         respuesta = client.post(
             "/reservas",
@@ -159,7 +159,7 @@ class TestCrearReserva:
 
     def test_espacio_inactivo_da_400(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Inactiva Esp", estado="inactivo")
-        usuario = crear_usuario(db, username="user_esp", email="user_esp@test.com")
+        usuario = crear_usuario(db, username="user_esp", email="user_esp@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         respuesta = client.post(
             "/reservas",
@@ -186,7 +186,7 @@ class TestRecursosPS:
     def _setup_ps(self, db, *, rol_creador="admin"):
         espacio = crear_espacio(db, nombre="Sala PS Reserva")
         creador = crear_usuario(
-            db, username=f"creador_{rol_creador}", email=f"creador_{rol_creador}@test.com", rol=rol_creador
+            db, username=f"creador_{rol_creador}", email=f"creador_{rol_creador}@example.com", rol=rol_creador
         )
         recurso_ps = crear_recurso(
             db, espacio=espacio, usuario=creador, nombre="Equipo PS Reserva", es_prestacion_servicio=True
@@ -195,7 +195,7 @@ class TestRecursosPS:
 
     def test_usuario_no_puede_reservar_recurso_ps(self, client, db):
         _, recurso_ps = self._setup_ps(db)
-        usuario = crear_usuario(db, username="user_reserva_ps", email="user_reserva_ps@test.com")
+        usuario = crear_usuario(db, username="user_reserva_ps", email="user_reserva_ps@example.com")
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
@@ -206,7 +206,7 @@ class TestRecursosPS:
     def test_gestor_puede_reservar_recurso_ps_de_su_espacio(self, client, db):
         espacio, recurso_ps = self._setup_ps(db)
         gestor = crear_usuario(
-            db, username="gestor_reserva_ps", email="gestor_reserva_ps@test.com",
+            db, username="gestor_reserva_ps", email="gestor_reserva_ps@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         respuesta = client.post(
@@ -218,7 +218,7 @@ class TestRecursosPS:
 
     def test_admin_puede_reservar_recurso_ps(self, client, db):
         _, recurso_ps = self._setup_ps(db)
-        admin = crear_usuario(db, username="admin_reserva_ps", email="admin_reserva_ps@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_reserva_ps", email="admin_reserva_ps@example.com", rol="admin")
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
@@ -228,8 +228,8 @@ class TestRecursosPS:
 
     def test_usuario_no_puede_editar_reserva_hacia_recurso_ps(self, client, db):
         espacio = crear_espacio(db, nombre="Sala PS Editar")
-        admin = crear_usuario(db, username="admin_edit_ps", email="admin_edit_ps@test.com", rol="admin")
-        usuario = crear_usuario(db, username="user_edit_ps", email="user_edit_ps@test.com")
+        admin = crear_usuario(db, username="admin_edit_ps", email="admin_edit_ps@example.com", rol="admin")
+        usuario = crear_usuario(db, username="user_edit_ps", email="user_edit_ps@example.com")
         recurso_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Normal Editar")
         recurso_ps = crear_recurso(
             db, espacio=espacio, usuario=admin, nombre="PS Editar", es_prestacion_servicio=True
@@ -314,7 +314,7 @@ class TestTransiciones:
     def test_flujo_aprobar_y_cancelar(self, client, db):
         usuario, espacio, recurso = _setup(db)
         gestor = crear_usuario(
-            db, username="gestor_flow", email="gestor_flow@test.com",
+            db, username="gestor_flow", email="gestor_flow@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         creada = client.post(
@@ -338,7 +338,7 @@ class TestTransiciones:
     def test_rechazada_no_puede_aprobarse(self, client, db):
         usuario, espacio, recurso = _setup(db)
         gestor = crear_usuario(
-            db, username="gestor_rech", email="gestor_rech@test.com",
+            db, username="gestor_rech", email="gestor_rech@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
         creada = client.post(
@@ -376,10 +376,10 @@ class TestTransiciones:
     def test_solo_propietario_cancela(self, client, db):
         usuario, espacio, recurso = _setup(db)
         gestor = crear_usuario(
-            db, username="gestor_canc", email="gestor_canc@test.com",
+            db, username="gestor_canc", email="gestor_canc@example.com",
             rol="gestor", espacio_id=espacio.id,
         )
-        otro = crear_usuario(db, username="otro", email="otro@test.com")
+        otro = crear_usuario(db, username="otro", email="otro@example.com")
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -409,7 +409,7 @@ class TestTransiciones:
 
     def test_mis_reservas_solo_propias(self, client, db):
         usuario_a, _, recurso = _setup(db, nombre_espacio="Sala A")
-        usuario_b = crear_usuario(db, username="user_b", email="user_b@test.com")
+        usuario_b = crear_usuario(db, username="user_b", email="user_b@example.com")
         fecha = fecha_habilitada()
         client.post(
             "/reservas",

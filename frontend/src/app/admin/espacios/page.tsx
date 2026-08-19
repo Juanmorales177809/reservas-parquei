@@ -187,7 +187,7 @@ export default function AdminEspaciosPage() {
               type="email"
               value={nuevoCorreo}
               onChange={(e) => setNuevoCorreo(e.target.value)}
-              placeholder="espacio@ejemplo.com"
+              placeholder="espacio@example.com"
               required
               maxLength={255}
             />

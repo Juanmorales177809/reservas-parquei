@@ -22,7 +22,7 @@ from tests.conftest import (
 
 def _escenario(db):
     espacio = crear_espacio(db, nombre="Sala Dash Efectivo", modalidad_reserva="mixto")
-    admin = crear_usuario(db, username="admin_dash_efec", email="admin_dash_efec@test.com", rol="admin")
+    admin = crear_usuario(db, username="admin_dash_efec", email="admin_dash_efec@example.com", rol="admin")
     r1 = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Efectivo R1")
     r2 = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Efectivo R2")
     zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Efectivo Zona")

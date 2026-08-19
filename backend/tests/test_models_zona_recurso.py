@@ -27,7 +27,7 @@ def _crear_zona(db, *, espacio, usuario, nombre="Zona de pruebas"):
 class TestUnicidadFuncionalPorRecurso:
     def test_un_recurso_no_puede_asociarse_a_dos_zonas(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_zr1", email="admin_zr1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_zr1", email="admin_zr1@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         zona_a = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona A")
         zona_b = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona B")
@@ -41,7 +41,7 @@ class TestUnicidadFuncionalPorRecurso:
 
     def test_dos_recursos_distintos_pueden_asociarse_a_la_misma_zona(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_zr2", email="admin_zr2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_zr2", email="admin_zr2@example.com", rol="admin")
         recurso_a = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso A")
         recurso_b = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso B")
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
@@ -61,7 +61,7 @@ class TestCascadaAlEliminar:
 
     def test_eliminar_zona_elimina_sus_asociaciones(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_zr3", email="admin_zr3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_zr3", email="admin_zr3@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
         db.add(ZonaRecurso(zona_id=zona.id, recurso_id=recurso.id))
@@ -74,7 +74,7 @@ class TestCascadaAlEliminar:
 
     def test_eliminar_recurso_elimina_su_asociacion(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_zr4", email="admin_zr4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_zr4", email="admin_zr4@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
         db.add(ZonaRecurso(zona_id=zona.id, recurso_id=recurso.id))

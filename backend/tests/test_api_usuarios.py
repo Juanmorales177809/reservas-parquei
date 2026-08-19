@@ -13,14 +13,14 @@ from tests.conftest import crear_espacio, crear_usuario, headers_para
 
 
 def _admin(db):
-    return crear_usuario(db, username="admin_usr", email="admin_usr@test.com", rol="admin")
+    return crear_usuario(db, username="admin_usr", email="admin_usr@example.com", rol="admin")
 
 
 def test_crear_usuario_como_admin(client, db):
     admin = _admin(db)
     payload = {
         "username": "nuevo",
-        "email": "nuevo@test.com",
+        "email": "nuevo@example.com",
         "password": "secret123",
         "rol": "usuario",
     }
@@ -30,10 +30,10 @@ def test_crear_usuario_como_admin(client, db):
 
 
 def test_crear_usuario_solo_admin(client, db):
-    usuario = crear_usuario(db, username="user_crea", email="user_crea@test.com")
+    usuario = crear_usuario(db, username="user_crea", email="user_crea@example.com")
     payload = {
         "username": "nuevo2",
-        "email": "nuevo2@test.com",
+        "email": "nuevo2@example.com",
         "password": "secret123",
         "rol": "usuario",
     }
@@ -43,10 +43,10 @@ def test_crear_usuario_solo_admin(client, db):
 
 def test_username_duplicado_da_409(client, db):
     admin = _admin(db)
-    crear_usuario(db, username="dup", email="dup@test.com")
+    crear_usuario(db, username="dup", email="dup@example.com")
     payload = {
         "username": "dup",
-        "email": "dup2@test.com",
+        "email": "dup2@example.com",
         "password": "secret123",
         "rol": "usuario",
     }
@@ -56,10 +56,10 @@ def test_username_duplicado_da_409(client, db):
 
 def test_email_duplicado_da_409(client, db):
     admin = _admin(db)
-    crear_usuario(db, username="dup_a", email="repetido@test.com")
+    crear_usuario(db, username="dup_a", email="repetido@example.com")
     payload = {
         "username": "dup_b",
-        "email": "repetido@test.com",
+        "email": "repetido@example.com",
         "password": "secret123",
         "rol": "usuario",
     }
@@ -71,7 +71,7 @@ def test_gestor_sin_espacio_da_400(client, db):
     admin = _admin(db)
     payload = {
         "username": "gestor_solo",
-        "email": "gestor_solo@test.com",
+        "email": "gestor_solo@example.com",
         "password": "secret123",
         "rol": "gestor",
     }
@@ -84,7 +84,7 @@ def test_gestor_con_espacio(client, db):
     espacio = crear_espacio(db, nombre="Sala Gestores")
     payload = {
         "username": "gestor_ok",
-        "email": "gestor_ok@test.com",
+        "email": "gestor_ok@example.com",
         "password": "secret123",
         "rol": "gestor",
         "espacio_id": espacio.id,
@@ -101,7 +101,7 @@ def test_admin_no_puede_eliminarse_a_si_mismo(client, db):
 
 
 def test_listar_usuarios_solo_admin(client, db):
-    usuario = crear_usuario(db, username="user_list", email="user_list@test.com")
+    usuario = crear_usuario(db, username="user_list", email="user_list@example.com")
     admin = _admin(db)
     assert client.get("/usuarios", headers=headers_para(usuario)).status_code == 403
     respuesta = client.get("/usuarios", headers=headers_para(admin))
@@ -111,11 +111,11 @@ def test_listar_usuarios_solo_admin(client, db):
 
 def test_actualizar_email_de_usuario(client, db):
     admin = _admin(db)
-    objetivo = crear_usuario(db, username="objetivo", email="objetivo@test.com")
+    objetivo = crear_usuario(db, username="objetivo", email="objetivo@example.com")
     respuesta = client.put(
         f"/usuarios/{objetivo.id}",
-        json={"email": "objetivo_nuevo@test.com"},
+        json={"email": "objetivo_nuevo@example.com"},
         headers=headers_para(admin),
     )
     assert respuesta.status_code == 200
-    assert respuesta.json()["email"] == "objetivo_nuevo@test.com"
+    assert respuesta.json()["email"] == "objetivo_nuevo@example.com"

@@ -18,7 +18,7 @@ def test_auditoria_sesion_implementa_protocolo(db):
 
 
 def test_auditoria_sesion_persiste_con_primitivas(db):
-    usuario = crear_usuario(db, username="aud_dominio", email="aud_dominio@test.com")
+    usuario = crear_usuario(db, username="aud_dominio", email="aud_dominio@example.com")
     AuditoriaSesion(db).registrar(
         usuario_id=usuario.id,
         accion="crear",
@@ -35,7 +35,7 @@ def test_auditoria_sesion_persiste_con_primitivas(db):
 
 
 def test_registrar_cambio_wrapper_conserva_comportamiento(db):
-    usuario = crear_usuario(db, username="auditor", email="auditor@test.com")
+    usuario = crear_usuario(db, username="auditor", email="auditor@example.com")
     registrar_cambio(db, usuario, "crear", "espacio", 1, "Creó el espacio X")
     db.commit()
     cambio = db.query(ControlCambio).one()

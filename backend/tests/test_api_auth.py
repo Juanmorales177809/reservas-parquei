@@ -11,7 +11,7 @@ from tests.conftest import crear_usuario
 
 
 def test_login_exitoso(client, db):
-    crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+    crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
     respuesta = client.post(
         "/auth/login", json={"username": "ana", "password": "secret123"}
     )
@@ -24,7 +24,7 @@ def test_login_exitoso(client, db):
 
 
 def test_login_password_incorrecta_da_401(client, db):
-    crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+    crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
     respuesta = client.post(
         "/auth/login", json={"username": "ana", "password": "incorrecta"}
     )

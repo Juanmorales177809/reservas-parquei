@@ -109,7 +109,7 @@ class TestPeticionesReales:
     def test_login_sin_regresion_con_origen_cruzado(self, db, client):
         from tests.conftest import crear_usuario
 
-        crear_usuario(db, username="cors_login", email="cors_login@test.com", password="password123")
+        crear_usuario(db, username="cors_login", email="cors_login@example.com", password="password123")
 
         response = client.post(
             "/auth/login",
@@ -124,7 +124,7 @@ class TestPeticionesReales:
     def test_reservas_autenticadas_sin_regresion_con_origen_cruzado(self, db, client):
         from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
 
-        usuario = crear_usuario(db, username="cors_user", email="cors_user@test.com")
+        usuario = crear_usuario(db, username="cors_user", email="cors_user@example.com")
         espacio = crear_espacio(db)
         crear_recurso(db, espacio=espacio, usuario=usuario)
 

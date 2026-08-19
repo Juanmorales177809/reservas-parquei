@@ -21,7 +21,7 @@ function usuarioDePrueba(rol: AuthUser['rol'] = 'usuario'): AuthUser {
   return {
     id: 1,
     username: 'usuario-prueba',
-    email: 'usuario-prueba@test.com',
+    email: 'usuario-prueba@example.com',
     rol,
     espacio: null,
   };

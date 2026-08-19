@@ -32,7 +32,7 @@ def _crear_zona(db, *, espacio, usuario, **kwargs):
 class TestZonaCamposObligatorios:
     def test_se_crea_con_campos_minimos_y_estado_activo_por_defecto(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona1", email="admin_zona1@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona1", email="admin_zona1@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=usuario)
         assert zona.id is not None
         assert zona.estado == "activo"
@@ -43,14 +43,14 @@ class TestZonaCamposObligatorios:
 
     def test_nombre_obligatorio(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona2", email="admin_zona2@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona2", email="admin_zona2@example.com", rol="admin")
         zona = Zona(espacio_id=espacio.id, created_by=usuario.id, updated_by=usuario.id)
         db.add(zona)
         with pytest.raises(IntegrityError):
             db.commit()
 
     def test_espacio_id_obligatorio(self, db):
-        usuario = crear_usuario(db, username="admin_zona3", email="admin_zona3@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona3", email="admin_zona3@example.com", rol="admin")
         zona = Zona(nombre="Zona sin espacio", created_by=usuario.id, updated_by=usuario.id)
         db.add(zona)
         with pytest.raises(IntegrityError):
@@ -58,7 +58,7 @@ class TestZonaCamposObligatorios:
 
     def test_created_by_obligatorio(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona4", email="admin_zona4@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona4", email="admin_zona4@example.com", rol="admin")
         zona = Zona(nombre="Zona sin creador", espacio_id=espacio.id, updated_by=usuario.id)
         db.add(zona)
         with pytest.raises(IntegrityError):
@@ -66,7 +66,7 @@ class TestZonaCamposObligatorios:
 
     def test_updated_by_obligatorio(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona5", email="admin_zona5@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona5", email="admin_zona5@example.com", rol="admin")
         zona = Zona(nombre="Zona sin actualizador", espacio_id=espacio.id, created_by=usuario.id)
         db.add(zona)
         with pytest.raises(IntegrityError):
@@ -76,7 +76,7 @@ class TestZonaCamposObligatorios:
 class TestZonaEstadoConstraint:
     def test_estado_invalido_es_rechazado_por_check_constraint(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona6", email="admin_zona6@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona6", email="admin_zona6@example.com", rol="admin")
         zona = Zona(
             nombre="Zona estado invalido",
             espacio_id=espacio.id,
@@ -92,7 +92,7 @@ class TestZonaEstadoConstraint:
     def test_estados_validos_son_aceptados(self, db, estado):
         espacio = crear_espacio(db)
         usuario = crear_usuario(
-            db, username=f"admin_zona_{estado}", email=f"admin_zona_{estado}@test.com", rol="admin"
+            db, username=f"admin_zona_{estado}", email=f"admin_zona_{estado}@example.com", rol="admin"
         )
         zona = _crear_zona(db, espacio=espacio, usuario=usuario, estado=estado)
         assert zona.estado == estado
@@ -105,13 +105,13 @@ class TestZonaCapacidadOpcional:
 
     def test_capacidad_nula_permitida(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona_cap1", email="admin_zona_cap1@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona_cap1", email="admin_zona_cap1@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=usuario, capacidad=None)
         assert zona.capacidad is None
 
     def test_capacidad_positiva_se_persiste(self, db):
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona_cap2", email="admin_zona_cap2@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona_cap2", email="admin_zona_cap2@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=usuario, capacidad=15)
         assert zona.capacidad == 15
 
@@ -120,7 +120,7 @@ class TestZonaCapacidadOpcional:
         de capacidad en BD para Zona, ya que Espacio/Recurso tampoco lo
         tienen (backend/app/models/espacio.py, backend/app/models/recurso.py)."""
         espacio = crear_espacio(db)
-        usuario = crear_usuario(db, username="admin_zona_cap3", email="admin_zona_cap3@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona_cap3", email="admin_zona_cap3@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=usuario, capacidad=-1)
         assert zona.capacidad == -1
 
@@ -128,7 +128,7 @@ class TestZonaCapacidadOpcional:
 class TestZonaRelacionEspacio:
     def test_zona_expone_su_espacio_sin_modificar_el_modelo_espacio(self, db):
         espacio = crear_espacio(db, nombre="Sala con zona")
-        usuario = crear_usuario(db, username="admin_zona_rel", email="admin_zona_rel@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin_zona_rel", email="admin_zona_rel@example.com", rol="admin")
         zona = _crear_zona(db, espacio=espacio, usuario=usuario)
         db.refresh(zona)
         assert zona.espacio.nombre == "Sala con zona"

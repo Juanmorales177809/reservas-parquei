@@ -25,14 +25,14 @@ def test_listar_espacios_es_publico(client):
 
 
 def test_crear_espacio_solo_admin(client, db):
-    usuario = crear_usuario(db, username="user_esp", email="user_esp@test.com")
-    admin = crear_usuario(db, username="admin_esp", email="admin_esp@test.com", rol="admin")
+    usuario = crear_usuario(db, username="user_esp", email="user_esp@example.com")
+    admin = crear_usuario(db, username="admin_esp", email="admin_esp@example.com", rol="admin")
     payload = {
         "nombre": "Sala Nueva",
         "ubicacion": "Piso 2",
         "capacidad": 15,
         "estado": "activo",
-        "correo": "sala.nueva@correo.itm.edu.co",
+        "correo": "sala.nueva@example.com",
     }
     assert (
         client.post("/espacios", json=payload, headers=headers_para(usuario)).status_code
@@ -44,14 +44,14 @@ def test_crear_espacio_solo_admin(client, db):
 
 
 def test_eliminar_espacio_sin_dependencias(client, db):
-    admin = crear_usuario(db, username="admin_del", email="admin_del@test.com", rol="admin")
+    admin = crear_usuario(db, username="admin_del", email="admin_del@example.com", rol="admin")
     espacio = crear_espacio(db, nombre="Sala Borrable")
     respuesta = client.delete(f"/espacios/{espacio.id}", headers=headers_para(admin))
     assert respuesta.status_code == 204
 
 
 def test_eliminar_espacio_con_dependencias_da_409(client, db):
-    admin = crear_usuario(db, username="admin_dep", email="admin_dep@test.com", rol="admin")
+    admin = crear_usuario(db, username="admin_dep", email="admin_dep@example.com", rol="admin")
     espacio = crear_espacio(db, nombre="Sala Con Recursos")
     crear_recurso(db, espacio=espacio, usuario=admin)
     respuesta = client.delete(f"/espacios/{espacio.id}", headers=headers_para(admin))
@@ -97,7 +97,7 @@ class TestRN005ListadoPublico:
 
     def test_usuario_no_recupera_inactivos_con_parametros(self, client, db):
         crear_espacio(db, nombre="I1", estado="inactivo")
-        usuario = crear_usuario(db, username="user_rn", email="user_rn@test.com")
+        usuario = crear_usuario(db, username="user_rn", email="user_rn@example.com")
         respuesta = client.get(
             "/espacios", params={"skip": 0, "limit": 100}, headers=headers_para(usuario)
         )
@@ -106,7 +106,7 @@ class TestRN005ListadoPublico:
     def test_admin_sigue_viendo_todos(self, client, db):
         crear_espacio(db, nombre="A1")
         crear_espacio(db, nombre="I1", estado="inactivo")
-        admin = crear_usuario(db, username="admin_rn", email="admin_rn@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_rn", email="admin_rn@example.com", rol="admin")
         nombres = [e["nombre"] for e in client.get("/espacios", headers=headers_para(admin)).json()]
         assert set(nombres) == {"A1", "I1"}
 
@@ -122,13 +122,13 @@ class TestModalidadYCorreo:
             "capacidad": 10,
             "estado": "activo",
             "modalidad_reserva": "equipos",
-            "correo": "laboratorio@correo.itm.edu.co",
+            "correo": "laboratorio@example.com",
         }
         payload.update(overrides)
         return payload
 
     def test_modalidad_equipos_valida(self, client, db):
-        admin = crear_usuario(db, username="admin_mod1", email="admin_mod1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_mod1", email="admin_mod1@example.com", rol="admin")
         respuesta = client.post(
             "/espacios", json=self._payload(nombre="Sala Equipos"), headers=headers_para(admin)
         )
@@ -136,7 +136,7 @@ class TestModalidadYCorreo:
         assert respuesta.json()["modalidad_reserva"] == "equipos"
 
     def test_modalidad_zonas_valida(self, client, db):
-        admin = crear_usuario(db, username="admin_mod2", email="admin_mod2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_mod2", email="admin_mod2@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Zonas", modalidad_reserva="zonas"),
@@ -146,7 +146,7 @@ class TestModalidadYCorreo:
         assert respuesta.json()["modalidad_reserva"] == "zonas"
 
     def test_modalidad_mixto_valida(self, client, db):
-        admin = crear_usuario(db, username="admin_mod3", email="admin_mod3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_mod3", email="admin_mod3@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Mixta", modalidad_reserva="mixto"),
@@ -156,7 +156,7 @@ class TestModalidadYCorreo:
         assert respuesta.json()["modalidad_reserva"] == "mixto"
 
     def test_modalidad_invalida_da_422(self, client, db):
-        admin = crear_usuario(db, username="admin_mod4", email="admin_mod4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_mod4", email="admin_mod4@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Invalida", modalidad_reserva="otra-cosa"),
@@ -165,17 +165,17 @@ class TestModalidadYCorreo:
         assert respuesta.status_code == 422
 
     def test_correo_valido_se_persiste(self, client, db):
-        admin = crear_usuario(db, username="admin_correo1", email="admin_correo1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_correo1", email="admin_correo1@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
-            json=self._payload(nombre="Sala Correo", correo="lab.informatica@correo.itm.edu.co"),
+            json=self._payload(nombre="Sala Correo", correo="lab.informatica@example.com"),
             headers=headers_para(admin),
         )
         assert respuesta.status_code == 201
-        assert respuesta.json()["correo"] == "lab.informatica@correo.itm.edu.co"
+        assert respuesta.json()["correo"] == "lab.informatica@example.com"
 
     def test_correo_vacio_da_422(self, client, db):
-        admin = crear_usuario(db, username="admin_correo2", email="admin_correo2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_correo2", email="admin_correo2@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Sin Correo", correo=""),
@@ -184,14 +184,14 @@ class TestModalidadYCorreo:
         assert respuesta.status_code == 422
 
     def test_correo_ausente_da_422(self, client, db):
-        admin = crear_usuario(db, username="admin_correo3", email="admin_correo3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_correo3", email="admin_correo3@example.com", rol="admin")
         payload = self._payload(nombre="Sala Sin Campo Correo")
         del payload["correo"]
         respuesta = client.post("/espacios", json=payload, headers=headers_para(admin))
         assert respuesta.status_code == 422
 
     def test_correo_formato_invalido_da_422(self, client, db):
-        admin = crear_usuario(db, username="admin_correo4", email="admin_correo4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_correo4", email="admin_correo4@example.com", rol="admin")
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Correo Malo", correo="no-es-un-correo"),
@@ -211,21 +211,21 @@ class TestModalidadYCorreo:
         assert cuerpo["correo"] is None
 
     def test_admin_puede_actualizar_correo_de_espacio_existente(self, client, db):
-        admin = crear_usuario(db, username="admin_correo5", email="admin_correo5@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_correo5", email="admin_correo5@example.com", rol="admin")
         espacio = crear_espacio(db, nombre="Sala A Completar")
         respuesta = client.put(
             f"/espacios/{espacio.id}",
-            json={"correo": "completado@correo.itm.edu.co"},
+            json={"correo": "completado@example.com"},
             headers=headers_para(admin),
         )
         assert respuesta.status_code == 200
-        assert respuesta.json()["correo"] == "completado@correo.itm.edu.co"
+        assert respuesta.json()["correo"] == "completado@example.com"
 
 
 class TestDisponibilidad:
     def _espacio_con_usuario(self, db, **kwargs):
         espacio = crear_espacio(db, nombre="Sala Disp", **kwargs)
-        usuario = crear_usuario(db, username="user_disp", email="user_disp@test.com")
+        usuario = crear_usuario(db, username="user_disp", email="user_disp@example.com")
         crear_recurso(db, espacio=espacio, usuario=usuario)
         return espacio
 

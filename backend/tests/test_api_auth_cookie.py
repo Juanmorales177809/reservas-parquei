@@ -35,21 +35,21 @@ def _login(client, username="ana", password="secret123"):
 
 class TestLoginEmiteCookieYConservaBody:
     def test_access_token_sigue_en_el_body(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         respuesta = _login(client)
         assert respuesta.status_code == 200
         assert respuesta.json()["access_token"]
         assert respuesta.json()["token_type"] == "bearer"
 
     def test_login_emite_set_cookie(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         respuesta = _login(client)
         assert NOMBRE_COOKIE in respuesta.cookies
         assert respuesta.cookies[NOMBRE_COOKIE] == respuesta.json()["access_token"]
 
     def test_cookie_incluye_atributos_esperados_en_desarrollo(self, client, db):
         assert settings.environment == "development"
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         respuesta = _login(client)
 
         cabecera = respuesta.headers["set-cookie"]
@@ -61,7 +61,7 @@ class TestLoginEmiteCookieYConservaBody:
 
     def test_cookie_incluye_secure_en_produccion(self, client, db, monkeypatch):
         monkeypatch.setattr(settings, "environment", "production")
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
         respuesta = _login(client)
 
@@ -70,7 +70,7 @@ class TestLoginEmiteCookieYConservaBody:
 
 class TestCookieAutenticaEndpointsProtegidos:
     def test_cookie_valida_autentica_sin_header(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         _login(client)  # la cookie queda en el jar del TestClient (igual que un navegador)
 
         respuesta = client.get("/usuarios/me")
@@ -97,7 +97,7 @@ class TestCookieAutenticaEndpointsProtegidos:
         # `exp` en el pasado (expires_delta negativo) — ejercita la
         # validación real de expiración de python-jose, no solo el
         # manejo de tokens corruptos.
-        usuario = crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         token_expirado = create_access_token(
             data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol},
             expires_delta=timedelta(minutes=-1),
@@ -112,7 +112,7 @@ class TestCookieAutenticaEndpointsProtegidos:
 
 class TestAuthorizationHeaderSigueFuncionando:
     def test_header_autentica_sin_cookie(self, client, db):
-        usuario = crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
         respuesta = client.get("/usuarios/me", headers=headers_para(usuario))
 
@@ -120,7 +120,7 @@ class TestAuthorizationHeaderSigueFuncionando:
         assert respuesta.json()["username"] == "ana"
 
     def test_espacios_optional_sigue_funcionando_con_header(self, client, db):
-        usuario = crear_usuario(db, username="admin1", email="admin1@test.com", rol="admin")
+        usuario = crear_usuario(db, username="admin1", email="admin1@example.com", rol="admin")
 
         respuesta = client.get("/espacios", headers=headers_para(usuario))
 
@@ -132,8 +132,8 @@ class TestPrecedenciaCuandoHayAmbosMecanismos:
     presente, tiene prioridad sobre la cookie."""
 
     def test_header_gana_sobre_cookie_de_otro_usuario(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
-        beto = crear_usuario(db, username="beto", email="beto@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        beto = crear_usuario(db, username="beto", email="beto@example.com", password="secret123")
 
         _login(client, "ana", "secret123")  # cookie = ana
         respuesta = client.get("/usuarios/me", headers=headers_para(beto))  # header = beto
@@ -142,7 +142,7 @@ class TestPrecedenciaCuandoHayAmbosMecanismos:
         assert respuesta.json()["username"] == "beto"
 
     def test_cookie_invalida_no_bloquea_si_el_header_es_valido(self, client, db):
-        ana = crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        ana = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         client.cookies.set(NOMBRE_COOKIE, "token-corrupto")
 
         respuesta = client.get("/usuarios/me", headers=headers_para(ana))
@@ -153,7 +153,7 @@ class TestPrecedenciaCuandoHayAmbosMecanismos:
 
 class TestLogout:
     def test_logout_borra_la_cookie(self, client, db):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         _login(client)
         assert client.get("/usuarios/me").status_code == 200
 
@@ -168,7 +168,7 @@ class TestLogout:
         assert respuesta.status_code == 204
 
     def test_logout_con_header_pero_sin_cookie_es_seguro(self, client, db):
-        usuario = crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
         respuesta = client.post("/auth/logout", headers=headers_para(usuario))
 
@@ -196,12 +196,12 @@ class TestComportamientoExistenteSinCambios:
 
     def test_403_por_rol_insuficiente_sin_cambios(self, client, db):
         usuario = crear_usuario(
-            db, username="ana", email="ana@test.com", password="secret123", rol="usuario"
+            db, username="ana", email="ana@example.com", password="secret123", rol="usuario"
         )
 
         respuesta = client.post(
             "/usuarios",
-            json={"username": "x", "email": "x@test.com", "password": "secret123"},
+            json={"username": "x", "email": "x@example.com", "password": "secret123"},
             headers=headers_para(usuario),
         )
 
@@ -217,7 +217,7 @@ class TestComportamientoExistenteSinCambios:
 
         limitador = LimitadorIntentosLogin(limite=5, ventana=timedelta(minutes=15))
         monkeypatch.setattr(auth_module, "limitador_login", limitador)
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
         for _ in range(5):
             _login(client, "ana", "incorrecta")
@@ -230,7 +230,7 @@ class TestNoSeRegistranCredenciales:
     def test_valor_de_cookie_no_aparece_en_logs_ante_error_no_controlado(
         self, db, monkeypatch, caplog
     ):
-        crear_usuario(db, username="ana", email="ana@test.com", password="secret123")
+        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         cliente_sin_relanzar = TestClient(app, raise_server_exceptions=False)
         login = cliente_sin_relanzar.post(
             "/auth/login", json={"username": "ana", "password": "secret123"}

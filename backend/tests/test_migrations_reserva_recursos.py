@@ -73,7 +73,7 @@ class TestBackfillPueblaReservaRecursos:
         todavía) no tiene fila en reserva_recursos hasta que se ejecuta
         migrate_resource_reservations()."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf1", email="admin_bf1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf1", email="admin_bf1@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -92,7 +92,7 @@ class TestBackfillPueblaReservaRecursos:
 
     def test_conserva_fecha_hora_estado_exactamente_para_varias_reservas(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf2", email="admin_bf2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf2", email="admin_bf2@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 1), estado="esperando")
         r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 2), estado="aprobada")
@@ -112,7 +112,7 @@ class TestBackfillPueblaReservaRecursos:
 
     def test_correspondencia_exacta_una_fila_por_reserva_ni_mas_ni_menos(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf3", email="admin_bf3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf3", email="admin_bf3@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reservas = [
             _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, dia))
@@ -132,7 +132,7 @@ class TestBackfillPueblaReservaRecursos:
         """El backfill es puramente aditivo hacia reserva_recursos --
         Reserva conserva sus valores exactos (recurso_id incluido)."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf4", email="admin_bf4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf4", email="admin_bf4@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         antes = (reserva.recurso_id, reserva.fecha, reserva.hora_inicio, reserva.hora_fin, reserva.estado, reserva.asistentes)
@@ -148,7 +148,7 @@ class TestBackfillPueblaReservaRecursos:
 class TestIdempotencia:
     def test_ejecutar_dos_veces_no_duplica_filas(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf5", email="admin_bf5@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf5", email="admin_bf5@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -165,7 +165,7 @@ class TestIdempotencia:
 
     def test_ejecutar_tres_veces_conserva_conteo_total_estable(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf6", email="admin_bf6@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf6", email="admin_bf6@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         for dia in (1, 2, 3, 4):
             _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, dia))
@@ -186,7 +186,7 @@ class TestIdempotencia:
 class TestGateDeCobertura:
     def test_gate_pasa_cuando_el_backfill_esta_completo(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf7", email="admin_bf7@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf7", email="admin_bf7@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -204,7 +204,7 @@ class TestGateDeCobertura:
         sanaría de inmediato al re-insertar la fila antes de llegar al
         gate)."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf8", email="admin_bf8@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf8", email="admin_bf8@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -221,7 +221,7 @@ class TestGateDeCobertura:
 class TestNoAfectaElEsquemaHistorico:
     def test_recurso_id_indices_y_exclusion_siguen_intactos(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf9", email="admin_bf9@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf9", email="admin_bf9@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -260,7 +260,7 @@ class TestNoAfectaElEsquemaHistorico:
         migrate_resource_reservations(), nunca services/reservas.py
         (que no fue tocado)."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_bf10", email="admin_bf10@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_bf10", email="admin_bf10@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -293,7 +293,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_recurso_bloquea_solapamiento(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex1", email="admin_ex1@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex1", email="admin_ex1@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 1")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 1")
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
@@ -318,7 +318,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_recurso_permite_intervalos_adyacentes(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex2", email="admin_ex2@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex2", email="admin_ex2@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 2")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 2")
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
@@ -342,7 +342,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_recurso_ignora_estados_no_bloqueantes(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex3", email="admin_ex3@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex3", email="admin_ex3@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 3")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 3")
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
@@ -366,7 +366,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_recurso_permite_recursos_distintos(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex4", email="admin_ex4@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex4", email="admin_ex4@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 4")
         recurso_a = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso A")
         recurso_b = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso B")
@@ -391,7 +391,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_zona_bloquea_solapamiento(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex5", email="admin_ex5@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex5", email="admin_ex5@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
@@ -416,7 +416,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_constraint_de_zona_permite_zonas_distintas(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex6", email="admin_ex6@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex6", email="admin_ex6@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         zona_a = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona A")
         zona_b = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona B")
@@ -447,7 +447,7 @@ class TestConstraintsExcludeSolapamiento:
         transitividad es una decisión de una fase posterior (12C-5),
         aprobada conceptualmente pero no implementada aquí."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex7", email="admin_ex7@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex7", email="admin_ex7@example.com", rol="admin")
         recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 7")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 7")
         zona = _crear_zona(db, espacio=espacio, usuario=admin)
@@ -472,7 +472,7 @@ class TestConstraintsExcludeSolapamiento:
 
     def test_migracion_completa_ejecutada_dos_veces_sin_error(self, db):
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex8", email="admin_ex8@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex8", email="admin_ex8@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 
@@ -496,7 +496,7 @@ class TestConstraintsExcludeSolapamiento:
         esperando un lock -- mismo tipo de deadlock ya diagnosticado y
         corregido en 12C-4b, ahora verificado explicitamente."""
         espacio = crear_espacio(db)
-        admin = crear_usuario(db, username="admin_ex9", email="admin_ex9@test.com", rol="admin")
+        admin = crear_usuario(db, username="admin_ex9", email="admin_ex9@example.com", rol="admin")
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
 

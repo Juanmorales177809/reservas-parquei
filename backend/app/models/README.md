@@ -125,7 +125,7 @@ Resultado esperado: suite completa verde (los tests de integración validan el c
 ## Riesgos
 
 - Ninguno en esta fase (cambio puramente aditivo de origen de los literales).
-- Fase 12B: el frontend admin (`frontend/src/app/admin/espacios/page.tsx`) crea espacios sin enviar `correo` — con `correo` ahora obligatorio en `EspacioCreate`, esa creación falla con 422. **No corregido en esta fase** (fuera del alcance backend-only de 12B); ver riesgo detallado en `CHANGELOG.md` (Fase 12B) y en el resultado de E2E.
+- Fase 12B: el frontend admin (`frontend/src/app/admin/espacios/page.tsx`) creaba espacios sin enviar `correo` — con `correo` obligatorio en `EspacioCreate`, esa creación fallaba con 422. **Corregido en la propia Fase 12B (opción A autorizada)**: frontend y E2E envían `correo`; ninguna validación backend se relajó (ver `CHANGELOG.md`, Fase 12B).
 - Fase 12C-1: ninguno funcional — `Zona` es una entidad huérfana desde el punto de vista de negocio hasta 12C-2 (CRUD/API). El rollback de `Reserva.recurso_id` hacia `reserva_recursos` (decisión 11 de la Fase 12A/análisis de 12C) sigue pendiente — corresponde a la subfase 12C-4, no a esta.
 - Fase 12C-3: `PUT /recursos/{id}` y `DELETE /recursos/{id}` no conocen la asociación de zona (ver Decisiones técnicas arriba) — riesgo aceptado, fuera de alcance backend delimitado para esta subfase. El rollback de `Reserva.recurso_id` sigue pendiente (12C-4, no tocada).
 - Fase 12C-4a: ninguno funcional — las tablas nuevas no tienen todavía ningún consumidor (sin backfill, sin lectura, sin escritura). **No se afirma que 12C-4 esté migrada**: `Reserva.recurso_id` sigue siendo la única fuente de verdad real; `reserva_recursos`/`reserva_zonas` existen pero están vacías y desconectadas de cualquier flujo de negocio. El script de rollback (analizado y probado en un esquema desechable durante el análisis previo) debe endurecerse con los gates explícitos señalados por el usuario antes de escribirse en `migrations.py` en 12C-4b.
@@ -136,7 +136,7 @@ Resultado esperado: suite completa verde (los tests de integración validan el c
 ## Pendientes
 
 - N/A para esta fase.
-- Fase 12B: decidir y aprobar por separado el ajuste de `frontend/src/app/admin/espacios/page.tsx` (y del payload de `frontend/e2e/tests/smoke/03-admin.spec.ts`) para incluir `correo` al crear un espacio.
+- Fase 12B: **resuelto** — el ajuste de `frontend/src/app/admin/espacios/page.tsx` y del payload de `frontend/e2e/tests/smoke/03-admin.spec.ts` para incluir `correo` se implementó en la propia fase (opción A); no queda pendiente de este ajuste.
 - Fase 12C-1: asociación `Zona`↔`Recurso` (12C-3), integración con `Reserva` (12C-4), schema/API de `Zona` (12C-2), y el ensayo de rollback de `Reserva.recurso_id` (12C-4) — todo pendiente, sin código todavía.
 - Fase 12C-3: agregar guard de asociación de zona a `PUT`/`DELETE /recursos/{id}` (fase posterior); integración con `Reserva` y el ensayo de rollback siguen en 12C-4.
 - Fase 12C-4a: 12C-4b (backfill + gates + script de rollback endurecido en `migrations.py`), 12C-4c (constraints `EXCLUDE`), 12C-4d (doble escritura), 12C-5 (servicios/CRUD), 12C-6 (ruptura de contrato) y 12C-4e (retiro final de `recurso_id`) siguen sin código.

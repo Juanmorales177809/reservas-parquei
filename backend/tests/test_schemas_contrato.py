@@ -32,7 +32,7 @@ def _validacion_exc(modelo, **datos):
 class TestCamposTipadosConEnums:
     def test_admin_usuario_create_rol_es_enum(self):
         modelo = AdminUsuarioCreate(
-            username="usuario1", email="usuario1@test.com", password="secret123"
+            username="usuario1", email="usuario1@example.com", password="secret123"
         )
         assert isinstance(modelo.rol, Rol)
         assert modelo.rol == Rol.USUARIO
@@ -43,12 +43,12 @@ class TestCamposTipadosConEnums:
 
     def test_usuario_response_rol_es_enum(self):
         modelo = UsuarioResponse.model_validate(
-            {"id": 1, "username": "u", "email": "u@test.com", "rol": "admin"}
+            {"id": 1, "username": "u", "email": "u@example.com", "rol": "admin"}
         )
         assert isinstance(modelo.rol, Rol)
 
     def test_espacio_create_estado_es_enum(self):
-        modelo = EspacioCreate(nombre="Sala", capacidad=10, correo="sala@correo.itm.edu.co")
+        modelo = EspacioCreate(nombre="Sala", capacidad=10, correo="sala@example.com")
         assert isinstance(modelo.estado, EstadoEntidad)
         assert modelo.estado == EstadoEntidad.ACTIVO
 
@@ -95,7 +95,7 @@ class TestCamposTipadosConEnums:
             "asistentes": 2,
             "created_at": "2026-08-13T10:00:00",
             "updated_at": "2026-08-13T10:00:00",
-            "usuario": {"id": 1, "username": "u", "email": "u@test.com", "rol": "usuario"},
+            "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
             "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
             "recurso": {
                 "id": 1,
@@ -128,16 +128,16 @@ class TestCamposTipadosConEnums:
 class TestContratoJsonConservado:
     def test_rol_serializa_como_string_actual(self):
         modelo = UsuarioResponse.model_validate(
-            {"id": 1, "username": "u", "email": "u@test.com", "rol": "gestor"}
+            {"id": 1, "username": "u", "email": "u@example.com", "rol": "gestor"}
         )
         assert modelo.model_dump()["rol"] == "gestor"
         assert modelo.model_dump_json() == (
-            '{"id":1,"username":"u","email":"u@test.com","rol":"gestor","espacio":null}'
+            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null}'
         )
 
     def test_estados_serializan_como_strings_actuales(self):
         assert (
-            EspacioCreate(nombre="S", capacidad=1, correo="s@correo.itm.edu.co").model_dump()["estado"]
+            EspacioCreate(nombre="S", capacidad=1, correo="s@example.com").model_dump()["estado"]
             == "activo"
         )
         reserva = ReservaResponse.model_validate(
@@ -153,7 +153,7 @@ class TestContratoJsonConservado:
                 "asistentes": 2,
                 "created_at": "2026-08-13T10:00:00",
                 "updated_at": "2026-08-13T10:00:00",
-                "usuario": {"id": 1, "username": "u", "email": "u@test.com", "rol": "usuario"},
+                "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
                 "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
                 "recurso": {
                     "id": 1,
@@ -175,7 +175,7 @@ class TestContratoJsonConservado:
 class TestValoresRechazados:
     def test_rol_invalido_rechazado(self):
         _validacion_exc(
-            AdminUsuarioCreate, username="u1", email="u1@test.com", password="secret123", rol="superadmin"
+            AdminUsuarioCreate, username="u1", email="u1@example.com", password="secret123", rol="superadmin"
         )
         _validacion_exc(UsuarioUpdate, rol="superadmin")
 
@@ -276,7 +276,7 @@ def _datos_reserva_response():
         "asistentes": 2,
         "created_at": "2026-08-13T10:00:00",
         "updated_at": "2026-08-13T10:00:00",
-        "usuario": {"id": 1, "username": "u", "email": "u@test.com", "rol": "usuario"},
+        "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
         "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
         "recurso": {
             "id": 1,

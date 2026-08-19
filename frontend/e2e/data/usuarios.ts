@@ -13,19 +13,19 @@ export interface UsuarioPrueba {
 export const USUARIOS: Record<RolUsuario, UsuarioPrueba> = {
   admin: {
     username: 'e2e-admin',
-    email: 'e2e-admin@test.com',
+    email: 'e2e-admin@example.com',
     password: 'E2e-Admin-123!',
     rol: 'admin',
   },
   gestor: {
     username: 'e2e-gestor',
-    email: 'e2e-gestor@test.com',
+    email: 'e2e-gestor@example.com',
     password: 'E2e-Gestor-123!',
     rol: 'gestor',
   },
   usuario: {
     username: 'e2e-usuario',
-    email: 'e2e-usuario@test.com',
+    email: 'e2e-usuario@example.com',
     password: 'E2e-Usuario-123!',
     rol: 'usuario',
   },

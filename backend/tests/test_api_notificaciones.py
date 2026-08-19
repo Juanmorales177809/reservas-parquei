@@ -23,10 +23,10 @@ from tests.conftest import (
 def _reserva_pendiente(client, db):
     espacio = crear_espacio(db, nombre="Sala Notif")
     gestor = crear_usuario(
-        db, username="gestor_notif", email="gestor_notif@test.com",
+        db, username="gestor_notif", email="gestor_notif@example.com",
         rol="gestor", espacio_id=espacio.id,
     )
-    solicitante = crear_usuario(db, username="solicitante", email="solicitante@test.com")
+    solicitante = crear_usuario(db, username="solicitante", email="solicitante@example.com")
     recurso = crear_recurso(db, espacio=espacio, usuario=solicitante)
     creada = client.post(
         "/reservas",
@@ -103,10 +103,10 @@ def test_reserva_de_zona_notifica_la_zona(client, db):
     gestor, no el recurso ancla."""
     espacio = crear_espacio(db, nombre="Sala Notif Zona", modalidad_reserva="zonas")
     gestor = crear_usuario(
-        db, username="gestor_notif_zona", email="gestor_notif_zona@test.com",
+        db, username="gestor_notif_zona", email="gestor_notif_zona@example.com",
         rol="gestor", espacio_id=espacio.id,
     )
-    solicitante = crear_usuario(db, username="solicitante_zona", email="solicitante_zona@test.com")
+    solicitante = crear_usuario(db, username="solicitante_zona", email="solicitante_zona@example.com")
     recurso = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Recurso Zona")
     zona = crear_zona(db, espacio=espacio, usuario=solicitante, nombre="Zona Notif")
     asociar_zona_recurso(db, zona, recurso)
