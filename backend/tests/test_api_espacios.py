@@ -13,7 +13,7 @@ from tests.conftest import (
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
-    headers_para,
+    cookies_para,
     proximo_domingo,
 )
 
@@ -35,10 +35,10 @@ def test_crear_espacio_solo_admin(client, db):
         "correo": "sala.nueva@example.com",
     }
     assert (
-        client.post("/espacios", json=payload, headers=headers_para(usuario)).status_code
+        client.post("/espacios", json=payload, headers=cookies_para(usuario)).status_code
         == 403
     )
-    respuesta = client.post("/espacios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/espacios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 201
     assert respuesta.json()["nombre"] == "Sala Nueva"
 
@@ -46,7 +46,7 @@ def test_crear_espacio_solo_admin(client, db):
 def test_eliminar_espacio_sin_dependencias(client, db):
     admin = crear_usuario(db, username="admin_del", email="admin_del@example.com", rol="admin")
     espacio = crear_espacio(db, nombre="Sala Borrable")
-    respuesta = client.delete(f"/espacios/{espacio.id}", headers=headers_para(admin))
+    respuesta = client.delete(f"/espacios/{espacio.id}", headers=cookies_para(admin))
     assert respuesta.status_code == 204
 
 
@@ -54,7 +54,7 @@ def test_eliminar_espacio_con_dependencias_da_409(client, db):
     admin = crear_usuario(db, username="admin_dep", email="admin_dep@example.com", rol="admin")
     espacio = crear_espacio(db, nombre="Sala Con Recursos")
     crear_recurso(db, espacio=espacio, usuario=admin)
-    respuesta = client.delete(f"/espacios/{espacio.id}", headers=headers_para(admin))
+    respuesta = client.delete(f"/espacios/{espacio.id}", headers=cookies_para(admin))
     assert respuesta.status_code == 409
 
 
@@ -99,7 +99,7 @@ class TestRN005ListadoPublico:
         crear_espacio(db, nombre="I1", estado="inactivo")
         usuario = crear_usuario(db, username="user_rn", email="user_rn@example.com")
         respuesta = client.get(
-            "/espacios", params={"skip": 0, "limit": 100}, headers=headers_para(usuario)
+            "/espacios", params={"skip": 0, "limit": 100}, headers=cookies_para(usuario)
         )
         assert respuesta.json() == []
 
@@ -107,7 +107,7 @@ class TestRN005ListadoPublico:
         crear_espacio(db, nombre="A1")
         crear_espacio(db, nombre="I1", estado="inactivo")
         admin = crear_usuario(db, username="admin_rn", email="admin_rn@example.com", rol="admin")
-        nombres = [e["nombre"] for e in client.get("/espacios", headers=headers_para(admin)).json()]
+        nombres = [e["nombre"] for e in client.get("/espacios", headers=cookies_para(admin)).json()]
         assert set(nombres) == {"A1", "I1"}
 
 
@@ -130,7 +130,7 @@ class TestModalidadYCorreo:
     def test_modalidad_equipos_valida(self, client, db):
         admin = crear_usuario(db, username="admin_mod1", email="admin_mod1@example.com", rol="admin")
         respuesta = client.post(
-            "/espacios", json=self._payload(nombre="Sala Equipos"), headers=headers_para(admin)
+            "/espacios", json=self._payload(nombre="Sala Equipos"), headers=cookies_para(admin)
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["modalidad_reserva"] == "equipos"
@@ -140,7 +140,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Zonas", modalidad_reserva="zonas"),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["modalidad_reserva"] == "zonas"
@@ -150,7 +150,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Mixta", modalidad_reserva="mixto"),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["modalidad_reserva"] == "mixto"
@@ -160,7 +160,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Invalida", modalidad_reserva="otra-cosa"),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -169,7 +169,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Correo", correo="lab.informatica@example.com"),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["correo"] == "lab.informatica@example.com"
@@ -179,7 +179,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Sin Correo", correo=""),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -187,7 +187,7 @@ class TestModalidadYCorreo:
         admin = crear_usuario(db, username="admin_correo3", email="admin_correo3@example.com", rol="admin")
         payload = self._payload(nombre="Sala Sin Campo Correo")
         del payload["correo"]
-        respuesta = client.post("/espacios", json=payload, headers=headers_para(admin))
+        respuesta = client.post("/espacios", json=payload, headers=cookies_para(admin))
         assert respuesta.status_code == 422
 
     def test_correo_formato_invalido_da_422(self, client, db):
@@ -195,7 +195,7 @@ class TestModalidadYCorreo:
         respuesta = client.post(
             "/espacios",
             json=self._payload(nombre="Sala Correo Malo", correo="no-es-un-correo"),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -216,7 +216,7 @@ class TestModalidadYCorreo:
         respuesta = client.put(
             f"/espacios/{espacio.id}",
             json={"correo": "completado@example.com"},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         assert respuesta.json()["correo"] == "completado@example.com"

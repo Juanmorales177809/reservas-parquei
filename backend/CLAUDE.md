@@ -59,11 +59,11 @@ Adaptador de auditoría en `app/services/auditoria.py` que implementa el protoco
 
 Definidas en `app/deps.py`:
 
-- `get_current_user`: decodifica JWT (`sub`=user_id), 401 si el token es inválido o el usuario no existe.
+- `get_current_user`: decodifica el JWT de la cookie `access_token` (`sub`=user_id, Fase 9G cookie-only), 401 si no hay cookie, el token es inválido o el usuario no existe.
 - `require_admin`: 403 si `rol != admin`.
 - `require_resource_manager`: 403 si `rol not in {admin, gestor}`.
 - `get_managed_space_id`: para gestores, resuelve su único espacio en `usuarios_espacios`; 403 si no tiene espacio asignado. Para admin devuelve `None` (sin restricción).
-- `get_current_user_optional`: lee el header `Authorization` manualmente (sin `OAuth2PasswordBearer`) para no exigir esquema de seguridad en endpoints públicos como `GET /espacios` (RN-005); un token inválido se trata como acceso anónimo, nunca como error.
+- `get_current_user_optional`: lee la cookie `access_token` manualmente vía `Request` (sin `Depends(cookie_auth)`) para no exigir esquema de seguridad en endpoints públicos como `GET /espacios` (RN-005); un token inválido se trata como acceso anónimo, nunca como error. Fase 9G: ya no acepta `Authorization`.
 
 ## Reglas de autorización
 

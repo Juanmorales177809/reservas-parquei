@@ -24,17 +24,18 @@ export function solo(proyectos: string[]) {
   });
 }
 
-/** Login por API y headers de autorización para un rol ficticio. */
-export async function headersPara(
+/** Login real por API para un rol ficticio (Fase 9G, cookie-only).
+ *  Deja la cookie HttpOnly `access_token` en el jar del contexto: las
+ *  peticiones siguientes del mismo `backend` autentican sin headers. No se
+ *  extrae ni reenvía `access_token`. */
+export async function iniciarSesionApi(
   backend: import('@playwright/test').APIRequestContext,
   rol: RolUsuario,
-): Promise<{ Authorization: string }> {
+): Promise<void> {
   const respuesta = await backend.post('/auth/login', {
     data: { username: USUARIOS[rol].username, password: USUARIOS[rol].password },
   });
   if (!respuesta.ok()) throw new Error(`Login API de ${rol} falló: ${respuesta.status()}`);
-  const { access_token } = (await respuesta.json()) as { access_token: string };
-  return { Authorization: `Bearer ${access_token}` };
 }
 
 /** Primer recurso activo del entorno E2E (creado por global-setup). */
@@ -46,10 +47,10 @@ export async function primerRecurso(backend: import('@playwright/test').APIReque
 }
 
 /** Creación de reserva directa por API (payload nuevo 12C-6: `recurso_ids`
- *  y `zona_ids`; nunca `recurso_id`). */
+ *  y `zona_ids`; nunca `recurso_id`). El contexto debe estar autenticado
+ *  con cookie vía `iniciarSesionApi`. */
 export async function crearReservaApi(
   backend: import('@playwright/test').APIRequestContext,
-  headers: { Authorization: string },
   datos: {
     recurso_ids?: number[];
     zona_ids?: number[];
@@ -60,7 +61,6 @@ export async function crearReservaApi(
   },
 ) {
   return backend.post('/reservas', {
-    headers,
     data: { recurso_ids: [], zona_ids: [], asistentes: 1, ...datos },
   });
 }

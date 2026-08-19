@@ -12,12 +12,12 @@ Next.js 14 (App Router, código activo en `src/`), React 18, TypeScript estricto
 
 Variable de entorno consumida por `next.config.js` en build/runtime del servidor Next.js; no confundir con una variable de cliente (`NEXT_PUBLIC_*`), no está expuesta al navegador.
 
-## AuthContext (Fase 9F-B: sesión por cookie HttpOnly, no localStorage)
+## AuthContext (Fase 9G: sesión por cookie HttpOnly, única vía — cookie-only)
 
 `src/context/AuthContext.tsx`: expone `user`, `isAdmin` (`rol === 'admin'`), `canManageResources` (`rol === 'admin' | 'gestor'`), `isAuthenticated` (`Boolean(user)`), `loading`, `login`, `logout`. Ya no expone `token` (no hay valor de JWT visible en JS: vive en una cookie HttpOnly que fija el backend).
 
 - **Al montar**: llama `GET /usuarios/me` (`authService.getProfile()`) para determinar la sesión — 200 = autenticado (`setUser`), 401/error = anónimo (`setUser(null)`), siempre `loading=false` al terminar. Es asíncrono: `loading` empieza en `true` y solo pasa a `false` cuando la consulta resuelve (antes de esta fase era síncrono, leyendo `localStorage`).
-- **`login(username, password)`**: llama `authService.login`, que hace `POST /auth/login` (el backend fija la cookie vía `Set-Cookie`) y devuelve `user` del body de la respuesta; `access_token` del body se ignora, nunca se guarda. `setUser(usuario)` en éxito; el error se propaga al llamador (`login/page.tsx` lo captura y muestra).
+- **`login(username, password)`**: llama `authService.login`, que hace `POST /auth/login` (el backend fija la cookie vía `Set-Cookie`) y devuelve `user` del body de la respuesta. Desde la Fase 9G el body es `LoginResponse{user}` — ya no incluye `access_token` ni `token_type`. `setUser(usuario)` en éxito; el error se propaga al llamador (`login/page.tsx` lo captura y muestra).
 - **`logout()`**: llama `authService.logout()` (`POST /auth/logout`, borra la cookie en el backend) y siempre hace `setUser(null)` al final (`finally`), incluso si la llamada de red falla — el fallo de red se traga silenciosamente (`catch` vacío) porque `Navbar.tsx` llama `logout()` sin `await`; dejar que el error se propagara produciría un unhandled rejection.
 
 ## Sin localStorage para la sesión (ya no es deuda XSS de la misma forma)
@@ -26,7 +26,7 @@ Desde la Fase 9F-B, ni el JWT ni el usuario se guardan en `localStorage`. El JWT
 
 ## apiFetch
 
-`src/services/api.ts`. Ya no añade `Authorization` (no hay token accesible en JS); envía `credentials: 'same-origin'` en cada `fetch` para que el navegador adjunte la cookie `access_token` en peticiones al mismo origen (el proxy `/api` de Next.js). El backend sigue aceptando `Authorization: Bearer` además de la cookie (fase dual, Fase 9F-A) para otros clientes (E2E vía `fixtures.ts`), pero el frontend ya no lo genera.
+`src/services/api.ts`. Ya no añade `Authorization` (no hay token accesible en JS y el backend ya no lo acepta desde la Fase 9G); envía `credentials: 'same-origin'` en cada `fetch` para que el navegador adjunte la cookie `access_token` en peticiones al mismo origen (el proxy `/api` de Next.js).
 
 Interceptor 401: si `response.status === 401` y la ruta no está en `RUTAS_SIN_REDIRECT_401`, redirige a `/login` lanzando `Error('Sesión expirada...')`. Ya no limpia `localStorage` (no hay nada que limpiar) ni intenta borrar la cookie HttpOnly (no es posible ni el objetivo — el backend la expira por `Max-Age` o la borra en `POST /auth/logout`).
 

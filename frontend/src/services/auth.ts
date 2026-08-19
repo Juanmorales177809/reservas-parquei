@@ -2,17 +2,14 @@ import { apiFetch } from './api';
 import type { AuthUser } from '@/types/auth';
 
 interface LoginResponse {
-  access_token: string;
-  token_type: string;
   user: AuthUser;
 }
 
 /**
- * Fase 9F-B: la sesión la establece la cookie HttpOnly que fija el
- * backend (Set-Cookie en la respuesta), no el body. `access_token` sigue
- * presente en la respuesta (TokenResponse sin cambios de contrato, Fase
- * 9F-A) pero el frontend ya no lo lee ni lo almacena — solo se queda con
- * el usuario.
+ * Fase 9G (cookie-only): el login devuelve únicamente el usuario
+ * (`LoginResponse.user`). La sesión la establece la cookie HttpOnly que fija
+ * el backend (Set-Cookie en la respuesta de POST /auth/login); el body ya no
+ * expone `access_token` ni `token_type`, y el frontend nunca lo guarda.
  */
 export async function login(username: string, password: string): Promise<AuthUser> {
   const data = await apiFetch<LoginResponse>('/auth/login', {

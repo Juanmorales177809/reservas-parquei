@@ -1,4 +1,4 @@
-import { expect, headersPara, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, solo, test } from '../../fixtures/fixtures';
 import { AdminDashboardPage } from '../../pages/AdminDashboardPage';
 
 solo(['gestor']);
@@ -11,12 +11,12 @@ test.describe('Gestor', () => {
   });
 
   test('el gestor solo opera recursos de su espacio asignado', async ({ page, backend }) => {
-    const headers = await headersPara(backend, 'gestor');
-    const me = await (await backend.get('/usuarios/me', { headers })).json();
+    await iniciarSesionApi(backend, 'gestor');
+    const me = await (await backend.get('/usuarios/me')).json();
     const espacioAsignado = (me as { espacio: { id: number } | null }).espacio?.id;
     expect(espacioAsignado).toBeDefined();
 
-    const recursos = (await (await backend.get('/recursos/gestion', { headers })).json()) as Array<{
+    const recursos = (await (await backend.get('/recursos/gestion')).json()) as Array<{
       espacio_id: number;
     }>;
     expect(recursos.length).toBeGreaterThan(0);

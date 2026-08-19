@@ -20,7 +20,7 @@ Reglas cubiertas:
   que tampoco tiene un GET de un solo recurso).
 """
 
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
+from tests.conftest import crear_espacio, crear_recurso, crear_usuario, cookies_para
 
 
 def _crear_zona_directa(db, *, espacio, usuario, **kwargs):
@@ -61,7 +61,7 @@ class TestListarZonasVisibilidadPublica:
         _crear_zona_directa(db, espacio=espacio_activo, usuario=admin, nombre="Zona U Mantenimiento", estado="mantenimiento")
 
         nombres = [
-            z["nombre"] for z in client.get("/zonas", headers=headers_para(usuario)).json()
+            z["nombre"] for z in client.get("/zonas", headers=cookies_para(usuario)).json()
         ]
         assert nombres == ["Zona U Visible"]
 
@@ -75,7 +75,7 @@ class TestListarZonasVisibilidadPublica:
         _crear_zona_directa(db, espacio=espacio_inactivo, usuario=admin, nombre="Zona Oculta", estado="inactivo")
 
         nombres = [
-            z["nombre"] for z in client.get("/zonas", headers=headers_para(gestor)).json()
+            z["nombre"] for z in client.get("/zonas", headers=cookies_para(gestor)).json()
         ]
         assert "Zona Oculta" in nombres
 
@@ -85,7 +85,7 @@ class TestListarZonasVisibilidadPublica:
         _crear_zona_directa(db, espacio=espacio_inactivo, usuario=admin, nombre="Zona Solo Admin", estado="mantenimiento")
 
         nombres = [
-            z["nombre"] for z in client.get("/zonas", headers=headers_para(admin)).json()
+            z["nombre"] for z in client.get("/zonas", headers=cookies_para(admin)).json()
         ]
         assert "Zona Solo Admin" in nombres
 
@@ -118,7 +118,7 @@ class TestCrearZonaAutorizacion:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Intento", "espacio_id": espacio.id},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -133,7 +133,7 @@ class TestCrearZonaAutorizacion:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Admin", "espacio_id": espacio.id, "capacidad": 5},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -153,7 +153,7 @@ class TestCrearZonaAutorizacion:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Gestor", "espacio_id": espacio.id},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 201
 
@@ -167,7 +167,7 @@ class TestCrearZonaAutorizacion:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Ajena", "espacio_id": espacio_ajeno.id},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 403
 
@@ -176,7 +176,7 @@ class TestCrearZonaAutorizacion:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Espacio Falso", "espacio_id": 999999},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 404
 
@@ -191,7 +191,7 @@ class TestCrearZonaAutorizacion:
                 "created_by": 999999,
                 "updated_by": 999999,
             },
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -206,7 +206,7 @@ class TestCrearZonaValidaciones:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "", "espacio_id": espacio.id},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -216,7 +216,7 @@ class TestCrearZonaValidaciones:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Z" * 101, "espacio_id": espacio.id},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -226,7 +226,7 @@ class TestCrearZonaValidaciones:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Capacidad Cero", "espacio_id": espacio.id, "capacidad": 0},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -236,7 +236,7 @@ class TestCrearZonaValidaciones:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Capacidad Nula", "espacio_id": espacio.id, "capacidad": None},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["capacidad"] is None
@@ -247,7 +247,7 @@ class TestCrearZonaValidaciones:
         respuesta = client.post(
             "/zonas",
             json={"nombre": "Zona Estado Invalido", "espacio_id": espacio.id, "estado": "bogus"},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -260,7 +260,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"nombre": "Zona Renombrada", "capacidad": 8},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         cuerpo = respuesta.json()
@@ -279,7 +279,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"estado": "mantenimiento"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 200
         assert respuesta.json()["estado"] == "mantenimiento"
@@ -297,7 +297,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"nombre": "Intento"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 403
 
@@ -309,7 +309,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"nombre": "Intento Usuario"},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -318,7 +318,7 @@ class TestActualizarZona:
         respuesta = client.put(
             "/zonas/999999",
             json={"nombre": "No existe"},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 404
 
@@ -329,7 +329,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"espacio_id": 999999},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 404
 
@@ -345,7 +345,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"espacio_id": espacio_destino.id},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 200
         # El espacio_id enviado se ignora para un gestor (no puede mover
@@ -359,7 +359,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"capacidad": 0},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 422
 
@@ -370,7 +370,7 @@ class TestActualizarZona:
         respuesta = client.put(
             f"/zonas/{zona.id}",
             json={"nombre": "Zona Auditoria Update 2", "created_by": 999999, "updated_by": 999999},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         cuerpo = respuesta.json()
@@ -383,9 +383,9 @@ class TestEliminarZona:
         espacio = crear_espacio(db, nombre="Espacio Eliminar Zona Admin")
         admin = crear_usuario(db, username="admin_zdel1", email="admin_zdel1@example.com", rol="admin")
         zona = _crear_zona_directa(db, espacio=espacio, usuario=admin, nombre="Zona A Eliminar")
-        respuesta = client.delete(f"/zonas/{zona.id}", headers=headers_para(admin))
+        respuesta = client.delete(f"/zonas/{zona.id}", headers=cookies_para(admin))
         assert respuesta.status_code == 204
-        assert client.get("/zonas", headers=headers_para(admin)).json() == []
+        assert client.get("/zonas", headers=cookies_para(admin)).json() == []
 
     def test_gestor_elimina_zona_de_su_espacio(self, client, db):
         espacio = crear_espacio(db, nombre="Espacio Eliminar Zona Gestor")
@@ -395,7 +395,7 @@ class TestEliminarZona:
             espacio_id=espacio.id,
         )
         zona = _crear_zona_directa(db, espacio=espacio, usuario=admin, nombre="Zona Gestor A Eliminar")
-        respuesta = client.delete(f"/zonas/{zona.id}", headers=headers_para(gestor))
+        respuesta = client.delete(f"/zonas/{zona.id}", headers=cookies_para(gestor))
         assert respuesta.status_code == 204
 
     def test_gestor_no_puede_eliminar_zona_de_otro_espacio(self, client, db):
@@ -407,7 +407,7 @@ class TestEliminarZona:
             espacio_id=espacio_propio.id,
         )
         zona = _crear_zona_directa(db, espacio=espacio_ajeno, usuario=admin, nombre="Zona Ajena A Eliminar")
-        respuesta = client.delete(f"/zonas/{zona.id}", headers=headers_para(gestor))
+        respuesta = client.delete(f"/zonas/{zona.id}", headers=cookies_para(gestor))
         assert respuesta.status_code == 403
 
     def test_usuario_no_puede_eliminar_zona(self, client, db):
@@ -415,12 +415,12 @@ class TestEliminarZona:
         admin = crear_usuario(db, username="admin_zdel4", email="admin_zdel4@example.com", rol="admin")
         usuario = crear_usuario(db, username="user_zdel4", email="user_zdel4@example.com")
         zona = _crear_zona_directa(db, espacio=espacio, usuario=admin, nombre="Zona Usuario No Elimina")
-        respuesta = client.delete(f"/zonas/{zona.id}", headers=headers_para(usuario))
+        respuesta = client.delete(f"/zonas/{zona.id}", headers=cookies_para(usuario))
         assert respuesta.status_code == 403
 
     def test_zona_inexistente_da_404_al_eliminar(self, client, db):
         admin = crear_usuario(db, username="admin_zdel5", email="admin_zdel5@example.com", rol="admin")
-        respuesta = client.delete("/zonas/999999", headers=headers_para(admin))
+        respuesta = client.delete("/zonas/999999", headers=cookies_para(admin))
         assert respuesta.status_code == 404
 
     def test_eliminacion_bloqueada_con_asociaciones(self, client, db):
@@ -436,7 +436,7 @@ class TestEliminarZona:
         db.add(ZonaRecurso(zona_id=zona.id, recurso_id=recurso.id))
         db.commit()
 
-        respuesta = client.delete(f"/zonas/{zona.id}", headers=headers_para(admin))
+        respuesta = client.delete(f"/zonas/{zona.id}", headers=cookies_para(admin))
         assert respuesta.status_code == 409
 
 

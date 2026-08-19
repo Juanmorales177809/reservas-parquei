@@ -1,4 +1,4 @@
-import { expect, headersPara, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura } from '../../data/usuarios';
 import { EspaciosPage } from '../../pages/EspaciosPage';
 
@@ -6,13 +6,13 @@ solo(['usuario']);
 
 test.describe('Solapamiento', () => {
   test('una reserva solapada devuelve 409 y el slot queda ocupado en la UI', async ({ page, backend }, testInfo) => {
-    const headers = await headersPara(backend, 'usuario');
+    await iniciarSesionApi(backend, 'usuario');
     const recurso = await primerRecurso(backend);
     const fecha = fechaFutura(11, testInfo.retry);
 
     // Primera reserva por API (determinista): la creación por UI ya está
     // cubierta por el smoke 04-reserva.
-    const primera = await crearReservaApi(backend, headers, {
+    const primera = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha,
       hora_inicio: '10:00',
@@ -21,7 +21,7 @@ test.describe('Solapamiento', () => {
     expect(primera.ok()).toBeTruthy();
 
     // Duplicado por API: el backend es la autoridad del 409.
-    const duplicada = await crearReservaApi(backend, headers, {
+    const duplicada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha,
       hora_inicio: '10:00',

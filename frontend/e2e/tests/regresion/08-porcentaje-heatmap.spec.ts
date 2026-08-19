@@ -1,4 +1,4 @@
-import { expect, headersPara, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura } from '../../data/usuarios';
 import { AdminDashboardPage } from '../../pages/AdminDashboardPage';
 
@@ -6,9 +6,9 @@ solo(['admin']);
 
 test.describe('Porcentaje global vs heatmap', () => {
   test('la UI presenta el porcentaje global sin igualarlo a las celdas del heatmap', async ({ page, backend }, testInfo) => {
-    const headers = await headersPara(backend, 'admin');
+    await iniciarSesionApi(backend, 'admin');
     const recurso = await primerRecurso(backend);
-    const creada = await crearReservaApi(backend, headers, {
+    const creada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha: fechaFutura(15, testInfo.retry),
       hora_inicio: '10:00',
@@ -16,7 +16,7 @@ test.describe('Porcentaje global vs heatmap', () => {
     });
     expect(creada.ok()).toBeTruthy();
 
-    const resumen = (await (await backend.get('/admin/dashboard/summary', { headers })).json()) as {
+    const resumen = (await (await backend.get('/admin/dashboard/summary')).json()) as {
       ocupacion_global: { horas_ocupadas: number; porcentaje: number };
     };
     // La base compartida acumula reservas de otros tests: validar el mínimo

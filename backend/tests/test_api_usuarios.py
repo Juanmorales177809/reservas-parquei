@@ -9,7 +9,7 @@ Reglas cubiertas:
 - Protección: el admin no puede eliminar su propia cuenta.
 """
 
-from tests.conftest import crear_espacio, crear_usuario, headers_para
+from tests.conftest import crear_espacio, crear_usuario, cookies_para
 
 
 def _admin(db):
@@ -24,7 +24,7 @@ def test_crear_usuario_como_admin(client, db):
         "password": "secret123",
         "rol": "usuario",
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 201
     assert respuesta.json()["rol"] == "usuario"
 
@@ -37,7 +37,7 @@ def test_crear_usuario_solo_admin(client, db):
         "password": "secret123",
         "rol": "usuario",
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(usuario))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(usuario))
     assert respuesta.status_code == 403
 
 
@@ -50,7 +50,7 @@ def test_username_duplicado_da_409(client, db):
         "password": "secret123",
         "rol": "usuario",
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 409
 
 
@@ -63,7 +63,7 @@ def test_email_duplicado_da_409(client, db):
         "password": "secret123",
         "rol": "usuario",
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 409
 
 
@@ -75,7 +75,7 @@ def test_gestor_sin_espacio_da_400(client, db):
         "password": "secret123",
         "rol": "gestor",
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 400
 
 
@@ -89,22 +89,22 @@ def test_gestor_con_espacio(client, db):
         "rol": "gestor",
         "espacio_id": espacio.id,
     }
-    respuesta = client.post("/usuarios", json=payload, headers=headers_para(admin))
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 201
     assert respuesta.json()["espacio"]["nombre"] == "Sala Gestores"
 
 
 def test_admin_no_puede_eliminarse_a_si_mismo(client, db):
     admin = _admin(db)
-    respuesta = client.delete(f"/usuarios/{admin.id}", headers=headers_para(admin))
+    respuesta = client.delete(f"/usuarios/{admin.id}", headers=cookies_para(admin))
     assert respuesta.status_code == 409
 
 
 def test_listar_usuarios_solo_admin(client, db):
     usuario = crear_usuario(db, username="user_list", email="user_list@example.com")
     admin = _admin(db)
-    assert client.get("/usuarios", headers=headers_para(usuario)).status_code == 403
-    respuesta = client.get("/usuarios", headers=headers_para(admin))
+    assert client.get("/usuarios", headers=cookies_para(usuario)).status_code == 403
+    respuesta = client.get("/usuarios", headers=cookies_para(admin))
     assert respuesta.status_code == 200
     assert len(respuesta.json()) == 2
 
@@ -115,7 +115,7 @@ def test_actualizar_email_de_usuario(client, db):
     respuesta = client.put(
         f"/usuarios/{objetivo.id}",
         json={"email": "objetivo_nuevo@example.com"},
-        headers=headers_para(admin),
+        headers=cookies_para(admin),
     )
     assert respuesta.status_code == 200
     assert respuesta.json()["email"] == "objetivo_nuevo@example.com"

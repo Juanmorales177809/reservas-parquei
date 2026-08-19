@@ -21,7 +21,7 @@ from tests.conftest import (
     crear_usuario,
     crear_zona,
     fecha_habilitada,
-    headers_para,
+    cookies_para,
     payload_reserva_objetivos,
 )
 
@@ -49,28 +49,28 @@ class TestVisibilidadPS:
     def test_recurso_ps_no_visible_para_usuario(self, client, db):
         _, _, _, usuario, _, _ = _escenario(db)
         nombres = [
-            r["nombre"] for r in client.get("/recursos", headers=headers_para(usuario)).json()
+            r["nombre"] for r in client.get("/recursos", headers=cookies_para(usuario)).json()
         ]
         assert "Equipo de ensayo" not in nombres
 
     def test_recurso_normal_si_visible_para_usuario(self, client, db):
         _, _, _, usuario, _, _ = _escenario(db)
         nombres = [
-            r["nombre"] for r in client.get("/recursos", headers=headers_para(usuario)).json()
+            r["nombre"] for r in client.get("/recursos", headers=cookies_para(usuario)).json()
         ]
         assert "Microscopio" in nombres
 
     def test_recurso_ps_visible_para_gestor(self, client, db):
         _, _, gestor, _, _, _ = _escenario(db)
         nombres = [
-            r["nombre"] for r in client.get("/recursos", headers=headers_para(gestor)).json()
+            r["nombre"] for r in client.get("/recursos", headers=cookies_para(gestor)).json()
         ]
         assert "Equipo de ensayo" in nombres
 
     def test_recurso_ps_visible_para_admin(self, client, db):
         _, admin, _, _, _, _ = _escenario(db)
         nombres = [
-            r["nombre"] for r in client.get("/recursos", headers=headers_para(admin)).json()
+            r["nombre"] for r in client.get("/recursos", headers=cookies_para(admin)).json()
         ]
         assert "Equipo de ensayo" in nombres
 
@@ -78,7 +78,7 @@ class TestVisibilidadPS:
         _, _, gestor, _, _, _ = _escenario(db)
         nombres = [
             r["nombre"]
-            for r in client.get("/recursos/gestion", headers=headers_para(gestor)).json()
+            for r in client.get("/recursos/gestion", headers=cookies_para(gestor)).json()
         ]
         assert "Equipo de ensayo" in nombres
 
@@ -89,7 +89,7 @@ class TestVisibilidadPS:
         respuesta = client.get(
             f"/recursos/{recurso_ps.id}/disponibilidad",
             params={"fecha": fecha_habilitada().isoformat()},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -110,7 +110,7 @@ class TestVisibilidadPS:
         respuesta = client.get(
             f"/recursos/{recurso_ps.id}/disponibilidad",
             params={"fecha": fecha_habilitada().isoformat()},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 200
 
@@ -121,7 +121,7 @@ class TestVisibilidadPS:
         respuesta = client.get(
             f"/recursos/{recurso_normal.id}/disponibilidad",
             params={"fecha": fecha_habilitada().isoformat()},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 200
 
@@ -147,7 +147,7 @@ class TestGestionPS:
                 "estado": "activo",
                 "es_prestacion_servicio": True,
             },
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["es_prestacion_servicio"] is True
@@ -165,7 +165,7 @@ class TestGestionPS:
                 "espacio_id": espacio.id,
                 "es_prestacion_servicio": True,
             },
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -198,7 +198,7 @@ class TestGuardConReservaDeZona:
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert creada.status_code == 201
         return espacio, admin, r_ancla, r_secundario
@@ -206,7 +206,7 @@ class TestGuardConReservaDeZona:
     def test_eliminar_recurso_no_ancla_reservado_por_zona_da_409(self, client, db):
         _, admin, _, r_secundario = self._escenario_reserva_zona(client, db)
         respuesta = client.delete(
-            f"/recursos/{r_secundario.id}", headers=headers_para(admin)
+            f"/recursos/{r_secundario.id}", headers=cookies_para(admin)
         )
         assert respuesta.status_code == 409
 
@@ -216,13 +216,13 @@ class TestGuardConReservaDeZona:
         respuesta = client.put(
             f"/recursos/{r_secundario.id}",
             json={"espacio_id": otro_espacio.id},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 409
 
     def test_eliminar_recurso_ancla_reservado_sigue_bloqueado(self, client, db):
         _, admin, r_ancla, _ = self._escenario_reserva_zona(client, db)
         respuesta = client.delete(
-            f"/recursos/{r_ancla.id}", headers=headers_para(admin)
+            f"/recursos/{r_ancla.id}", headers=cookies_para(admin)
         )
         assert respuesta.status_code == 409

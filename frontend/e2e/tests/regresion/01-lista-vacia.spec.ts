@@ -1,12 +1,12 @@
-import { expect, headersPara, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, solo, test } from '../../fixtures/fixtures';
 import { EspaciosPage } from '../../pages/EspaciosPage';
 
 solo(['anonimo']);
 
 test.describe('Listado público vacío', () => {
   test('sin espacios activos se muestra el mensaje de lista vacía', async ({ page, backend }) => {
-    const headers = await headersPara(backend, 'admin');
-    const espacios = (await (await backend.get('/espacios', { headers })).json()) as Array<{
+    await iniciarSesionApi(backend, 'admin');
+    const espacios = (await (await backend.get('/espacios')).json()) as Array<{
       id: number;
       estado: string;
     }>;
@@ -16,7 +16,6 @@ test.describe('Listado público vacío', () => {
     try {
       for (const espacio of espacios) {
         const actualizado = await backend.put(`/espacios/${espacio.id}`, {
-          headers,
           data: { estado: 'inactivo' },
         });
         expect(actualizado.ok()).toBeTruthy();
@@ -31,7 +30,6 @@ test.describe('Listado público vacío', () => {
       // el seed incluye espacios inactivo/mantenimiento que deben conservarse.
       for (const espacio of espacios) {
         await backend.put(`/espacios/${espacio.id}`, {
-          headers,
           data: { estado: estadosOriginales.get(espacio.id) },
         });
       }

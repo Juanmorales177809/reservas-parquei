@@ -130,18 +130,14 @@ describe('apiFetch: 403 en endpoint protegido', () => {
 
 describe('apiFetch: login exitoso', () => {
   it('devuelve la respuesta sin alterar el flujo actual', async () => {
-    mockFetch(200, { access_token: 'token-del-backend', token_type: 'bearer', user: { id: 1 } });
+    mockFetch(200, { user: { id: 1 } });
     const respuesta = await apiFetch('/auth/login', { method: 'POST' });
-    expect(respuesta).toEqual({
-      access_token: 'token-del-backend',
-      token_type: 'bearer',
-      user: { id: 1 },
-    });
+    expect(respuesta).toEqual({ user: { id: 1 } });
     expect(window.location.href).toBe('');
   });
 
-  it('no guarda el access_token de la respuesta en localStorage', async () => {
-    mockFetch(200, { access_token: 'token-del-backend', token_type: 'bearer', user: { id: 1 } });
+  it('la respuesta de login ya no incluye access_token y no se guarda nada en localStorage', async () => {
+    mockFetch(200, { user: { id: 1 } });
 
     await apiFetch('/auth/login', { method: 'POST' });
 

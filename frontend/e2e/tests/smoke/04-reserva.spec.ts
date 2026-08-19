@@ -1,4 +1,4 @@
-import { expect, headersPara, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura } from '../../data/usuarios';
 import { EspaciosPage } from '../../pages/EspaciosPage';
 
@@ -17,8 +17,8 @@ test.describe('Reserva por UI', () => {
     await expect(page.getByText(/Reserva #\d+ creada correctamente/)).toBeVisible();
     await expect(page.getByText('y pendiente de aprobación.')).toBeVisible();
 
-    const headers = await headersPara(backend, 'usuario');
-    const respuesta = await backend.get('/reservas/mis-reservas', { headers });
+    await iniciarSesionApi(backend, 'usuario');
+    const respuesta = await backend.get('/reservas/mis-reservas');
     const reservas = (await respuesta.json()) as Array<{ fecha: string }>;
     expect(reservas.some((reserva) => reserva.fecha === fechaFutura(8, testInfo.retry))).toBeTruthy();
   });

@@ -18,7 +18,7 @@ from tests.conftest import (
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
-    headers_para,
+    cookies_para,
     payload_reserva,
     proximo_domingo,
 )
@@ -43,7 +43,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"
@@ -53,7 +53,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "aprobada"
@@ -72,7 +72,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_b.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"
@@ -82,7 +82,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada(), hora_inicio="08:30"),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -93,7 +93,7 @@ class TestCrearReserva:
             json=payload_reserva(
                 recurso.id, fecha_habilitada(), hora_inicio="10:00", hora_fin="08:00"
             ),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -104,7 +104,7 @@ class TestCrearReserva:
             json=payload_reserva(
                 recurso.id, fecha_habilitada(), hora_inicio="20:00", hora_fin="21:00"
             ),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -113,7 +113,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, proximo_domingo()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -124,7 +124,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -133,7 +133,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada(), asistentes=11),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -142,7 +142,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada(), asistentes=0),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 422
 
@@ -153,7 +153,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -164,7 +164,7 @@ class TestCrearReserva:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -199,7 +199,7 @@ class TestRecursosPS:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -212,7 +212,7 @@ class TestRecursosPS:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 201
 
@@ -222,7 +222,7 @@ class TestRecursosPS:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 201
 
@@ -237,12 +237,12 @@ class TestRecursosPS:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso_normal.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         respuesta = client.patch(
             f"/reservas/{creada['id']}",
             json={"recurso_ids": [recurso_ps.id]},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -253,7 +253,7 @@ class TestRecursosPS:
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"
@@ -264,10 +264,10 @@ class TestSolapamiento:
         usuario, _, recurso = _setup(db)
         payload = payload_reserva(recurso.id, fecha_habilitada())
         assert (
-            client.post("/reservas", json=payload, headers=headers_para(usuario)).status_code
+            client.post("/reservas", json=payload, headers=cookies_para(usuario)).status_code
             == 201
         )
-        respuesta = client.post("/reservas", json=payload, headers=headers_para(usuario))
+        respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))
         assert respuesta.status_code == 409
 
     def test_solapamiento_parcial_da_409(self, client, db):
@@ -276,7 +276,7 @@ class TestSolapamiento:
             client.post(
                 "/reservas",
                 json=payload_reserva(recurso.id, fecha_habilitada()),
-                headers=headers_para(usuario),
+                headers=cookies_para(usuario),
             ).status_code
             == 201
         )
@@ -285,7 +285,7 @@ class TestSolapamiento:
             json=payload_reserva(
                 recurso.id, fecha_habilitada(), hora_inicio="09:00", hora_fin="11:00"
             ),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 409
 
@@ -296,7 +296,7 @@ class TestSolapamiento:
             client.post(
                 "/reservas",
                 json=payload_reserva(recurso.id, fecha),
-                headers=headers_para(usuario),
+                headers=cookies_para(usuario),
             ).status_code
             == 201
         )
@@ -305,7 +305,7 @@ class TestSolapamiento:
             json=payload_reserva(
                 recurso.id, fecha, hora_inicio="10:00", hora_fin="11:00"
             ),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
 
@@ -320,17 +320,17 @@ class TestTransiciones:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         aprobada = client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "aprobada"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert aprobada.status_code == 200
         assert aprobada.json()["estado"] == "aprobada"
         cancelada = client.put(
-            f"/reservas/{creada['id']}/cancelar", headers=headers_para(usuario)
+            f"/reservas/{creada['id']}/cancelar", headers=cookies_para(usuario)
         )
         assert cancelada.status_code == 200
         assert cancelada.json()["estado"] == "cancelada"
@@ -344,18 +344,18 @@ class TestTransiciones:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         rechazada = client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "rechazada"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert rechazada.status_code == 200
         aprobar = client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "aprobada"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert aprobar.status_code == 409
 
@@ -364,12 +364,12 @@ class TestTransiciones:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         respuesta = client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "aprobada"},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403
 
@@ -383,15 +383,15 @@ class TestTransiciones:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "aprobada"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         respuesta = client.put(
-            f"/reservas/{creada['id']}/cancelar", headers=headers_para(otro)
+            f"/reservas/{creada['id']}/cancelar", headers=cookies_para(otro)
         )
         assert respuesta.status_code == 403
 
@@ -400,10 +400,10 @@ class TestTransiciones:
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         respuesta = client.delete(
-            f"/reservas/{creada['id']}", headers=headers_para(usuario)
+            f"/reservas/{creada['id']}", headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 403
 
@@ -414,18 +414,18 @@ class TestTransiciones:
         client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha),
-            headers=headers_para(usuario_a),
+            headers=cookies_para(usuario_a),
         )
         client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha, hora_inicio="12:00", hora_fin="13:00"),
-            headers=headers_para(usuario_a),
+            headers=cookies_para(usuario_a),
         )
         client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha, hora_inicio="14:00", hora_fin="15:00"),
-            headers=headers_para(usuario_b),
+            headers=cookies_para(usuario_b),
         )
-        respuesta = client.get("/reservas/mis-reservas", headers=headers_para(usuario_b))
+        respuesta = client.get("/reservas/mis-reservas", headers=cookies_para(usuario_b))
         assert respuesta.status_code == 200
         assert len(respuesta.json()) == 1

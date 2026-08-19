@@ -571,6 +571,19 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LoginResponse": {
+        "description": "Respuesta de `POST /auth/login` tras el corte 9G (cookie-only).\n\nLa sesión viaja en la cookie HttpOnly `access_token` que fija\n`app/api/auth.py`; el body ya no expone el JWT ni `token_type`.",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UsuarioResponse"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "LoginResponse",
+        "type": "object"
+      },
       "ModalidadEspacio": {
         "description": "Modalidad de reserva configurada por espacio (RN-006, Fase 12B).\n\nNombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente\ndistinto de `tipo_reserva` para no colisionar con el futuro campo de\ntipo de reserva académica de `Reserva` (RN-012, Fase 12D), que es un\nconcepto distinto aunque el documento fuente usa nombres parecidos\npara ambos.",
         "enum": [
@@ -1320,28 +1333,6 @@
         "title": "TipoRecursoResponse",
         "type": "object"
       },
-      "TokenResponse": {
-        "properties": {
-          "access_token": {
-            "title": "Access Token",
-            "type": "string"
-          },
-          "token_type": {
-            "default": "bearer",
-            "title": "Token Type",
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/UsuarioResponse"
-          }
-        },
-        "required": [
-          "access_token",
-          "user"
-        ],
-        "title": "TokenResponse",
-        "type": "object"
-      },
       "UsuarioEspacioResponse": {
         "properties": {
           "id": {
@@ -1829,14 +1820,10 @@
       }
     },
     "securitySchemes": {
-      "OAuth2PasswordBearer": {
-        "flows": {
-          "password": {
-            "scopes": {},
-            "tokenUrl": "/auth/login"
-          }
-        },
-        "type": "oauth2"
+      "cookieAuth": {
+        "in": "cookie",
+        "name": "access_token",
+        "type": "apiKey"
       }
     }
   },
@@ -1911,7 +1898,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Listar Control Cambios",
@@ -1938,7 +1925,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Obtener Resumen Dashboard Admin",
@@ -1965,7 +1952,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/LoginResponse"
                 }
               }
             },
@@ -2097,7 +2084,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Crear Espacio",
@@ -2123,7 +2110,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Obtener Configuracion Gestion",
@@ -2167,7 +2154,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Configuracion Gestion",
@@ -2208,7 +2195,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Eliminar Espacio",
@@ -2305,7 +2292,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Espacio",
@@ -2390,7 +2377,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Obtener Resumen Dashboard Gestor",
@@ -2439,7 +2426,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Listar Mis Notificaciones",
@@ -2465,7 +2452,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Marcar Todas Como Leidas",
@@ -2491,7 +2478,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Contar Mis Notificaciones Sin Leer",
@@ -2538,7 +2525,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Marcar Como Leida",
@@ -2645,7 +2632,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Crear Recurso",
@@ -2675,7 +2662,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Listar Recursos Gestion",
@@ -2740,7 +2727,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Eliminar Recurso",
@@ -2795,7 +2782,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Recurso",
@@ -2913,7 +2900,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Listar Reservas Endpoint",
@@ -2957,7 +2944,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Crear Reserva Endpoint",
@@ -2987,7 +2974,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Listar Mis Reservas Endpoint",
@@ -3027,7 +3014,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Eliminar Reserva Endpoint",
@@ -3082,7 +3069,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Reserva Endpoint",
@@ -3129,7 +3116,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Cancelar Reserva Usuario Endpoint",
@@ -3186,7 +3173,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Cambiar Estado Endpoint",
@@ -3216,7 +3203,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "List Usuarios",
@@ -3260,7 +3247,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Create Usuario Admin",
@@ -3286,7 +3273,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Get Me",
@@ -3326,7 +3313,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Delete Usuario Endpoint",
@@ -3381,7 +3368,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Update Usuario Endpoint",
@@ -3479,7 +3466,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Crear Zona",
@@ -3519,7 +3506,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Eliminar Zona",
@@ -3574,7 +3561,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Zona",
@@ -3632,7 +3619,7 @@
         },
         "security": [
           {
-            "OAuth2PasswordBearer": []
+            "cookieAuth": []
           }
         ],
         "summary": "Actualizar Recursos De Zona",

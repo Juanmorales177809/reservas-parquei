@@ -1,14 +1,13 @@
-import { expect, headersPara, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, solo, test } from '../../fixtures/fixtures';
 import { sufijoUnico } from '../../data/usuarios';
 
 solo(['admin']);
 
 test.describe('Admin y RN-005', () => {
   test('el admin ve espacios activos e inactivos en la gestión', async ({ page, backend }) => {
-    const headers = await headersPara(backend, 'admin');
+    await iniciarSesionApi(backend, 'admin');
     const nombre = `Sala Inactiva ${sufijoUnico()}`;
     const creado = await backend.post('/espacios', {
-      headers,
       data: { nombre, ubicacion: 'E2E', capacidad: 5, estado: 'inactivo', correo: 'espacio.e2e@example.com' },
     });
     expect(creado.ok()).toBeTruthy();

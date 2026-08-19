@@ -36,11 +36,15 @@ Siempre manual y explícita. **Nunca ejecutar `down -v` automáticamente desde P
 
 `e2e/global-setup.ts` crea los usuarios `gestor` y `usuario` vía la API del admin (asignando espacio al gestor) y genera `storageState` por rol en `e2e/.auth/`.
 
-### Cookies reales desde la Fase 9F-B (antes: localStorage simulado)
+### Autenticación por cookie-jar desde la Fase 9G (antes: Authorization, y antes aún: localStorage simulado)
 
 `guardarStorageState(rol)` hace login real contra `POST /auth/login` con un `APIRequestContext` de Playwright; el backend fija la cookie HttpOnly `access_token` en la respuesta y Playwright la captura sola en el cookie-jar de ese contexto (comportamiento estándar de `APIRequestContext`, sin código adicional). `await ctx.storageState()` vuelca ese cookie-jar directamente al archivo — ya no se construye `origins[].localStorage` a mano. La cookie se obtiene contra el backend en `:8000` sin `Domain` explícito, pero las cookies no se distinguen por puerto (RFC 6265): la misma cookie autentica igual cuando el navegador visita el frontend en `:3000` (`baseURL` de `playwright.config.ts`).
 
+Todos los llamados directos al backend usan la cookie del jar: `global-setup.ts` autentica el contexto `admin` con un login real, y `frontend/e2e/fixtures/fixtures.ts` expone `iniciarSesionApi(backend, rol)` para los specs (login real que deja la cookie en el contexto; las peticiones siguientes van autenticadas sin headers). **El backend es cookie-only desde la Fase 9G: `Authorization: Bearer` ya no se acepta** (401) y el body de login ya no expone `access_token` — no se extrae ni reenvía token en ningún fixture.
+
 Antes de escribir el archivo, `guardarStorageState` hace un `GET /usuarios/me` sin header `Authorization` como verificación de humo — si eso falla, la cookie no sirve y el setup se detiene ahí en vez de generar un `storageState` inválido en silencio.
+
+`06-401.spec.ts` se conserva intacto: ya ejercitaba sesión inválida por cookie (`context.addCookies()`), el mecanismo único vigente tras 9G.
 
 ## Usuarios admin/gestor/usuario
 

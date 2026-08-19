@@ -16,7 +16,7 @@ actual ya no permitiría.
 from datetime import date, time
 
 from app.models import Reserva
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
+from tests.conftest import crear_espacio, crear_recurso, crear_usuario, cookies_para
 
 LUNES = date(2026, 8, 17)  # weekday 0
 DOMINGO = date(2026, 8, 23)  # weekday 6
@@ -24,7 +24,7 @@ DOMINGO = date(2026, 8, 23)  # weekday 6
 
 def _admin_y_headers(db):
     admin = crear_usuario(db, username="admin_dash", email="admin_dash@example.com", rol="admin")
-    return admin, headers_para(admin)
+    return admin, cookies_para(admin)
 
 
 def _reserva_directa(db, usuario, espacio, recurso, fecha, inicio, fin, estado="aprobada"):

@@ -1,18 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Autenticación dual por cookie HttpOnly y header Authorization (Fase 9F-A).
+"""Autenticación por cookie HttpOnly (Fase 9G, cookie-only).
 
-Decisión aprobada: `POST /auth/login` sigue devolviendo `access_token` en
-el body (`TokenResponse` sin cambios de contrato) y además fija una cookie
-HttpOnly con el mismo token. Los endpoints protegidos aceptan cookie o
-`Authorization: Bearer`; cuando ambos están presentes, el header tiene
-prioridad (ver `app/deps.py`) porque es la señal explícita de un cliente
-que declara sus propias credenciales por request, mientras que la cookie
-es un fallback ambiental para clientes de navegador. `POST /auth/logout`
-(nuevo) borra la cookie y es idempotente si no existe.
+Hasta la Fase 9F-A: `POST /auth/login` devolvía `TokenResponse` (con
+`access_token` en el body) y además fijaba una cookie HttpOnly; los endpoints
+protegidos aceptaban cookie o `Authorization: Bearer`, con precedencia del
+header cuando ambos estaban presentes.
 
-Frontend, `AuthContext`, `api.ts`, `localStorage` y E2E NO se tocan en
-esta fase (Fase 9F-A es backend-only); esta suite solo ejercita el
-backend directamente, igual que el resto de `tests/test_api_auth*.py`.
+Fase 9G: se retira el body de login (`access_token`/`token_type`), el login
+solo devuelve `LoginResponse{user}`, y los dependientes de `app/deps.py`
+leen únicamente la cookie `access_token` de `request.cookies`. El header
+`Authorization: Bearer` ya no se acepta: si se envía y no hay cookie, la
+respuesta es 401 sin `WWW-Authenticate: Bearer`; si hay cookie y Bearer,
+solo decide la cookie. `POST /auth/logout` sigue borrando la cookie y es
+idempotente.
+
+El OpenAPI documenta el mecanismo real: security scheme `cookieAuth`
+(`apiKey` en cookie `access_token`) exigido en los endpoints protegidos.
+Frontend (`AuthContext`/`api.ts`), `localStorage` y E2E ya no dependían del
+body desde la Fase 9F-B; esta suite ejercita el backend directamente.
 """
 
 import logging
@@ -24,7 +29,7 @@ from app.auth.auth import create_access_token
 from app.config import settings
 from app.main import app
 from app.services.rate_limit import LimitadorIntentosLogin
-from tests.conftest import crear_usuario, headers_para
+from tests.conftest import bearer_para, cookies_para, crear_usuario
 
 NOMBRE_COOKIE = "access_token"
 
@@ -33,19 +38,23 @@ def _login(client, username="ana", password="secret123"):
     return client.post("/auth/login", json={"username": username, "password": password})
 
 
-class TestLoginEmiteCookieYConservaBody:
-    def test_access_token_sigue_en_el_body(self, client, db):
+class TestLoginEmiteSoloCookieYLoginResponse:
+    def test_login_no_devuelve_access_token_ni_token_type(self, client, db):
         crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         respuesta = _login(client)
+
         assert respuesta.status_code == 200
-        assert respuesta.json()["access_token"]
-        assert respuesta.json()["token_type"] == "bearer"
+        cuerpo = respuesta.json()
+        assert "access_token" not in cuerpo
+        assert "token_type" not in cuerpo
+        assert cuerpo["user"]["username"] == "ana"
 
     def test_login_emite_set_cookie(self, client, db):
         crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         respuesta = _login(client)
+
         assert NOMBRE_COOKIE in respuesta.cookies
-        assert respuesta.cookies[NOMBRE_COOKIE] == respuesta.json()["access_token"]
+        assert respuesta.cookies[NOMBRE_COOKIE]
 
     def test_cookie_incluye_atributos_esperados_en_desarrollo(self, client, db):
         assert settings.environment == "development"
@@ -95,8 +104,8 @@ class TestCookieAutenticaEndpointsProtegidos:
         # inválido" de esta clase (cadenas malformadas), este construye un
         # JWT estructuralmente válido y correctamente firmado, pero con
         # `exp` en el pasado (expires_delta negativo) — ejercita la
-        # validación real de expiración de python-jose, no solo el
-        # manejo de tokens corruptos.
+        # validación real de expiración de python-jose, no solo el manejo
+        # de tokens corruptos.
         usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         token_expirado = create_access_token(
             data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol},
@@ -110,45 +119,48 @@ class TestCookieAutenticaEndpointsProtegidos:
         assert respuesta.json()["detail"] == "No se pudo validar la autenticación"
 
 
-class TestAuthorizationHeaderSigueFuncionando:
-    def test_header_autentica_sin_cookie(self, client, db):
+class TestBearerRechazado:
+    def test_bearer_sin_cookie_da_401(self, client, db):
         usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
-        respuesta = client.get("/usuarios/me", headers=headers_para(usuario))
+        respuesta = client.get("/usuarios/me", headers=bearer_para(usuario))
 
-        assert respuesta.status_code == 200
-        assert respuesta.json()["username"] == "ana"
+        assert respuesta.status_code == 401
 
-    def test_espacios_optional_sigue_funcionando_con_header(self, client, db):
+    def test_espacios_optional_ignora_el_header(self, client, db):
         usuario = crear_usuario(db, username="admin1", email="admin1@example.com", rol="admin")
 
-        respuesta = client.get("/espacios", headers=headers_para(usuario))
+        respuesta = client.get("/espacios", headers=bearer_para(usuario))
 
-        assert respuesta.status_code == 200
+        assert respuesta.status_code == 200  # público: el header es irrelevante
+
+    def test_401_no_incluye_www_authenticate_bearer(self, client, db):
+        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+
+        respuesta = client.get("/usuarios/me", headers=bearer_para(usuario))
+
+        assert respuesta.status_code == 401
+        assert "www-authenticate" not in respuesta.headers
 
 
-class TestPrecedenciaCuandoHayAmbosMecanismos:
-    """Comportamiento documentado: el header Authorization, cuando está
-    presente, tiene prioridad sobre la cookie."""
-
-    def test_header_gana_sobre_cookie_de_otro_usuario(self, client, db):
+class TestSoloLaCookieDecide:
+    def test_cookie_autentica_y_ignora_bearer_de_otro_usuario(self, client, db):
         crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
         beto = crear_usuario(db, username="beto", email="beto@example.com", password="secret123")
 
         _login(client, "ana", "secret123")  # cookie = ana
-        respuesta = client.get("/usuarios/me", headers=headers_para(beto))  # header = beto
-
-        assert respuesta.status_code == 200
-        assert respuesta.json()["username"] == "beto"
-
-    def test_cookie_invalida_no_bloquea_si_el_header_es_valido(self, client, db):
-        ana = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        client.cookies.set(NOMBRE_COOKIE, "token-corrupto")
-
-        respuesta = client.get("/usuarios/me", headers=headers_para(ana))
+        respuesta = client.get("/usuarios/me", headers=bearer_para(beto))  # Bearer = beto
 
         assert respuesta.status_code == 200
         assert respuesta.json()["username"] == "ana"
+
+    def test_cookie_invalida_no_se_rescata_con_bearer_valido(self, client, db):
+        ana = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        client.cookies.set(NOMBRE_COOKIE, "token-corrupto")
+
+        respuesta = client.get("/usuarios/me", headers=bearer_para(ana))
+
+        assert respuesta.status_code == 401
 
 
 class TestLogout:
@@ -167,10 +179,10 @@ class TestLogout:
 
         assert respuesta.status_code == 204
 
-    def test_logout_con_header_pero_sin_cookie_es_seguro(self, client, db):
+    def test_logout_con_cookie_valida_es_seguro(self, client, db):
         usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
 
-        respuesta = client.post("/auth/logout", headers=headers_para(usuario))
+        respuesta = client.post("/auth/logout", headers=cookies_para(usuario))
 
         assert respuesta.status_code == 204
 
@@ -186,13 +198,14 @@ class TestLogout:
 
 
 class TestComportamientoExistenteSinCambios:
-    def test_401_con_token_invalido_conserva_mensaje(self, client):
-        respuesta = client.get(
-            "/usuarios/me", headers={"Authorization": "Bearer token-corrupto"}
-        )
+    def test_401_con_cookie_invalida_conserva_mensaje_y_sin_www_authenticate(self, client):
+        client.cookies.set(NOMBRE_COOKIE, "token-corrupto")
+
+        respuesta = client.get("/usuarios/me")
 
         assert respuesta.status_code == 401
         assert respuesta.json()["detail"] == "No se pudo validar la autenticación"
+        assert "www-authenticate" not in respuesta.headers
 
     def test_403_por_rol_insuficiente_sin_cambios(self, client, db):
         usuario = crear_usuario(
@@ -202,7 +215,7 @@ class TestComportamientoExistenteSinCambios:
         respuesta = client.post(
             "/usuarios",
             json={"username": "x", "email": "x@example.com", "password": "secret123"},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
 
         assert respuesta.status_code == 403
@@ -248,15 +261,41 @@ class TestNoSeRegistranCredenciales:
         assert token_cookie not in caplog.text
 
 
-class TestOpenApiReflejaLogout:
+class TestOpenApiReflejaCookieOnly:
     def test_logout_aparece_en_openapi(self, client):
         esquema = client.get("/openapi.json").json()
 
         assert "/auth/logout" in esquema["paths"]
         assert "post" in esquema["paths"]["/auth/logout"]
 
-    def test_token_response_conserva_access_token(self, client):
+    def test_login_response_es_loginresponse_sin_access_token(self, client):
         esquema = client.get("/openapi.json").json()
 
-        propiedades = esquema["components"]["schemas"]["TokenResponse"]["properties"]
-        assert "access_token" in propiedades
+        componentes = esquema["components"]["schemas"]
+        assert "LoginResponse" in componentes
+        assert "TokenResponse" not in componentes
+        propiedades = componentes["LoginResponse"]["properties"]
+        assert set(propiedades.keys()) == {"user"}
+        assert componentes["LoginResponse"]["required"] == ["user"]
+
+    def test_security_scheme_cookie_auth(self, client):
+        esquema = client.get("/openapi.json").json()
+
+        cookie_auth = esquema["components"]["securitySchemes"]["cookieAuth"]
+        assert cookie_auth["type"] == "apiKey"
+        assert cookie_auth["in"] == "cookie"
+        assert cookie_auth["name"] == "access_token"
+
+    def test_endpoint_protegido_exige_security_cookie_auth(self, client):
+        esquema = client.get("/openapi.json").json()
+
+        security = esquema["paths"]["/usuarios/me"]["get"].get("security")
+        assert security == [{"cookieAuth": []}]
+
+    def test_endpoint_publico_no_exige_security(self, client):
+        esquema = client.get("/openapi.json").json()
+
+        login_security = esquema["paths"]["/auth/login"]["post"].get("security")
+        assert login_security in (None, [])
+        espacios_get = esquema["paths"]["/espacios"]["get"].get("security")
+        assert espacios_get in (None, [])

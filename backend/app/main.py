@@ -43,14 +43,17 @@ app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.backend_cors_origins,
-    # False porque el JWT viaja en la cabecera Authorization (frontend/src/services/api.ts),
-    # nunca en cookies: no hay credencial que el navegador deba adjuntar automáticamente.
+    # False a propósito: la cookie HttpOnly solo se adjunta al mismo origen a
+    # través del proxy `/api` de Next.js (frontend/next.config.js); el backend
+    # nunca autoriza credenciales cross-origin de navegador. Desde la Fase 9G
+    # el JWT vive únicamente en la cookie, nunca en Authorization.
     allow_credentials=False,
     # Únicos verbos que emite el frontend (frontend/src/services/*.ts); GET es
     # el default de fetch cuando no se especifica method.
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    # Únicas cabeceras que agrega apiFetch (frontend/src/services/api.ts).
-    allow_headers=["Content-Type", "Authorization"],
+    # Únicas cabeceras que agrega apiFetch (frontend/src/services/api.ts);
+    # Authorization ya no se usa ni se anuncia (Fase 9G).
+    allow_headers=["Content-Type"],
 )
 
 # Rutas de documentación interactiva: Swagger UI/ReDoc cargan script/CSS desde

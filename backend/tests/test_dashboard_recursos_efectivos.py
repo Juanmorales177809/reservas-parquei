@@ -15,7 +15,7 @@ from tests.conftest import (
     crear_usuario,
     crear_zona,
     fecha_habilitada,
-    headers_para,
+    cookies_para,
     payload_reserva_objetivos,
 )
 
@@ -36,11 +36,11 @@ def test_reserva_de_zona_cuenta_sus_recursos_efectivos(client, db):
     creada = client.post(
         "/reservas",
         json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
-        headers=headers_para(admin),
+        headers=cookies_para(admin),
     )
     assert creada.status_code == 201
 
-    resumen = client.get("/admin/dashboard/summary", headers=headers_para(admin)).json()
+    resumen = client.get("/admin/dashboard/summary", headers=cookies_para(admin)).json()
     conteos = {item["recurso_id"]: item["cantidad"] for item in resumen["recursos_mas_reservados"]}
     assert conteos.get(r1.id) == 1
     assert conteos.get(r2.id) == 1
@@ -51,17 +51,17 @@ def test_reserva_directa_adicional_suma_sobre_el_efectivo(client, db):
     primera = client.post(
         "/reservas",
         json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
-        headers=headers_para(admin),
+        headers=cookies_para(admin),
     )
     assert primera.status_code == 201
     segunda = client.post(
         "/reservas",
         json=payload_reserva_objetivos(recurso_ids=[r1.id], fecha=fecha_habilitada(dias=12)),
-        headers=headers_para(admin),
+        headers=cookies_para(admin),
     )
     assert segunda.status_code == 201
 
-    resumen = client.get("/admin/dashboard/summary", headers=headers_para(admin)).json()
+    resumen = client.get("/admin/dashboard/summary", headers=cookies_para(admin)).json()
     conteos = {item["recurso_id"]: item["cantidad"] for item in resumen["recursos_mas_reservados"]}
     assert conteos.get(r1.id) == 2
     assert conteos.get(r2.id) == 1
@@ -72,10 +72,10 @@ def test_reserva_singular_sigue_cuando_por_su_recurso(client, db):
     creada = client.post(
         "/reservas",
         json=payload_reserva_objetivos(recurso_ids=[r1.id], fecha=fecha_habilitada()),
-        headers=headers_para(admin),
+        headers=cookies_para(admin),
     )
     assert creada.status_code == 201
 
-    resumen = client.get("/admin/dashboard/summary", headers=headers_para(admin)).json()
+    resumen = client.get("/admin/dashboard/summary", headers=cookies_para(admin)).json()
     conteos = {item["recurso_id"]: item["cantidad"] for item in resumen["recursos_mas_reservados"]}
     assert conteos.get(r1.id) == 1

@@ -9,7 +9,7 @@ una zona) como 409 sin dejar cambios parciales.
 
 from app.models.zona import Zona
 from app.models.zona_recurso import ZonaRecurso
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
+from tests.conftest import crear_espacio, crear_recurso, crear_usuario, cookies_para
 
 
 def _crear_zona(db, *, espacio, usuario, nombre="Zona de pruebas"):
@@ -37,7 +37,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         assert respuesta.json()["recurso_ids"] == [recurso.id]
@@ -54,7 +54,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": []},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         assert respuesta.json()["recurso_ids"] == []
@@ -68,7 +68,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [999999]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 404
         assert _asociados(db, zona.id) == set()
@@ -81,7 +81,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             "/zonas/999999/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 404
 
@@ -95,7 +95,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona_a.id}/recursos",
             json={"recurso_ids": [recurso_b.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 400
         assert _asociados(db, zona_a.id) == set()
@@ -112,7 +112,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona_b.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 409
         assert _asociados(db, zona_b.id) == set()
@@ -130,7 +130,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [recurso_nuevo.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
         assert _asociados(db, zona.id) == {recurso_nuevo.id}
@@ -150,7 +150,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona_b.id}/recursos",
             json={"recurso_ids": [recurso_valido.id, recurso_conflictivo.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 409
         # Ninguno de los dos queda asociado a zona_b: ni siquiera el valido.
@@ -170,7 +170,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona_ajena.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 403
 
@@ -187,7 +187,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert respuesta.status_code == 200
 
@@ -200,7 +200,7 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(admin),
+            headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200
 
@@ -214,6 +214,6 @@ class TestReemplazoDeAsociacion:
         respuesta = client.put(
             f"/zonas/{zona.id}/recursos",
             json={"recurso_ids": [recurso.id]},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 403

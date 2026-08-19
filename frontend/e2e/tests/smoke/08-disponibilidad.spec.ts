@@ -1,4 +1,4 @@
-import { expect, headersPara, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura, proximoDomingo } from '../../data/usuarios';
 import { EspaciosPage } from '../../pages/EspaciosPage';
 
@@ -6,9 +6,9 @@ solo(['usuario']);
 
 test.describe('Disponibilidad y horarios', () => {
   test('no se puede reservar un slot ya ocupado', async ({ page, backend }, testInfo) => {
-    const headers = await headersPara(backend, 'usuario');
+    await iniciarSesionApi(backend, 'usuario');
     const recurso = await primerRecurso(backend);
-    const creada = await crearReservaApi(backend, headers, {
+    const creada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha: fechaFutura(13, testInfo.retry),
       hora_inicio: '10:00',

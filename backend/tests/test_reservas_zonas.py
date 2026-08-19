@@ -27,7 +27,7 @@ from tests.conftest import (
     crear_usuario,
     crear_zona,
     fecha_habilitada,
-    headers_para,
+    cookies_para,
     payload_reserva_objetivos,
 )
 
@@ -65,26 +65,26 @@ class TestContratoEntrada:
                 "hora_fin": "10:00",
                 "asistentes": 2,
             },
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 422
 
     def test_update_legacy_recurso_id_da_422(self, client, db):
         espacio, usuario, recurso, _ = _setup(db)
         creada = client.post(
-            "/reservas", json=_payload(recurso_ids=[recurso.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[recurso.id]), headers=cookies_para(usuario)
         ).json()
         respuesta = client.patch(
             f"/reservas/{creada['id']}",
             json={"recurso_id": recurso.id},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 422
 
     def test_seleccion_vacia_da_422(self, client, db):
         _, usuario, _, _ = _setup(db)
         respuesta = client.post(
-            "/reservas", json=_payload(), headers=headers_para(usuario)
+            "/reservas", json=_payload(), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 422
 
@@ -94,14 +94,14 @@ class TestModalidad:
         espacio, usuario, r1, _ = _setup(db, modalidad="equipos", nombre="Sala Equipos")
         zona = crear_zona(db, espacio=espacio, usuario=usuario)
         respuesta = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 400
 
     def test_zonas_no_acepta_recursos_directos(self, client, db):
         espacio, usuario, r1, _ = _setup(db, modalidad="zonas", nombre="Sala Solo Zonas")
         respuesta = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 400
 
@@ -110,7 +110,7 @@ class TestModalidad:
         zona = crear_zona(db, espacio=espacio, usuario=usuario)
         asociar_zona_recurso(db, zona, r1)
         respuesta = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 201
 
@@ -121,7 +121,7 @@ class TestModalidad:
         respuesta = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id], zona_ids=[zona.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
 
@@ -130,7 +130,7 @@ class TestReservasObjetivo:
     def test_recurso_directo_materializa_una_fila(self, client, db):
         espacio, usuario, r1, _ = _setup(db, modalidad="equipos", nombre="Sala Directo")
         respuesta = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -146,7 +146,7 @@ class TestReservasObjetivo:
         asociar_zona_recurso(db, zona, r1)
         asociar_zona_recurso(db, zona, r2)
         respuesta = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -164,7 +164,7 @@ class TestReservasObjetivo:
         espacio, usuario, r1, _ = _setup(db)
         zona = crear_zona(db, espacio=espacio, usuario=usuario, nombre="Zona Vacia")
         respuesta = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -183,7 +183,7 @@ class TestReservasObjetivo:
         respuesta = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id], zona_ids=[zona.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
@@ -200,13 +200,13 @@ class TestActualizacionPorEjes:
         creada = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id], zona_ids=[zona.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         otra_fecha = fecha_habilitada(dias=12)
         actualizada = client.patch(
             f"/reservas/{creada['id']}",
             json={"fecha": otra_fecha.isoformat()},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert actualizada.status_code == 200
         cuerpo = actualizada.json()
@@ -219,12 +219,12 @@ class TestActualizacionPorEjes:
         creada = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id], zona_ids=[zona.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         actualizada = client.patch(
             f"/reservas/{creada['id']}",
             json={"recurso_ids": [r2.id]},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert actualizada.status_code == 200
         cuerpo = actualizada.json()
@@ -239,12 +239,12 @@ class TestActualizacionPorEjes:
         creada = client.post(
             "/reservas",
             json=_payload(zona_ids=[zona_a.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         actualizada = client.patch(
             f"/reservas/{creada['id']}",
             json={"zona_ids": [zona_b.id]},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert actualizada.status_code == 200
         cuerpo = actualizada.json()
@@ -256,12 +256,12 @@ class TestActualizacionPorEjes:
         creada = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         ).json()
         respuesta = client.patch(
             f"/reservas/{creada['id']}",
             json={"recurso_ids": [], "zona_ids": []},
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -270,11 +270,11 @@ class TestSolapamientoTransitivo:
     def test_solapamiento_directo_409(self, client, db):
         espacio, usuario, r1, _ = _setup(db, modalidad="equipos", nombre="Sala Over Directo")
         primera = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert primera.status_code == 201
         segunda = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert segunda.status_code == 409
 
@@ -283,11 +283,11 @@ class TestSolapamientoTransitivo:
         zona = crear_zona(db, espacio=espacio, usuario=usuario)
         asociar_zona_recurso(db, zona, r1)
         zona_reservada = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert zona_reservada.status_code == 201
         directa = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert directa.status_code == 409
 
@@ -296,11 +296,11 @@ class TestSolapamientoTransitivo:
         zona = crear_zona(db, espacio=espacio, usuario=usuario)
         asociar_zona_recurso(db, zona, r1)
         directa = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert directa.status_code == 201
         zona_reservada = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert zona_reservada.status_code == 409
 
@@ -308,14 +308,14 @@ class TestSolapamientoTransitivo:
         espacio, usuario, r1, r2 = _setup(db)
         zona = crear_zona(db, espacio=espacio, usuario=usuario)
         zona_reservada = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert zona_reservada.status_code == 201
         assert zona_reservada.json()["recurso_id"] == r1.id
         # Una zona sin recursos no materializa nada: no bloquea recursos
         # ajenos al ancla histórico.
         otra = client.post(
-            "/reservas", json=_payload(recurso_ids=[r2.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r2.id]), headers=cookies_para(usuario)
         )
         assert otra.status_code == 201
         # Riesgo residual documentado (decisión 12C-6): el ancla vive en la
@@ -323,7 +323,7 @@ class TestSolapamientoTransitivo:
         # `reservas_sin_solapamiento` sigue activa, así que una reserva
         # directa del recurso ancla en el mismo horario choca con 409.
         ancla = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert ancla.status_code == 409
 
@@ -338,14 +338,14 @@ class TestAprobacion:
             rol="gestor", espacio_id=espacio.id,
         )
         creada = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert creada.status_code == 201
         assert creada.json()["estado"] == "esperando"
         aprobada = client.put(
             f"/reservas/{creada.json()['id']}/estado",
             json={"nuevo_estado": "aprobada"},
-            headers=headers_para(gestor),
+            headers=cookies_para(gestor),
         )
         assert aprobada.status_code == 200
         assert aprobada.json()["estado"] == "aprobada"
@@ -356,7 +356,7 @@ class TestAprobacion:
         # Transitividad: la zona aprobada reclama su recurso efectivo (r1) y
         # bloquea una reserva directa de r1 en el mismo horario.
         segunda = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id]), headers=cookies_para(usuario)
         )
         assert segunda.status_code == 409
 
@@ -367,11 +367,11 @@ class TestCapacidad:
         zona = crear_zona(db, espacio=espacio, usuario=usuario, capacidad=8)
         asociar_zona_recurso(db, zona, r1)
         excede = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id], asistentes=9), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id], asistentes=9), headers=cookies_para(usuario)
         )
         assert excede.status_code == 400
         justo = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id], asistentes=8), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id], asistentes=8), headers=cookies_para(usuario)
         )
         assert justo.status_code == 201
 
@@ -380,7 +380,7 @@ class TestCapacidad:
         usuario = crear_usuario(db, username="u_cap", email="u_cap@example.com")
         r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=10)
         respuesta = client.post(
-            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=7), headers=headers_para(usuario)
+            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=7), headers=cookies_para(usuario)
         )
         assert respuesta.status_code == 400
 
@@ -397,11 +397,11 @@ class TestPS:
         zona = crear_zona(db, espacio=espacio, usuario=admin)
         asociar_zona_recurso(db, zona, r_ps)
         bloqueado = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(usuario)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert bloqueado.status_code == 403
         permitido = client.post(
-            "/reservas", json=_payload(zona_ids=[zona.id]), headers=headers_para(admin)
+            "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(admin)
         )
         assert permitido.status_code == 201
 
@@ -414,7 +414,7 @@ class TestPermisos:
         respuesta = client.post(
             "/reservas",
             json=_payload(recurso_ids=[r1.id], zona_ids=[zona_b.id]),
-            headers=headers_para(usuario),
+            headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 400
 
@@ -429,7 +429,7 @@ class TestPermisos:
         zona_b = crear_zona(db, espacio=espacio_b, usuario=gestor)
         asociar_zona_recurso(db, zona_b, recurso_b)
         respuesta = client.post(
-            "/reservas", json=_payload(zona_ids=[zona_b.id]), headers=headers_para(gestor)
+            "/reservas", json=_payload(zona_ids=[zona_b.id]), headers=cookies_para(gestor)
         )
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"

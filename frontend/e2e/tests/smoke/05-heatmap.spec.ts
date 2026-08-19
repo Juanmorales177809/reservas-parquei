@@ -1,4 +1,4 @@
-import { expect, headersPara, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura } from '../../data/usuarios';
 import { AdminDashboardPage } from '../../pages/AdminDashboardPage';
 
@@ -7,9 +7,9 @@ solo(['admin']);
 test.describe('Dashboard y heatmap', () => {
   test('el heatmap muestra el grid 07:00–19:00 y la leyenda exacta', async ({ page, backend }, testInfo) => {
     // El heatmap solo pinta el grid con ocupación: crear una reserva previa.
-    const headers = await headersPara(backend, 'admin');
+    await iniciarSesionApi(backend, 'admin');
     const recurso = await primerRecurso(backend);
-    const creada = await crearReservaApi(backend, headers, {
+    const creada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha: fechaFutura(16, testInfo.retry),
       hora_inicio: '10:00',
@@ -28,7 +28,7 @@ test.describe('Dashboard y heatmap', () => {
   });
 
   test('una reserva dentro del horario incrementa la ocupación global', async ({ page, backend }, testInfo) => {
-    const headers = await headersPara(backend, 'admin');
+    await iniciarSesionApi(backend, 'admin');
     const recurso = await primerRecurso(backend);
     // Offset 20, no 12: los offsets 12 y 13 pueden converger a la misma
     // fecha efectiva cuando el día+12 cae en domingo (fechaFutura salta al
@@ -36,7 +36,7 @@ test.describe('Dashboard y heatmap', () => {
     // recurso y 10:00-11:00) en un 409 real de reservas_sin_solapamiento
     // entre proyectos. El 20 mantiene margen de al menos 2 días respecto a
     // todos los demás offsets (ver regresion/05-notificaciones.spec.ts).
-    const creada = await crearReservaApi(backend, headers, {
+    const creada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       fecha: fechaFutura(20, testInfo.retry),
       hora_inicio: '10:00',
@@ -44,7 +44,7 @@ test.describe('Dashboard y heatmap', () => {
     });
     expect(creada.ok()).toBeTruthy();
 
-    const resumen = await (await backend.get('/admin/dashboard/summary', { headers })).json();
+    const resumen = await (await backend.get('/admin/dashboard/summary')).json();
     const ocupacion = resumen as { ocupacion_global: { horas_ocupadas: number; porcentaje: number } };
     expect(ocupacion.ocupacion_global.horas_ocupadas).toBeGreaterThan(0);
     expect(ocupacion.ocupacion_global.porcentaje).toBeGreaterThan(0);

@@ -43,17 +43,18 @@ En Windows con `.venv` local: `.\.venv\Scripts\python.exe -m pytest -v`.
 
 `app/services/rate_limit.py`: **5 intentos fallidos por ventana deslizante de 15 minutos**, clave `IP + username` (sin normalizar), en memoria del proceso (no distribuido). No modificar sin aprobación explícita — cambiarlo afecta directamente la seguridad de `POST /auth/login`.
 
-## JWT dual (estado actual, confirmado en código — Fase 9F-A/9F-B)
+## JWT cookie-only (estado actual, confirmado en código — Fase 9G)
 
 - Cookie `access_token`, `HttpOnly=true`.
 - `SameSite=Lax`.
 - `Path=/`.
 - `Secure=true` solo cuando `ENVIRONMENT=production` está confirmado explícitamente.
-- `Domain` no fijado.
+- `Domain` no fijado (host-only).
 - `Max-Age` = `ACCESS_TOKEN_EXPIRE_MINUTES * 60`.
-- El header `Authorization: Bearer <token>` tiene **prioridad** sobre la cookie cuando ambos están presentes (`app/deps.py`).
-- `access_token` **todavía presente** en el body de `TokenResponse` (compatibilidad temporal, no retirar sin aprobación — ver Fase 9G en `CHANGELOG.md`).
+- **Único mecanismo de sesión**: `app/deps.py` lee únicamente `request.cookies["access_token"]` vía `cookie_auth` (`APIKeyCookie`, scheme `cookieAuth`). El header `Authorization: Bearer` **ya no se acepta** (401) y `POST /auth/login` **ya no devuelve** `access_token`/`token_type` en el body (`LoginResponse{user}`, Fase 9G).
+- El OpenAPI documenta `cookieAuth` (`apiKey`, `in: cookie`, `name: access_token`) en los endpoints protegidos; los públicos (`/auth/login`, `/auth/logout`, `GET /espacios`) no exigen security.
 - `POST /auth/logout` disponible: `204 No Content`, idempotente, no exige autenticación.
+- En tests, el helper `cookies_para` (tests/conftest.py) autentica por cookie; `bearer_para` existe solo para tests negativos de rechazo. El snapshot de OpenAPI NO está regenerado tras 9G (`test_openapi_contrato.py` en rojo a propósito) — regenerar únicamente con el mecanismo documentado en su docstring y tras aprobar el diff.
 
 ## Handler global de excepciones
 

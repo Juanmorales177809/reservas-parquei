@@ -2,7 +2,9 @@
 """Pruebas de integración del endpoint de autenticación (api/auth.py).
 
 Reglas cubiertas:
-- Inicio de sesión con credenciales válidas entrega JWT y datos del usuario.
+- Inicio de sesión con credenciales válidas entrega los datos del usuario;
+  la sesión viaja en la cookie HttpOnly (Fase 9G), el body ya no lleva
+  `access_token` ni `token_type`.
 - Credenciales inválidas o usuario inexistente responden 401 genérico.
 - La respuesta nunca expone el hash de contraseña.
 """
@@ -17,8 +19,8 @@ def test_login_exitoso(client, db):
     )
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["token_type"] == "bearer"
-    assert cuerpo["access_token"]
+    assert "access_token" not in cuerpo
+    assert "token_type" not in cuerpo
     assert cuerpo["user"]["username"] == "ana"
     assert "hashed_password" not in cuerpo["user"]
 

@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import APIKeyCookie
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
@@ -9,21 +9,24 @@ from app.db import get_db
 from app.models import Usuario, UsuarioEspacio
 
 
-# auto_error=False (Fase 9F-A, fase dual): un header Authorization
-# ausente o inválido ya no interrumpe la resolución de dependencias por sí
-# solo — get_current_user/require_admin_dashboard deben poder caer a la
-# cookie NOMBRE_COOKIE_ACCESO antes de decidir si hay credenciales o no.
-# No cambia el esquema de seguridad expuesto en OpenAPI (verificado contra
-# tests/openapi.snapshot.json): auto_error solo afecta el comportamiento
-# en runtime, no el schema generado.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+# Fase 9G (cookie-only): el mecanismo de sesión es únicamente la cookie
+# HttpOnly `access_token`. `auto_error=False` deja que cada dependiente
+# decida su propio 401 con mensaje estable. La presencia de este
+# `APIKeyCookie` como dependencia es lo que hace que FastAPI documente el
+# esquema `cookieAuth` (apiKey, cookie) y lo exija en los endpoints
+# protegidos; los públicos (con `get_current_user_optional`) no lo usan a
+# propósito, para no exponer el esquema en rutas públicas (RN-005).
+cookie_auth = APIKeyCookie(
+    name=NOMBRE_COOKIE_ACCESO,
+    auto_error=False,
+    scheme_name="cookieAuth",
+)
 
 
 def _decode_token(token: str) -> dict:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudo validar la autenticación",
-        headers={"WWW-Authenticate": "Bearer"},
     )
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
@@ -31,25 +34,22 @@ def _decode_token(token: str) -> dict:
         raise credentials_exception from exc
 
 
-def get_current_user(
-    request: Request,
-    token: str | None = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> Usuario:
-    credentials_exception = HTTPException(
+def _credenciales_invalidas() -> HTTPException:
+    return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudo validar la autenticación",
-        headers={"WWW-Authenticate": "Bearer"},
     )
-    # El header Authorization, cuando está presente, tiene prioridad sobre
-    # la cookie (Fase 9F-A, fase dual): es la señal explícita de un
-    # cliente que declara sus propias credenciales por request; la cookie
-    # es un fallback ambiental para clientes de navegador.
-    token_efectivo = token or request.cookies.get(NOMBRE_COOKIE_ACCESO)
-    if not token_efectivo:
+
+
+def get_current_user(
+    token: str | None = Depends(cookie_auth),
+    db: Session = Depends(get_db),
+) -> Usuario:
+    credentials_exception = _credenciales_invalidas()
+    if not token:
         raise credentials_exception
     try:
-        payload = _decode_token(token_efectivo)
+        payload = _decode_token(token)
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -64,18 +64,13 @@ def get_current_user(
 
 
 def require_admin_dashboard(
-    request: Request,
-    token: str | None = Depends(oauth2_scheme),
+    token: str | None = Depends(cookie_auth),
     db: Session = Depends(get_db),
 ) -> Usuario:
-    token_efectivo = token or request.cookies.get(NOMBRE_COOKIE_ACCESO)
-    if not token_efectivo:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se pudo validar la autenticación",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    payload = _decode_token(token_efectivo)
+    credentials_exception = _credenciales_invalidas()
+    if not token:
+        raise credentials_exception
+    payload = _decode_token(token)
     role = payload.get("role") or payload.get("rol")
     raw_scopes = payload.get("scope", payload.get("scopes", []))
     if isinstance(raw_scopes, str):
@@ -94,19 +89,11 @@ def require_admin_dashboard(
     try:
         user_id = int(payload.get("sub"))
     except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se pudo validar la autenticación",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        raise credentials_exception from exc
 
     usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
     if usuario is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se pudo validar la autenticación",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise credentials_exception
     return usuario
 
 
@@ -145,20 +132,14 @@ def get_current_user_optional(
     request: Request,
     db: Session = Depends(get_db),
 ) -> Usuario | None:
-    """Usuario autenticado, o None si no hay token o es inválido.
+    """Usuario autenticado por cookie, o None si no hay cookie o es inválida.
 
-    Lee el header Authorization manualmente (sin OAuth2PasswordBearer) para
-    NO añadir un esquema de seguridad al OpenAPI de los endpoints públicos
-    que lo usan (RN-005 en GET /espacios). Un token inválido se trata como
-    acceso anónimo. Fase 9F-A: si no hay header Authorization, cae a la
-    cookie NOMBRE_COOKIE_ACCESO (mismo orden de prioridad que
-    get_current_user).
+    Lee solo la cookie `access_token` (Fase 9G). Sin `Depends(cookie_auth)` a
+    propósito, para NO añadir el esquema de seguridad al OpenAPI de los
+    endpoints públicos que lo usan (RN-005 en GET /espacios). Un token
+    inválido se trata como acceso anónimo.
     """
-    cabecera = request.headers.get("Authorization", "")
-    if cabecera.startswith("Bearer "):
-        token = cabecera[len("Bearer ") :]
-    else:
-        token = request.cookies.get(NOMBRE_COOKIE_ACCESO)
+    token = request.cookies.get(NOMBRE_COOKIE_ACCESO)
     if not token:
         return None
     try:

@@ -2,8 +2,10 @@
 """CORS acotado al uso real del frontend (Fase 9A, backend/app/main.py).
 
 El frontend (frontend/src/services/api.ts) solo emite GET/POST/PUT/PATCH/DELETE
-con, a lo sumo, las cabeceras Content-Type y Authorization, y nunca usa
-`credentials: 'include'` (el JWT viaja en Authorization, no en cookies).
+con, a lo sumo, la cabecera Content-Type, y nunca usa `credentials: 'include'`
+(la sesión viaja en una cookie HttpOnly que el navegador adjunta solo al
+mismo origen, a través del proxy `/api` de Next.js; nunca en cross-origin).
+Desde la Fase 9G el backend ya no acepta ni anuncia `Authorization`.
 """
 
 ORIGEN_PERMITIDO = "http://localhost:3000"
@@ -26,7 +28,8 @@ class TestPreflightPermitido:
         assert "POST" in response.headers["access-control-allow-methods"]
         assert "content-type" in response.headers["access-control-allow-headers"].lower()
 
-    def test_authorization_permitido_en_preflight(self, client):
+    def test_se_acepta_preflight_con_authorization(self, client):
+        # regresión 9G: el middleware ya no anuncia Authorization
         response = client.options(
             "/espacios",
             headers={
@@ -36,11 +39,26 @@ class TestPreflightPermitido:
             },
         )
 
+        assert response.status_code == 400
+        assert "authorization" not in response.headers.get("access-control-allow-headers", "").lower()
+
+    def test_allow_headers_no_anuncia_authorization(self, client):
+        response = client.options(
+            "/espacios",
+            headers={
+                "Origin": ORIGEN_PERMITIDO,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
         assert response.status_code == 200
-        assert "authorization" in response.headers["access-control-allow-headers"].lower()
+        assert "content-type" in response.headers["access-control-allow-headers"].lower()
+        assert "authorization" not in response.headers["access-control-allow-headers"].lower()
 
     def test_no_declara_allow_credentials(self, client):
-        # JWT vía Authorization, nunca cookies: no hace falta el modo credentials.
+        # La cookie viaja solo por el proxy same-origin de Next.js; el backend
+        # no autoriza credenciales cross-origin de navegador.
         response = client.options(
             "/auth/login",
             headers={
@@ -118,17 +136,17 @@ class TestPeticionesReales:
         )
 
         assert response.status_code == 200
-        assert "access_token" in response.json()
+        assert "access_token" not in response.json()
         assert response.headers["access-control-allow-origin"] == ORIGEN_PERMITIDO
 
     def test_reservas_autenticadas_sin_regresion_con_origen_cruzado(self, db, client):
-        from tests.conftest import crear_espacio, crear_recurso, crear_usuario, headers_para
+        from tests.conftest import crear_espacio, crear_recurso, crear_usuario, cookies_para
 
         usuario = crear_usuario(db, username="cors_user", email="cors_user@example.com")
         espacio = crear_espacio(db)
         crear_recurso(db, espacio=espacio, usuario=usuario)
 
-        headers = headers_para(usuario)
+        headers = cookies_para(usuario)
         headers["Origin"] = ORIGEN_PERMITIDO
 
         response = client.get("/reservas/mis-reservas", headers=headers)

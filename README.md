@@ -201,17 +201,11 @@ Para conectar pgAdmin a PostgreSQL desde Docker, utilizar `db` como host, `5432`
 
 ## API principal
 
-Los endpoints protegidos aceptan una cookie de sesión `access_token` (`HttpOnly`, fijada automáticamente por el navegador tras `POST /auth/login`) o, de forma temporal por compatibilidad con clientes existentes, el header:
-
-```http
-Authorization: Bearer <token>
-```
-
-Si ambos están presentes, el header tiene prioridad. El campo `access_token` en la respuesta de login y el soporte del header se conservan mientras dure la migración de clientes — detalle de la fase dual en [`CHANGELOG.md`](CHANGELOG.md) (Fase 9F-A/9F-B).
+Los endpoints protegidos se autentican únicamente con la cookie de sesión `access_token` (`HttpOnly`, `SameSite=Lax`, `Secure` solo en producción, fijada automáticamente por el navegador tras `POST /auth/login`). Desde la Fase 9G el backend **ya no acepta** el header `Authorization: Bearer <token>`, y `POST /auth/login` **ya no devuelve** `access_token` en el body (`LoginResponse` contiene solo `user`). Detalle del corte en [`CHANGELOG.md`](CHANGELOG.md) (Fase 9G).
 
 | Método y ruta | Acceso | Propósito |
 | --- | --- | --- |
-| `POST /auth/login` | Público | Iniciar sesión: fija la cookie de sesión y devuelve el JWT en el body. |
+| `POST /auth/login` | Público | Iniciar sesión: fija la cookie de sesión y devuelve el usuario (`LoginResponse`). |
 | `POST /auth/logout` | Público | Cierra la sesión de cookie. Idempotente, no exige autenticación. |
 | `GET /usuarios/me` | Autenticado | Consultar la cuenta actual. |
 | `GET/POST/PUT/DELETE /usuarios` | Admin | Administrar usuarios. |
@@ -428,7 +422,7 @@ Una respuesta HTTP `409` indica que otro usuario reservó el mismo recurso y hor
 - Retirar `INITIAL_ADMIN_*` después del aprovisionamiento inicial.
 - No usar credenciales predeterminadas en producción.
 - Servir la aplicación detrás de HTTPS en entornos públicos.
-- El JWT viaja en una cookie de sesión `access_token` (`HttpOnly`, `SameSite=Lax`, `Secure` solo en producción) fijada por el backend; JavaScript de página no puede leerla ni escribirla, lo que reduce el riesgo de robo de token por XSS frente al modelo anterior (JWT en `localStorage`, retirado del frontend en la Fase 9F-B). Sigue habiendo riesgo de CSRF, mitigado por `SameSite=Lax` — sin defensa adicional (token de doble envío) todavía; el análisis asume que el navegador solo habla con el backend a través del proxy same-origin de Next.js. Por compatibilidad temporal, el backend también acepta `Authorization: Bearer <token>` y sigue devolviendo `access_token` en el body de login. Evitar scripts de terceros y revisar con cuidado cualquier cambio de frontend que pueda introducir XSS sigue siendo válido.
+- El JWT viaja en una cookie de sesión `access_token` (`HttpOnly`, `SameSite=Lax`, `Secure` solo en producción) fijada por el backend; JavaScript de página no puede leerla ni escribirla, lo que reduce el riesgo de robo de token por XSS frente al modelo anterior (JWT en `localStorage`, retirado del frontend en la Fase 9F-B). Desde la Fase 9G el backend **solo** acepta la cookie: el header `Authorization: Bearer` y el `access_token` del body de login fueron retirados del contrato. Sigue habiendo riesgo de **CSRF, mitigado pero no eliminado** por `SameSite=Lax` + cookie host-only + proxy same-origin de Next.js (todo el tráfico del navegador al backend pasa por `/api`); el token de doble envío u otra defensa adicional quedaron como fase separada, fuera de alcance. Evitar scripts de terceros y revisar con cuidado cualquier cambio de frontend que pueda introducir XSS sigue siendo válido.
 - Cabeceras de seguridad (CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en todas las respuestas de backend y frontend. `Strict-Transport-Security` y `Cross-Origin-Opener-Policy` requieren fijar `ENVIRONMENT=production` explícitamente — no se activan solo por desplegar con Docker Compose.
 - `POST /auth/login` aplica límite de intentos (5 fallos por ventana deslizante de 15 minutos, por IP + username) para mitigar fuerza bruta. Es una mitigación en memoria del proceso, no distribuida: si el backend llega a correr con varios workers o réplicas, cada uno cuenta por separado.
 - Cualquier excepción no controlada del backend responde siempre `500` con un mensaje genérico; el detalle (traceback, tipo de excepción) solo se registra en el log del servidor, nunca en la respuesta al cliente.

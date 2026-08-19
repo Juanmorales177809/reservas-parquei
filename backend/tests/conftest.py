@@ -34,7 +34,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.auth.auth import create_access_token, hash_password  # noqa: E402
+from app.auth.auth import NOMBRE_COOKIE_ACCESO, create_access_token, hash_password  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.migrations import migrate_resource_reservations  # noqa: E402
 from app.main import app  # noqa: E402
@@ -160,7 +160,24 @@ def crear_recurso(
     return recurso
 
 
-def headers_para(usuario):
+def cookies_para(usuario):
+    """Header `Cookie` con el token de sesión (Fase 9G, cookie-only).
+
+    La sesión viaja únicamente en la cookie `access_token` (la leen los
+    dependientes de `app/deps.py` de `request.cookies`); el header
+    `Authorization` ya no se acepta. Cada request de tests llevaba el token
+    en `Authorization` vía `headers_para` antes de 9G; ahora se envía como
+    cookie en el mismo header para conservar la semántica de cada prueba.
+    """
+    token = create_access_token(
+        data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
+    )
+    return {"Cookie": f"{NOMBRE_COOKIE_ACCESO}={token}"}
+
+
+def bearer_para(usuario):
+    """Header `Authorization: Bearer` — SOLO para pruebas negativas que
+    confirman que el backend ya no lo acepta (Fase 9G)."""
     token = create_access_token(
         data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
     )

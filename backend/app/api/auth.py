@@ -10,14 +10,14 @@ from app.auth.auth import (
 )
 from app.crud.usuarios import get_usuario_by_username
 from app.db import get_db
-from app.schemas.usuario import UsuarioLogin, UsuarioResponse, TokenResponse
+from app.schemas.usuario import LoginResponse, UsuarioLogin, UsuarioResponse
 from app.services.rate_limit import limitador_login
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=LoginResponse)
 def login(payload: UsuarioLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     # Sin X-Forwarded-For: no hay proxy confiable configurado en este
     # despliegue (ver app/services/rate_limit.py). request.client es la
@@ -52,20 +52,16 @@ def login(payload: UsuarioLogin, request: Request, response: Response, db: Sessi
     access_token = create_access_token(
         data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
     )
-    # Fase 9F-A (fase dual): la cookie HttpOnly se fija además del
-    # access_token en el body, que se conserva sin cambios de contrato
-    # para no romper clientes existentes (E2E, frontend actual).
+    # Fase 9G (cookie-only): la cookie HttpOnly es el único mecanismo de
+    # sesión. El body devuelve únicamente el usuario; `access_token` ya no
+    # se expone (el frontend solo leía `data.user` desde la Fase 9F-B).
     response.set_cookie(
         key=NOMBRE_COOKIE_ACCESO,
         value=access_token,
         max_age=max_age_cookie_acceso(),
         **atributos_cookie_acceso(),
     )
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=UsuarioResponse.model_validate(usuario),
-    )
+    return LoginResponse(user=UsuarioResponse.model_validate(usuario))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

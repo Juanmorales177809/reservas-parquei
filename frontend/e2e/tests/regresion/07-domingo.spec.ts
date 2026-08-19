@@ -1,14 +1,13 @@
-import { expect, headersPara, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { proximoDomingo } from '../../data/usuarios';
 
 solo(['usuario']);
 
 test.describe('Contrato de horario', () => {
   test('el backend rechaza reservas en un día sin atención', async ({ backend }) => {
-    const headers = await headersPara(backend, 'usuario');
+    await iniciarSesionApi(backend, 'usuario');
     const recurso = await primerRecurso(backend);
     const respuesta = await backend.post('/reservas', {
-      headers,
       data: {
         recurso_ids: [recurso.id],
         fecha: proximoDomingo(),

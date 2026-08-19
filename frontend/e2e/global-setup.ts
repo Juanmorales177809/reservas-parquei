@@ -16,18 +16,20 @@ const DIR_AUTH = path.join(__dirname, '.auth');
  *    lifespan vía INITIAL_ADMIN_*).
  * 4. Genera storageState por rol bajo e2e/.auth/ (directorio ignorado).
  *
+ * Fase 9G (cookie-only): el login por API deja la cookie HttpOnly en el
+ * jar del APIRequestContext; las llamadas siguientes del mismo contexto
+ * autentican sin headers. No se extrae ni reenvía `access_token`.
+ *
  * No usa credenciales reales y nunca toca bases de desarrollo o producción.
  */
 export default async function globalSetup(_config: FullConfig) {
   const admin = await request.newContext({ baseURL: BACKEND });
   try {
-    const adminToken = await iniciarSesion(admin, 'admin');
+    await iniciarSesion(admin, 'admin');
 
-    const espacios = (await admin.get('/espacios', { headers: autorizacion(adminToken) })).ok()
-      ? ((await (await admin.get('/espacios', { headers: autorizacion(adminToken) })).json()) as Array<{
-          id: number;
-          estado: string;
-        }>)
+    const espaciosResp = await admin.get('/espacios');
+    const espacios = espaciosResp.ok()
+      ? ((await espaciosResp.json()) as Array<{ id: number; estado: string }>)
       : [];
     if (espacios.length === 0) {
       throw new Error('No hay espacios sembrados en la base de pruebas');
@@ -40,13 +42,10 @@ export default async function globalSetup(_config: FullConfig) {
     }
     const espacioId: number = activo.id;
 
-    const recursosResp = await admin.get(`/recursos?espacio_id=${espacioId}`, {
-      headers: autorizacion(adminToken),
-    });
+    const recursosResp = await admin.get(`/recursos?espacio_id=${espacioId}`);
     const recursos: unknown[] = await recursosResp.json();
     if (recursos.length === 0) {
       const creado = await admin.post('/recursos', {
-        headers: autorizacion(adminToken),
         data: {
           nombre: 'Recurso E2E',
           tipo_recurso_id: 1,
@@ -59,8 +58,8 @@ export default async function globalSetup(_config: FullConfig) {
       if (!creado.ok()) throw new Error(`No se pudo crear el recurso E2E: ${creado.status()}`);
     }
 
-    await crearUsuarioSiFalta(admin, adminToken, USUARIOS.gestor, espacioId);
-    await crearUsuarioSiFalta(admin, adminToken, USUARIOS.usuario, null);
+    await crearUsuarioSiFalta(admin, USUARIOS.gestor, espacioId);
+    await crearUsuarioSiFalta(admin, USUARIOS.usuario, null);
   } finally {
     await admin.dispose();
   }
@@ -78,21 +77,16 @@ async function iniciarSesion(ctx: import('@playwright/test').APIRequestContext, 
   if (!respuesta.ok()) {
     throw new Error(`Login API de ${rol} falló: ${respuesta.status()}`);
   }
-  return ((await respuesta.json()) as { access_token: string }).access_token;
-}
-
-function autorizacion(token: string) {
-  return { Authorization: `Bearer ${token}` };
+  // Fase 9G: la cookie HttpOnly queda en el jar del contexto y autentica
+  // las llamadas siguientes; no se extrae access_token del body.
 }
 
 async function crearUsuarioSiFalta(
   ctx: import('@playwright/test').APIRequestContext,
-  adminToken: string,
   usuario: { username: string; email: string; password: string; rol: string },
   espacioId: number | null,
 ) {
   const respuesta = await ctx.post('/usuarios', {
-    headers: autorizacion(adminToken),
     data: {
       username: usuario.username,
       email: usuario.email,

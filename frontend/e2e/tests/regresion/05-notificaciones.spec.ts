@@ -1,13 +1,13 @@
-import { expect, headersPara, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
+import { expect, iniciarSesionApi, crearReservaApi, primerRecurso, solo, test } from '../../fixtures/fixtures';
 import { fechaFutura } from '../../data/usuarios';
 
 solo(['gestor']);
 
 test.describe('Notificaciones', () => {
   test('el gestor recibe la notificación de una reserva pendiente', async ({ page, backend }, testInfo) => {
-    const headersUsuario = await headersPara(backend, 'usuario');
+    await iniciarSesionApi(backend, 'usuario');
     const recurso = await primerRecurso(backend);
-    const creada = await crearReservaApi(backend, headersUsuario, {
+    const creada = await crearReservaApi(backend, {
       recurso_ids: [recurso.id],
       // Offset 22, no 14: reserva el mismo primer recurso y el mismo horario
       // 10:00-11:00 que e2e/tests/smoke/08-disponibilidad.spec.ts (offset 13).

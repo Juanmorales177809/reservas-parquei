@@ -29,7 +29,7 @@ npm run test:e2e:all        # suite completa — lo que corre CI también
 - `src/components/` — componentes compartidos, incluye `ProtectedRoute.tsx` (guard de rutas por rol, client-side; la autorización real vive en el backend).
 - `frontend/e2e/` — Playwright: `global-setup.ts`, `fixtures/`, `tests/smoke/`, `tests/regresion/`.
 
-## Autenticación actual (estado confirmado en código — Fase 9F-B)
+## Autenticación actual (estado confirmado en código — Fase 9G, cookie-only)
 
 - La sesión vive en una **cookie HttpOnly** (`access_token`) gestionada por el navegador; JavaScript de página no puede leerla ni escribirla.
 - `apiFetch` (`src/services/api.ts`) usa `credentials: 'same-origin'` en cada request para que el navegador adjunte esa cookie.
@@ -37,13 +37,13 @@ npm run test:e2e:all        # suite completa — lo que corre CI también
 - `AuthContext` determina la sesión con `GET /usuarios/me` (`authService.getProfile()`) al montar; es asíncrono, `loading` debe reflejarlo.
 - `/usuarios/me` está exento del interceptor global de 401 en `api.ts` (`RUTAS_SIN_REDIRECT_401`, junto con `/auth/login`) — un 401 ahí en una página pública es normal (visitante anónimo), no dispara redirect. No quitar esta exención sin entender que rompe la navegación anónima.
 - `logout()` llama `POST /auth/logout`; limpia el estado local siempre, incluso si la llamada de red falla.
-- El backend mantiene `Authorization: Bearer <token>` como **compatibilidad dual temporal** — el frontend ya no lo genera, pero no asumir que el backend lo retiró (ver Fase 9G en `CHANGELOG.md`).
+- El backend es **cookie-only desde la Fase 9G**: `Authorization: Bearer <token>` ya no se acepta (401) y el login ya no devuelve `access_token`/`token_type` en el body. No generar ese header ni asumir compatibilidad dual.
 
 ## E2E
 
 - `storageState` con **cookies reales**: `frontend/e2e/global-setup.ts` usa `ctx.storageState()` sobre un `APIRequestContext` que hizo login real — no construir `localStorage` a mano en ningún fixture nuevo.
 - Para simular una sesión inválida en un test, usar `context.addCookies()` (ver `frontend/e2e/tests/smoke/06-401.spec.ts`) — `page.evaluate` no puede tocar una cookie HttpOnly, por diseño.
-- Revisar `frontend/e2e/fixtures/fixtures.ts` antes de asumir que un fixture nuevo necesita cookies: los fixtures que hablan directamente con el backend (`APIRequestContext` con header `Authorization`) siguen siendo válidos mientras el backend mantenga la compatibilidad dual.
+- Los fixtures que hablan directamente con el backend autentican por **cookie-jar**: `frontend/e2e/fixtures/fixtures.ts` expone `iniciarSesionApi(backend, rol)` (login real; la cookie HttpOnly queda en el jar del `APIRequestContext` y autentica las llamadas siguientes). No re-introducir `Authorization` ni extraer `access_token` del body de login.
 - **No usar credenciales reales** en ningún fixture, spec, ni en `playwright.config.ts` — solo las ficticias ya definidas (`e2e-admin`, etc.), exclusivas del proceso E2E local.
 
 ## No cambiar contrato backend sin aprobación

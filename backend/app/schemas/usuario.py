@@ -64,7 +64,11 @@ class UsuarioResponse(BaseModel):
     espacio: UsuarioEspacioResponse | None = None
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class LoginResponse(BaseModel):
+    """Respuesta de `POST /auth/login` tras el corte 9G (cookie-only).
+
+    La sesión viaja en la cookie HttpOnly `access_token` que fija
+    `app/api/auth.py`; el body ya no expone el JWT ni `token_type`.
+    """
+
     user: UsuarioResponse
