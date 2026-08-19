@@ -1,13 +1,14 @@
 from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.crud.reservas import get_reservas_bloqueantes
 from app.db import get_db
 from app.deps import get_current_user_optional, get_managed_space_id, require_resource_manager
 from app.domain.enums import Rol
-from app.models import Espacio, Recurso, Reserva, TipoRecurso, Usuario
+from app.models import Espacio, Recurso, TipoRecurso, Usuario
 from app.models.reserva_recurso import ReservaRecurso
 from app.schemas.disponibilidad import DisponibilidadSlot
 from app.schemas.recurso import RecursoCreate, RecursoResponse, RecursoUpdate, TipoRecursoResponse
@@ -134,14 +135,17 @@ def crear_recurso(
 
 
 def _recurso_tiene_reservas(db: Session, recurso_id: int) -> bool:
-    """Fase 12C-6: un recurso no puede moverse/eliminarse si tiene reservas.
-    Consulta `reserva_recursos` (fuente de verdad de los conjuntos: incluye
-    recursos reclamados por reservas de zona que no son el ancla) y además la
-    columna histórica `Reserva.recurso_id` (el ancla de una zona sin recursos,
-    que conserva el FK)."""
-    if db.query(ReservaRecurso).filter(ReservaRecurso.recurso_id == recurso_id).first() is not None:
-        return True
-    return db.query(Reserva).filter(Reserva.recurso_id == recurso_id).first() is not None
+    """Fase 12C-4e-lectores: un recurso no puede moverse/eliminarse si tiene
+    reservas. Consulta únicamente `reserva_recursos` (fuente de verdad de los
+    conjuntos: incluye recursos reclamados por reservas de zona que no son el
+    ancla) -- ya no cae de vuelta a la columna histórica `Reserva.recurso_id`.
+
+    Caso límite: el recurso "ancla" de una reserva de zona SIN recursos
+    asociados no tiene fila en `reserva_recursos` y este guard no lo detecta;
+    `reservas.recurso_id` sigue siendo NOT NULL con FK real (sin retirar en
+    esta subfase), así que ese caso lo sigue bloqueando la base de datos
+    misma -- ver el `except IntegrityError` en `eliminar_recurso`."""
+    return db.query(ReservaRecurso).filter(ReservaRecurso.recurso_id == recurso_id).first() is not None
 
 
 @router.put("/{recurso_id}", response_model=RecursoResponse)
@@ -197,5 +201,14 @@ def eliminar_recurso(
     descripcion = f"Eliminó el recurso {recurso.nombre}"
     db.delete(recurso)
     registrar_cambio(db, current_user, "eliminar", "recurso", recurso_id, descripcion)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Fase 12C-4e-lectores: el guard de arriba ya no detecta el recurso
+        # "ancla" de una zona sin recursos (ver `_recurso_tiene_reservas`);
+        # para ese caso límite, `reservas.recurso_id` (FK real, NOT NULL, sin
+        # retirar en esta subfase) sigue rechazando el borrado a nivel de
+        # base de datos. Se traduce a 409 en vez de dejarlo escapar como 500.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="No se puede eliminar un recurso con reservas")
     return None

@@ -8,6 +8,7 @@ import type { Reserva } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
+import { etiquetaObjetivoReserva } from '@/utils/reservaEtiqueta';
 
 export default function MisReservasPage() {
   const { isAuthenticated } = useAuth();
@@ -128,8 +129,8 @@ export default function MisReservasPage() {
                     key={reserva.id}
                     className={highlightedReservaId === reserva.id ? '[&>td]:bg-primary-50' : ''}
                   >
-                    <td className="font-medium">{reserva.recurso.nombre}</td>
-                    <td>{reserva.recurso.espacio.nombre}</td>
+                    <td className="font-medium">{etiquetaObjetivoReserva(reserva)}</td>
+                    <td>{reserva.espacio.nombre}</td>
                     <td>
                       {editing?.id === reserva.id ? (
                         <input

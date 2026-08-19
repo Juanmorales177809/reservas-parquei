@@ -226,3 +226,41 @@ class TestGuardConReservaDeZona:
             f"/recursos/{r_ancla.id}", headers=cookies_para(admin)
         )
         assert respuesta.status_code == 409
+
+
+class TestGuardSoloReservaRecursos:
+    """Fase 12C-4e-lectores: `_recurso_tiene_reservas` deja de consultar la
+    columna histórica `Reserva.recurso_id` como fallback -- solo consulta
+    `reserva_recursos`. Caso límite real: el recurso "ancla" de una reserva
+    de zona SIN recursos asociados (ver
+    test_reservas_zonas.py::test_zona_sin_recursos_ancla_al_recurso_de_menor_id)
+    no tiene ninguna fila en `reserva_recursos` para esa reserva -- el guard
+    de aplicación ya no lo detecta. Pero `reservas.recurso_id` sigue siendo
+    NOT NULL con FK real (`fk_reservas_recurso`, sin retirar en esta
+    subfase): intentar eliminarlo igual falla, ahora vía la constraint de
+    base de datos en vez del guard explícito -- por eso sigue dando 409,
+    traducido explícitamente en vez de dejarlo escapar como 500."""
+
+    def test_recurso_ancla_de_zona_sin_recursos_sigue_bloqueado_por_fk(self, client, db):
+        espacio = crear_espacio(db, nombre="Sala Ancla Sin Recursos", modalidad_reserva="mixto")
+        admin = crear_usuario(
+            db, username="admin_ancla_libre", email="admin_ancla_libre@example.com", rol="admin"
+        )
+        r_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Menor Id Libre")
+        zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona Sin Recursos Libre")
+        # La zona NO tiene ningun recurso asociado.
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+            headers=cookies_para(admin),
+        )
+        assert creada.status_code == 201
+        # Fase 12C-4e-schemas: `recurso_id` ya no está en la respuesta; el
+        # ancla se confirma contra la columna histórica directamente.
+        from app.models.reserva import Reserva
+
+        reserva = db.query(Reserva).filter(Reserva.id == creada.json()["id"]).one()
+        assert reserva.recurso_id == r_ancla.id  # confirma el ancla
+
+        respuesta = client.delete(f"/recursos/{r_ancla.id}", headers=cookies_para(admin))
+        assert respuesta.status_code == 409

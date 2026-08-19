@@ -17,6 +17,8 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 | admin_dashboard.py | Modificado (Fase 12C-6) | `recursos_mas_reservados` cuenta **por recurso efectivo**: JOIN contra `reserva_recursos` (`func.count(ReservaRecurso.id)` en select/group_by/ORDER BY) — una reserva de zona con N recursos efectivos cuenta N veces |
 | notificaciones.py | Modificado (Fase 12C-6) | `_etiqueta_objetivo` zona-aware: si la reserva tiene zonas, el mensaje las nombra; si no, el recurso ancla singular. `_query_usuario` precarga `Reserva.zonas` |
 | recursos.py | Modificado (Fase 12C-6) | Guares de mover/eliminar migrados a `_recurso_tiene_reservas`: consulta `reserva_recursos` (conjuntos efectivos) **y** la columna histórica `Reserva.recurso_id` (ancla de zona sin recursos) |
+| notificaciones.py | Modificado (Fase 12C-4e-lectores) | `_etiqueta_objetivo` nombra TODOS los recursos asociados (vía `recursos_asociados`), no solo el ancla singular, cuando la reserva no tiene zona; `_query_usuario` precarga `Reserva.recursos_asociados`→`ReservaRecurso.recurso` en vez de `Reserva.recurso` |
+| recursos.py | Modificado (Fase 12C-4e-lectores) | `_recurso_tiene_reservas` deja de consultar `Reserva.recurso_id` como fallback (solo `reserva_recursos`); `eliminar_recurso` gana `try/except IntegrityError` → 409, necesario porque el ancla de una zona sin recursos ya no lo detecta el guard de aplicación y ahora depende de la FK real de `reservas.recurso_id` (sin retirar) |
 
 ## Reglas de negocio relacionadas
 
@@ -67,6 +69,13 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 - **Notificaciones zona-aware** (`notificaciones.py`): `_etiqueta_objetivo` nombra la/s zona/s cuando la reserva las tiene ("Nueva reserva pendiente para la zona X"); si no, el recurso ancla singular (compatibilidad). `_query_usuario` precarga `Reserva.zonas` (joinedload) para evitar N+1.
 - **Guard de mover/eliminar recurso migrado** (`recursos.py::_recurso_tiene_reservas`): consulta `reserva_recursos` (fuente de los conjuntos, incluye recursos reclamados por reservas de zona que no son el ancla) **y** la columna histórica `Reserva.recurso_id` (el ancla de una zona sin recursos, que conserva el FK) — un recurso con reservas no puede moverse a otro espacio ni eliminarse, con 409 en ambos endpoints.
 
+### Fase 12C-4e-lectores/schemas — Retiro del singular en la respuesta
+
+- **`notificaciones.py::_etiqueta_objetivo` lista todos los recursos**: cuando la reserva no tiene zona, el mensaje ahora nombra todos los recursos asociados (`", ".join`), no solo el ancla — una reserva de dos recursos directos mencionaba antes solo uno.
+- **`recursos.py::_recurso_tiene_reservas` consulta solo `reserva_recursos`**: se retira el fallback a la columna histórica `Reserva.recurso_id`. Caso límite real: el recurso "ancla" de una reserva de zona **sin** recursos asociados no tiene fila en `reserva_recursos` y este guard ya no lo detecta — pero `reservas.recurso_id` sigue siendo `NOT NULL` con FK real (sin retirar en esta subfase), así que la base de datos igual rechaza el borrado. `eliminar_recurso` ganó un `try/except IntegrityError` → 409 (mismo mensaje que el guard explícito) para no dejar escapar ese caso límite como un 500 crudo — necesario para completar el pedido literal ("guard consulta solo `reserva_recursos`") sin introducir una regresión.
+- **`ReservaResponse` retira `recurso_id`/`recurso`, agrega `recursos`** (`app/schemas/reserva.py`, detalle completo en `backend/app/schemas/README.md`): la forma singular temporal (ancla) que 12C-6 dejó pendiente se retira; `crud/reservas.py::_enriquecer_con_asociaciones` deja de resolver/asignar el ancla y solo puebla `recursos`/`recurso_ids`/`zona_ids` (ver `backend/app/crud/README.md`).
+- **`reservas.recurso_id` (columna), `Reserva.recurso` (relación ORM), `reservas_sin_solapamiento`, índices históricos, `migrations.py` y el rollback documentado no se tocan**: el retiro es solo del contrato de respuesta pública; nada del modelo ni de la base de datos cambió, sin DDL ejecutado.
+
 ### Fase 9F-A — Autenticación dual por cookie HttpOnly
 
 - **Fase dual aprobada explícitamente**: `POST /auth/login` conserva `TokenResponse.access_token` en el body (sin cambio de contrato) y además fija una cookie HttpOnly con el mismo token, vía los helpers de `app/auth/auth.py` (`atributos_cookie_acceso()`, `max_age_cookie_acceso()`). Objetivo: permitir migrar el frontend a cookie en una fase posterior sin romper clientes existentes (E2E, frontend actual, que siguen usando `Authorization: Bearer`).
@@ -91,9 +100,10 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 .\.venv\Scripts\python.exe -m pytest tests/test_api_zonas.py -v   # Fase 12C-2
 .\.venv\Scripts\python.exe -m pytest tests/test_api_zonas_recursos.py -v   # Fase 12C-3
 .\.venv\Scripts\python.exe -m pytest tests/test_dashboard_recursos_efectivos.py -v   # Fase 12C-6
+.\.venv\Scripts\python.exe -m pytest tests/test_api_notificaciones.py tests/test_api_recursos.py tests/test_reserva_response_sin_singular.py -v   # Fase 12C-4e-lectores/schemas
 ```
 
-Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenticación por cookie de la Fase 9G reescrita a cookie-only). Suite completa del backend: **516/516** salvo `test_openapi_contrato.py` en rojo a propósito hasta aprobar la regeneración del snapshot de 9G. Fase 12B: 318/318. Fase 12C-2: 364 en total. Fase 12C-3: 382 en total. Fase 12C-6: 482/482.
+Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenticación por cookie de la Fase 9G reescrita a cookie-only). Suite completa del backend: **516/516** salvo `test_openapi_contrato.py` en rojo a propósito hasta aprobar la regeneración del snapshot de 9G. Fase 12B: 318/318. Fase 12C-2: 364 en total. Fase 12C-3: 382 en total. Fase 12C-6: 482/482. Fase 12C-4e-lectores/schemas: suite completa **525/525** (incluye `test_openapi_contrato.py` verde, snapshot regenerado); E2E completo contra `reservas_test` recreada en limpio: **27 passed / 0 failed / 81 skipped**.
 
 ## Impacto y compatibilidad
 
@@ -105,6 +115,7 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenti
 - **Fase 12C-2 — cambio de OpenAPI puramente aditivo, aprobado y regenerado**: nuevos paths `/zonas` y `/zonas/{zona_id}`, nuevos componentes `ZonaCreate`/`ZonaUpdate`/`ZonaResponse`. Ningún path/schema existente fue tocado (376 líneas insertadas, 0 eliminadas). `tests/openapi.snapshot.json` ya refleja este cambio; `test_openapi_contrato.py` verde.
 - **Fase 12C-3 — cambio de OpenAPI puramente aditivo, aprobado y regenerado**: nuevo path `/zonas/{zona_id}/recursos` (`PUT`), nuevos componentes `ZonaRecursosUpdate`/`ZonaRecursosResponse`. Ningún path/schema existente fue tocado (94 líneas insertadas, 0 eliminadas; el guard nuevo de `DELETE /zonas/{zona_id}` es un cambio de comportamiento, no de contrato — FastAPI no documenta automáticamente cada código de error posible de un `HTTPException` inline, mismo criterio que el resto de 403/404 de este router). `tests/openapi.snapshot.json` ya refleja este cambio; `test_openapi_contrato.py` verde.
 - **Fase 12C-6 — cambio de OpenAPI aprobado y regenerado**: cambios solo a nivel de schemas de reserva (`ReservaCreate`/`ReservaUpdate`: `additionalProperties: false` + ejes `recurso_ids`/`zona_ids`; `ReservaResponse`: + `recurso_ids`/`zona_ids`/`zonas`; nuevo `ZonaReservaResponse`). **Ninguna ruta ni esquema de seguridad modificado** (verificado por script estructural y por diff antes de regenerar). `test_openapi_contrato.py` verde.
+- **Fase 12C-4e-schemas — cambio de OpenAPI aprobado y regenerado, único schema afectado**: `ReservaResponse` quita `recurso`/`recurso_id` de `properties`/`required`, agrega `recursos` (array de `RecursoReservaResponse`). Cambio de comportamiento en `notificaciones.py`/`recursos.py` (12C-4e-lectores) sin cambio de OpenAPI (mismos paths, mismos códigos de estado documentados). **Ninguna ruta, método, request body ni esquema de seguridad tocado** — ver detalle del diff en `backend/app/schemas/README.md`. `test_openapi_contrato.py` verde.
 
 ## Riesgos
 
@@ -115,6 +126,7 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenti
 - **Fase 12C-2**: ninguno funcional. `Zona` sigue sin asociación con `Recurso` ni `Reserva` — el `DELETE /zonas/{id}` no tiene guard de dependencias porque no hay ninguna que consultar todavía (ver Decisiones técnicas). El rollback de `Reserva.recurso_id` (decisión 11 del análisis de 12C) sigue pendiente — corresponde a 12C-4, no a esta subfase.
 - **Fase 12C-3**: ninguno funcional en el alcance implementado. `PUT /recursos/{id}` y `DELETE /recursos/{id}` no conocían la asociación de zona (riesgo aceptado y documentado en `backend/app/models/README.md`) — **resuelto en 12C-6** con `_recurso_tiene_reservas` (asociación + columna histórica). El rollback de `Reserva.recurso_id` sigue pendiente — corresponde a 12C-4e.
 - **Fase 12C-6**: el mensaje de notificación de una reserva que antes se construía con `reserva.recurso.nombre` ahora es zona-aware — una reserva solo de zona ya no muestra el recurso ancla en el texto. Riesgo residual del ancla (zona sin recursos → recurso de menor id del espacio) documentado en `services/README.md` y `tests/test_reservas_zonas.py`.
+- **Fase 12C-4e-lectores/schemas**: ruptura de contrato aprobada explícitamente en `ReservaResponse` (retira `recurso_id`/`recurso`) — cualquier cliente externo no migrado a `recurso_ids`/`recursos`/`zonas` se rompe; el frontend propio de este repo ya migró en la misma subfase. `_recurso_tiene_reservas` (`recursos.py`) ya no detecta por sí solo el recurso ancla de una zona sin recursos — ese caso límite queda cubierto por la FK real de `reservas.recurso_id` (traducida a 409), no por el guard de aplicación; riesgo residual documentado, no bloqueante mientras la columna histórica exista.
 
 ## Pendientes
 
@@ -128,8 +140,10 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenti
 - ~~Fase 12C-2: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
 - ~~Fase 12C-3: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
 - ~~Fase 12C-6: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
-- **Fase 12C-4e (no iniciada)**: retiro de la columna `Reserva.recurso_id` (y del singular de la respuesta) — solo al cierre de toda la transición, requiere aprobación explícita. El **rollback endurecido** de `migrations.py` (abortar ante reservas no representables, única transacción, verificación del esquema) sigue sin escribirse (pendiente desde 12C-4b).
+- ~~Fase 12C-4e-lectores: migrar lectores de `notificaciones.py`/`recursos.py` a las asociaciones.~~ **Hecho.**
+- ~~Fase 12C-4e-schemas: retirar `recurso_id`/`recurso` de `ReservaResponse`, agregar `recursos`; aprobar y regenerar `tests/openapi.snapshot.json`.~~ **Hecho.**
+- **Retiro de la columna `reservas.recurso_id`, `Reserva.recurso` (relación ORM), `reservas_sin_solapamiento` e índices históricos (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL. El **rollback endurecido** de `migrations.py` (abortar ante reservas no representables, única transacción, verificación del esquema) sigue sin escribirse (pendiente desde 12C-4b).
 
 ## Fase de implementación
 
-Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly). Fase 9G (cookie-only, corte de `access_token`/`Authorization`). Fase 12B (visibilidad/autorización de recursos PS). Fase 12C-2 (CRUD/API de `Zona`). Fase 12C-3 (asociación Zona↔Recurso). Fase 12C-6 (dashboard/notificaciones/guards por recurso efectivo).
+Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly). Fase 9G (cookie-only, corte de `access_token`/`Authorization`). Fase 12B (visibilidad/autorización de recursos PS). Fase 12C-2 (CRUD/API de `Zona`). Fase 12C-3 (asociación Zona↔Recurso). Fase 12C-6 (dashboard/notificaciones/guards por recurso efectivo). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta).

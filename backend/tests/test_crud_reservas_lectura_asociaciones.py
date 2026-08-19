@@ -5,8 +5,11 @@ Objetivo: las consultas internas *por recurso* dejan de depender de la
 columna histórica `Reserva.recurso_id` y leen `reserva_recursos` (la misma
 tabla que sostiene la constraint `reserva_recursos_sin_solapamiento` y la
 doble escritura de 12C-4d). El contrato público pasó a `recurso_ids`/
-`zona_ids` (12C-6), pero las respuestas singulares (`Reserva.recurso`) se
-conservan y `Reserva.recurso_id` sigue intacto.
+`zona_ids`/`recursos` (12C-6/12C-4e-schemas) -- `ReservaResponse` ya no
+expone `recurso`/`recurso_id`. `Reserva.recurso` (la relación ORM) y
+`Reserva.recurso_id` (la columna) siguen intactos a nivel de modelo; las
+aserciones `.recurso.id` de este archivo ejercitan esa relación ORM
+directamente (lazy-load vía la columna histórica), no la respuesta pública.
 
 Los tests RED demuestran el vacío semántico: una consulta basada solo en la
 columna histórica no ve la asociación cuando el recurso de una reserva vive

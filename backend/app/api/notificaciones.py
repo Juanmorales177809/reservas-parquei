@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import Notificacion, Recurso, Reserva, Usuario
+from app.models.reserva_recurso import ReservaRecurso
 from app.schemas.notificacion import NotificacionResponse, NotificacionesSinLeerResponse
 
 
@@ -12,16 +13,21 @@ router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 
 
 def _etiqueta_objetivo(notificacion: Notificacion) -> str:
-    """Nombre mostrable de una reserva para los mensajes (Fase 12C-6):
-    la/s zona/s si la reserva las tiene; si no, el recurso ancla singular."""
+    """Nombre mostrable de una reserva para los mensajes (Fase 12C-4e-lectores):
+    la/s zona/s si la reserva las tiene; si no, TODOS los recursos asociados
+    (vía `reserva_recursos`), no solo el ancla singular `Reserva.recurso`."""
     reserva = notificacion.reserva
     if reserva is None:
         return "el recurso"
     zonas = list(reserva.zonas or [])
     if zonas:
         return "la zona " + ", ".join(z.nombre for z in zonas)
-    recurso = reserva.recurso
-    return recurso.nombre if recurso is not None else "el recurso"
+    nombres = [
+        fila.recurso.nombre
+        for fila in sorted(reserva.recursos_asociados or (), key=lambda fila: fila.recurso_id)
+        if fila.recurso is not None
+    ]
+    return ", ".join(nombres) if nombres else "el recurso"
 
 
 def _mensaje(notificacion: Notificacion) -> str:
@@ -51,7 +57,10 @@ def _query_usuario(db: Session, usuario_id: int):
     return (
         db.query(Notificacion)
         .options(
-            joinedload(Notificacion.reserva).joinedload(Reserva.recurso).joinedload(Recurso.espacio),
+            joinedload(Notificacion.reserva)
+            .joinedload(Reserva.recursos_asociados)
+            .joinedload(ReservaRecurso.recurso)
+            .joinedload(Recurso.espacio),
             joinedload(Notificacion.reserva).joinedload(Reserva.zonas),
         )
         .filter(Notificacion.usuario_id == usuario_id)

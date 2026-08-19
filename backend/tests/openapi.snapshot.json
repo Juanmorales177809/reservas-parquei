@@ -1071,18 +1071,18 @@
             "title": "Id",
             "type": "integer"
           },
-          "recurso": {
-            "$ref": "#/components/schemas/RecursoReservaResponse"
-          },
-          "recurso_id": {
-            "title": "Recurso Id",
-            "type": "integer"
-          },
           "recurso_ids": {
             "items": {
               "type": "integer"
             },
             "title": "Recurso Ids",
+            "type": "array"
+          },
+          "recursos": {
+            "items": {
+              "$ref": "#/components/schemas/RecursoReservaResponse"
+            },
+            "title": "Recursos",
             "type": "array"
           },
           "updated_at": {
@@ -1116,7 +1116,6 @@
           "id",
           "usuario_id",
           "espacio_id",
-          "recurso_id",
           "fecha",
           "hora_inicio",
           "hora_fin",
@@ -1125,8 +1124,7 @@
           "created_at",
           "updated_at",
           "usuario",
-          "espacio",
-          "recurso"
+          "espacio"
         ],
         "title": "ReservaResponse",
         "type": "object"

@@ -134,8 +134,8 @@ class TestReservasObjetivo:
         )
         assert respuesta.status_code == 201
         cuerpo = respuesta.json()
-        assert cuerpo["recurso_id"] == r1.id
         assert cuerpo["recurso_ids"] == [r1.id]
+        assert [r["id"] for r in cuerpo["recursos"]] == [r1.id]
         assert cuerpo["zona_ids"] == []
         assert db.query(ReservaRecurso).count() == 1
         assert db.query(ReservaZona).count() == 0
@@ -154,7 +154,7 @@ class TestReservasObjetivo:
         assert sorted(cuerpo["recurso_ids"]) == sorted([r1.id, r2.id])
         assert len(cuerpo["zonas"]) == 1
         assert cuerpo["zonas"][0]["nombre"] == "Zona A"
-        assert cuerpo["recurso_id"] == min(r1.id, r2.id)
+        assert sorted(r["id"] for r in cuerpo["recursos"]) == sorted([r1.id, r2.id])
         reserva = db.query(Reserva).filter(Reserva.id == cuerpo["id"]).one()
         assert reserva.recurso_id == min(r1.id, r2.id)
         assert db.query(ReservaZona).count() == 1
@@ -311,7 +311,10 @@ class TestSolapamientoTransitivo:
             "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert zona_reservada.status_code == 201
-        assert zona_reservada.json()["recurso_id"] == r1.id
+        # Fase 12C-4e-schemas: `recurso_id` ya no está en la respuesta; el
+        # ancla se confirma contra la columna histórica directamente.
+        reserva = db.query(Reserva).filter(Reserva.id == zona_reservada.json()["id"]).one()
+        assert reserva.recurso_id == r1.id
         # Una zona sin recursos no materializa nada: no bloquea recursos
         # ajenos al ancla histórico.
         otra = client.post(

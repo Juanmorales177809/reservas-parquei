@@ -8,6 +8,7 @@ import type { Reserva, ReservaEstadoUpdate } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
+import { etiquetaObjetivoReserva } from '@/utils/reservaEtiqueta';
 
 export default function AdminReservasPage() {
   const { isAuthenticated, user } = useAuth();
@@ -142,8 +143,8 @@ export default function AdminReservasPage() {
                     className={highlightedReservaId === reserva.id ? '[&>td]:bg-primary-50' : ''}
                   >
                     <td className="font-medium">{reserva.usuario.username}</td>
-                    <td className="font-medium">{reserva.recurso.nombre}</td>
-                    <td>{reserva.recurso.espacio.nombre}</td>
+                    <td className="font-medium">{etiquetaObjetivoReserva(reserva)}</td>
+                    <td>{reserva.espacio.nombre}</td>
                     <td>
                       {editing?.id === reserva.id ? (
                         <input

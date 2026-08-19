@@ -11,6 +11,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import AdminDashboardCharts from '@/components/AdminDashboardCharts';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
+import { etiquetaObjetivoReserva } from '@/utils/reservaEtiqueta';
 
 export default function AdminDashboardPage() {
   const { isAdmin, isAuthenticated, user } = useAuth();
@@ -180,8 +181,8 @@ export default function AdminDashboardPage() {
                     {pendientes.slice(0, 5).map((reserva) => (
                       <tr key={reserva.id}>
                         <td className="font-medium">{reserva.usuario.username}</td>
-                        <td>{reserva.recurso.nombre}</td>
-                        <td>{reserva.recurso.espacio.nombre}</td>
+                        <td>{etiquetaObjetivoReserva(reserva)}</td>
+                        <td>{reserva.espacio.nombre}</td>
                         <td>{reserva.fecha}</td>
                         <td>
                           {reserva.hora_inicio.slice(0, 5)} - {reserva.hora_fin.slice(0, 5)}
@@ -252,8 +253,8 @@ export default function AdminDashboardPage() {
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="text-text-muted">Usuario</dt><dd className="font-medium">{selectedReserva.usuario.username}</dd></div>
-              <div><dt className="text-text-muted">Recurso</dt><dd className="font-medium">{selectedReserva.recurso.nombre}</dd></div>
-              <div><dt className="text-text-muted">Espacio</dt><dd className="font-medium">{selectedReserva.recurso.espacio.nombre}</dd></div>
+              <div><dt className="text-text-muted">Recurso</dt><dd className="font-medium">{etiquetaObjetivoReserva(selectedReserva)}</dd></div>
+              <div><dt className="text-text-muted">Espacio</dt><dd className="font-medium">{selectedReserva.espacio.nombre}</dd></div>
               <div><dt className="text-text-muted">Fecha</dt><dd className="font-medium">{selectedReserva.fecha}</dd></div>
               <div><dt className="text-text-muted">Horario</dt><dd className="font-medium">{selectedReserva.hora_inicio.slice(0, 5)} - {selectedReserva.hora_fin.slice(0, 5)}</dd></div>
               <div><dt className="text-text-muted">Asistentes</dt><dd className="font-medium">{selectedReserva.asistentes}</dd></div>

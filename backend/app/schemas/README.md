@@ -19,6 +19,7 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 | zona.py | Nuevo (Fase 12C-2) | `ZonaCreate` (`nombre`, `espacio_id` obligatorio, `descripcion`, `capacidad` opcional `>0`, `estado` default `activo`), `ZonaUpdate` (todo opcional, sin `created_by`/`updated_by`), `ZonaResponse` (incluye timestamps y auditoría; sin `recursos` todavía) |
 | zona.py | Modificado (Fase 12C-3) | Agrega `ZonaRecursosUpdate` (`recurso_ids: list[int]`, reemplazo completo) y `ZonaRecursosResponse` (`zona_id`, `recurso_ids` resultantes) — deliberadamente separados de `ZonaResponse`, sin ampliar ese contrato |
 | reserva.py | Modificado (Fase 12C-6) | Contrato plural aprobado 12C-6: `ReservaCreate`/`ReservaUpdate` pasan a ejes `recurso_ids`/`zona_ids` con `extra="forbid"` — el legacy `recurso_id` se rechaza con 422, no se acepta como alias; `ReservaResponse` aditiva (`recurso_ids`, `zona_ids`, `zonas`), conservando `recurso_id`/`recurso` como forma singular temporal; nuevo `ZonaReservaResponse` |
+| reserva.py | Modificado (Fase 12C-4e-schemas) | `ReservaResponse` retira `recurso_id`/`recurso` (el ancla singular) y agrega `recursos: list[RecursoReservaResponse]`; `recurso_ids`/`zona_ids`/`zonas` sin cambios |
 
 ## Reglas de negocio relacionadas
 
@@ -61,6 +62,13 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 - **`ReservaResponse` aditiva, no ruptura**: se agregan `recurso_ids`, `zona_ids` y `zonas` (lista de `ZonaReservaResponse`), poblados desde las tablas de asociación (`crud/reservas.py::_enriquecer_con_asociaciones`). `recurso_id`/`recurso` se conservan como forma singular temporal (ancla) hasta 12C-4e.
 - **`ZonaReservaResponse` (nuevo)**: misma base mínima que `ZonaResponse` (`id`, `nombre`, `espacio_id`, `descripcion`, `capacidad`, `estado`) sin timestamps ni auditoría — suficiente para la respuesta de la reserva y los mensajes de notificación.
 
+### Fase 12C-4e-lectores/schemas — Retiro del singular en `ReservaResponse`
+
+- **`recurso_id`/`recurso` retirados de `ReservaResponse`**: la "forma singular temporal (ancla)" que 12C-6 dejó pendiente hasta esta subfase se retira del contrato — `ReservaResponse.model_fields` ya no los declara. Los clientes deben leer `recurso_ids`/`recursos` (conjuntos) en su lugar.
+- **`recursos: list[RecursoReservaResponse]` (nuevo)**: mismo schema `RecursoReservaResponse` que ya existía (usado antes solo para el singular `recurso`), ahora como lista — poblado por `crud/reservas.py::_enriquecer_con_asociaciones` desde `reserva_recursos`, igual fuente que `recurso_ids`.
+- **`ReservaCreate`/`ReservaUpdate` sin cambios**: el contrato de entrada (`recurso_ids`/`zona_ids`, `extra="forbid"`, 422 para `recurso_id` legacy) no se toca en esta subfase — solo la respuesta.
+- **`reservas.recurso_id` (columna), `Reserva.recurso` (relación ORM), `reservas_sin_solapamiento` e índices históricos no se tocan**: el retiro es solo del schema de respuesta pública; el modelo, la constraint y el rollback documentado (`migrations.py::_ROLLBACK_RESERVA_LEGACY`) siguen intactos, sin DDL ejecutado.
+
 ## Pruebas
 
 ```powershell
@@ -69,7 +77,7 @@ cd backend
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 2). Fase 12B: 318/318 (3 tests de contrato preexistentes actualizados para incluir `correo` en `EspacioCreate`/`EspacioResponse`, ver `tests/test_schemas_contrato.py`). Fase 12C-2: 364/364 (snapshot ya aprobado y regenerado). Fase 12C-3: 382/382 salvo `test_openapi_contrato.py` (rojo esperado, snapshot de esta subfase pendiente de aprobación) — validaciones de `ZonaRecursosUpdate`/`Response` cubiertas indirectamente vía `tests/test_api_zonas_recursos.py`. Fase 12C-6: `tests/test_schemas_contrato.py` extendido al payload plural (`extra="forbid"` + ejes), `tests/test_reservas_zonas.py` (nuevo, cubre el contrato vía API) y suite completa **482/482** (incluye `test_openapi_contrato.py` en verde con el snapshot aprobado y regenerado).
+Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 2). Fase 12B: 318/318 (3 tests de contrato preexistentes actualizados para incluir `correo` en `EspacioCreate`/`EspacioResponse`, ver `tests/test_schemas_contrato.py`). Fase 12C-2: 364/364 (snapshot ya aprobado y regenerado). Fase 12C-3: 382/382 salvo `test_openapi_contrato.py` (rojo esperado, snapshot de esta subfase pendiente de aprobación) — validaciones de `ZonaRecursosUpdate`/`Response` cubiertas indirectamente vía `tests/test_api_zonas_recursos.py`. Fase 12C-6: `tests/test_schemas_contrato.py` extendido al payload plural (`extra="forbid"` + ejes), `tests/test_reservas_zonas.py` (nuevo, cubre el contrato vía API) y suite completa **482/482** (incluye `test_openapi_contrato.py` en verde con el snapshot aprobado y regenerado). Fase 12C-4e-lectores/schemas: `test_reserva_response_no_expone_campos_singulares` (nuevo, `recurso_id`/`recurso` fuera de `model_fields` y del `model_dump()`), `test_reserva_response_acepta_listas_y_zonas`/`test_reserva_response_sin_campos_nuevos_usa_defaults` extendidos a `recursos`; `tests/test_reserva_response_sin_singular.py` (integración `get_reserva()` + `ReservaResponse.model_validate()`). Suite completa **525/525** (incluye `test_openapi_contrato.py` verde con el snapshot regenerado).
 
 ## Impacto y compatibilidad
 
@@ -80,6 +88,7 @@ Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 
 - **Fase 12C-2 — cambio de OpenAPI aprobado y regenerado**: diff limitado a `ZonaCreate`/`ZonaUpdate`/`ZonaResponse` + paths `/zonas`, `/zonas/{zona_id}` (376 líneas insertadas, 0 eliminadas). `tests/openapi.snapshot.json` ya refleja este cambio.
 - **Fase 12C-3 — cambio de OpenAPI aprobado y regenerado**: diff limitado a `ZonaRecursosUpdate`/`ZonaRecursosResponse` + path `/zonas/{zona_id}/recursos` (94 líneas insertadas, 0 eliminadas). `tests/openapi.snapshot.json` ya refleja este cambio.
 - **Fase 12C-6 — cambio de OpenAPI aprobado y regenerado**: diff verificado antes/después y limitado a los cambios aprobados — `ReservaCreate`/`ReservaUpdate` (`+ additionalProperties: false`, `recurso_id` → ejes `recurso_ids`/`zona_ids`), `ReservaResponse` (+ `recurso_ids`, `zona_ids`, `zonas`; conserva `recurso_id`/`recurso`), nuevo `ZonaReservaResponse`. **Ninguna ruta, método, esquema de seguridad ni otro schema tocado** (578 líneas insertadas, 7 eliminadas). `tests/openapi.snapshot.json` ya refleja este cambio; `test_openapi_contrato.py` verde.
+- **Fase 12C-4e-schemas — cambio de OpenAPI aprobado y regenerado**: diff limitado a `ReservaResponse` — quita `recurso`/`recurso_id` de `properties` y de `required`, agrega `recursos` (array de `RecursoReservaResponse`). **Ninguna ruta, método, request body, esquema de seguridad ni otro schema tocado** (verificado con `git diff --no-index` contra el snapshot antes de regenerar: 9 inserciones, 11 eliminaciones, un único hunk). `tests/openapi.snapshot.json` ya refleja este cambio; `test_openapi_contrato.py` verde.
 
 ## Riesgos
 
@@ -89,6 +98,7 @@ Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 
 - Fase 12C-2: ninguno funcional. `ZonaResponse` expone `created_by`/`updated_by` como enteros crudos, sin nombre/username del usuario — si en una fase posterior se necesita mostrar quién creó/editó una zona en la UI, requerirá un `join` adicional o un cambio de schema (fuera de alcance de esta subfase).
 - Fase 12C-3: ninguno funcional. `ZonaRecursosResponse` no expone la zona completa, solo `zona_id` y la lista resultante — suficiente para el propósito del endpoint (confirmar el resultado del reemplazo).
 - Fase 12C-6: el singular `recurso_id`/`recurso` de `ReservaResponse` es **compatibilidad temporal** (ancla) hasta 12C-4e; los clientes nuevos deben leer `recurso_ids`/`zonas`. El 422 de entrada por `recurso_id` es deliberado (ruptura aprobada). El `ZonaReservaResponse` no expone timestamps — si una fase futura necesita quién creó/editó una zona en el detalle de la reserva, requerirá un cambio de schema.
+- Fase 12C-4e-schemas: ruptura de contrato aprobada explícitamente — cualquier cliente que todavía lea `recurso_id`/`recurso` de la respuesta deja de recibirlos. El frontend propio ya migró a `recursos`/`zonas` en la misma subfase (ver `frontend/src/utils/reservaEtiqueta.ts`); un cliente externo no actualizado se rompe, riesgo aceptado explícitamente por el usuario al aprobar el retiro.
 
 ## Pendientes
 
@@ -99,9 +109,10 @@ Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 
 - ~~Fase 12C-2: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
 - ~~Fase 12C-3: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
 - ~~Fase 12C-6: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
-- **Fase 12C-4e (no iniciada)**: retiro de `Reserva.recurso_id`/`recurso` (columna, constraint histórica `reservas_sin_solapamiento` y singular de la respuesta) — solo al cierre de toda la transición, requiere aprobación explícita.
+- ~~Fase 12C-4e-schemas: retiro de `recurso_id`/`recurso` de `ReservaResponse`, adición de `recursos`~~ **Hecho** — snapshot regenerado y verde.
+- **Retiro de `reservas.recurso_id` (columna), `Reserva.recurso` (relación ORM) y la constraint histórica `reservas_sin_solapamiento` (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL — fuera de alcance de 12C-4e-schemas.
 - Evaluar en una fase posterior si `RecursoResponse` debe exponer su `zona_id` (simetría inversa) — no pedido en 12C-3, no implementado.
 
 ## Fase de implementación
 
-Fase 2 (alineación de schemas con el dominio). Fase 12B (`Espacio.correo`/`modalidad_reserva`, `Recurso.es_prestacion_servicio`). Fase 12C-2 (`schemas/zona.py`). Fase 12C-3 (`ZonaRecursosUpdate`/`ZonaRecursosResponse`). Fase 12C-6 (contrato plural de reserva).
+Fase 2 (alineación de schemas con el dominio). Fase 12B (`Espacio.correo`/`modalidad_reserva`, `Recurso.es_prestacion_servicio`). Fase 12C-2 (`schemas/zona.py`). Fase 12C-3 (`ZonaRecursosUpdate`/`ZonaRecursosResponse`). Fase 12C-6 (contrato plural de reserva). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta).

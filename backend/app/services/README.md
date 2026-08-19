@@ -93,7 +93,8 @@ Resultado esperado: verde. El test de anticipación usa `_RelojFijo` en lugar de
 ## Pendientes
 
 - ~~Fase 12C-6: ruptura de contrato de `Reserva`/dashboard/notificaciones~~ **Hecho** — implementado en 12C-6; suite completa 482/482.
-- **Fase 12C-4e (no iniciada)**: retiro de `Reserva.recurso_id` y del singular de la respuesta — solo al cierre de toda la transición, requiere aprobación explícita.
+- ~~Fase 12C-4e-schemas: retiro del singular (`recurso_id`/`recurso`) de `ReservaResponse`~~ **Hecho** — cambio de contrato en `app/schemas/reserva.py`/`app/crud/reservas.py`, ver `backend/app/api/README.md` y `backend/app/crud/README.md`. Esta capa (`services/reservas.py`) no se tocó: `_recurso_ancla()`, `validar_solapamiento`, `validar_recurso_activo` y `validar_capacidad` siguen sin cambios, igual que `reservas.recurso_id` (columna) y `Reserva.recurso` (relación ORM).
+- **Retiro de la columna `reservas.recurso_id` (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL.
 - **Rollback endurecido de `migrations.py` (pendiente desde 12C-4b)**: script que aborte ante reservas multi-recurso o asociadas solo por zona, en una única transacción, con verificación del esquema final — sigue sin escribirse.
 - Limpieza opcional: `validar_solapamiento` quedó sin referencias tras 12C-6 (solo definición); `validar_recurso_activo`/`validar_capacidad` solo las ejercitan los tests unitarios.
 - Fase 12D (no iniciada): extender `validar_acceso_ps` (o agregar una validación hermana) con el condicionamiento de tipo de reserva "servicio de ensayo" para recursos PS.

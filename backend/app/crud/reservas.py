@@ -10,8 +10,7 @@ from app.models.reserva_zona import ReservaZona
 _OPTIONS_CARGA = (
     joinedload(Reserva.usuario),
     joinedload(Reserva.espacio),
-    joinedload(Reserva.recurso).joinedload(Recurso.espacio),
-    joinedload(Reserva.recursos_asociados),
+    joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.espacio),
     joinedload(Reserva.zonas_asociadas),
     joinedload(Reserva.zonas),
 )
@@ -20,10 +19,18 @@ _OPTIONS_CARGA = (
 def _enriquecer_con_asociaciones(reservas: list[Reserva]) -> list[Reserva]:
     """Adjunta los conjuntos resueltos desde las tablas de asociación como
     atributos de instancia (no columnas) para que `ReservaResponse` los
-    serialice (Fase 12C-6). El singular `Reserva.recurso`/`recurso_id` sigue
-    leyéndose de la columna ancla. Los ids se ordenan de forma estable."""
+    serialice (Fase 12C-6/12C-4e). Los ids se ordenan de forma estable.
+
+    Fase 12C-4e-schemas: `ReservaResponse` retiró `recurso_id`/`recurso`
+    (el ancla singular) -- esta función ya no necesita resolverlos ni
+    asignarlos. `reservas.recurso_id` (la columna) y `Reserva.recurso` (la
+    relación ORM) siguen intactos en el modelo; simplemente no se leen
+    aquí. `.recursos` (plural, objetos `Recurso` completos, vía
+    `reserva_recursos`) es el reemplazo expuesto en el schema."""
     for reserva in reservas:
-        reserva.recurso_ids = sorted({fila.recurso_id for fila in reserva.recursos_asociados or ()})
+        recursos_por_id = {fila.recurso_id: fila.recurso for fila in reserva.recursos_asociados or ()}
+        reserva.recurso_ids = sorted(recursos_por_id)
+        reserva.recursos = [recursos_por_id[i] for i in sorted(recursos_por_id)]
         reserva.zona_ids = sorted({fila.zona_id for fila in reserva.zonas_asociadas or ()})
     return reservas
 

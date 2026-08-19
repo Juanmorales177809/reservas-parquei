@@ -94,7 +94,6 @@ class ReservaResponse(BaseModel):
     id: int
     usuario_id: int
     espacio_id: int
-    recurso_id: int
     fecha: date
     hora_inicio: time
     hora_fin: time
@@ -104,9 +103,13 @@ class ReservaResponse(BaseModel):
     updated_at: datetime
     usuario: UsuarioReservaResponse
     espacio: EspacioReservaResponse
-    recurso: RecursoReservaResponse
-    # Fase 12C-6: campos aditivos desde las asociaciones. `recurso_id`/
-    # `recurso` se conservan como forma singular temporal (ancla) hasta 12C-4e.
+    # Fase 12C-4e-schemas: `recurso_id`/`recurso` (el ancla singular) se
+    # retiran del contrato. `recursos_asociados` (`crud.reservas`) sigue
+    # siendo la fuente de verdad para los conjuntos -- `reservas.recurso_id`
+    # (la columna), `Reserva.recurso` (la relación ORM) y
+    # `reservas_sin_solapamiento` NO se tocan en esta subfase, solo dejan de
+    # exponerse aquí.
     recurso_ids: list[int] = Field(default_factory=list)
+    recursos: list[RecursoReservaResponse] = Field(default_factory=list)
     zona_ids: list[int] = Field(default_factory=list)
     zonas: list[ZonaReservaResponse] = Field(default_factory=list)

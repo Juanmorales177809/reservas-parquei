@@ -87,7 +87,6 @@ class TestCamposTipadosConEnums:
             "id": 1,
             "usuario_id": 1,
             "espacio_id": 1,
-            "recurso_id": 1,
             "fecha": "2026-08-17",
             "hora_inicio": "08:00:00",
             "hora_fin": "10:00:00",
@@ -97,13 +96,6 @@ class TestCamposTipadosConEnums:
             "updated_at": "2026-08-13T10:00:00",
             "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
             "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-            "recurso": {
-                "id": 1,
-                "nombre": "R",
-                "capacidad": 10,
-                "estado": "activo",
-                "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-            },
         }
         modelo = ReservaResponse.model_validate(datos)
         assert isinstance(modelo.estado, EstadoReserva)
@@ -145,7 +137,6 @@ class TestContratoJsonConservado:
                 "id": 1,
                 "usuario_id": 1,
                 "espacio_id": 1,
-                "recurso_id": 1,
                 "fecha": "2026-08-17",
                 "hora_inicio": "08:00:00",
                 "hora_fin": "10:00:00",
@@ -155,13 +146,6 @@ class TestContratoJsonConservado:
                 "updated_at": "2026-08-13T10:00:00",
                 "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
                 "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-                "recurso": {
-                    "id": 1,
-                    "nombre": "R",
-                    "capacidad": 10,
-                    "estado": "activo",
-                    "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-                },
             }
         )
         assert reserva.model_dump()["estado"] == "aprobada"
@@ -247,20 +231,41 @@ class TestContratoReservasPorObjetivos:
     def test_reserva_response_acepta_listas_y_zonas(self):
         datos = _datos_reserva_response()
         datos["recurso_ids"] = [1]
+        datos["recursos"] = [
+            {
+                "id": 1,
+                "nombre": "R",
+                "capacidad": 10,
+                "estado": "activo",
+                "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+            }
+        ]
         datos["zona_ids"] = [5]
         datos["zonas"] = [
             {"id": 5, "nombre": "Z", "espacio_id": 1, "descripcion": None, "capacidad": 5, "estado": "activo"}
         ]
         modelo = ReservaResponse.model_validate(datos)
         assert modelo.recurso_ids == [1]
+        assert modelo.recursos[0].nombre == "R"
         assert modelo.zona_ids == [5]
         assert modelo.zonas[0].nombre == "Z"
 
     def test_reserva_response_sin_campos_nuevos_usa_defaults(self):
         modelo = ReservaResponse.model_validate(_datos_reserva_response())
         assert modelo.recurso_ids == []
+        assert modelo.recursos == []
         assert modelo.zona_ids == []
         assert modelo.zonas == []
+
+    def test_reserva_response_no_expone_campos_singulares(self):
+        """Fase 12C-4e-schemas: `recurso_id`/`recurso` (el ancla) se retiran
+        del contrato -- por construcción, no por filtrado en runtime."""
+        assert "recurso_id" not in ReservaResponse.model_fields
+        assert "recurso" not in ReservaResponse.model_fields
+        modelo = ReservaResponse.model_validate(_datos_reserva_response())
+        campos_dump = set(modelo.model_dump().keys())
+        assert "recurso_id" not in campos_dump
+        assert "recurso" not in campos_dump
 
 
 def _datos_reserva_response():
@@ -268,7 +273,6 @@ def _datos_reserva_response():
         "id": 1,
         "usuario_id": 1,
         "espacio_id": 1,
-        "recurso_id": 1,
         "fecha": "2026-08-17",
         "hora_inicio": "08:00:00",
         "hora_fin": "10:00:00",
@@ -278,13 +282,6 @@ def _datos_reserva_response():
         "updated_at": "2026-08-13T10:00:00",
         "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
         "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-        "recurso": {
-            "id": 1,
-            "nombre": "R",
-            "capacidad": 10,
-            "estado": "activo",
-            "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
-        },
     }
 
 

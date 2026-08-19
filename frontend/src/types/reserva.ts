@@ -16,15 +16,29 @@ export interface ReservaEspacio {
   estado: 'activo' | 'inactivo' | 'mantenimiento';
 }
 
+export interface ReservaRecurso {
+  id: number;
+  nombre: string;
+  capacidad: number;
+  estado: string;
+  espacio: ReservaEspacio;
+}
+
 export interface Reserva {
   id: number;
   usuario_id: number;
   espacio_id: number;
-  recurso_id: number;
-  // Fase 12C-6: el backend expone además los conjuntos resueltos desde las
-  // tablas de asociación. Se leen como opcionales para conservar la lectura
-  // singular (`recurso`/`recurso_id`) mientras el backend la exponga.
+  // Fase 12C-4e-schemas: el backend retiró `recurso_id`/`recurso` (el ancla
+  // singular) de `ReservaResponse` -- ya no los envía. Se conservan aquí
+  // como opcionales únicamente por si un contrato anterior en caché (SW,
+  // cliente no actualizado) los sigue esperando; el código nuevo debe leer
+  // `recursos`/`zonas` (conjuntos, siempre presentes) en su lugar.
+  recurso_id?: number;
+  recurso?: ReservaRecurso;
+  // Fase 12C-6/12C-4e-schemas: conjuntos resueltos desde las tablas de
+  // asociación. `recursos` (objetos completos) reemplaza al ancla singular.
   recurso_ids?: number[];
+  recursos?: ReservaRecurso[];
   zona_ids?: number[];
   zonas?: ZonaReserva[];
   fecha: string;
@@ -36,13 +50,6 @@ export interface Reserva {
   updated_at: string;
   usuario: ReservaUsuario;
   espacio: ReservaEspacio;
-  recurso: {
-    id: number;
-    nombre: string;
-    capacidad: number;
-    estado: string;
-    espacio: ReservaEspacio;
-  };
 }
 
 export interface ReservaCreate {

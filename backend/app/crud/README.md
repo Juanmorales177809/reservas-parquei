@@ -14,6 +14,7 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 | zonas.py | Modificado (Fase 12C-3) | Agrega `reemplazar_recursos_de_zona`: diff completo (quitar/agregar) de `zona_recursos` para una zona, con `try/except IntegrityError` que traduce un conflicto de la `UniqueConstraint` a `HTTPException(409)` — red de seguridad ante condición de carrera, mismo patrón que `services/reservas.py::_traducir_error_integridad` |
 | reservas.py | Modificado (Fase 12C-5) | `get_reservas_bloqueantes` pasa a hacer JOIN contra `reserva_recursos` (consulta por recurso, con `distinct`); nuevo `get_recurso_ids_reserva` para resolver los recursos de una reserva desde la asociación |
 | reservas.py | Modificado (Fase 12C-6) | Nuevos `get_zona_ids_reserva` y `get_zonas_bloqueantes` (espejo de los de recurso contra `reserva_zonas`); los getters de listado/individual (`get_reservas`, `get_reservas_gestion`, `get_mis_reservas`, `get_reserva`) enriquecen la respuesta con los conjuntos desde las asociaciones (`_enriquecer_con_asociaciones` + `_OPTIONS_CARGA`) |
+| reservas.py | Modificado (Fase 12C-4e-lectores/schemas) | `_OPTIONS_CARGA` cambia `joinedload(Reserva.recurso)` por `joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso)`; `_enriquecer_con_asociaciones` deja de resolver/asignar el ancla singular (`reserva.recurso`) y solo puebla `reserva.recursos` (lista de `Recurso` completos) además de `recurso_ids`/`zona_ids` |
 
 ## Reglas de negocio relacionadas
 
@@ -42,6 +43,12 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 - **`get_zona_ids_reserva`/`get_zonas_bloqueantes` (nuevos)**: espejo de `get_recurso_ids_reserva`/`get_reservas_bloqueantes` contra `reserva_zonas` (la misma tabla de la constraint `reserva_zonas_sin_solapamiento`), con `distinct()` para reservas multi-zona. El servicio los usa para validar el solapamiento de zonas y resolver las zonas actuales de una reserva.
 - **Listados con `joinedload`**: `_OPTIONS_CARGA` precarga `recursos_asociados`, `zonas_asociadas` y la relación many-to-many `zonas` (más la cadena `recurso.espacio`) para evitar N+1 al construir la respuesta enriquecida.
 
+### Fase 12C-4e-lectores/schemas — Retiro del singular en la respuesta
+
+- **`_OPTIONS_CARGA` deja de precargar `Reserva.recurso`**: la cadena `joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.espacio)` reemplaza a `joinedload(Reserva.recurso).joinedload(Recurso.espacio)` — la misma fuente (`reserva_recursos`) que ya alimentaba `recurso_ids` ahora también resuelve los objetos completos de `recursos`.
+- **`_enriquecer_con_asociaciones` simplificada**: ya no resuelve ni asigna `reserva.recurso` (el ancla) — ese paso quedó sin consumidor tras retirar `recurso_id`/`recurso` de `ReservaResponse` (12C-4e-schemas, ver `backend/app/schemas/README.md` y `backend/app/api/README.md`). Solo puebla `reserva.recurso_ids`, `reserva.recursos` (lista de `Recurso`, no solo el ancla) y `reserva.zona_ids`.
+- **`Reserva.recurso` (relación ORM) y `Reserva.recurso_id` (columna) no se tocan** a nivel de modelo — siguen intactos para el ancla histórica, la EXCLUDE `reservas_sin_solapamiento` y un eventual rollback; simplemente esta capa deja de leerlos para la respuesta pública.
+
 ## Pruebas
 
 - Cubierto por `tests/test_api_espacios.py` (creación de espacios) y `tests/test_schemas_contrato.py`.
@@ -50,6 +57,7 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 - Fase 12C-3: `tests/test_api_zonas_recursos.py` (12 tests, cubre `reemplazar_recursos_de_zona` indirectamente vía la API) + `tests/test_models_zona_recurso.py` (5 tests, ejercita la `UniqueConstraint` directamente contra el modelo).
 - Fase 12C-5: `tests/test_crud_reservas_lectura_asociaciones.py` (10 tests, cubre `get_reservas_bloqueantes`, `get_recurso_ids_reserva`, la re-lectura de `services/reservas.py` y la compatibilidad de listados/backfill).
 - Fase 12C-6: `tests/test_reservas_zonas.py` (nuevo, cubre `get_zonas_bloqueantes` y el contrato plural vía API), `tests/test_dashboard_recursos_efectivos.py` (nuevo) y la extensión de `tests/test_crud_reservas_lectura_asociaciones.py`/`tests/test_api_reservas.py` al payload plural. Suite completa **482/482**.
+- Fase 12C-4e-lectores/schemas: `tests/test_reserva_response_sin_singular.py` (integración `get_reserva()` + `ReservaResponse.model_validate()`, un recurso/varios recursos/solo-zona/mixta/no-expone-campos-singulares), `tests/test_crud_reservas_lectura_asociaciones.py::TestCompatibilidadListados` (las aserciones `.recurso.id` verifican la relación ORM directa, no la respuesta pública). Suite completa **525/525**.
 
 ## Impacto y compatibilidad
 
@@ -59,6 +67,7 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 - Fase 12C-3: sin impacto en `crud/espacios.py`, `crud/reservas.py` ni ningún módulo de `Recurso` (no existe `crud/recursos.py` — la persistencia de `Recurso` vive inline en `api/recursos.py`, sin cambios).
 - Fase 12C-5: la lectura por recurso y la resolución del recurso actual de una reserva pasan a `reserva_recursos`; sin cambio de contrato público ni de esquema.
 - Fase 12C-6: `ReservaResponse` gana `recurso_ids`/`zona_ids`/`zonas` desde las asociaciones (aditivo); sin cambio de esquema, rutas ni semántica pública para datos legítimos. `Reserva.recurso_id` sigue presente como ancla (12C-4e).
+- Fase 12C-4e-lectores/schemas: cambio de contrato aprobado y regenerado en `ReservaResponse` (retira `recurso_id`/`recurso`, agrega `recursos`) — ver `backend/app/api/README.md`. Sin cambio de esquema de base de datos, rutas, ni otros schemas. `reservas.recurso_id` (columna), `Reserva.recurso` (relación ORM), `reservas_sin_solapamiento` e índices históricos no se tocan.
 
 ## Riesgos
 
@@ -67,11 +76,14 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 - Fase 12C-3: ninguno funcional — ver Riesgos en `backend/app/models/README.md`, Fase 12C-3 (guard pendiente en `api/recursos.py`, fuera de alcance).
 - Fase 12C-5: los guard de `api/recursos.py` (`recurso.reservas` para mover/eliminar) siguen leyendo la columna histórica — gap conocido para 12C-6; la lectura por recurso del dashboard también (fuera de alcance). Ambos coherentes para datos singulares.
 - Fase 12C-6: resuelto el gap de 12C-5 — `api/recursos.py::_recurso_tiene_reservas` consulta `reserva_recursos` **y** la columna histórica (ancla de zona sin recursos). Ningún riesgo funcional nuevo en esta capa.
+- Fase 12C-4e-lectores: `_recurso_tiene_reservas` deja de consultar la columna histórica como fallback — un recurso "ancla" de una zona sin recursos ya no lo detecta este guard; sigue bloqueado por la FK real de `reservas.recurso_id` (traducida a 409 en `api/recursos.py`, ver `backend/app/api/README.md`).
 
 ## Pendientes
 
-- **Fase 12C-4e (no iniciada)**: retiro de la columna `Reserva.recurso_id` (y del singular de la respuesta) — solo al cierre de toda la transición, requiere aprobación explícita.
+- ~~Fase 12C-4e-lectores: lectores de CRUD/frontend migrados a las asociaciones.~~ **Hecho.**
+- ~~Fase 12C-4e-schemas: retiro de `recurso_id`/`recurso` de `ReservaResponse`, adición de `recursos`.~~ **Hecho** — `tests/openapi.snapshot.json` regenerado.
+- **Retiro de la columna `reservas.recurso_id`, la relación `Reserva.recurso`, `reservas_sin_solapamiento` e índices históricos (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL (fuera de alcance de 12C-4e-schemas).
 
 ## Fase de implementación
 
-Fase 3 (integración de la capa de dominio). Fase 12B (`modalidad_reserva`, `correo`). Fase 12C-2 (`crud/zonas.py`). Fase 12C-3 (`reemplazar_recursos_de_zona`). Fase 12C-5 (lectura desde `reserva_recursos`). Fase 12C-6 (lectura de conjuntos desde las asociaciones).
+Fase 3 (integración de la capa de dominio). Fase 12B (`modalidad_reserva`, `correo`). Fase 12C-2 (`crud/zonas.py`). Fase 12C-3 (`reemplazar_recursos_de_zona`). Fase 12C-5 (lectura desde `reserva_recursos`). Fase 12C-6 (lectura de conjuntos desde las asociaciones). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta pública).

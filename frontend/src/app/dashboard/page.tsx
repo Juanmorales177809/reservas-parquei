@@ -8,6 +8,7 @@ import type { Reserva } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { badgeEstadoReserva, labelEstadoReserva } from '@/utils/estados';
+import { etiquetaObjetivoReserva } from '@/utils/reservaEtiqueta';
 
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
@@ -113,8 +114,8 @@ export default function DashboardPage() {
               <tbody>
                 {reservas.slice(0, 5).map((reserva) => (
                   <tr key={reserva.id}>
-                    <td className="font-medium">{reserva.recurso.nombre}</td>
-                    <td>{reserva.recurso.espacio.nombre}</td>
+                    <td className="font-medium">{etiquetaObjetivoReserva(reserva)}</td>
+                    <td>{reserva.espacio.nombre}</td>
                     <td>{reserva.fecha}</td>
                     <td>
                       {reserva.hora_inicio.slice(0, 5)} - {reserva.hora_fin.slice(0, 5)}

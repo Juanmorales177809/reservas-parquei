@@ -121,3 +121,30 @@ def test_reserva_de_zona_notifica_la_zona(client, db):
     items = client.get("/notificaciones", headers=cookies_para(gestor)).json()
     assert len(items) == 1
     assert "Zona Notif" in items[0]["mensaje"]
+
+
+def test_reserva_de_multiples_recursos_menciona_todos_en_el_mensaje(client, db):
+    """Fase 12C-4e-lectores: una reserva de varios recursos directos (sin
+    zona) menciona TODOS los recursos en el mensaje -- antes de esta
+    subfase, el mensaje solo mostraba el recurso ancla (el de menor id),
+    ocultando los demás."""
+    espacio = crear_espacio(db, nombre="Sala Notif Multi Recurso", modalidad_reserva="mixto")
+    gestor = crear_usuario(
+        db, username="gestor_notif_multi", email="gestor_notif_multi@example.com",
+        rol="gestor", espacio_id=espacio.id,
+    )
+    solicitante = crear_usuario(db, username="solicitante_multi", email="solicitante_multi@example.com")
+    r1 = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Proyector Notif")
+    r2 = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Cámara Notif")
+
+    creada = client.post(
+        "/reservas",
+        json=payload_reserva_objetivos(recurso_ids=[r1.id, r2.id], fecha=fecha_habilitada()),
+        headers=cookies_para(solicitante),
+    )
+    assert creada.status_code == 201
+
+    items = client.get("/notificaciones", headers=cookies_para(gestor)).json()
+    assert len(items) == 1
+    assert "Proyector Notif" in items[0]["mensaje"]
+    assert "Cámara Notif" in items[0]["mensaje"]
