@@ -19,6 +19,8 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 | recursos.py | Modificado (Fase 12C-6) | Guares de mover/eliminar migrados a `_recurso_tiene_reservas`: consulta `reserva_recursos` (conjuntos efectivos) **y** la columna histórica `Reserva.recurso_id` (ancla de zona sin recursos) |
 | notificaciones.py | Modificado (Fase 12C-4e-lectores) | `_etiqueta_objetivo` nombra TODOS los recursos asociados (vía `recursos_asociados`), no solo el ancla singular, cuando la reserva no tiene zona; `_query_usuario` precarga `Reserva.recursos_asociados`→`ReservaRecurso.recurso` en vez de `Reserva.recurso` |
 | recursos.py | Modificado (Fase 12C-4e-lectores) | `_recurso_tiene_reservas` deja de consultar `Reserva.recurso_id` como fallback (solo `reserva_recursos`); `eliminar_recurso` gana `try/except IntegrityError` → 409, necesario porque el ancla de una zona sin recursos ya no lo detecta el guard de aplicación y ahora depende de la FK real de `reservas.recurso_id` (sin retirar) |
+| reservas.py | Modificado (Fase 12D-bis) | Nuevo `PUT /reservas/{id}/asistio` (`ReservaAsistioUpdate`, `marcar_asistencia`, `require_resource_manager` + `get_managed_space_id`, auditoría `marcar_asistencia`) |
+| ensayos.py | Nuevo (Fase 12E) | Router `/ensayos`: `GET ""` (público `?zona_id=`, RN-005-like con `zona.estado`+`espacio.estado`), `POST ""`/`PUT "/{id}"`/`DELETE "/{id}"` (`require_resource_manager`, 2 saltos `ensayo.zona.espacio_id` vs `get_managed_space_id`, `DELETE` 409 si `ReservaEnsayo` existe) |
 
 ## Reglas de negocio relacionadas
 
@@ -136,7 +138,9 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenti
 - ~~Fase 9G: retirar `access_token` del body de `TokenResponse` y el soporte de `Authorization`.~~ **Implementada en el working tree** (sin commit ni push): falta aprobar el diff del OpenAPI (`tests/openapi.generado.json` vs snapshot) y regenerar el snapshot.
 - **CSRF de doble envío / Origin-Referer (fase 9H, decisión: diferida)**: análisis previo realizado; sin implementar. Reabrir 9H antes de SameSite=None, Domain compartido, CORS con credentials, subdominios autenticados, cliente web cross-origin o mutaciones desde otros orígenes (ver `CHANGELOG.md`, Fase 9H).
 - **Fase 12B**: aprobar por separado el ajuste de `frontend/src/app/admin/espacios/page.tsx` y `frontend/e2e/tests/smoke/03-admin.spec.ts` para incluir `correo` (ver Riesgos arriba).
-- **Fase 12D** (pendiente, no iniciada): agregar el condicionamiento de "PS solo reservable en tipo servicio de ensayo" en `services/reservas.py::validar_acceso_ps` (ver `backend/app/services/README.md`).
+- ~~Fase 12D (parcial): `Reserva.tipo` + gate PS `tipo==servicio_de_ensayo`~~ **Hecho** (12D parcial, sin `Proyecto`).
+- ~~Fase 12D-bis: `PUT /reservas/{id}/asistio` + `ReservaAsistioUpdate`~~ **Hecho.**
+- ~~Fase 12E: `Ensayo` (N:1 Zona) + `ReservaEnsayo` + `ReservaAcompanante` (N:1 Reserva)~~ **Hecho.**
 - ~~Fase 12C-2: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
 - ~~Fase 12C-3: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
 - ~~Fase 12C-6: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho.**
@@ -146,4 +150,4 @@ Resultado esperado: verde (8 tests de RN-005 + 7 de ocupación; suite de autenti
 
 ## Fase de implementación
 
-Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly). Fase 9G (cookie-only, corte de `access_token`/`Authorization`). Fase 12B (visibilidad/autorización de recursos PS). Fase 12C-2 (CRUD/API de `Zona`). Fase 12C-3 (asociación Zona↔Recurso). Fase 12C-6 (dashboard/notificaciones/guards por recurso efectivo). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta).
+Fase 4 (RN-005 y ocupación real). Fase 9F-A (autenticación dual por cookie HttpOnly). Fase 9G (cookie-only, corte de `access_token`/`Authorization`). Fase 12B (visibilidad/autorización de recursos PS). Fase 12C-2 (CRUD/API de `Zona`). Fase 12C-3 (asociación Zona↔Recurso). Fase 12C-6 (dashboard/notificaciones/guards por recurso efectivo). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta). Fase 12D (parcial: `tipo` + gate PS), 12D-bis (`asistio`), 12E (`Ensayo` + `Acompanante`).

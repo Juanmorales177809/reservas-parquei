@@ -15,6 +15,8 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 | reservas.py | Modificado (Fase 12C-5) | `get_reservas_bloqueantes` pasa a hacer JOIN contra `reserva_recursos` (consulta por recurso, con `distinct`); nuevo `get_recurso_ids_reserva` para resolver los recursos de una reserva desde la asociación |
 | reservas.py | Modificado (Fase 12C-6) | Nuevos `get_zona_ids_reserva` y `get_zonas_bloqueantes` (espejo de los de recurso contra `reserva_zonas`); los getters de listado/individual (`get_reservas`, `get_reservas_gestion`, `get_mis_reservas`, `get_reserva`) enriquecen la respuesta con los conjuntos desde las asociaciones (`_enriquecer_con_asociaciones` + `_OPTIONS_CARGA`) |
 | reservas.py | Modificado (Fase 12C-4e-lectores/schemas) | `_OPTIONS_CARGA` cambia `joinedload(Reserva.recurso)` por `joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso)`; `_enriquecer_con_asociaciones` deja de resolver/asignar el ancla singular (`reserva.recurso`) y solo puebla `reserva.recursos` (lista de `Recurso` completos) además de `recurso_ids`/`zona_ids` |
+| reservas.py | Modificado (Fase 12E) | `_OPTIONS_CARGA` gana `joinedload(Reserva.ensayos)`/`acompanantes`; `_enriquecer_con_asociaciones` puebla `ensayo_ids` desde `reserva.ensayos`; nuevo `get_ensayo_ids_reserva` |
+| ensayos.py | Nuevo (Fase 12E) | `get_ensayo`/`create_ensayo`/`update_ensayo` (mismo patrón que `zonas.py`) |
 
 ## Reglas de negocio relacionadas
 
@@ -82,8 +84,9 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 
 - ~~Fase 12C-4e-lectores: lectores de CRUD/frontend migrados a las asociaciones.~~ **Hecho.**
 - ~~Fase 12C-4e-schemas: retiro de `recurso_id`/`recurso` de `ReservaResponse`, adición de `recursos`.~~ **Hecho** — `tests/openapi.snapshot.json` regenerado.
+- ~~Fase 12D (parcial): `tipo` + gate PS; 12D-bis: `asistio`; 12E: `Ensayo` + `Acompanante` (lectura desde asociaciones)~~ **Hecho.**
 - **Retiro de la columna `reservas.recurso_id`, la relación `Reserva.recurso`, `reservas_sin_solapamiento` e índices históricos (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL (fuera de alcance de 12C-4e-schemas).
 
 ## Fase de implementación
 
-Fase 3 (integración de la capa de dominio). Fase 12B (`modalidad_reserva`, `correo`). Fase 12C-2 (`crud/zonas.py`). Fase 12C-3 (`reemplazar_recursos_de_zona`). Fase 12C-5 (lectura desde `reserva_recursos`). Fase 12C-6 (lectura de conjuntos desde las asociaciones). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta pública).
+Fase 3 (integración de la capa de dominio). Fase 12B (`modalidad_reserva`, `correo`). Fase 12C-2 (`crud/zonas.py`). Fase 12C-3 (`reemplazar_recursos_de_zona`). Fase 12C-5 (lectura desde `reserva_recursos`). Fase 12C-6 (lectura de conjuntos desde las asociaciones). Fase 12C-4e-lectores/schemas (retiro del singular en la respuesta pública). Fase 12D (parcial), 12D-bis, 12E.

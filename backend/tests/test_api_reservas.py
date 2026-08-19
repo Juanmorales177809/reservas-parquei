@@ -490,3 +490,124 @@ class TestTransiciones:
         respuesta = client.get("/reservas/mis-reservas", headers=cookies_para(usuario_b))
         assert respuesta.status_code == 200
         assert len(respuesta.json()) == 1
+
+
+class TestAcompanantes:
+    def _payload(self, recurso_id, fecha, acompanantes):
+        from tests.conftest import payload_reserva_objetivos
+
+        return {
+            "recurso_ids": [recurso_id],
+            "zona_ids": [],
+            "fecha": fecha.isoformat(),
+            "hora_inicio": "08:00",
+            "hora_fin": "09:00",
+            "asistentes": 2,
+            "acompanantes": acompanantes,
+        }
+
+    def test_post_con_0_acompanantes(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac 0")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), []),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert resp.json()["acompanantes"] == []
+
+    def test_post_con_1_acompanante(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac 1")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com"}]),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert len(resp.json()["acompanantes"]) == 1
+
+    def test_post_con_N_acompanantes(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac N")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(
+                recurso.id,
+                fecha_habilitada(),
+                [{"nombre": "Ana", "correo": "ana@example.com"}, {"nombre": "Luis", "correo": "luis@example.com"}],
+            ),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert len(resp.json()["acompanantes"]) == 2
+
+    def test_patch_reemplaza_lista_completa(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Patch")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com"}]),
+            headers=cookies_para(usuario),
+        ).json()
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"acompanantes": [{"nombre": "Luis", "correo": "luis@example.com"}]},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert [a["correo"] for a in resp.json()["acompanantes"]] == ["luis@example.com"]
+
+    def test_patch_sin_acompanantes_conserva(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Cons")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com"}]),
+            headers=cookies_para(usuario),
+        ).json()
+        resp = client.patch(f"/reservas/{creada['id']}", json={"asistentes": 3}, headers=cookies_para(usuario))
+        assert resp.status_code == 200
+        assert len(resp.json()["acompanantes"]) == 1
+
+    def test_patch_con_lista_vacia_la_vacia(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Vacia")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com"}]),
+            headers=cookies_para(usuario),
+        ).json()
+        resp = client.patch(f"/reservas/{creada['id']}", json={"acompanantes": []}, headers=cookies_para(usuario))
+        assert resp.status_code == 200
+        assert resp.json()["acompanantes"] == []
+
+    def test_correo_formato_invalido_da_422(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Inv")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "nope"}]),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+    def test_extra_forbid_rechaza_campo_desconocido(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Extra")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com", "cedula": "123"}]),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+    def test_get_devuelve_lista_poblada(self, client, db):
+        import time as _time
+
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Ac Get")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), [{"nombre": "Ana", "correo": "ana@example.com"}]),
+            headers=cookies_para(usuario),
+        ).json()
+        # mis-reservas
+        resp = client.get("/reservas/mis-reservas", headers=cookies_para(usuario))
+        assert any(r["id"] == creada["id"] and len(r["acompanantes"]) == 1 for r in resp.json())
+        # gestion (admin)
+        admin = crear_usuario(db, username="admin_ac_get", email="admin_ac_get@example.com", rol="admin")
+        resp2 = client.get("/reservas", headers=cookies_para(admin))
+        assert any(r["id"] == creada["id"] for r in resp2.json())

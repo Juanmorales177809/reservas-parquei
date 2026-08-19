@@ -208,6 +208,8 @@ def payload_reserva_objetivos(
     hora_fin="10:00",
     asistentes=2,
     tipo="__ausente__",
+    ensayo_ids=None,
+    acompanantes=None,
 ):
     payload = {
         "recurso_ids": recurso_ids or [],
@@ -221,6 +223,10 @@ def payload_reserva_objetivos(
     # y `None` explícito son semánticas distintas para el PATCH).
     if tipo != "__ausente__":
         payload["tipo"] = tipo
+    if ensayo_ids is not None:
+        payload["ensayo_ids"] = ensayo_ids
+    if acompanantes is not None:
+        payload["acompanantes"] = acompanantes
     return payload
 
 
