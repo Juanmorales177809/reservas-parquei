@@ -11,7 +11,7 @@ class Espacio(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     ubicacion = Column(String(200), nullable=False, default="Principal")
-    capacidad = Column(Integer, nullable=False)
+    capacidad = Column(Integer, nullable=True)
     estado = Column(String(20), nullable=False, default="activo")
     descripcion = Column(Text, nullable=True)
     dias_atencion = Column(JSON, nullable=False, default=lambda: [0, 1, 2, 3, 4, 5])

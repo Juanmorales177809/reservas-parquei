@@ -177,11 +177,12 @@ class TestCrearReserva:
 
 
 class TestRecursosPS:
-    """RN-009 (Fase 12B): un recurso marcado como PS (prestación de
-    servicios) no puede reservarse por el rol `usuario`. `gestor`/`admin`
-    sí pueden reservarlo directamente en esta fase — el condicionamiento a
-    un tipo de reserva "servicio de ensayo" (RN-015) queda para la Fase
-    12D, que debe integrarse sin duplicar este gate de rol."""
+    """RN-009 (Fase 12B) + Fase 12D: un recurso marcado como PS (prestación
+    de servicios) no puede reservarse por el rol `usuario` (403, gate de rol
+    que se evalúa primero y sin cambios). Desde la Fase 12D, `gestor`/`admin`
+    solo pueden reservarlo si la reserva declara `tipo == servicio_de_ensayo`
+    (RN-015); sin ese tipo, el recurso PS responde 400. El gate de rol del
+    usuario se evalúa siempre ANTES que el gate de tipo."""
 
     def _setup_ps(self, db, *, rol_creador="admin"):
         espacio = crear_espacio(db, nombre="Sala PS Reserva")
@@ -203,7 +204,22 @@ class TestRecursosPS:
         )
         assert respuesta.status_code == 403
 
-    def test_gestor_puede_reservar_recurso_ps_de_su_espacio(self, client, db):
+    def test_usuario_bloqueado_incluso_con_tipo_servicio_de_ensayo(self, client, db):
+        """El gate de rol del usuario se evalúa antes que el gate de tipo:
+        aunque la reserva declare el tipo de ensayo, el rol `usuario` sigue
+        con 403 (nunca llega al chequeo de tipo de la Fase 12D)."""
+        _, recurso_ps = self._setup_ps(db)
+        usuario = crear_usuario(db, username="user_ps_tipo", email="user_ps_tipo@example.com")
+        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
+        payload["tipo"] = "servicio_de_ensayo"
+        respuesta = client.post(
+            "/reservas",
+            json=payload,
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 403
+
+    def test_gestor_sin_tipo_servicio_de_ensayo_no_puede_reservar_ps(self, client, db):
         espacio, recurso_ps = self._setup_ps(db)
         gestor = crear_usuario(
             db, username="gestor_reserva_ps", email="gestor_reserva_ps@example.com",
@@ -214,9 +230,24 @@ class TestRecursosPS:
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
             headers=cookies_para(gestor),
         )
+        assert respuesta.status_code == 400
+
+    def test_gestor_con_tipo_servicio_de_ensayo_puede_reservar_ps(self, client, db):
+        espacio, recurso_ps = self._setup_ps(db)
+        gestor = crear_usuario(
+            db, username="gestor_reserva_ps2", email="gestor_reserva_ps2@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
+        payload["tipo"] = "servicio_de_ensayo"
+        respuesta = client.post(
+            "/reservas",
+            json=payload,
+            headers=cookies_para(gestor),
+        )
         assert respuesta.status_code == 201
 
-    def test_admin_puede_reservar_recurso_ps(self, client, db):
+    def test_admin_sin_tipo_servicio_de_ensayo_no_puede_reservar_ps(self, client, db):
         _, recurso_ps = self._setup_ps(db)
         admin = crear_usuario(db, username="admin_reserva_ps", email="admin_reserva_ps@example.com", rol="admin")
         respuesta = client.post(
@@ -224,7 +255,37 @@ class TestRecursosPS:
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
             headers=cookies_para(admin),
         )
+        assert respuesta.status_code == 400
+
+    def test_admin_con_tipo_servicio_de_ensayo_puede_reservar_ps(self, client, db):
+        _, recurso_ps = self._setup_ps(db)
+        admin = crear_usuario(db, username="admin_reserva_ps2", email="admin_reserva_ps2@example.com", rol="admin")
+        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
+        payload["tipo"] = "servicio_de_ensayo"
+        respuesta = client.post(
+            "/reservas",
+            json=payload,
+            headers=cookies_para(admin),
+        )
         assert respuesta.status_code == 201
+
+    def test_otros_tipos_distintos_del_ensayo_tampoco_habilitan_ps_para_gestor(self, client, db):
+        """Solo `servicio_de_ensayo` habilita la reserva de un recurso PS por
+        gestor/admin; los demás tipos del enum quedan igual de bloqueados que
+        la ausencia de tipo."""
+        espacio, recurso_ps = self._setup_ps(db)
+        gestor = crear_usuario(
+            db, username="gestor_reserva_ps3", email="gestor_reserva_ps3@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
+        payload["tipo"] = "trabajo_grado"
+        respuesta = client.post(
+            "/reservas",
+            json=payload,
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 400
 
     def test_usuario_no_puede_editar_reserva_hacia_recurso_ps(self, client, db):
         espacio = crear_espacio(db, nombre="Sala PS Editar")

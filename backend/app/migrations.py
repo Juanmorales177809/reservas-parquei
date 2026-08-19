@@ -425,6 +425,30 @@ def migrate_resource_reservations() -> None:
         _BACKFILL_RESERVA_RECURSOS,
         _GATE_RESERVA_RECURSOS_COMPLETO,
         _CONSTRAINTS_EXCLUDE_RESERVA_ASOCIACIONES,
+        # Fase 12E (capacidad opcional): datos legado (migración desde el
+        # sistema de reservas de laboratorios) no traen capacidad ni de
+        # espacio ni de recurso. `ALTER COLUMN ... DROP NOT NULL` es
+        # idempotente por sí mismo en PostgreSQL -- no requiere guard
+        # `IF NOT EXISTS`, repetirlo sobre una columna ya nullable no falla.
+        "ALTER TABLE espacios ALTER COLUMN capacidad DROP NOT NULL",
+        "ALTER TABLE recursos ALTER COLUMN capacidad DROP NOT NULL",
+        # Fase 12D (parcial): `Reserva.tipo` (tipo de reserva académica,
+        # RN-012/RN-015). Columna nullable sin backfill ni default: no hay
+        # dato legado que migrar en este plan. El guard para el
+        # CheckConstraint sigue el patrón exacto de `ck_espacios_modalidad_reserva`.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS tipo VARCHAR(30)",
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_reservas_tipo') THEN
+                ALTER TABLE reservas ADD CONSTRAINT ck_reservas_tipo
+                CHECK (tipo IN ('trabajo_investigacion', 'trabajo_grado', 'servicio_de_ensayo'));
+            END IF;
+        END $$;
+        """,
+        # Fase 12D-bis: `Reserva.asistio` (booleano nullable, sin
+        # CheckConstraint). El más simple de los cuatro cambios de este plan.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN",
     )
 
     with engine.begin() as connection:

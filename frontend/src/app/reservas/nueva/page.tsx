@@ -5,11 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { listarRecursos } from '@/services/recursos';
 import { listarZonas } from '@/services/zonas';
+import { listarEnsayos } from '@/services/ensayos';
 import { listarEspacios } from '@/services/espacios';
 import { crearReserva } from '@/services/reservas';
+import type { AcompananteInput } from '@/types/reserva';
+import type { Ensayo } from '@/types/ensayo';
 import type { Espacio, ModalidadEspacio } from '@/types/espacio';
 import type { Recurso } from '@/types/recurso';
-import type { Reserva } from '@/types/reserva';
+import type { Reserva, TipoReserva } from '@/types/reserva';
 import type { Zona } from '@/types/zona';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -27,7 +30,11 @@ function NuevaReservaForm() {
   const [modalidad, setModalidad] = useState<ModalidadEspacio | null>(null);
   const [recursoIds, setRecursoIds] = useState<number[]>(recursoInicial ? [recursoInicial] : []);
   const [zonaIds, setZonaIds] = useState<number[]>([]);
+  const [ensayos, setEnsayos] = useState<Ensayo[]>([]);
+  const [ensayoIds, setEnsayoIds] = useState<number[]>([]);
+  const [acompanantes, setAcompanantes] = useState<AcompananteInput[]>([]);
   const [form, setForm] = useState({ fecha: fechaInicial, hora_inicio: '', hora_fin: '', asistentes: 1 });
+  const [tipo, setTipo] = useState<TipoReserva | ''>('');
   const [created, setCreated] = useState<Reserva | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,10 +58,29 @@ function NuevaReservaForm() {
       .catch((err: Error) => setError(err.message));
   }, [searchParams, recursoInicial]);
 
+  // Fase 12E: cargar ensayos de las zonas seleccionadas
+  useEffect(() => {
+    if (zonaIds.length === 0) {
+      setEnsayos([]);
+      setEnsayoIds([]);
+      return;
+    }
+    Promise.all(zonaIds.map((id) => listarEnsayos(id)))
+      .then((listas) => {
+        const todos = listas.flat();
+        setEnsayos(todos);
+        setEnsayoIds((actuales) => actuales.filter((eid) => todos.some((e) => e.id === eid)));
+      })
+      .catch(() => setEnsayos([]));
+  }, [zonaIds]);
+
   async function handleEspacioChange(nuevoEspacioId: number) {
     setEspacioId(nuevoEspacioId);
     setRecursoIds([]);
     setZonaIds([]);
+    setEnsayos([]);
+    setEnsayoIds([]);
+    setAcompanantes([]);
     setRecursos([]);
     setZonas([]);
     setModalidad(null);
@@ -93,6 +119,14 @@ function NuevaReservaForm() {
           hora_inicio: form.hora_inicio,
           hora_fin: form.hora_fin,
           asistentes: form.asistentes,
+          // Fase 12D: solo se envía cuando el usuario eligió un tipo.
+          ...(tipo ? { tipo } : {}),
+          // Fase 12E: ensayos solo si hay zonas seleccionadas
+          ...(ensayoIds.length > 0 ? { ensayo_ids: ensayoIds } : {}),
+          // Fase 12E: acompañantes (se envía solo si hay filas con datos)
+          ...(acompanantes.filter((a) => a.nombre.trim() && a.correo.trim()).length > 0
+            ? { acompanantes: acompanantes.filter((a) => a.nombre.trim() && a.correo.trim()) }
+            : {}),
         }),
       );
     } catch (err) {
@@ -150,7 +184,8 @@ function NuevaReservaForm() {
                         )
                       }
                     />
-                    {recurso.nombre} · Cap. {recurso.capacidad}
+                    {recurso.nombre}
+                    {recurso.capacidad !== null ? ` · Cap. ${recurso.capacidad}` : ''}
                   </label>
                 ))}
               </div>
@@ -193,12 +228,74 @@ function NuevaReservaForm() {
             )}
           </fieldset>
         )}
+        {zonaIds.length > 0 && ensayos.length > 0 && (
+          <fieldset className="input-label">
+            <legend>Ensayos (opcional)</legend>
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-border p-2">
+              {ensayos.map((ensayo) => (
+                <label key={ensayo.id} className="flex items-center gap-2 text-sm font-normal">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={ensayoIds.includes(ensayo.id)}
+                    onChange={() =>
+                      setEnsayoIds((actuales) =>
+                        actuales.includes(ensayo.id)
+                          ? actuales.filter((item) => item !== ensayo.id)
+                          : [...actuales, ensayo.id],
+                      )
+                    }
+                  />
+                  {ensayo.nombre}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <fieldset className="input-label">
+          <legend>Acompañantes (opcional)</legend>
+          {acompanantes.map((ac, idx) => (
+            <div key={idx} className="mb-2 flex gap-2">
+              <input
+                className="input flex-1"
+                placeholder="Nombre"
+                value={ac.nombre}
+                onChange={(e) =>
+                  setAcompanantes((prev) => prev.map((item, i) => (i === idx ? { ...item, nombre: e.target.value } : item)))
+                }
+              />
+              <input
+                className="input flex-1"
+                placeholder="Correo"
+                value={ac.correo}
+                onChange={(e) =>
+                  setAcompanantes((prev) => prev.map((item, i) => (i === idx ? { ...item, correo: e.target.value } : item)))
+                }
+              />
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAcompanantes((prev) => prev.filter((_, i) => i !== idx))}>
+                Quitar
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAcompanantes((prev) => [...prev, { nombre: '', correo: '' }])}>
+            Agregar acompañante
+          </button>
+        </fieldset>
         <label className="input-label">Fecha<input className="input" type="date" min={getLocalDateInputValue()} value={form.fecha} onChange={(event) => setForm({ ...form, fecha: event.target.value })} required /></label>
         <div className="grid grid-cols-2 gap-4">
           <label className="input-label">Hora inicio<input className="input" type="time" value={form.hora_inicio} onChange={(event) => setForm({ ...form, hora_inicio: event.target.value })} required /></label>
           <label className="input-label">Hora fin<input className="input" type="time" value={form.hora_fin} onChange={(event) => setForm({ ...form, hora_fin: event.target.value })} required /></label>
         </div>
         <label className="input-label">Asistentes<input className="input" type="number" min={1} value={form.asistentes} onChange={(event) => setForm({ ...form, asistentes: Number(event.target.value) })} required /></label>
+        <label className="input-label">
+          Tipo de reserva
+          <select className="input" value={tipo} onChange={(event) => setTipo(event.target.value as TipoReserva | '')}>
+            <option value="">Sin especificar</option>
+            <option value="trabajo_investigacion">Investigación</option>
+            <option value="trabajo_grado">Trabajo de grado</option>
+            <option value="servicio_de_ensayo">Servicio de ensayo</option>
+          </select>
+        </label>
         <button className="btn btn-primary w-full justify-center" disabled={loading || !condicionesValidas} type="submit">
           {loading ? 'Creando...' : 'Solicitar reserva'}
         </button>

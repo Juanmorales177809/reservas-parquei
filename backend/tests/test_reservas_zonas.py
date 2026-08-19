@@ -387,13 +387,44 @@ class TestCapacidad:
         )
         assert respuesta.status_code == 400
 
+    def test_sin_capacidad_en_ningun_eje_no_limita_asistentes(self, client, db):
+        """Fase 12E: si el espacio, la zona y el recurso no tienen capacidad
+        definida (dato migrado desde el sistema legado de laboratorios,
+        que no la trae), la reserva no se rechaza por aforo sin importar
+        cuántos asistentes se pidan."""
+        espacio = crear_espacio(db, nombre="Sala Sin Capacidad", modalidad_reserva="mixto", capacidad=None)
+        usuario = crear_usuario(db, username="u_sin_cap", email="u_sin_cap@example.com")
+        r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=None)
+        respuesta = client.post(
+            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=999), headers=cookies_para(usuario)
+        )
+        assert respuesta.status_code == 201
+
+    def test_capacidad_del_espacio_sigue_limitando_si_el_recurso_no_la_tiene(self, client, db):
+        """El chequeo de aforo no se salta por completo solo porque falte
+        en un eje -- sigue considerando los ejes que sí tienen capacidad
+        (mismo criterio que ya regía para zonas antes de esta fase)."""
+        espacio = crear_espacio(db, nombre="Sala Cap Solo Espacio", modalidad_reserva="mixto", capacidad=3)
+        usuario = crear_usuario(db, username="u_cap_espacio", email="u_cap_espacio@example.com")
+        r1 = crear_recurso(db, espacio=espacio, usuario=usuario, capacidad=None)
+        excede = client.post(
+            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=4), headers=cookies_para(usuario)
+        )
+        assert excede.status_code == 400
+        justo = client.post(
+            "/reservas", json=_payload(recurso_ids=[r1.id], asistentes=3), headers=cookies_para(usuario)
+        )
+        assert justo.status_code == 201
+
 
 class TestPS:
     def test_zona_con_recurso_ps_bloquea_usuario(self, client, db):
+        """El gate de rol del usuario (403) se evalúa antes que el gate de
+        tipo de la Fase 12D: reservar una zona cuyo recurso efectivo es PS
+        sigue bloqueado para el rol `usuario`, incluso sin declarar tipo."""
         espacio = crear_espacio(db, nombre="Sala PS Zona", modalidad_reserva="mixto")
         admin = crear_usuario(db, username="admin_ps_zonas", email="admin_ps_zonas@example.com", rol="admin")
         usuario = crear_usuario(db, username="u_ps_zonas", email="u_ps_zonas@example.com")
-        r_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Normal")
         r_ps = crear_recurso(
             db, espacio=espacio, usuario=admin, nombre="PS", es_prestacion_servicio=True
         )
@@ -403,10 +434,36 @@ class TestPS:
             "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(usuario)
         )
         assert bloqueado.status_code == 403
-        permitido = client.post(
+
+    def test_admin_sin_tipo_de_ensayo_no_puede_reservar_zona_con_ps(self, client, db):
+        """Fase 12D: una zona cuyo recurso efectivo es PS sigue el mismo gate
+        que un recurso PS directo — sin `tipo=servicio_de_ensayo`, 400."""
+        espacio = crear_espacio(db, nombre="Sala PS Zona 2", modalidad_reserva="mixto")
+        admin = crear_usuario(db, username="admin_ps_zonas2", email="admin_ps_zonas2@example.com", rol="admin")
+        r_ps = crear_recurso(
+            db, espacio=espacio, usuario=admin, nombre="PS", es_prestacion_servicio=True
+        )
+        zona = crear_zona(db, espacio=espacio, usuario=admin)
+        asociar_zona_recurso(db, zona, r_ps)
+        respuesta = client.post(
             "/reservas", json=_payload(zona_ids=[zona.id]), headers=cookies_para(admin)
         )
-        assert permitido.status_code == 201
+        assert respuesta.status_code == 400
+
+    def test_admin_con_tipo_de_ensayo_puede_reservar_zona_con_ps(self, client, db):
+        espacio = crear_espacio(db, nombre="Sala PS Zona 3", modalidad_reserva="mixto")
+        admin = crear_usuario(db, username="admin_ps_zonas3", email="admin_ps_zonas3@example.com", rol="admin")
+        r_ps = crear_recurso(
+            db, espacio=espacio, usuario=admin, nombre="PS", es_prestacion_servicio=True
+        )
+        zona = crear_zona(db, espacio=espacio, usuario=admin)
+        asociar_zona_recurso(db, zona, r_ps)
+        respuesta = client.post(
+            "/reservas",
+            json=_payload(zona_ids=[zona.id], tipo="servicio_de_ensayo"),
+            headers=cookies_para(admin),
+        )
+        assert respuesta.status_code == 201
 
 
 class TestPermisos:

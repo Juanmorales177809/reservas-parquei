@@ -18,7 +18,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 const initialForm: RecursoCreate = {
   nombre: '',
   descripcion: '',
-  capacidad: 1,
+  capacidad: null,
   tipo_recurso_id: 0,
   estado: 'activo',
 };
@@ -128,7 +128,7 @@ export default function AdminRecursosPage() {
         <label className="input-label">Nombre<input className="input" value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} required /></label>
         <label className="input-label">Tipo<select className="input" value={form.tipo_recurso_id} onChange={(event) => setForm({ ...form, tipo_recurso_id: Number(event.target.value) })} required>{tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}</select></label>
         {isAdmin && <label className="input-label">Espacio<select className="input" value={form.espacio_id} onChange={(event) => setForm({ ...form, espacio_id: Number(event.target.value) })} required>{espacios.map((espacio) => <option key={espacio.id} value={espacio.id}>{espacio.nombre}</option>)}</select></label>}
-        <label className="input-label">Capacidad<input className="input" type="number" min={1} value={form.capacidad} onChange={(event) => setForm({ ...form, capacidad: Number(event.target.value) })} required /></label>
+        <label className="input-label">Capacidad<input className="input" type="number" min={1} placeholder="Opcional" value={form.capacidad ?? ''} onChange={(event) => setForm({ ...form, capacidad: event.target.value === '' ? null : Number(event.target.value) })} /></label>
         <label className="input-label md:col-span-2">Descripción<input className="input" value={form.descripcion} onChange={(event) => setForm({ ...form, descripcion: event.target.value })} /></label>
         <button className="btn btn-primary w-fit" disabled={saving || tipos.length === 0} type="submit">{saving ? 'Guardando...' : 'Crear recurso'}</button>
       </form>
@@ -144,7 +144,7 @@ export default function AdminRecursosPage() {
                     <td>{editing?.id === recurso.id ? <input className="input" aria-label="Nombre del recurso" value={editing.nombre} onChange={(event) => setEditing({ ...editing, nombre: event.target.value })} /> : <><strong>{recurso.nombre}</strong><div className="text-xs text-text-muted">{recurso.descripcion}</div></>}</td>
                     <td>{editing?.id === recurso.id ? <select className="input" aria-label="Tipo del recurso" value={editing.tipo_recurso_id} onChange={(event) => setEditing({ ...editing, tipo_recurso_id: Number(event.target.value) })}>{tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}</select> : recurso.tipo.nombre}</td>
                     <td>{recurso.espacio.nombre}</td>
-                    <td>{editing?.id === recurso.id ? <input className="input w-24" type="number" min={1} aria-label="Capacidad del recurso" value={editing.capacidad} onChange={(event) => setEditing({ ...editing, capacidad: Number(event.target.value) })} /> : recurso.capacidad}</td>
+                    <td>{editing?.id === recurso.id ? <input className="input w-24" type="number" min={1} aria-label="Capacidad del recurso" value={editing.capacidad ?? ''} onChange={(event) => setEditing({ ...editing, capacidad: event.target.value === '' ? null : Number(event.target.value) })} /> : (recurso.capacidad ?? <span className="text-text-muted">Sin definir</span>)}</td>
                     <td>{editing?.id === recurso.id ? <select className="input" aria-label="Estado del recurso" value={editing.estado} onChange={(event) => setEditing({ ...editing, estado: event.target.value as Recurso['estado'] })}><option value="activo">Activo</option><option value="inactivo">Inactivo</option><option value="mantenimiento">Mantenimiento</option></select> : <span className={`badge ${recurso.estado === 'activo' ? 'badge-success' : 'badge-warning'}`}>{recurso.estado}</span>}</td>
                     <td>{editing?.id === recurso.id ? <div className="flex gap-2"><button className="btn btn-success btn-sm" type="button" onClick={handleUpdate}>Guardar</button><button className="btn btn-secondary btn-sm" type="button" onClick={() => setEditing(null)}>Cancelar</button></div> : <div className="flex gap-2"><button className="btn btn-secondary btn-sm" type="button" onClick={() => setEditing({ ...recurso })}>Editar</button><button className="btn btn-danger btn-sm" type="button" onClick={() => handleDelete(recurso)}>Eliminar</button></div>}</td>
                   </tr>

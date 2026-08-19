@@ -152,6 +152,30 @@ class TestGestionPS:
         assert respuesta.status_code == 201
         assert respuesta.json()["es_prestacion_servicio"] is True
 
+    def test_crear_recurso_sin_capacidad_es_valido(self, client, db):
+        """Fase 12E: capacidad opcional -- datos migrados desde el sistema
+        legado de reservas de laboratorios (equipos) no siempre la traen."""
+        espacio = crear_espacio(db, nombre="Sala Crear Sin Cap")
+        gestor = crear_usuario(
+            db, username="gestor_crea_sincap", email="gestor_crea_sincap@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        tipo_id = client.get("/recursos/tipos").json()
+        if not tipo_id:
+            crear_recurso(db, espacio=espacio, usuario=gestor)
+            tipo_id = client.get("/recursos/tipos").json()
+        respuesta = client.post(
+            "/recursos",
+            json={
+                "nombre": "Equipo Sin Capacidad",
+                "tipo_recurso_id": tipo_id[0]["id"],
+                "estado": "activo",
+            },
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 201
+        assert respuesta.json()["capacidad"] is None
+
     def test_usuario_no_puede_crear_recursos(self, client, db):
         espacio = crear_espacio(db, nombre="Sala Crear PS 2")
         usuario = crear_usuario(db, username="user_crea_ps", email="user_crea_ps@example.com")

@@ -1,6 +1,30 @@
 {
   "components": {
     "schemas": {
+      "AcompananteInput": {
+        "additionalProperties": false,
+        "description": "Fase 12E: acompañante nombrado (N:1 Reserva). Sin cuenta de usuario\npropia; responde a la pregunta abierta 6 de la Fase 12A (nombre+correo).\nCedula se omite por estar vacía en los datos reales.",
+        "properties": {
+          "correo": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Correo",
+            "type": "string"
+          },
+          "nombre": {
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nombre",
+          "correo"
+        ],
+        "title": "AcompananteInput",
+        "type": "object"
+      },
       "AdminDashboardSummary": {
         "properties": {
           "espacio_nombre": {
@@ -299,12 +323,160 @@
         "title": "DisponibilidadSlot",
         "type": "object"
       },
+      "EnsayoCreate": {
+        "properties": {
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad",
+            "default": "activo"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          },
+          "zona_id": {
+            "title": "Zona Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nombre",
+          "zona_id"
+        ],
+        "title": "EnsayoCreate",
+        "type": "object"
+      },
+      "EnsayoReservaResponse": {
+        "description": "Ensayo asociado a una reserva (Fase 12E, N:1 Zona). Subset mínimo\npara la respuesta de reserva, mismo criterio que ZonaReservaResponse.",
+        "properties": {
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "zona_id": {
+            "title": "Zona Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "zona_id",
+          "estado"
+        ],
+        "title": "EnsayoReservaResponse",
+        "type": "object"
+      },
+      "EnsayoResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "integer"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "title": "Updated By",
+            "type": "integer"
+          },
+          "zona_id": {
+            "title": "Zona Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "zona_id",
+          "estado",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by"
+        ],
+        "title": "EnsayoResponse",
+        "type": "object"
+      },
+      "EnsayoUpdate": {
+        "properties": {
+          "estado": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstadoEntidad"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "zona_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zona Id"
+          }
+        },
+        "title": "EnsayoUpdate",
+        "type": "object"
+      },
       "EspacioCreate": {
         "properties": {
           "capacidad": {
-            "exclusiveMinimum": 0.0,
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "correo": {
             "maxLength": 255,
@@ -335,7 +507,6 @@
         },
         "required": [
           "nombre",
-          "capacidad",
           "correo"
         ],
         "title": "EspacioCreate",
@@ -344,8 +515,15 @@
       "EspacioReservaResponse": {
         "properties": {
           "capacidad": {
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
@@ -362,7 +540,6 @@
         "required": [
           "id",
           "nombre",
-          "capacidad",
           "estado"
         ],
         "title": "EspacioReservaResponse",
@@ -371,8 +548,15 @@
       "EspacioResponse": {
         "properties": {
           "capacidad": {
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "correo": {
             "anyOf": [
@@ -439,7 +623,6 @@
           "id",
           "nombre",
           "ubicacion",
-          "capacidad",
           "estado",
           "dias_atencion",
           "hora_apertura",
@@ -585,7 +768,7 @@
         "type": "object"
       },
       "ModalidadEspacio": {
-        "description": "Modalidad de reserva configurada por espacio (RN-006, Fase 12B).\n\nNombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente\ndistinto de `tipo_reserva` para no colisionar con el futuro campo de\ntipo de reserva académica de `Reserva` (RN-012, Fase 12D), que es un\nconcepto distinto aunque el documento fuente usa nombres parecidos\npara ambos.",
+        "description": "Modalidad de reserva configurada por espacio (RN-006, Fase 12B).\n\nNombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente\ndistinto de `tipo` (RN-012, Fase 12D), el tipo de reserva académica de\n`Reserva`, que es un concepto distinto aunque el documento fuente usa\nnombres parecidos para ambos (`tipo_reserva` en el legado).",
         "enum": [
           "equipos",
           "zonas",
@@ -711,9 +894,16 @@
       "RecursoCreate": {
         "properties": {
           "capacidad": {
-            "exclusiveMinimum": 0.0,
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "descripcion": {
             "anyOf": [
@@ -759,8 +949,7 @@
         },
         "required": [
           "nombre",
-          "tipo_recurso_id",
-          "capacidad"
+          "tipo_recurso_id"
         ],
         "title": "RecursoCreate",
         "type": "object"
@@ -791,8 +980,15 @@
       "RecursoReservaResponse": {
         "properties": {
           "capacidad": {
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "espacio": {
             "$ref": "#/components/schemas/EspacioReservaResponse"
@@ -812,7 +1008,6 @@
         "required": [
           "id",
           "nombre",
-          "capacidad",
           "estado",
           "espacio"
         ],
@@ -822,8 +1017,15 @@
       "RecursoResponse": {
         "properties": {
           "capacidad": {
-            "title": "Capacidad",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
           },
           "descripcion": {
             "anyOf": [
@@ -966,13 +1168,64 @@
         "title": "RecursoUpdate",
         "type": "object"
       },
+      "ReservaAcompananteResponse": {
+        "properties": {
+          "correo": {
+            "title": "Correo",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "correo"
+        ],
+        "title": "ReservaAcompananteResponse",
+        "type": "object"
+      },
+      "ReservaAsistioUpdate": {
+        "description": "Fase 12D-bis: payload del endpoint dedicado `PUT /reservas/{id}/asistio`.\n\nSiempre se manda un valor concreto (`true`/`false`); no hay semántica de\n\"ausencia conserva\" como en `ReservaUpdate`.",
+        "properties": {
+          "asistio": {
+            "title": "Asistio",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "asistio"
+        ],
+        "title": "ReservaAsistioUpdate",
+        "type": "object"
+      },
       "ReservaCreate": {
         "additionalProperties": false,
         "properties": {
+          "acompanantes": {
+            "items": {
+              "$ref": "#/components/schemas/AcompananteInput"
+            },
+            "title": "Acompanantes",
+            "type": "array"
+          },
           "asistentes": {
             "exclusiveMinimum": 0.0,
             "title": "Asistentes",
             "type": "integer"
+          },
+          "ensayo_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Ensayo Ids",
+            "type": "array"
           },
           "fecha": {
             "format": "date",
@@ -995,6 +1248,16 @@
             },
             "title": "Recurso Ids",
             "type": "array"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipoReserva"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "zona_ids": {
             "items": {
@@ -1033,14 +1296,46 @@
       },
       "ReservaResponse": {
         "properties": {
+          "acompanantes": {
+            "items": {
+              "$ref": "#/components/schemas/ReservaAcompananteResponse"
+            },
+            "title": "Acompanantes",
+            "type": "array"
+          },
           "asistentes": {
             "title": "Asistentes",
             "type": "integer"
+          },
+          "asistio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asistio"
           },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "ensayo_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Ensayo Ids",
+            "type": "array"
+          },
+          "ensayos": {
+            "items": {
+              "$ref": "#/components/schemas/EnsayoReservaResponse"
+            },
+            "title": "Ensayos",
+            "type": "array"
           },
           "espacio": {
             "$ref": "#/components/schemas/EspacioReservaResponse"
@@ -1084,6 +1379,16 @@
             },
             "title": "Recursos",
             "type": "array"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipoReserva"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "updated_at": {
             "format": "date-time",
@@ -1132,6 +1437,20 @@
       "ReservaUpdate": {
         "additionalProperties": false,
         "properties": {
+          "acompanantes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AcompananteInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acompanantes"
+          },
           "asistentes": {
             "anyOf": [
               {
@@ -1143,6 +1462,20 @@
               }
             ],
             "title": "Asistentes"
+          },
+          "ensayo_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ensayo Ids"
           },
           "fecha": {
             "anyOf": [
@@ -1193,6 +1526,16 @@
               }
             ],
             "title": "Recurso Ids"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipoReserva"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "zona_ids": {
             "anyOf": [
@@ -1330,6 +1673,16 @@
         ],
         "title": "TipoRecursoResponse",
         "type": "object"
+      },
+      "TipoReserva": {
+        "description": "Tipo de reserva académica de `Reserva` (RN-012/RN-015, Fase 12D).\n\nNombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba\nel código y la documentación como punto de extensión pendiente antes de\nexistir (services/reservas.py::validar_acceso_ps, models/README.md).\nTres valores exactos del roadmap aprobado, sin catálogo \"otro\":\nTRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO (grado,\nproyectos de grado) y SERVICIO_DE_ENSAYO (ensayo, prestación de\nservicios). `servicio_de_ensayo` es el valor que el gate PS de la\nFase 12D exige para reservar un recurso marcado como PS.",
+        "enum": [
+          "trabajo_investigacion",
+          "trabajo_grado",
+          "servicio_de_ensayo"
+        ],
+        "title": "TipoReserva",
+        "type": "string"
       },
       "UsuarioEspacioResponse": {
         "properties": {
@@ -1985,6 +2338,199 @@
         "summary": "Logout",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/ensayos": {
+      "get": {
+        "description": "Listar ensayos. No requiere autenticación (mismo criterio RN-005 que\nGET /zonas): anónimo/usuario solo ven ensayos activos de zonas activas\nde espacios activos; gestor/admin ven todo.",
+        "operationId": "listar_ensayos_ensayos_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "zona_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Zona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EnsayoResponse"
+                  },
+                  "title": "Response Listar Ensayos Ensayos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Ensayos",
+        "tags": [
+          "ensayos"
+        ]
+      },
+      "post": {
+        "operationId": "crear_ensayo_endpoint_ensayos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnsayoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnsayoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear Ensayo Endpoint",
+        "tags": [
+          "ensayos"
+        ]
+      }
+    },
+    "/ensayos/{ensayo_id}": {
+      "delete": {
+        "operationId": "eliminar_ensayo_endpoint_ensayos__ensayo_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ensayo_id",
+            "required": true,
+            "schema": {
+              "title": "Ensayo Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Eliminar Ensayo Endpoint",
+        "tags": [
+          "ensayos"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_ensayo_endpoint_ensayos__ensayo_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ensayo_id",
+            "required": true,
+            "schema": {
+              "title": "Ensayo Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnsayoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnsayoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Ensayo Endpoint",
+        "tags": [
+          "ensayos"
         ]
       }
     },
@@ -3071,6 +3617,63 @@
           }
         ],
         "summary": "Actualizar Reserva Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}/asistio": {
+      "put": {
+        "operationId": "marcar_asistencia_endpoint_reservas__reserva_id__asistio_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaAsistioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Marcar Asistencia Endpoint",
         "tags": [
           "reservas"
         ]

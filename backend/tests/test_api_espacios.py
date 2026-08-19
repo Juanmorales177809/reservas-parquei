@@ -43,6 +43,20 @@ def test_crear_espacio_solo_admin(client, db):
     assert respuesta.json()["nombre"] == "Sala Nueva"
 
 
+def test_crear_espacio_sin_capacidad_es_valido(client, db):
+    """Fase 12E: capacidad opcional -- datos migrados desde el sistema
+    legado de reservas de laboratorios no siempre la traen."""
+    admin = crear_usuario(db, username="admin_esp_cap", email="admin_esp_cap@example.com", rol="admin")
+    payload = {
+        "nombre": "Sala Sin Capacidad",
+        "ubicacion": "Piso 3",
+        "correo": "sala.sincap@example.com",
+    }
+    respuesta = client.post("/espacios", json=payload, headers=cookies_para(admin))
+    assert respuesta.status_code == 201
+    assert respuesta.json()["capacidad"] is None
+
+
 def test_eliminar_espacio_sin_dependencias(client, db):
     admin = crear_usuario(db, username="admin_del", email="admin_del@example.com", rol="admin")
     espacio = crear_espacio(db, nombre="Sala Borrable")

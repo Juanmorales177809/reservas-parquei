@@ -6,9 +6,13 @@ import { useAuth } from '@/context/AuthContext';
 import { listarEspacios } from '@/services/espacios';
 import { listarZonas } from '@/services/zonas';
 import { getDisponibilidadRecurso, listarRecursos } from '@/services/recursos';
+import { listarEnsayos } from '@/services/ensayos';
 import { crearReserva } from '@/services/reservas';
+import type { AcompananteInput } from '@/types/reserva';
 import type { DisponibilidadSlot, Espacio } from '@/types/espacio';
+import type { Ensayo } from '@/types/ensayo';
 import type { Recurso } from '@/types/recurso';
+import type { TipoReserva } from '@/types/reserva';
 import type { Zona } from '@/types/zona';
 import { getLocalDateInputValue } from '@/utils/date';
 
@@ -41,10 +45,14 @@ export default function EspaciosPage() {
   const [seleccionado, setSeleccionado] = useState<EspacioConRecursos | null>(null);
   const [recursoIds, setRecursoIds] = useState<number[]>([]);
   const [zonaIds, setZonaIds] = useState<number[]>([]);
+  const [ensayos, setEnsayos] = useState<Ensayo[]>([]);
+  const [ensayoIds, setEnsayoIds] = useState<number[]>([]);
+  const [acompanantes, setAcompanantes] = useState<AcompananteInput[]>([]);
   const [fecha, setFecha] = useState(() => getLocalDateInputValue());
   const [slots, setSlots] = useState<DisponibilidadSlot[]>([]);
   const [horasSeleccionadas, setHorasSeleccionadas] = useState<number[]>([]);
   const [asistentes, setAsistentes] = useState(1);
+  const [tipo, setTipo] = useState<TipoReserva | ''>('');
   const [paso, setPaso] = useState<PasoReserva>('editar');
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [guardandoReserva, setGuardandoReserva] = useState(false);
@@ -123,6 +131,12 @@ export default function EspaciosPage() {
     if (seleccionado) void recargarSlots(seleccionado, recursoIds, nuevos, fecha);
   }
 
+  function alternarEnsayo(id: number) {
+    setEnsayoIds((actuales) => (actuales.includes(id) ? actuales.filter((item) => item !== id) : [...actuales, id]));
+    setPaso('editar');
+    setAceptaTerminos(false);
+  }
+
   function cerrarModal() {
     setSeleccionado(null);
     focoPrevioRef.current?.focus();
@@ -138,12 +152,30 @@ export default function EspaciosPage() {
     return () => window.removeEventListener('keydown', alPresionarTecla);
   }, [seleccionado]);
 
+  // Fase 12E: cargar ensayos de las zonas seleccionadas
+  useEffect(() => {
+    if (!seleccionado || zonaIds.length === 0) {
+      setEnsayos([]);
+      setEnsayoIds([]);
+      return;
+    }
+    Promise.all(zonaIds.map((id) => listarEnsayos(id)))
+      .then((listas) => {
+        const todos = listas.flat();
+        setEnsayos(todos);
+        // limpiar ensayoIds huérfanos (ensayo de zona deseleccionada)
+        setEnsayoIds((actuales) => actuales.filter((eid) => todos.some((e) => e.id === eid)));
+      })
+      .catch(() => setEnsayos([]));
+  }, [zonaIds, seleccionado]);
+
   function abrirDisponibilidad(item: EspacioConRecursos) {
     focoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSeleccionado(item);
     setSlots([]);
     setHorasSeleccionadas([]);
     setAsistentes(1);
+    setTipo('');
     setPaso('editar');
     setAceptaTerminos(false);
     setReservaCreadaId(null);
@@ -158,6 +190,9 @@ export default function EspaciosPage() {
         : [];
     setRecursoIds(recursosIniciales);
     setZonaIds(zonasIniciales);
+    setEnsayos([]);
+    setEnsayoIds([]);
+    setAcompanantes([]);
     void recargarSlots(item, recursosIniciales, zonasIniciales, fecha);
   }
 
@@ -170,10 +205,14 @@ export default function EspaciosPage() {
   const capacidadMaxima = seleccionado
     ? (() => {
         const capacidades = [
-          ...recursosSeleccionados.map((recurso) => recurso.capacidad),
+          ...recursosSeleccionados.map((recurso) => recurso.capacidad).filter((valor): valor is number => valor !== null),
           ...zonasSeleccionadas.map((zona) => zona.capacidad).filter((valor): valor is number => valor !== null),
         ];
-        return capacidades.length > 0 ? Math.min(...capacidades) : seleccionado.espacio.capacidad;
+        // Fase 12E: capacidad ahora es opcional en espacio/recurso/zona.
+        // `undefined` hace que React omita el atributo `max` del input
+        // (sin límite conocido), igual que el backend se salta el chequeo
+        // de aforo cuando no hay ningún dato de capacidad disponible.
+        return capacidades.length > 0 ? Math.min(...capacidades) : (seleccionado.espacio.capacidad ?? undefined);
       })()
     : 1;
   const indicesOrdenados = [...horasSeleccionadas].sort((a, b) => a - b);
@@ -216,6 +255,10 @@ export default function EspaciosPage() {
         hora_inicio: primerSlot.hora_inicio,
         hora_fin: ultimoSlot.hora_fin,
         asistentes,
+        // Fase 12D: solo se envía cuando el usuario eligió un tipo.
+        ...(tipo ? { tipo } : {}),
+        // Fase 12E: ensayos solo si hay zonas seleccionadas
+        ...(ensayoIds.length > 0 ? { ensayo_ids: ensayoIds } : {}),
       });
       setReservaCreadaId(reserva.id);
       setReservaCreadaEstado(reserva.estado);
@@ -257,7 +300,7 @@ export default function EspaciosPage() {
               </div>
               <div>
                 <dt className="inline text-text-muted">Capacidad: </dt>
-                <dd className="inline">{item.espacio.capacidad} personas</dd>
+                <dd className="inline">{item.espacio.capacidad !== null ? `${item.espacio.capacidad} personas` : 'Sin definir'}</dd>
               </div>
               <div>
                 <dt className="inline text-text-muted">Recursos activos: </dt>
@@ -345,7 +388,8 @@ export default function EspaciosPage() {
                               checked={recursoIds.includes(recurso.id)}
                               onChange={() => alternarRecurso(recurso.id)}
                             />
-                            {recurso.nombre} · {recurso.tipo.nombre} · Cap. {recurso.capacidad}
+                            {recurso.nombre} · {recurso.tipo.nombre}
+                            {recurso.capacidad !== null ? ` · Cap. ${recurso.capacidad}` : ''}
                           </label>
                         ))}
                       </div>
@@ -381,6 +425,25 @@ export default function EspaciosPage() {
                         )}
                       </>
                     )}
+                  </fieldset>
+                )}
+
+                {zonaIds.length > 0 && ensayos.length > 0 && (
+                  <fieldset className="mt-4">
+                    <legend className="input-label">Ensayos (opcional)</legend>
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-border p-2">
+                      {ensayos.map((ensayo) => (
+                        <label key={ensayo.id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={ensayoIds.includes(ensayo.id)}
+                            onChange={() => alternarEnsayo(ensayo.id)}
+                          />
+                          {ensayo.nombre}
+                        </label>
+                      ))}
+                    </div>
                   </fieldset>
                 )}
 
@@ -446,6 +509,19 @@ export default function EspaciosPage() {
                         value={asistentes}
                         onChange={(event) => setAsistentes(Number(event.target.value))}
                       />
+                    </label>
+                    <label className="input-label mt-4">
+                      Tipo de reserva
+                      <select
+                        className="input"
+                        value={tipo}
+                        onChange={(event) => setTipo(event.target.value as TipoReserva | '')}
+                      >
+                        <option value="">Sin especificar</option>
+                        <option value="trabajo_investigacion">Investigación</option>
+                        <option value="trabajo_grado">Trabajo de grado</option>
+                        <option value="servicio_de_ensayo">Servicio de ensayo</option>
+                      </select>
                     </label>
                     <button
                       className="btn btn-primary mt-4 w-full justify-center"

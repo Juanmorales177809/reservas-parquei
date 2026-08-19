@@ -207,8 +207,9 @@ def payload_reserva_objetivos(
     hora_inicio="08:00",
     hora_fin="10:00",
     asistentes=2,
+    tipo="__ausente__",
 ):
-    return {
+    payload = {
         "recurso_ids": recurso_ids or [],
         "zona_ids": zona_ids or [],
         "fecha": fecha.isoformat(),
@@ -216,6 +217,11 @@ def payload_reserva_objetivos(
         "hora_fin": hora_fin,
         "asistentes": asistentes,
     }
+    # Fase 12D: `tipo` se incluye solo cuando el llamador lo pide (ausencia
+    # y `None` explícito son semánticas distintas para el PATCH).
+    if tipo != "__ausente__":
+        payload["tipo"] = tipo
+    return payload
 
 
 def crear_zona(

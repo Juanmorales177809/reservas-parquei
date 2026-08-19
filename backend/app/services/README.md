@@ -12,6 +12,7 @@ Reglas de negocio de la aplicación: validaciones de reserva, horarios, hora loc
 | horarios.py | Modificado | `horas_atencion_dia` y `horario_cubre_reserva` delegan en `HorarioAtencion`/`FranjaHoraria` con guard explícito para horario vacío |
 | reservas.py | Modificado | `TRANSICIONES_ESTADO` duplicado eliminado → `EstadoReserva.puede_transicionar_a()`; `validar_anticipacion` acepta `Reloj` inyectable (default `RelojLocal`); literales de estado/rol/notificación reemplazados por enums usando siempre `.value` |
 | reservas.py | Modificado (Fase 12B) | Nueva `validar_acceso_ps(recurso, usuario)`, invocada desde `validar_creacion` (POST) y `actualizar_reserva` (PATCH, al cambiar de recurso) |
+| reservas.py | Modificado (Fase 12D, parcial) | `validar_acceso_ps` gana el chequeo de tipo PS documentado en su docstring (exige `tipo == servicio_de_ensayo` para gestor/admin); `tipo` se persiste/vuelca en crear/actualizar; `_resolver_objetivo` recibe `tipo` |
 | reservas.py | Modificado (Fase 12C-4d) | Doble escritura controlada de `reserva_recursos` para reservas singulares: `_sincronizar_reserva_recurso()` crea o actualiza la única fila por reserva al crear/modificar recurso, fecha, horas o estado; `_es_conflicto_solapamiento` ampliado a la constraint nueva `reserva_recursos_sin_solapamiento` |
 | reservas.py | Modificado (Fase 12C-5) | La lectura interna del recurso actual de una reserva pasa a la asociación: `_recurso_id_reserva()` resuelve desde `reserva_recursos` (vía `crud::get_recurso_ids_reserva`) en `cambiar_estado` (chequeo de solapamiento al aprobar) y `actualizar_reserva` (recurso actual cuando no se cambia) |
 | auditoria.py | Modificado | Nueva `AuditoriaSesion` (adaptador de `RegistroAuditoria`, solo primitivas); `registrar_cambio()` conservado como wrapper |
@@ -33,8 +34,8 @@ Reglas de negocio de la aplicación: validaciones de reserva, horarios, hora loc
 
 ### Fase 12B — `validar_acceso_ps`
 
-- **RN-009**: 403 si `recurso.es_prestacion_servicio` es verdadero y `usuario.rol == Rol.USUARIO.value`. `gestor`/`admin` no están restringidos en esta fase (no hay todavía un tipo de reserva "servicio de ensayo" que condicione su acceso, ver Fase 12D).
-- **Punto de extensión explícito para la Fase 12D**: la función queda documentada en su propio docstring como el lugar donde 12D debe agregar el chequeo de tipo de reserva ("servicio de ensayo"), como una validación adicional — sin tocar ni duplicar este gate de rol.
+- **RN-009**: 403 si `recurso.es_prestacion_servicio` es verdadero y `usuario.rol == Rol.USUARIO.value`. Desde la Fase 12D, `gestor`/`admin` solo pueden reservar un recurso PS si `tipo == TipoReserva.SERVICIO_DE_ENSAYO` (400 en otro caso); el gate de rol del usuario se evalúa siempre antes que el de tipo.
+- **Fase 12D**: el chequeo de tipo de reserva ("servicio de ensayo") que el docstring dejaba como punto de extensión quedó implementado en la propia `validar_acceso_ps` (parámetro `tipo` nuevo), sin duplicar ni relajar el gate de rol de la Fase 12B.
 - **Reutilizada en dos flujos**: `validar_creacion` (creación de reserva, `POST /reservas`) y `actualizar_reserva` (edición, `PATCH /reservas/{id}`, cuando el cambio incluye un nuevo `recurso_id`) — una sola función, sin duplicar la regla.
 
 ### Fase 12C-4d — Doble escritura controlada de `reserva_recursos`
@@ -97,7 +98,7 @@ Resultado esperado: verde. El test de anticipación usa `_RelojFijo` en lugar de
 - **Retiro de la columna `reservas.recurso_id` (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL.
 - **Rollback endurecido de `migrations.py` (pendiente desde 12C-4b)**: script que aborte ante reservas multi-recurso o asociadas solo por zona, en una única transacción, con verificación del esquema final — sigue sin escribirse.
 - Limpieza opcional: `validar_solapamiento` quedó sin referencias tras 12C-6 (solo definición); `validar_recurso_activo`/`validar_capacidad` solo las ejercitan los tests unitarios.
-- Fase 12D (no iniciada): extender `validar_acceso_ps` (o agregar una validación hermana) con el condicionamiento de tipo de reserva "servicio de ensayo" para recursos PS.
+- Fase 12D (implementada, parcial): `validar_acceso_ps` exige `tipo == servicio_de_ensayo` para recursos PS reservados por gestor/admin. La entidad `Proyecto` (parte de 12D) sigue pendiente.
 
 ## Fase de implementación
 

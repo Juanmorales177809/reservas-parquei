@@ -13,6 +13,7 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 | espacio.py | Modificado | `estado` pasa a `EstadoEntidad` en Create/Update/Response; el validador de `horario_atencion` conserva su contrato exacto y agrega validación de respaldo con `HorarioAtencion` (opción A) |
 | recurso.py | Modificado | `estado` pasa a `EstadoEntidad` en Create/Update/Response. `TipoRecursoResponse.activo` se conserva como `str` (columna de otro significado, fuera del alcance) |
 | notificacion.py | Modificado | `tipo` pasa de `Literal` a `TipoNotificacion` |
+| reserva.py | Modificado (Fase 12D, parcial) | `tipo` (`TipoReserva`) en `ReservaCreate`/`ReservaUpdate`/`ReservaResponse` |
 | disponibilidad.py | Modificado | `estado` pasa de `str` a `EstadoSlot` |
 | espacio.py | Modificado (Fase 12B) | `EspacioCreate`/`Update`/`Response` ganan `modalidad_reserva: ModalidadEspacio` y `correo: str` (obligatorio en Create, opcional en Update/Response); validador manual de formato de correo (mismo patrón que `usuario.py`) |
 | recurso.py | Modificado (Fase 12B) | `RecursoCreate`/`Update`/`Response` ganan `es_prestacion_servicio: bool` (default `False`) |
@@ -39,7 +40,7 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 
 - **`EspacioCreate.correo` obligatorio, `EspacioUpdate.correo` opcional**: mismo criterio que RN-007 (correo obligatorio para altas nuevas, decisión 2 de la Fase 12A) sin romper espacios sembrados antes de esta fase (ver `backend/app/models/README.md`).
 - **Validador reutilizado, no una dependencia nueva**: `_validar_formato_correo` replica exactamente el patrón ya usado en `UsuarioCreate`/`UsuarioUpdate` (`"@" in value and "." in value.split("@")[-1]`) — mismo criterio "EmailStr descartado" de la Fase 2, no se añadió `email-validator`.
-- **`RecursoCreate.es_prestacion_servicio` con default `False`**: compatible con payloads existentes que no incluyen el campo (Fase 12D deberá condicionar su reserva a un tipo de reserva "servicio de ensayo", sin tocar este schema).
+- **`RecursoCreate.es_prestacion_servicio` con default `False`**: compatible con payloads existentes que no incluyen el campo. El condicionamiento a un tipo de reserva "servicio de ensayo" se implementó en la Fase 12D en `services/reservas.py::validar_acceso_ps`, sin tocar este schema.
 
 ### Fase 12C-2 — `schemas/zona.py` (nuevo)
 
@@ -99,6 +100,7 @@ Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 
 - Fase 12C-3: ninguno funcional. `ZonaRecursosResponse` no expone la zona completa, solo `zona_id` y la lista resultante — suficiente para el propósito del endpoint (confirmar el resultado del reemplazo).
 - Fase 12C-6: el singular `recurso_id`/`recurso` de `ReservaResponse` es **compatibilidad temporal** (ancla) hasta 12C-4e; los clientes nuevos deben leer `recurso_ids`/`zonas`. El 422 de entrada por `recurso_id` es deliberado (ruptura aprobada). El `ZonaReservaResponse` no expone timestamps — si una fase futura necesita quién creó/editó una zona en el detalle de la reserva, requerirá un cambio de schema.
 - Fase 12C-4e-schemas: ruptura de contrato aprobada explícitamente — cualquier cliente que todavía lea `recurso_id`/`recurso` de la respuesta deja de recibirlos. El frontend propio ya migró a `recursos`/`zonas` en la misma subfase (ver `frontend/src/utils/reservaEtiqueta.ts`); un cliente externo no actualizado se rompe, riesgo aceptado explícitamente por el usuario al aprobar el retiro.
+- Fase 12D (parcial): `tipo` es aditivo y opcional (`TipoReserva | None`) en los tres contratos de `Reserva` — ningún payload existente se rompe (ausencia = `None`). Un valor fuera del enum responde 422 (`extra="forbid"`/validación Pydantic), igual que cualquier otro campo tipado.
 
 ## Pendientes
 
@@ -110,6 +112,8 @@ Resultado esperado: 21 tests de contrato + suite completa en verde (157 en Fase 
 - ~~Fase 12C-3: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
 - ~~Fase 12C-6: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
 - ~~Fase 12C-4e-schemas: retiro de `recurso_id`/`recurso` de `ReservaResponse`, adición de `recursos`~~ **Hecho** — snapshot regenerado y verde.
+- ~~Fase 12D: aprobar y regenerar `tests/openapi.snapshot.json`~~ **Hecho** — snapshot regenerado y verde.
+- Fase 12D: la entidad `Proyecto` (parte de 12D) no se cierra en esta subfase — solo el campo `tipo`.
 - **Retiro de `reservas.recurso_id` (columna), `Reserva.recurso` (relación ORM) y la constraint histórica `reservas_sin_solapamiento` (no iniciado)**: solo al cierre de toda la transición, requiere aprobación explícita y ejecución de DDL — fuera de alcance de 12C-4e-schemas.
 - Evaluar en una fase posterior si `RecursoResponse` debe exponer su `zona_id` (simetría inversa) — no pedido en 12C-3, no implementado.
 

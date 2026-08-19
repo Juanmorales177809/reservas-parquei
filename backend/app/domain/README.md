@@ -13,11 +13,18 @@ Capa de dominio tipada del backend: enums, value objects y protocols que encapsu
 | protocols.py | Creado | `Reloj` y `RegistroAuditoria` (`@runtime_checkable`, solo tipos primitivos) |
 | __init__.py | Creado | Re-exporta la API pública de la capa |
 | enums.py | Modificado (Fase 12B) | Nuevo `ModalidadEspacio` (`equipos`/`zonas`/`mixto`, RN-006) |
+| enums.py | Modificado (Fase 12D, parcial) | Nuevo `TipoReserva` (`trabajo_investigacion`/`trabajo_grado`/`servicio_de_ensayo`, RN-012/RN-015). `Proyecto` (también de 12D) queda pendiente |
 
 ### Fase 12B — `ModalidadEspacio`
 
 - Valores en minúsculas (`equipos`/`zonas`/`mixto`), consistentes con la mayoría de enums existentes (`EstadoEntidad`, `EstadoReserva`, `Rol`) — no las mayúsculas literales del documento Word (decisión documentada, no una regla legada por un constraint preexistente como `TipoNotificacion`).
-- El campo en `Espacio` se llama `modalidad_reserva`, deliberadamente distinto de `tipo_reserva`, para no colisionar con el futuro campo de tipo de reserva académica de `Reserva` (RN-012, Fase 12D) — ambos conceptos comparten nombre parecido en el documento fuente pero son cosas distintas.
+- El campo en `Espacio` se llama `modalidad_reserva`, deliberadamente distinto de `tipo` (el campo de tipo de reserva académica de `Reserva`, RN-012/RN-015, Fase 12D) — ambos conceptos comparten nombre parecido en el documento fuente (`tipo_reserva` en el legado) pero son cosas distintas.
+
+### Fase 12D (parcial) — `TipoReserva`
+
+- Valores en minúsculas/snake_case, mismos tres del roadmap aprobado, sin catálogo "otro": `TRABAJO_INVESTIGACION`, `TRABAJO_GRADO`, `SERVICIO_DE_ENSAYO`. Nombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba el código como punto de extensión pendiente antes de existir.
+- `servicio_de_ensayo` es el valor que `services/reservas.py::validar_acceso_ps` exige (a partir de 12D) para que `gestor`/`admin` puedan reservar un recurso marcado como PS.
+- `Proyecto` (entidad) sigue pendiente — fuera del alcance de esta subfase, igual que antes.
 
 ## Reglas de negocio relacionadas
 
@@ -61,7 +68,7 @@ Resultado esperado: verde, incluyendo invariantes, transiciones, solapamiento/co
 
 - Fuente única del horario de atención (Fase 4).
 - Adaptadores de `Reloj` (→ `services/reloj.py`) y de `RegistroAuditoria` (→ `services/auditoria.py` que hoy recibe `Session` + `Usuario`): Fase 3.
-- ~~Contradicciones del documento legado (zonas, tipos de reserva, multi-equipo) fuera del alcance; ver plan v2.~~ **Superado**: el análisis Word→código real vive en `Auditoria_Funcional_Fase12.pdf` (raíz del repo) y en `CHANGELOG.md` (Fase 12A/12B). Zonas quedan planificadas para la Fase 12C; tipo de reserva académica, para la Fase 12D.
+- ~~Contradicciones del documento legado (zonas, tipos de reserva, multi-equipo) fuera del alcance; ver plan v2.~~ **Superado**: el análisis Word→código real vive en `Auditoria_Funcional_Fase12.pdf` (raíz del repo) y en `CHANGELOG.md` (Fase 12A/12B). Zonas → Fase 12C (completa). Tipo de reserva académica: el campo `Reserva.tipo` y el enum `TipoReserva` se implementaron en la Fase 12D (parcial); la entidad `Proyecto` (también parte de 12D) sigue pendiente.
 
 ## Fase de implementación
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { actualizarReserva, cambiarEstado, eliminarReserva, listarReservas } from '@/services/reservas';
+import { actualizarReserva, cambiarEstado, eliminarReserva, listarReservas, marcarAsistencia } from '@/services/reservas';
 import type { Reserva, ReservaEstadoUpdate } from '@/types/reserva';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -86,6 +86,16 @@ export default function AdminReservasPage() {
     }
   }
 
+  async function handleAsistencia(id: number, asistio: boolean) {
+    setError(null);
+    try {
+      await marcarAsistencia(id, asistio);
+      await loadReservas();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo marcar la asistencia');
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -132,6 +142,7 @@ export default function AdminReservasPage() {
                   <th>Horario</th>
                   <th>Asistentes</th>
                   <th>Estado</th>
+                  <th>Asistencia</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -194,7 +205,16 @@ export default function AdminReservasPage() {
                       </span>
                     </td>
                     <td>
-                      <div className="flex gap-2">
+                      {reserva.asistio === true ? (
+                        <span className="badge badge-success">Asistió</span>
+                      ) : reserva.asistio === false ? (
+                        <span className="badge badge-warning">No asistió</span>
+                      ) : (
+                        <span className="text-text-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-2">
                         {editing?.id === reserva.id ? (
                           <>
                             <button className="btn btn-success btn-sm" onClick={handleUpdate} type="button">
@@ -243,6 +263,22 @@ export default function AdminReservasPage() {
                                 Cancelar
                               </button>
                             )}
+                            <button
+                              className="btn btn-sm bg-blue-500 text-white hover:bg-blue-600"
+                              onClick={() => handleAsistencia(reserva.id, true)}
+                              type="button"
+                              title="Marcar que asistió"
+                            >
+                              Asistió
+                            </button>
+                            <button
+                              className="btn btn-sm bg-gray-400 text-white hover:bg-gray-500"
+                              onClick={() => handleAsistencia(reserva.id, false)}
+                              type="button"
+                              title="Marcar que no asistió"
+                            >
+                              No asistió
+                            </button>
                           </>
                         )}
                       </div>

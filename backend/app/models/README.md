@@ -19,6 +19,10 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 | migrations.py | Modificado (Fase 12C-4c) | Constraints `reserva_recursos_sin_solapamiento` y `reserva_zonas_sin_solapamiento` (`EXCLUDE USING gist`, mismo patrón que `reservas_sin_solapamiento`), idempotentes vía `DO $$ ... IF NOT EXISTS (SELECT ... FROM pg_constraint) ...`. Docstring de `migrate_resource_reservations()` ampliado con el contrato transaccional |
 | migrations.py | Modificado (Fase 12C-4e) | Constante `_ROLLBACK_RESERVA_LEGACY`: procedimiento de rollback condicionado G0–G5 (un único `DO` con DDL vía `EXECUTE`, esquema-agnóstico por `search_path`). **Durmiente — NO conectado al arranque ni a `migrate_resource_reservations()`**; operación manual/operatoria, probada solo contra esquemas desechables. Bloque de comentario del contrato agregado junto a la constante |
 | test_migrations_rollback_12c4e.py | Nuevo (Fase 12C-4e) | 14 tests que ejercitan `_ROLLBACK_RESERVA_LEGACY` únicamente en esquemas desechables (`CREATE/DROP SCHEMA` en `reservas_test`): abortos G0–G5 sin modificar datos, dataset singular reversible, restauración de esquema legacy, rollback transaccional, idempotencia, ausencia de sesiones bloqueadas |
+| reserva.py | Modificado (Fase 12D, parcial) | Nueva columna `tipo` (`String(30)`, nullable) + `CheckConstraint` `ck_reservas_tipo` (los tres valores de `TipoReserva`) |
+| migrations.py | Modificado (Fase 12D, parcial) | Append al final de la tupla: `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS tipo VARCHAR(30)` + `DO $$ ... ADD CONSTRAINT ck_reservas_tipo ...` (patrón `ck_espacios_modalidad_reserva`) |
+| reserva.py | Modificado (Fase 12D-bis) | Nueva columna `asistio` (`Boolean`, nullable) — sin `CheckConstraint` |
+| migrations.py | Modificado (Fase 12D-bis) | Append: `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN` (sin backfill ni constraint) |
 
 ## Reglas de negocio relacionadas
 
@@ -95,7 +99,13 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 - **`modalidad_reserva`**: `String(20)` en vez de un `Enum` nativo de PostgreSQL — mismo patrón que `estado` en ambos modelos (string validado por `CheckConstraint`, no tipo enumerado de BD), para no introducir una migración de tipo de columna distinta al resto del esquema. Default `'equipos'`, backfill idempotente en `migrations.py`.
 - **`correo`**: `nullable=True` a propósito — obligatorio en el schema `EspacioCreate` para altas nuevas (RN-007, decisión 2 de la Fase 12A), pero la columna en BD no fabrica datos falsos para espacios ya sembrados antes de esta fase. `EspacioUpdate.correo` permite completarlo después.
 - **`es_prestacion_servicio`**: `Boolean` NOT NULL, default `false` — ningún recurso existente cambia de comportamiento (decisión 5 de las nueve decisiones de 12B, "recursos PS existentes").
-- Nombre del campo **`modalidad_reserva`**, no `tipo_reserva`: evita colisión con el futuro campo de tipo de reserva académica en `Reserva` (RN-012, Fase 12D) — ver `app/domain/README.md`.
+- Nombre del campo **`modalidad_reserva`**, no `tipo_reserva`: evita colisión con el tipo de reserva académica en `Reserva` (`tipo`, RN-012/RN-015, Fase 12D) — ver `app/domain/README.md`.
+
+### Fase 12D (parcial) — `Reserva.tipo`
+
+- **`tipo` nullable por diseño**: las reservas existentes y las que no especifican tipo lo dejan sin valor; no hay backfill ni default porque no hay dato legado que migrar en este plan. `ALTER TABLE ... ADD COLUMN IF NOT EXISTS tipo VARCHAR(30)` (idempotente).
+- **CheckConstraint `ck_reservas_tipo`** con los tres valores del enum (`IN ('trabajo_investigacion','trabajo_grado','servicio_de_ensayo')`), guardado con el idiom `DO $$ ... IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='ck_reservas_tipo') THEN ALTER TABLE ADD CONSTRAINT ... END IF; END $$;` — exactamente el patrón ya usado para `ck_espacios_modalidad_reserva`. Se agrega tanto en el modelo (para `create_all` en esquemas nuevos) como en `migrations.py` (para refuerzo en esquemas existentes).
+- **`Proyecto` sigue pendiente**: la entidad Proyecto de 12D no se crea en esta subfase; lo único que se cierra del campo es `tipo`.
 
 ## Pruebas
 
@@ -107,9 +117,10 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 .\.venv\Scripts\python.exe -m pytest tests/test_models_reserva_asociaciones.py -v   # Fase 12C-4a
 .\.venv\Scripts\python.exe -m pytest tests/test_migrations_reserva_recursos.py -v   # Fase 12C-4b/12C-4c
 .\.venv\Scripts\python.exe -m pytest tests/test_migrations_rollback_12c4e.py -v   # Fase 12C-4e
+.\.venv\Scripts\python.exe -m pytest tests/test_reserva_tipo.py -v   # Fase 12D (parcial)
 ```
 
-Resultado esperado: suite completa verde (los tests de integración validan el comportamiento de las constantes sin cambios). Fase 12B: 318/318. Fase 12C-1: 331/331 (318 previos + 13 nuevos de `test_models_zona.py`). Fase 12C-3: 382/382 (5 nuevos de `test_models_zona_recurso.py` + 12 de `test_api_zonas_recursos.py` + 1 extendido en `test_api_zonas.py`). Fase 12C-4a: 399/399 (17 nuevos de `test_models_reserva_asociaciones.py`). Fase 12C-4b: 409/409 (10 nuevos de `test_migrations_reserva_recursos.py`). Fase 12C-4c: 418/418 (9 nuevos, misma archivo, clase `TestConstraintsExcludeSolapamiento`). Fase 12C-4e: **496/496** (482 previos + 14 nuevos de `test_migrations_rollback_12c4e.py`).
+Resultado esperado: suite completa verde (los tests de integración validan el comportamiento de las constantes sin cambios). Fase 12B: 318/318. Fase 12C-1: 331/331 (318 previos + 13 nuevos de `test_models_zona.py`). Fase 12C-3: 382/382 (5 nuevos de `test_models_zona_recurso.py` + 12 de `test_api_zonas_recursos.py` + 1 extendido en `test_api_zonas.py`). Fase 12C-4a: 399/399 (17 nuevos de `test_models_reserva_asociaciones.py`). Fase 12C-4b: 409/409 (10 nuevos de `test_migrations_reserva_recursos.py`). Fase 12C-4c: 418/418 (9 nuevos, misma archivo, clase `TestConstraintsExcludeSolapamiento`). Fase 12C-4e: **496/496** (482 previos + 14 nuevos de `test_migrations_rollback_12c4e.py`). Fase 12D (parcial): suite completa en verde tras el checkpoint de OpenAPI aprobado (`test_reserva_tipo.py` nuevo + `TestRecursosPS`/`TestPS` actualizados al gate de tipo).
 
 ## Impacto y compatibilidad
 
@@ -121,6 +132,7 @@ Resultado esperado: suite completa verde (los tests de integración validan el c
 - Fase 12C-4b: `migrations.py` gana dos statements nuevos (backfill + gate) al final de la tupla `statements`. **Sin cambio de esquema en `reservas`** — ninguna columna, índice ni constraint de la tabla histórica se modificó. Sin cambio de OpenAPI.
 - Fase 12C-4c: `migrations.py` gana un statement más (constraints `EXCLUDE`). **Sin cambio de esquema en `reservas`** — verificado explícitamente: `recurso_id` sigue `NOT NULL`, `ix_reservas_recurso_id`/`ix_reservas_recurso_fecha_estado` presentes, `reservas_sin_solapamiento` presente. Sin cambio de OpenAPI.
 - Fase 12C-4e: `migrations.py` gana una **constante de módulo durmiente** (`_ROLLBACK_RESERVA_LEGACY`), NO un statement de la tupla de `migrate_resource_reservations()` — el arranque sigue intacto. **Sin cambio de esquema en `reservas` ni en ninguna tabla** — nada se retira, nada se crea fuera de los esquemas desechables de los tests. Sin cambio de OpenAPI. Prueba destructiva previa ejecutada solo contra bases desechables (ver `CHANGELOG.md`).
+- Fase 12D (parcial): cambio de esquema en `reservas` (columna `tipo` nullable + `ck_reservas_tipo`) vía migración idempotente aprobada (ver `backend/app/migrations.py` y `CHANGELOG.md`). Cambio de OpenAPI aprobado (ver `backend/app/schemas/README.md`). Cambio de comportamiento del gate PS para `gestor`/`admin` (sin `tipo=servicio_de_ensayo` un recurso PS responde 400).
 
 ## Riesgos
 
@@ -143,6 +155,7 @@ Resultado esperado: suite completa verde (los tests de integración validan el c
 - Fase 12C-4b: script de rollback ejecutable y endurecido (pendiente, requiere decisión explícita separada — ver `CHANGELOG.md`); 12C-4c (constraints `EXCLUDE`), 12C-4d (doble escritura), 12C-5, 12C-6 y 12C-4e siguen sin código.
 - Fase 12C-4c: rollback ejecutable y endurecido sigue pendiente (sin cambios respecto a 12C-4b); 12C-4d (doble escritura), 12C-5 (servicios/CRUD leen las asociaciones, incluida la transitividad zona→recursos), 12C-6 (ruptura de contrato) y 12C-4e (retiro final de `recurso_id`) siguen sin código.
 - Fase 12C-4e: el procedimiento de rollback quedó **documentado y probado** (constante `_ROLLBACK_RESERVA_LEGACY` + gates G0–G5 + `test_migrations_rollback_12c4e.py`, 14/14), pero **el retiro de `reservas.recurso_id`/`Reserva.recurso` sigue pendiente** (fase de retiro de 12C-4e, requiere decisión explícita separada — implica `Migraciones` de esquema, retiro de `reservas_sin_solapamiento`/índices históricos y cambio de contrato en `ReservaResponse`).
+- Fase 12D (parcial): la entidad `Proyecto` (parte de 12D) sigue sin implementarse — solo `Reserva.tipo` se cerró en esta subfase.
 
 ## Fase de implementación
 

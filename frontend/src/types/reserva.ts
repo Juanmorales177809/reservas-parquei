@@ -1,6 +1,12 @@
+import type { EnsayoReserva } from './ensayo';
 import type { ZonaReserva } from './zona';
 
 export type ReservaEstado = 'esperando' | 'aprobada' | 'rechazada' | 'cancelada';
+
+// Fase 12D: tipo de reserva académica (RN-012/RN-015). Tres valores exactos
+// del roadmap aprobado; `servicio_de_ensayo` habilita la reserva de
+// recursos PS para gestor/admin.
+export type TipoReserva = 'trabajo_investigacion' | 'trabajo_grado' | 'servicio_de_ensayo';
 
 export interface ReservaUsuario {
   id: number;
@@ -12,14 +18,15 @@ export interface ReservaUsuario {
 export interface ReservaEspacio {
   id: number;
   nombre: string;
-  capacidad: number;
+  // Opcional (Fase 12E): ver types/espacio.ts.
+  capacidad: number | null;
   estado: 'activo' | 'inactivo' | 'mantenimiento';
 }
 
 export interface ReservaRecurso {
   id: number;
   nombre: string;
-  capacidad: number;
+  capacidad: number | null;
   estado: string;
   espacio: ReservaEspacio;
 }
@@ -46,10 +53,31 @@ export interface Reserva {
   hora_fin: string;
   estado: ReservaEstado;
   asistentes: number;
+  // Fase 12D: tipo de reserva académica; `null` cuando no se especificó.
+  tipo?: TipoReserva | null;
+  // Fase 12D-bis: asistencia real, separada de estado/aprobación; `null`
+  // cuando aún no se marcó.
+  asistio?: boolean | null;
+  // Fase 12E: ensayos seleccionados (N:1 Zona)
+  ensayo_ids?: number[];
+  ensayos?: EnsayoReserva[];
+  // Fase 12E: acompañantes nombrados (N:1 Reserva)
+  acompanantes?: ReservaAcompanante[];
   created_at: string;
   updated_at: string;
   usuario: ReservaUsuario;
   espacio: ReservaEspacio;
+}
+
+export interface ReservaAcompanante {
+  id: number;
+  nombre: string;
+  correo: string;
+}
+
+export interface AcompananteInput {
+  nombre: string;
+  correo: string;
 }
 
 export interface ReservaCreate {
@@ -61,10 +89,20 @@ export interface ReservaCreate {
   hora_inicio: string;
   hora_fin: string;
   asistentes: number;
+  // Fase 12D: opcional; solo se envía cuando el usuario eligió un tipo.
+  tipo?: TipoReserva | null;
+  // Fase 12E: ensayos (N:1 Zona) — solo se envía si hay zonas seleccionadas
+  ensayo_ids?: number[];
+  // Fase 12E: acompañantes nombrados (N:1 Reserva)
+  acompanantes?: AcompananteInput[];
 }
 
 export interface ReservaEstadoUpdate {
   nuevo_estado: Extract<ReservaEstado, 'aprobada' | 'rechazada' | 'cancelada'>;
+}
+
+export interface ReservaAsistioUpdate {
+  asistio: boolean;
 }
 
 export type ReservaUpdate = Partial<ReservaCreate>;

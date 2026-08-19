@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api import admin_dashboard, auth, control_cambios, espacios, notificaciones, recursos, reservas, usuarios, zonas
+from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, notificaciones, recursos, reservas, usuarios, zonas
 from app.auth.auth import hash_password
 from app.config import settings
 from app.db import Base, engine, SessionLocal
@@ -178,5 +178,6 @@ app.include_router(usuarios.router)
 app.include_router(espacios.router)
 app.include_router(recursos.router)
 app.include_router(zonas.router)
+app.include_router(ensayos.router)
 app.include_router(reservas.router)
 app.include_router(notificaciones.router)

@@ -13,6 +13,8 @@ _OPTIONS_CARGA = (
     joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.espacio),
     joinedload(Reserva.zonas_asociadas),
     joinedload(Reserva.zonas),
+    joinedload(Reserva.ensayos),
+    joinedload(Reserva.acompanantes),
 )
 
 
@@ -32,6 +34,7 @@ def _enriquecer_con_asociaciones(reservas: list[Reserva]) -> list[Reserva]:
         reserva.recurso_ids = sorted(recursos_por_id)
         reserva.recursos = [recursos_por_id[i] for i in sorted(recursos_por_id)]
         reserva.zona_ids = sorted({fila.zona_id for fila in reserva.zonas_asociadas or ()})
+        reserva.ensayo_ids = sorted({e.id for e in reserva.ensayos or ()})
     return reservas
 
 
@@ -178,3 +181,19 @@ def get_zonas_bloqueantes(
     if exclude_id is not None:
         query = query.filter(Reserva.id != exclude_id)
     return query.distinct().all()
+
+
+def get_ensayo_ids_reserva(db: Session, reserva_id: int) -> list[int]:
+    """Ensayos asociados a una reserva según `reserva_ensayos` (Fase 12E)."""
+
+    from app.models.reserva_ensayo import ReservaEnsayo
+
+    return [
+        ensayo_id
+        for (ensayo_id,) in (
+            db.query(ReservaEnsayo.ensayo_id)
+            .filter(ReservaEnsayo.reserva_id == reserva_id)
+            .distinct()
+            .all()
+        )
+    ]

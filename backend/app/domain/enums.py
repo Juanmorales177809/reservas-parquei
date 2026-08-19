@@ -29,15 +29,32 @@ class ModalidadEspacio(str, Enum):
     """Modalidad de reserva configurada por espacio (RN-006, Fase 12B).
 
     Nombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente
-    distinto de `tipo_reserva` para no colisionar con el futuro campo de
-    tipo de reserva académica de `Reserva` (RN-012, Fase 12D), que es un
-    concepto distinto aunque el documento fuente usa nombres parecidos
-    para ambos.
+    distinto de `tipo` (RN-012, Fase 12D), el tipo de reserva académica de
+    `Reserva`, que es un concepto distinto aunque el documento fuente usa
+    nombres parecidos para ambos (`tipo_reserva` en el legado).
     """
 
     EQUIPOS = "equipos"
     ZONAS = "zonas"
     MIXTO = "mixto"
+
+
+class TipoReserva(str, Enum):
+    """Tipo de reserva académica de `Reserva` (RN-012/RN-015, Fase 12D).
+
+    Nombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba
+    el código y la documentación como punto de extensión pendiente antes de
+    existir (services/reservas.py::validar_acceso_ps, models/README.md).
+    Tres valores exactos del roadmap aprobado, sin catálogo "otro":
+    TRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO (grado,
+    proyectos de grado) y SERVICIO_DE_ENSAYO (ensayo, prestación de
+    servicios). `servicio_de_ensayo` es el valor que el gate PS de la
+    Fase 12D exige para reservar un recurso marcado como PS.
+    """
+
+    TRABAJO_INVESTIGACION = "trabajo_investigacion"
+    TRABAJO_GRADO = "trabajo_grado"
+    SERVICIO_DE_ENSAYO = "servicio_de_ensayo"
 
 
 class EstadoEntidad(str, Enum):

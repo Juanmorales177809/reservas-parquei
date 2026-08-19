@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.crud.reservas import (
+    get_ensayo_ids_reserva,
     get_recurso_ids_reserva,
     get_reserva,
     get_reservas_bloqueantes,
@@ -19,6 +20,7 @@ from app.domain.enums import (
     ModalidadEspacio,
     Rol,
     TipoNotificacion,
+    TipoReserva,
 )
 from app.domain.protocols import Reloj
 from app.models import (
@@ -131,6 +133,7 @@ def _resolver_objetivo(
     zona_ids: list[int],
     usuario: Usuario,
     espacio_id_fijo: int | None = None,
+    tipo: TipoReserva | None = None,
 ) -> _ObjetivoReserva:
     """Resuelve y valida el conjunto objetivo de una reserva (Fase 12C-6).
 
@@ -140,7 +143,8 @@ def _resolver_objetivo(
     - Recursos y zonas deben pertenecer a un mismo espacio (el de la reserva;
       para edición, `espacio_id_fijo` lo fija y valida pertenencia).
     - Zonas y recursos efectivos deben estar activos.
-    - `validar_acceso_ps` se aplica a cada recurso efectivo.
+    - `validar_acceso_ps` se aplica a cada recurso efectivo (gate de rol de
+      la Fase 12B + gate de tipo de la Fase 12D).
     - Recursos efectivos = directos ∪ miembros de las zonas, sin duplicados,
       en orden estable por id.
     """
@@ -210,7 +214,7 @@ def _resolver_objetivo(
     efectivos = [por_id[i] for i in sorted(por_id)]
 
     for recurso in efectivos:
-        validar_acceso_ps(recurso, usuario)
+        validar_acceso_ps(recurso, usuario, tipo)
 
     return _ObjetivoReserva(
         espacio=espacio,
@@ -241,16 +245,23 @@ def _resolver_efectivos(
     return directos, zonas, [por_id[i] for i in sorted(por_id)]
 
 
-def _capacidad_efectiva(espacio: Espacio, objetivo: _ObjetivoReserva) -> int:
+def _capacidad_efectiva(espacio: Espacio, objetivo: _ObjetivoReserva) -> int | None:
     """Capacidad efectiva = min(espacio, zonas definidas, recursos efectivos)
-    (decisión aprobada 12C-6)."""
-    capacidades = [espacio.capacidad]
+    (decisión aprobada 12C-6), considerando solo los que tienen capacidad
+    definida (Fase 12E: capacidad pasó a ser opcional en espacio y recurso,
+    igual que ya lo era en zona). `None` = ningún dato de capacidad
+    disponible en ningún eje -- sin límite conocido, el llamador se salta
+    el chequeo de aforo en ese caso."""
+    capacidades = []
+    if espacio.capacidad is not None:
+        capacidades.append(espacio.capacidad)
     capacidades_zonas = [z.capacidad for z in objetivo.zonas if z.capacidad is not None]
     if capacidades_zonas:
         capacidades.append(min(capacidades_zonas))
-    if objetivo.recursos_efectivos:
-        capacidades.append(min(r.capacidad for r in objetivo.recursos_efectivos))
-    return min(capacidades)
+    capacidades_recursos = [r.capacidad for r in objetivo.recursos_efectivos if r.capacidad is not None]
+    if capacidades_recursos:
+        capacidades.append(min(capacidades_recursos))
+    return min(capacidades) if capacidades else None
 
 
 def _recurso_ancla(db: Session, espacio: Espacio, recursos_efectivos: list[Recurso]) -> int:
@@ -303,6 +314,65 @@ def _validar_solapamiento_efectivos(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="La zona ya tiene una reserva en ese horario",
             )
+
+
+def _cargar_ensayos(db: Session, ensayo_ids: list[int]) -> list["Ensayo"]:
+    if not ensayo_ids:
+        return []
+    from app.models.ensayo import Ensayo
+
+    ensayos = db.query(Ensayo).filter(Ensayo.id.in_(ensayo_ids)).all()
+    encontrados = {e.id for e in ensayos}
+    faltantes = set(ensayo_ids) - encontrados
+    if faltantes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ensayo(s) no encontrado(s): {sorted(faltantes)}",
+        )
+    return ensayos
+
+
+def _validar_ensayos_pertenecen_a_zonas(ensayos: list["Ensayo"], objetivo: _ObjetivoReserva) -> None:
+    """Fase 12E: cada ensayo debe pertenecer a una de las zonas
+    efectivamente reservadas. Si no, 400."""
+    if not ensayos:
+        return
+    zonas_ids = {z.id for z in objetivo.zonas}
+    for ensayo in ensayos:
+        if ensayo.zona_id not in zonas_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El ensayo no pertenece a ninguna de las zonas reservadas",
+            )
+
+
+def _reescribir_ensayos(db: Session, reserva: Reserva, ensayo_ids: list[int]) -> None:
+    """Borra y recrea las filas de `reserva_ensayos` (Fase 12E, mismo idioma
+    que `_reescribir_asociaciones`: borrar+recrear dentro de la misma
+    transacción, sin commit propio)."""
+
+    from app.models.reserva_ensayo import ReservaEnsayo
+
+    db.query(ReservaEnsayo).filter(ReservaEnsayo.reserva_id == reserva.id).delete(synchronize_session=False)
+    for ensayo_id in ensayo_ids:
+        db.add(ReservaEnsayo(reserva_id=reserva.id, ensayo_id=ensayo_id))
+
+
+def _reescribir_acompanantes(db: Session, reserva: Reserva, acompanantes) -> None:
+    """Borra y recrea las filas de `reserva_acompanantes` (Fase 12E, mismo
+    idioma borrar+recrear dentro de la misma transacción, sin commit propio).
+    `acompanantes` es `list[AcompananteInput]` (Pydantic) o lista de dicts
+    con `nombre`/`correo`."""
+
+    from app.models.reserva_acompanante import ReservaAcompanante
+
+    db.query(ReservaAcompanante).filter(ReservaAcompanante.reserva_id == reserva.id).delete(
+        synchronize_session=False
+    )
+    for ac in acompanantes or []:
+        nombre = ac.nombre if hasattr(ac, "nombre") else ac["nombre"]
+        correo = ac.correo if hasattr(ac, "correo") else ac["correo"]
+        db.add(ReservaAcompanante(reserva_id=reserva.id, nombre=nombre, correo=correo))
 
 
 def _reescribir_asociaciones(db: Session, reserva: Reserva, objetivo: _ObjetivoReserva) -> None:
@@ -450,21 +520,25 @@ def validar_capacidad(asistentes: int, recurso_capacidad: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La cantidad de asistentes supera la capacidad del recurso")
 
 
-def validar_acceso_ps(recurso: Recurso, usuario: Usuario) -> None:
-    """RN-009 (Fase 12B): un recurso de prestación de servicios (PS) no
-    puede reservarse por el rol `usuario` (investigador). `gestor`
-    (laboratorista) y `admin` (administrador técnico) sí pueden.
-
-    Punto de extensión para la Fase 12D: cuando exista el tipo de reserva
-    (RN-012/RN-015, "servicio de ensayo"), esa fase debe agregar su propio
-    chequeo -- p. ej. exigir `data.tipo == TipoReserva.SERVICIO_DE_ENSAYO`
-    cuando `recurso.es_prestacion_servicio` sea verdadero -- como una
-    validación adicional, sin tocar ni duplicar este gate de rol.
+def validar_acceso_ps(recurso: Recurso, usuario: Usuario, tipo: TipoReserva | None = None) -> None:
+    """RN-009 (Fase 12B) + Fase 12D: un recurso de prestación de servicios
+    (PS) no puede reservarse por el rol `usuario` (investigador) — el gate
+    de rol, que se evalúa primero y sin cambios. `gestor` (laboratorista) y
+    `admin` (administrador técnico) sí pueden, pero desde la Fase 12D
+    únicamente cuando la reserva declara `tipo == SERVICIO_DE_ENSAYO`
+    (RN-015): un recurso PS es un servicio de ensayo, no una reserva de
+    investigación ni de grado. Cualquier otro valor (u ausencia) de `tipo`
+    responde 400 para esos roles.
     """
     if recurso.es_prestacion_servicio and usuario.rol == Rol.USUARIO.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Los recursos de prestación de servicios no están disponibles para tu rol",
+        )
+    if recurso.es_prestacion_servicio and tipo != TipoReserva.SERVICIO_DE_ENSAYO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Los recursos de prestación de servicios solo pueden reservarse con tipo de reserva de ensayo",
         )
 
 
@@ -480,7 +554,8 @@ def _validar_objetivo(
 ) -> None:
     validar_horario(objetivo.espacio, fecha, hora_inicio, hora_fin)
     validar_anticipacion(objetivo.espacio, fecha, hora_inicio)
-    if asistentes > _capacidad_efectiva(objetivo.espacio, objetivo):
+    capacidad_efectiva = _capacidad_efectiva(objetivo.espacio, objetivo)
+    if capacidad_efectiva is not None and asistentes > capacidad_efectiva:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La cantidad de asistentes supera la capacidad efectiva de la reserva",
@@ -502,6 +577,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         recurso_ids=data.recurso_ids,
         zona_ids=data.zona_ids,
         usuario=usuario,
+        tipo=data.tipo,
     )
     _validar_objetivo(
         db,
@@ -511,6 +587,8 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
     )
+    ensayos = _cargar_ensayos(db, data.ensayo_ids)
+    _validar_ensayos_pertenecen_a_zonas(ensayos, objetivo)
     espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
     aprobacion_automatica = objetivo.espacio.aprobacion_automatica or espacio_gestionado == objetivo.espacio.id
 
@@ -522,6 +600,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         hora_inicio=data.hora_inicio,
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
+        tipo=data.tipo,
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
@@ -529,6 +608,8 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
     db.add(reserva)
     preparar_reserva(db)
     _reescribir_asociaciones(db, reserva, objetivo)
+    _reescribir_ensayos(db, reserva, data.ensayo_ids)
+    _reescribir_acompanantes(db, reserva, data.acompanantes)
     if not aprobacion_automatica:
         gestores = (
             db.query(Usuario.id)
@@ -621,6 +702,42 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
     return get_reserva(db, reserva.id) or reserva
 
 
+def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: Usuario) -> Reserva:
+    """Fase 12D-bis: marca la asistencia real de una reserva.
+
+    Copia el molde de `cambiar_estado` pero sin máquina de estados: solo
+    verifica rol gestor/admin, existencia de la reserva y pertenencia del
+    gestor a su espacio asignado. No hay transición que validar ni
+    solapamiento que re-evaluar; solo se persiste `asistio` y se audita.
+    """
+
+    if admin_user.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para marcar la asistencia de una reserva",
+        )
+    reserva = get_reserva(db, reserva_id)
+    if reserva is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
+    espacio_gestionado = get_managed_space_id(db, admin_user)
+    if espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio"
+        )
+    reserva.asistio = asistio
+    registrar_cambio(
+        db,
+        admin_user,
+        "marcar_asistencia",
+        "reserva",
+        reserva.id,
+        f"Marcó asistencia={asistio} en la reserva #{reserva.id}",
+    )
+    confirmar_cambios_reserva(db)
+    db.refresh(reserva)
+    return get_reserva(db, reserva.id) or reserva
+
+
 def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> Reserva:
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
@@ -689,6 +806,7 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         zona_ids=zona_ids,
         usuario=usuario,
         espacio_id_fijo=reserva.espacio_id,
+        tipo=cambios.get("tipo", reserva.tipo),
     )
     _validar_objetivo(
         db,
@@ -699,13 +817,21 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         asistentes=asistentes,
         exclude_id=reserva.id,
     )
+    if "ensayo_ids" in cambios:
+        ensayos_nuevos = _cargar_ensayos(db, cambios["ensayo_ids"] or [])
+        _validar_ensayos_pertenecen_a_zonas(ensayos_nuevos, objetivo)
 
     reserva.fecha = fecha
     reserva.hora_inicio = hora_inicio
     reserva.hora_fin = hora_fin
     reserva.asistentes = asistentes
+    reserva.tipo = cambios.get("tipo", reserva.tipo)
     reserva.recurso_id = _recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos)
     _reescribir_asociaciones(db, reserva, objetivo)
+    if "ensayo_ids" in cambios:
+        _reescribir_ensayos(db, reserva, cambios["ensayo_ids"] or [])
+    if "acompanantes" in cambios:
+        _reescribir_acompanantes(db, reserva, cambios["acompanantes"] or [])
     registrar_cambio(db, usuario, "actualizar", "reserva", reserva.id, f"Actualizó la reserva #{reserva.id}")
 
     confirmar_cambios_reserva(db)

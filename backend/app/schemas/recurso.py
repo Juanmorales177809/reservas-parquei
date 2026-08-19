@@ -17,7 +17,10 @@ class RecursoCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=100)
     tipo_recurso_id: int
     descripcion: str | None = None
-    capacidad: int = Field(gt=0)
+    # Opcional (Fase 12E): datos legado migrados no siempre traen capacidad
+    # conocida. Cuando falta, la validación de aforo de la reserva se salta
+    # para ese recurso (ver services/reservas.py::_capacidad_efectiva).
+    capacidad: int | None = Field(default=None, gt=0)
     estado: EstadoEntidad = EstadoEntidad.ACTIVO
     espacio_id: int | None = None
     # RN-009: recurso de "prestación de servicios" (PS). Visibilidad y
@@ -44,7 +47,7 @@ class RecursoResponse(BaseModel):
     espacio_id: int
     tipo_recurso_id: int
     descripcion: str | None
-    capacidad: int
+    capacidad: int | None
     estado: EstadoEntidad
     espacio: EspacioResponse
     tipo: TipoRecursoResponse

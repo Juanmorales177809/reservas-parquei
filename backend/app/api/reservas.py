@@ -5,8 +5,8 @@ from app.crud.reservas import get_mis_reservas, get_reservas_gestion
 from app.db import get_db
 from app.deps import get_current_user, get_managed_space_id, require_resource_manager
 from app.models import Usuario
-from app.schemas.reserva import ReservaCreate, ReservaEstadoUpdate, ReservaResponse, ReservaUpdate
-from app.services.reservas import actualizar_reserva, cambiar_estado, cancelar_reserva_usuario, crear_reserva, eliminar_reserva
+from app.schemas.reserva import ReservaAsistioUpdate, ReservaCreate, ReservaEstadoUpdate, ReservaResponse, ReservaUpdate
+from app.services.reservas import actualizar_reserva, cambiar_estado, cancelar_reserva_usuario, crear_reserva, eliminar_reserva, marcar_asistencia
 
 
 router = APIRouter(prefix="/reservas", tags=["reservas"])
@@ -38,6 +38,16 @@ def listar_mis_reservas_endpoint(
     current_user: Usuario = Depends(get_current_user),
 ):
     return get_mis_reservas(db, current_user.id)
+
+
+@router.put("/{reserva_id}/asistio", response_model=ReservaResponse)
+def marcar_asistencia_endpoint(
+    reserva_id: int,
+    data: ReservaAsistioUpdate,
+    db: Session = Depends(get_db),
+    admin_user: Usuario = Depends(require_resource_manager),
+):
+    return marcar_asistencia(db, reserva_id, data.asistio, admin_user)
 
 
 @router.put("/{reserva_id}/estado", response_model=ReservaResponse)

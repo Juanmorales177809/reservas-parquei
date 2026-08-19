@@ -41,3 +41,10 @@ export function eliminarReserva(id: number): Promise<void> {
     method: 'DELETE',
   });
 }
+
+export function marcarAsistencia(id: number, asistio: boolean): Promise<Reserva> {
+  return apiFetch<Reserva>(`/reservas/${id}/asistio`, {
+    method: 'PUT',
+    body: JSON.stringify({ asistio }),
+  });
+}

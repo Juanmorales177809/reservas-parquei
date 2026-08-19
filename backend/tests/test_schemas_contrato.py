@@ -9,7 +9,14 @@ tests de contrato JSON deben pasar SIEMPRE (antes y después).
 import pytest
 from pydantic import ValidationError
 
-from app.domain.enums import EstadoEntidad, EstadoReserva, EstadoSlot, Rol, TipoNotificacion
+from app.domain.enums import (
+    EstadoEntidad,
+    EstadoReserva,
+    EstadoSlot,
+    Rol,
+    TipoNotificacion,
+    TipoReserva,
+)
 from app.schemas.disponibilidad import DisponibilidadSlot
 from app.schemas.espacio import ConfiguracionEspacioUpdate, EspacioCreate, EspacioResponse
 from app.schemas.notificacion import NotificacionResponse
@@ -115,6 +122,106 @@ class TestCamposTipadosConEnums:
     def test_disponibilidad_estado_es_enum(self):
         modelo = DisponibilidadSlot(hora_inicio="08:00", hora_fin="09:00", estado="libre")
         assert isinstance(modelo.estado, EstadoSlot)
+
+
+class TestTipoReserva:
+    """Fase 12D (parcial): `Reserva.tipo` (RN-012/RN-015) con los tres
+    valores del roadmap aprobado, sin catálogo adicional. `Proyecto` queda
+    fuera de esta subfase."""
+
+    def test_reserva_create_tipo_es_enum(self):
+        modelo = ReservaCreate(
+            recurso_ids=[1], fecha="2026-09-01", hora_inicio="08:00", hora_fin="10:00", asistentes=2,
+            tipo="trabajo_grado",
+        )
+        assert isinstance(modelo.tipo, TipoReserva)
+        assert modelo.tipo == TipoReserva.TRABAJO_GRADO
+
+    def test_reserva_create_tipo_defaults_a_none(self):
+        modelo = ReservaCreate(recurso_ids=[1], fecha="2026-09-01", hora_inicio="08:00", hora_fin="10:00", asistentes=2)
+        assert modelo.tipo is None
+
+    def test_reserva_update_tipo_es_enum(self):
+        modelo = ReservaUpdate(tipo="servicio_de_ensayo")
+        assert isinstance(modelo.tipo, TipoReserva)
+        assert modelo.tipo == TipoReserva.SERVICIO_DE_ENSAYO
+
+    def test_reserva_aplica_tipo_a_la_respuesta(self):
+        modelo = ReservaResponse.model_validate(
+            {
+                "id": 1,
+                "usuario_id": 1,
+                "espacio_id": 1,
+                "fecha": "2026-09-01",
+                "hora_inicio": "08:00",
+                "hora_fin": "10:00",
+                "estado": "esperando",
+                "asistentes": 2,
+                "created_at": "2026-08-01T10:00:00+00:00",
+                "updated_at": "2026-08-01T10:00:00+00:00",
+                "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
+                "espacio": {
+                    "id": 1,
+                    "nombre": "Sala",
+                    "capacidad": None,
+                    "estado": "activo",
+                },
+                "recurso_ids": [1],
+                "recursos": [],
+                "zona_ids": [],
+                "zonas": [],
+                "tipo": "trabajo_investigacion",
+            }
+        )
+        assert isinstance(modelo.tipo, TipoReserva)
+        assert modelo.tipo == TipoReserva.TRABAJO_INVESTIGACION
+
+
+class TestCapacidadOpcional:
+    """Fase 12E: `capacidad` deja de ser obligatoria en `Espacio` y
+    `Recurso` (mismo patrón que ya tenía `Zona` desde 12C-1) -- datos
+    migrados desde el sistema legado de reservas de laboratorios no
+    siempre traen ese dato."""
+
+    def test_espacio_create_sin_capacidad_es_valido(self):
+        modelo = EspacioCreate(nombre="Sala", correo="sala@example.com")
+        assert modelo.capacidad is None
+
+    def test_espacio_create_capacidad_none_explicito_es_valido(self):
+        modelo = EspacioCreate(nombre="Sala", correo="sala@example.com", capacidad=None)
+        assert modelo.capacidad is None
+
+    def test_espacio_create_capacidad_cero_sigue_rechazada(self):
+        _validacion_exc(EspacioCreate, nombre="Sala", correo="sala@example.com", capacidad=0)
+
+    def test_espacio_create_capacidad_negativa_sigue_rechazada(self):
+        _validacion_exc(EspacioCreate, nombre="Sala", correo="sala@example.com", capacidad=-1)
+
+    def test_recurso_create_sin_capacidad_es_valido(self):
+        modelo = RecursoCreate(nombre="Recurso", tipo_recurso_id=1, espacio_id=1)
+        assert modelo.capacidad is None
+
+    def test_recurso_create_capacidad_cero_sigue_rechazada(self):
+        _validacion_exc(RecursoCreate, nombre="Recurso", tipo_recurso_id=1, espacio_id=1, capacidad=0)
+
+    def test_espacio_response_acepta_capacidad_none(self):
+        modelo = EspacioResponse.model_validate(
+            {
+                "id": 1,
+                "nombre": "Sala",
+                "ubicacion": "X",
+                "capacidad": None,
+                "estado": "activo",
+                "dias_atencion": [0],
+                "hora_apertura": "07:00:00",
+                "hora_cierre": "20:00:00",
+                "horario_atencion": {"0": [7, 8]},
+                "horas_antelacion": 24,
+                "modalidad_reserva": "equipos",
+                "correo": None,
+            }
+        )
+        assert modelo.capacidad is None
 
 
 class TestContratoJsonConservado:
