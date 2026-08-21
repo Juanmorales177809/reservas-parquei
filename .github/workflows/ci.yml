@@ -157,13 +157,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Configurar Node 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: app_flutter/package-lock.json
-
       - name: Arrancar backend en segundo plano
         working-directory: backend
         env:
