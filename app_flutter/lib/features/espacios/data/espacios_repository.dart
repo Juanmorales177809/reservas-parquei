@@ -52,6 +52,57 @@ class EspaciosRepository {
     );
     return ConfiguracionEspacio.fromJson(response.data!);
   }
+
+  // --- CRUD admin /admin/espacios (Fase P1) ---
+
+  /// `POST /espacios` — solo admin. `correo` es obligatorio (RN-007).
+  Future<Espacio> crear({
+    required String nombre,
+    required String ubicacion,
+    required int capacidad,
+    required String correo,
+    String estado = 'activo',
+    String modalidadReserva = 'equipos',
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/espacios',
+      data: {
+        'nombre': nombre,
+        'ubicacion': ubicacion,
+        'capacidad': capacidad,
+        'correo': correo,
+        'estado': estado,
+        'modalidad_reserva': modalidadReserva,
+      },
+    );
+    return Espacio.fromJson(response.data!);
+  }
+
+  /// `PUT /espacios/{id}` — solo admin. Solo envía campos no nulos.
+  Future<Espacio> actualizar(
+    int id, {
+    String? nombre,
+    String? ubicacion,
+    int? capacidad,
+    String? estado,
+    String? correo,
+    String? modalidadReserva,
+  }) async {
+    final data = <String, dynamic>{};
+    if (nombre != null) data['nombre'] = nombre;
+    if (ubicacion != null) data['ubicacion'] = ubicacion;
+    if (capacidad != null) data['capacidad'] = capacidad;
+    if (estado != null) data['estado'] = estado;
+    if (correo != null) data['correo'] = correo;
+    if (modalidadReserva != null) data['modalidad_reserva'] = modalidadReserva;
+    final response = await _dio.put<Map<String, dynamic>>('/espacios/$id', data: data);
+    return Espacio.fromJson(response.data!);
+  }
+
+  /// `DELETE /espacios/{id}` — solo admin. `409` si tiene dependencias.
+  Future<void> eliminar(int id) async {
+    await _dio.delete<void>('/espacios/$id');
+  }
 }
 
 final espaciosRepositoryProvider = Provider<EspaciosRepository>((ref) {

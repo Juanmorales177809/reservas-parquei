@@ -79,6 +79,11 @@ class InicioScreen extends ConsumerWidget {
                   ),
                 if (user.rol == RolUsuario.admin) ...[
                   OutlinedButton.icon(
+                    onPressed: () => context.go(AppRoutes.adminEspacios),
+                    icon: const Icon(LucideIcons.building2, size: 18),
+                    label: const Text('Espacios'),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () => context.go(AppRoutes.usuarios),
                     icon: const Icon(LucideIcons.users, size: 18),
                     label: const Text('Usuarios'),

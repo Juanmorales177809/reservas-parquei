@@ -130,6 +130,14 @@ const kNavDestinations = <NavDestinationSpec>[
     pushed: true,
   ),
   NavDestinationSpec(
+    id: 'gestion-espacios',
+    label: 'Espacios',
+    icon: LucideIcons.building2,
+    path: AppRoutes.adminEspacios,
+    primario: false,
+    rolesPermitidos: {RolUsuario.admin},
+  ),
+  NavDestinationSpec(
     id: 'gestion-usuarios',
     label: 'Usuarios',
     icon: LucideIcons.users,

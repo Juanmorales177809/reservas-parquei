@@ -11,6 +11,7 @@ import '../../features/ensayos/presentation/gestion_ensayos_screen.dart';
 import '../../features/espacios/presentation/configuracion_espacio_screen.dart';
 import '../../features/espacios/presentation/espacio_detalle_screen.dart';
 import '../../features/espacios/presentation/espacios_list_screen.dart';
+import '../../features/espacios/presentation/gestion_espacios_screen.dart';
 import '../../features/recursos/presentation/gestion_recursos_screen.dart';
 import '../../features/reservas/presentation/gestion_reservas_screen.dart';
 import '../../features/reservas/presentation/mis_reservas_screen.dart';
@@ -132,6 +133,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.adminReservas,
             pageBuilder: (context, state) => _fadeThroughPage(state, const GestionReservasScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.adminEspacios,
+            pageBuilder: (context, state) => _fadeThroughPage(state, const GestionEspaciosScreen()),
           ),
           GoRoute(
             path: AppRoutes.adminRecursos,
