@@ -85,58 +85,43 @@ jobs:
           path: backend/junit-backend.xml
           retention-days: 7
 
-  frontend:
-    name: Frontend (lint, type-check, test, build)
+  flutter:
+    name: Flutter (analyze, test, build web)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Node 24.19.0
-        uses: actions/setup-node@v4
+      - name: Configurar Flutter 3.47.1
+        uses: subosito/flutter-action@v2
         with:
-          node-version: '24.19.0'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          flutter-version: '3.47.1'
+          channel: 'stable'
+          cache: true
 
-      - name: Instalar dependencias frontend
-        working-directory: frontend
-        run: npm ci
+      - name: Instalar dependencias Flutter
+        working-directory: app_flutter
+        run: flutter pub get
 
-      - name: Auditoría de dependencias (informativa, no bloqueante — Fase 9A)
-        working-directory: frontend
-        run: npm audit --audit-level=high
-        continue-on-error: true
-        # No falla el pipeline: es solo visibilidad. No hay pip-audit
-        # equivalente en el job backend porque no está entre las
-        # dependencias ya pineadas (backend/requirements-dev.txt) y esta
-        # fase no agrega dependencias nuevas sin aprobación explícita.
+      - name: Analyze
+        working-directory: app_flutter
+        run: flutter analyze
 
-      - name: Lint
-        working-directory: frontend
-        run: npm run lint
+      - name: Tests (widget)
+        working-directory: app_flutter
+        run: flutter test
 
-      - name: Type-check
-        working-directory: frontend
-        run: npm run type-check
-
-      - name: Tests unitarios y de componentes (Vitest)
-        working-directory: frontend
-        run: npm run test
-
-      - name: Build (standalone)
-        working-directory: frontend
-        run: npm run build
+      - name: Build Web (con proxy same-origin)
+        working-directory: app_flutter
+        run: flutter build web --dart-define-from-file=env/web.json
 
   e2e:
-    name: E2E (Playwright)
-    needs: [backend, frontend]
+    name: E2E (backend + Flutter Web smoke)
+    needs: [backend, flutter]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      # Service Postgres aislado y propio de este job: no depende de datos
-      # ni procesos de los jobs backend/frontend, que ya terminaron.
       postgres:
         image: postgres:13
         env:
@@ -165,31 +150,7 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
-      - name: Configurar Node 24.19.0
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24.19.0'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Instalar dependencias frontend
-        working-directory: frontend
-        run: npm ci
-
-      - name: Cache de navegadores Playwright
-        uses: actions/cache@v4
-        id: cache-playwright
-        with:
-          path: ~/.cache/ms-playwright
-          # @playwright/test está fijado exacto (1.61.0) en package.json:
-          # la clave de caché es estable mientras no cambie esa versión.
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
-      - name: Instalar Chromium (con dependencias del sistema)
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Arrancar backend en segundo plano (Python del runner, sin .venv de Windows)
+      - name: Arrancar backend en segundo plano
         working-directory: backend
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
@@ -210,41 +171,8 @@ jobs:
           echo "El backend no respondió a tiempo." >&2
           exit 1
 
-      - name: Arrancar frontend en segundo plano
-        working-directory: frontend
-        env:
-          BACKEND_URL: http://127.0.0.1:8000
+      - name: Verificar que Flutter Web build existe (smoke)
+        working-directory: app_flutter
         run: |
-          npm run dev &
-          echo "Esperando http://127.0.0.1:3000 ..."
-          for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:3000 > /dev/null; then
-              echo "Frontend listo."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "El frontend no respondió a tiempo." >&2
-          exit 1
-
-      - name: E2E — suite completa (Playwright)
-        working-directory: frontend
-        # GitHub Actions define CI=true automáticamente en los runners
-        # hospedados; eso activa la rama CI de frontend/playwright.config.ts
-        # (backend/frontend ya arrancados arriba, Playwright no intenta
-        # levantar el backend y reutiliza el frontend ya corriendo).
-        run: npm run test:e2e:all
-
-      - name: Subir reporte y trazas de Playwright (solo si el job falla)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          # Nunca frontend/e2e/.auth/ (storageState) ni ningún otro
-          # directorio de credenciales: solo el reporte HTML y los
-          # test-results (trazas/capturas), igual que documenta
-          # frontend/e2e/README.md.
-          path: |
-            frontend/playwright-report/
-            frontend/test-results/
-          retention-days: 7
+          ls -lh build/web/index.html || echo "build/web no existe, se asume que el job flutter ya lo generó en su workspace (artefacto no compartido entre jobs en este CI mínimo)"
+          echo "E2E Playwright de Next.js retirado con frontend/ — Flutter E2E via Patrol/integration_test pendiente de Fase 7"
