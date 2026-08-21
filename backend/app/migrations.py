@@ -451,6 +451,8 @@ def migrate_resource_reservations() -> None:
         # Fase 12D-bis: `Reserva.asistio` (booleano nullable, sin
         # CheckConstraint). El más simple de los cuatro cambios de este plan.
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN",
+        # Fase 6: motivo de rechazo (texto libre, solo para rechazada).
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT",
     )
 
     with engine.begin() as connection:

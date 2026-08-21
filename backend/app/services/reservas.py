@@ -633,7 +633,9 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
     return get_reserva(db, reserva.id) or reserva
 
 
-def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: Usuario) -> Reserva:
+def cambiar_estado(
+    db: Session, reserva_id: int, nuevo_estado: str, admin_user: Usuario, motivo: str | None = None
+) -> Reserva:
     if admin_user.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para cambiar el estado de una reserva")
     nuevo = EstadoReserva(nuevo_estado)
@@ -642,6 +644,18 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El estado solo puede cambiarse a aprobada, rechazada o cancelada",
         )
+    if nuevo == EstadoReserva.RECHAZADA:
+        if motivo is None or len(motivo.strip()) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debes indicar el motivo del rechazo",
+            )
+        motivo = motivo.strip()
+        if len(motivo) > 500:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El motivo no puede superar los 500 caracteres",
+            )
 
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
@@ -667,6 +681,10 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
         )
     estado_anterior = reserva.estado
     reserva.estado = nuevo.value
+    if nuevo == EstadoReserva.RECHAZADA:
+        reserva.motivo_rechazo = motivo
+    else:
+        reserva.motivo_rechazo = None
     if estado_anterior != nuevo.value:
         tipo_notificacion = {
             EstadoReserva.APROBADA: TipoNotificacion.APROBADA,
@@ -680,13 +698,16 @@ def cambiar_estado(db: Session, reserva_id: int, nuevo_estado: str, admin_user: 
                 tipo=tipo_notificacion,
             )
         )
+        mensaje_auditoria = f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}"
+        if nuevo == EstadoReserva.RECHAZADA and motivo:
+            mensaje_auditoria += f" - Motivo: {motivo}"
         registrar_cambio(
             db,
             admin_user,
             "cambiar estado",
             "reserva",
             reserva.id,
-            f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}",
+            mensaje_auditoria,
         )
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)

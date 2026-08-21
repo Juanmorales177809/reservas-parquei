@@ -231,9 +231,12 @@ class TestValoresRechazados:
         _validacion_exc(ReservaEstadoUpdate, nuevo_estado="esperando")
 
     def test_nuevo_estado_valido(self):
-        for valor in ("aprobada", "rechazada", "cancelada"):
+        for valor in ("aprobada", "cancelada"):
             modelo = ReservaEstadoUpdate(nuevo_estado=valor)
             assert modelo.nuevo_estado.value == valor
+        modelo = ReservaEstadoUpdate(nuevo_estado="rechazada", motivo="No hay cupo")
+        assert modelo.nuevo_estado.value == "rechazada"
+        assert modelo.motivo == "No hay cupo"
 
 
 class TestContratoReservasPorObjetivos:

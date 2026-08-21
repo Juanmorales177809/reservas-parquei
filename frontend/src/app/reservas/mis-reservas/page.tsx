@@ -178,6 +178,9 @@ export default function MisReservasPage() {
                       <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
                         {labelEstadoReserva(reserva.estado)}
                       </span>
+                      {reserva.estado === 'rechazada' && reserva.motivo_rechazo && (
+                        <div className="mt-1 text-xs text-text-secondary">Motivo: {reserva.motivo_rechazo}</div>
+                      )}
                     </td>
                     <td>
                       {editing?.id === reserva.id ? (

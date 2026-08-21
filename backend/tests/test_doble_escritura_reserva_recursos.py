@@ -226,7 +226,7 @@ class TestCambioEstado:
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha)
 
-        cambiar_estado(db, reserva.id, "rechazada", gestor)
+        cambiar_estado(db, reserva.id, "rechazada", gestor, motivo="Rechazo de prueba")
 
         _invariantes(
             db, reserva.id,

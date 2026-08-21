@@ -76,6 +76,24 @@ class ReservaEstadoUpdate(BaseModel):
     nuevo_estado: Literal[
         EstadoReserva.APROBADA, EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA
     ]
+    motivo: str | None = Field(default=None, max_length=500)
+
+    @field_validator("motivo")
+    @classmethod
+    def _validar_motivo(cls, value: str | None) -> str | None:
+        if value is not None:
+            v = value.strip()
+            if len(v) == 0:
+                raise ValueError("El motivo no puede estar vacío")
+            return v
+        return value
+
+    @model_validator(mode="after")
+    def _motivo_obligatorio_si_rechazada(self) -> "ReservaEstadoUpdate":
+        if self.nuevo_estado == EstadoReserva.RECHAZADA:
+            if self.motivo is None or len(self.motivo.strip()) == 0:
+                raise ValueError("Debes indicar el motivo del rechazo")
+        return self
 
 
 class UsuarioReservaResponse(BaseModel):
@@ -180,6 +198,8 @@ class ReservaResponse(BaseModel):
     # Fase 12D-bis: asistencia real, separada de estado/aprobación; `null`
     # cuando aún no se marcó.
     asistio: bool | None = None
+    # Motivo de rechazo (Fase 6): `null` salvo cuando `estado == rechazada`.
+    motivo_rechazo: str | None = None
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse

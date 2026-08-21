@@ -110,6 +110,7 @@ abstract class Reserva with _$Reserva {
     required int asistentes,
     TipoReserva? tipo,
     bool? asistio,
+    String? motivoRechazo,
     required String createdAt,
     required String updatedAt,
     required UsuarioReserva usuario,

@@ -125,8 +125,15 @@ class _SummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final deltas = summary.deltas;
     final items = [
-      _StatItem(icon: LucideIcons.calendarDays, label: 'Total reservas', value: summary.totalReservas, color: AppColors.marca),
+      _StatItem(
+        icon: LucideIcons.calendarDays,
+        label: 'Total reservas',
+        value: summary.totalReservas,
+        color: AppColors.marca,
+        delta: deltas?.totalReservas,
+      ),
       _StatItem(icon: LucideIcons.clock, label: 'Pendientes', value: summary.reservasPendientes, color: AppEstados.pendiente.relleno),
       _StatItem(icon: LucideIcons.package, label: 'Recursos activos', value: summary.recursosActivos, color: AppColors.accion),
       if (esAdmin) _StatItem(icon: LucideIcons.users, label: 'Usuarios', value: summary.usuarios, color: AppEstados.positivo.relleno),
@@ -182,12 +189,13 @@ class _SummaryStrip extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  const _StatItem({required this.icon, required this.label, required this.value, required this.color});
+  const _StatItem({required this.icon, required this.label, required this.value, required this.color, this.delta});
 
   final IconData icon;
   final String label;
   final int value;
   final Color color;
+  final DeltaInt? delta;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +224,10 @@ class _StatItem extends StatelessWidget {
                 value: value,
                 style: AppText.numerico(fontSize: 26, fontWeight: FontWeight.w700, height: 1.15),
               ),
+              if (delta != null) ...[
+                const SizedBox(height: 4),
+                _DeltaBadge(delta: delta!.delta, pct: delta!.deltaPct),
+              ],
               const SizedBox(height: 2),
               Text(
                 label.toUpperCase(),
@@ -234,6 +246,39 @@ class _StatItem extends StatelessWidget {
   }
 }
 
+class _DeltaBadge extends StatelessWidget {
+  const _DeltaBadge({required this.delta, this.pct});
+
+  final num delta;
+  final double? pct;
+
+  @override
+  Widget build(BuildContext context) {
+    final positivo = delta > 0;
+    final negativo = delta < 0;
+    final color = positivo ? AppEstados.positivo : negativo ? AppEstados.negativo : AppEstados.neutro;
+    final icon = positivo ? LucideIcons.trendingUp : negativo ? LucideIcons.trendingDown : LucideIcons.minus;
+    final signo = positivo ? '+' : '';
+    final texto = pct == null ? '$signo$delta' : '$signo$delta (${pct! > 0 ? '+' : ''}${pct!.toStringAsFixed(1)}%)';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.tinte,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: color.borde.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color.sobreTinte),
+          const SizedBox(width: 4),
+          Text(texto, style: AppText.numerico(fontSize: 11, color: color.sobreTinte, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
 /// Donut protagonista de ocupación global (solo admin).
 class _OcupacionHero extends StatelessWidget {
   const _OcupacionHero({required this.summary});
@@ -245,6 +290,7 @@ class _OcupacionHero extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final ocupacion = summary.ocupacionGlobal;
     final libres = (ocupacion.horasDisponibles - ocupacion.horasOcupadas).clamp(0.0, double.infinity);
+    final delta = summary.deltas?.ocupacionPorcentaje;
 
     return HoverLift(
       child: _CardContainer(
@@ -285,6 +331,15 @@ class _OcupacionHero extends StatelessWidget {
                           style: textTheme.displaySmall?.copyWith(color: AppColors.marca),
                         ),
                         Text('ocupación', style: textTheme.bodyMedium?.copyWith(color: AppColors.textoTerciario)),
+                        if (delta != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          _DeltaBadge(delta: delta.delta, pct: delta.deltaPct),
+                          const SizedBox(height: 2),
+                          Text(
+                            'vs 30 días previos',
+                            style: AppText.overline().copyWith(fontSize: 10),
+                          ),
+                        ],
                       ],
                     ),
                   ],

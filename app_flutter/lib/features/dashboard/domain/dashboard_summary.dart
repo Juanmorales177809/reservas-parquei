@@ -72,6 +72,53 @@ abstract class OcupacionGlobal with _$OcupacionGlobal {
 }
 
 @freezed
+abstract class PeriodoDelta with _$PeriodoDelta {
+  const factory PeriodoDelta({
+    required String desde,
+    required String hasta,
+  }) = _PeriodoDelta;
+
+  factory PeriodoDelta.fromJson(Map<String, dynamic> json) => _$PeriodoDeltaFromJson(json);
+}
+
+@freezed
+abstract class DeltaInt with _$DeltaInt {
+  const factory DeltaInt({
+    required int actual,
+    required int previo,
+    required int delta,
+    double? deltaPct,
+  }) = _DeltaInt;
+
+  factory DeltaInt.fromJson(Map<String, dynamic> json) => _$DeltaIntFromJson(json);
+}
+
+@freezed
+abstract class DeltaFloat with _$DeltaFloat {
+  const factory DeltaFloat({
+    required double actual,
+    required double previo,
+    required double delta,
+    double? deltaPct,
+  }) = _DeltaFloat;
+
+  factory DeltaFloat.fromJson(Map<String, dynamic> json) => _$DeltaFloatFromJson(json);
+}
+
+@freezed
+abstract class DashboardDeltas with _$DashboardDeltas {
+  const factory DashboardDeltas({
+    required int periodoDias,
+    required PeriodoDelta periodoActual,
+    required PeriodoDelta periodoPrevio,
+    required DeltaInt totalReservas,
+    required DeltaFloat ocupacionPorcentaje,
+  }) = _DashboardDeltas;
+
+  factory DashboardDeltas.fromJson(Map<String, dynamic> json) => _$DashboardDeltasFromJson(json);
+}
+
+@freezed
 abstract class DashboardSummary with _$DashboardSummary {
   const factory DashboardSummary({
     required int totalReservas,
@@ -85,6 +132,7 @@ abstract class DashboardSummary with _$DashboardSummary {
     required List<RecursoMasReservado> recursosMasReservados,
     required List<OcupacionDiaHora> ocupacionPorDiaHora,
     required OcupacionGlobal ocupacionGlobal,
+    DashboardDeltas? deltas,
   }) = _DashboardSummary;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) => _$DashboardSummaryFromJson(json);

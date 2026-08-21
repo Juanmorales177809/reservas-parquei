@@ -27,6 +27,16 @@
       },
       "AdminDashboardSummary": {
         "properties": {
+          "deltas": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardDeltas"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "espacio_nombre": {
             "anyOf": [
               {
@@ -299,6 +309,105 @@
           "created_at"
         ],
         "title": "ControlCambioResponse",
+        "type": "object"
+      },
+      "DashboardDeltas": {
+        "properties": {
+          "ocupacion_porcentaje": {
+            "$ref": "#/components/schemas/DeltaFloat"
+          },
+          "periodo_actual": {
+            "$ref": "#/components/schemas/PeriodoDelta"
+          },
+          "periodo_dias": {
+            "title": "Periodo Dias",
+            "type": "integer"
+          },
+          "periodo_previo": {
+            "$ref": "#/components/schemas/PeriodoDelta"
+          },
+          "total_reservas": {
+            "$ref": "#/components/schemas/DeltaInt"
+          }
+        },
+        "required": [
+          "periodo_dias",
+          "periodo_actual",
+          "periodo_previo",
+          "total_reservas",
+          "ocupacion_porcentaje"
+        ],
+        "title": "DashboardDeltas",
+        "type": "object"
+      },
+      "DeltaFloat": {
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "number"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "previo": {
+            "title": "Previo",
+            "type": "number"
+          }
+        },
+        "required": [
+          "actual",
+          "previo",
+          "delta",
+          "delta_pct"
+        ],
+        "title": "DeltaFloat",
+        "type": "object"
+      },
+      "DeltaInt": {
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "integer"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "integer"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "previo": {
+            "title": "Previo",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actual",
+          "previo",
+          "delta",
+          "delta_pct"
+        ],
+        "title": "DeltaInt",
         "type": "object"
       },
       "DisponibilidadSlot": {
@@ -879,6 +988,26 @@
         "title": "OcupacionGlobal",
         "type": "object"
       },
+      "PeriodoDelta": {
+        "properties": {
+          "desde": {
+            "format": "date",
+            "title": "Desde",
+            "type": "string"
+          },
+          "hasta": {
+            "format": "date",
+            "title": "Hasta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "desde",
+          "hasta"
+        ],
+        "title": "PeriodoDelta",
+        "type": "object"
+      },
       "RecursoCreate": {
         "properties": {
           "capacidad": {
@@ -1253,6 +1382,18 @@
       },
       "ReservaEstadoUpdate": {
         "properties": {
+          "motivo": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          },
           "nuevo_estado": {
             "enum": [
               "aprobada",
@@ -1340,6 +1481,17 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "motivo_rechazo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo Rechazo"
           },
           "recurso_ids": {
             "items": {
@@ -2237,6 +2389,28 @@
       "get": {
         "description": "Resumen global de reservas de recursos para todos los espacios.",
         "operationId": "obtener_resumen_dashboard_admin_admin_dashboard_summary_get",
+        "parameters": [
+          {
+            "description": "Ventana para delta vs período previo",
+            "in": "query",
+            "name": "periodo_dias",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 365,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ventana para delta vs período previo",
+              "title": "Periodo Dias"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2247,6 +2421,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -2882,6 +3066,28 @@
     "/gestion/dashboard/summary": {
       "get": {
         "operationId": "obtener_resumen_dashboard_gestor_gestion_dashboard_summary_get",
+        "parameters": [
+          {
+            "description": "Ventana para delta vs período previo",
+            "in": "query",
+            "name": "periodo_dias",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 365,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ventana para delta vs período previo",
+              "title": "Periodo Dias"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2892,6 +3098,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [

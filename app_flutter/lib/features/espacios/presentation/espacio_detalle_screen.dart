@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:flutter/services.dart';
+
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
@@ -48,12 +51,21 @@ class _EspacioDetalleBody extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          expandedHeight: 180,
+          expandedHeight: 200,
+          collapsedHeight: 56,
           pinned: true,
+          floating: true,
+          snap: true,
+          stretch: true,
           backgroundColor: gradientePara(espacio.modalidadReserva).colors.first,
           surfaceTintColor: Colors.transparent,
+          shadowColor: AppColors.sombra,
+          scrolledUnderElevation: 2,
+          elevation: 0,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
           iconTheme: const IconThemeData(color: Colors.white),
           flexibleSpace: FlexibleSpaceBar(
             titlePadding: const EdgeInsets.only(left: 56, bottom: AppSpacing.md, right: AppSpacing.lg),
@@ -63,18 +75,29 @@ class _EspacioDetalleBody extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            background: Container(
+            expandedTitleScale: 1.18,
+            collapseMode: CollapseMode.parallax,
+            stretchModes: const [StretchMode.zoomBackground, StretchMode.fadeTitle],
+            background: DecoratedBox(
               decoration: BoxDecoration(gradient: gradientePara(espacio.modalidadReserva)),
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Icon(
-                    LucideIcons.building2,
-                    color: Colors.white.withValues(alpha: 0.35),
-                    size: 72,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Icon(
+                        LucideIcons.building2,
+                        color: Colors.white.withValues(alpha: 0.35),
+                        size: 72,
+                      ),
+                    ),
                   ),
-                ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(gradient: kGradientScrim),
+                  ),
+                ],
               ),
             ),
           ),

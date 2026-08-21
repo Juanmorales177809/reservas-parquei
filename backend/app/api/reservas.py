@@ -57,7 +57,7 @@ def cambiar_estado_endpoint(
     db: Session = Depends(get_db),
     admin_user: Usuario = Depends(require_resource_manager),
 ):
-    return cambiar_estado(db, reserva_id, data.nuevo_estado, admin_user)
+    return cambiar_estado(db, reserva_id, data.nuevo_estado, admin_user, motivo=data.motivo)
 
 
 @router.patch("/{reserva_id}", response_model=ReservaResponse)

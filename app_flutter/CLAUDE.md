@@ -136,11 +136,35 @@ La corrección **no fue "elegir otro verde"**: fue que un color de estado necesi
 
 **`MediaQuery.disableAnimationsOf` respetado** en `staggerEntrance` y `HoverLift`. Además de ser lo correcto para quien tiene trastornos vestibulares, apaga estas animaciones en los widget tests (donde `AutomatedTestWidgetsFlutterBinding` fija `disableAnimations: true`), así un test que monte una lista no queda esperando timers de `flutter_animate`. `staggerEntrance` pasó de extensión pura a envolver un `_EntradaEscalonada` para poder leer el `MediaQuery` (la extensión sobre `Widget` no tiene `BuildContext`).
 
-### Pendiente de la revisión (no implementado)
+### Cuarta tanda: pulido fino restante (2026-08-21, verificado backend + Flutter)
 
-- **Usuarios como tabla en escritorio** (la mitad del item 11; auditoría sí se hizo).
-- **Delta contra el período previo en los KPIs**: requiere un dato que `admin_dashboard.py` no expone; implementarlo obligaría a tocar el backend.
-- Agrupar "Mis reservas" por Hoy/Esta semana/Próximas, una sola acción primaria por fila en gestión de reservas, motivo obligatorio al rechazar, header comprimible en el detalle de espacio, avatar con iniciales en usuarios.
+**Usuarios: de tarjetas a tabla + avatar con iniciales.** `GestionUsuariosScreen` (`gestion_usuarios_screen.dart:20-178`) ahora es responsive: `<600dp` mantiene `ListView` de `_UsuarioCard`, `≥600dp` usa `CustomScrollView` con `Card` única que contiene `_CabeceraTabla` (`AppText.overline()`) + `_FilaUsuario` por usuario con `Divider 1px AppColors.borde`. Columnas `flex 3/1/2/1/2` (`USUARIO | ROL | ESPACIO | ID | ACCIONES`), igual que auditoría pero sin sticky por día (una sola cabecera). Avatar: nuevo `_UsuarioAvatar` (`:93-122`) con iniciales (`admin_flutter → AF`, `beto → BE`) `Text titleSmall w700` sobre `primaryContainer/tertiaryContainer/surfaceContainerHighest` según `RolUsuario` — reemplaza `Icon shield/briefcase/user` tanto en tarjeta móvil como fila desktop (el icono repetía el `rol.name` pill). Verificado `flutter analyze`/`test`.
+
+**Mis reservas agrupado por tiempo.** `mis_reservas_screen.dart:50-118` pasó de `ListView` plano `sort b.fecha` a `CustomScrollView` con `SliverMainAxisGroup` + `SliverPersistentHeader` adhesivo por bucket, igual que `auditoria_screen.dart:69`. Cuatro buckets `HOY / ESTA SEMANA / PRÓXIMAS / PASADAS` (`_GrupoReserva:243`) calculados con `_hoyBogotaStr()` (`DateTime.now().toUtc()-5h`, Bogotá no tiene verano) y `_hoyBogotaPlusDiasStr(7)` por `String.compareTo` (sin `DateTime.parse`, sigue el criterio de `created_at` naive). Orden interno: futuras ascendente, pasadas descendente. Header `_EncabezadoGrupoReserva` (`:276-317`, `min/max 36`, `AppColors.fondo / AppText.overline() + pill count numerico`). Rechazadas muestran `motivoRechazo` en `Container tinte negativo`.
+
+**Gestión de reservas: una sola primaria por fila.** `gestion_reservas_screen.dart:152-225` antes mostraba `Outlined Rechazar + Filled Aprobar` (dos con peso) y `ChoiceChip Sí/No + Outlined Cancelar`. Ahora: `esperando → Filled Aprobar` + `PopupMenuButton ellipsisVertical` con `Rechazar` (que abre diálogo de motivo); `aprobada → ChoiceChip Sí/No` + `PopupMenu Cancelar`. Solo `Aprobar` es `FilledButton`, el resto es `PopupMenu` secundario — `AppEstados` y `AppSpacing` se mantienen. `motivo` se muestra en la misma card cuando `estado==rechazada && motivoRechazo!=null` (`Container tinte negativo`).
+
+**Header comprimible pulido.** `espacio_detalle_screen.dart:52-81` ya era `SliverAppBar pinned expandedHeight:180`; ahora es `expandedHeight:200 collapsedHeight:56 pinned:true floating:true snap:true stretch:true scrolledUnderElevation:2 shadowColor:AppColors.sombra systemOverlayStyle:light` con `FlexibleSpaceBar expandedTitleScale:1.18 collapseMode:parallax stretchModes:[zoomBackground,fadeTitle]` y `DecoratedBox Stack + kGradientScrim` para que el título blanco no pierda contraste. `physics: BouncingScrollPhysics` para stretch visible.
+
+**Motivo obligatorio al rechazar (backend + frontend + Flutter + auditoría).** Con autorización explícita se tocó el backend (ver `backend/app/schemas/reserva.py:75-78` + `migrations.py:453` + `models/reserva.py:36`):
+- `ReservaEstadoUpdate:75` añade `motivo: str|None max_length:500` con `field_validator` + `model_validator` que exige `motivo` no vacío cuando `nuevo_estado==RECHAZADA` → `422` si falta.
+- `Reserva.motivo_rechazo = Column(Text, nullable=True) :36` + `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT` (idempotente).
+- `ReservaResponse.motivo_rechazo: str|None`.
+- `services/reservas.py:636` `cambiar_estado(..., motivo=None)` valida `400` si `RECHAZADA` sin motivo, persiste `reserva.motivo_rechazo` (limpia a `None` si no es rechazada), `Notificacion` + `registrar_cambio("... - Motivo: {motivo}")` para auditoría (`control_cambio.descripcion`), `api/notificaciones.py:33` `_mensaje` inyecta motivo en `Tu reserva de X fue rechazada: {motivo}`.
+- `api/reservas.py:53` `cambiar_estado_endpoint(..., motivo=data.motivo)`.
+- `openapi.snapshot.json:1254` regenerado + `tests/test_api_reservas.py:410` y `tests/test_doble_escritura:229` y `tests/test_schemas_contrato.py:233` actualizados.
+- Frontend `types/reserva.ts:63` + `services/reservas.ts:19` `cambiarEstado(id, estado, motivo?)` y `admin/reservas/page.tsx:79` `prompt` + `mis-reservas/page.tsx:181` muestra motivo.
+- Flutter `domain/reserva.dart:113` `String? motivoRechazo`, `data/reservas_repository.dart:75` `cambiarEstado(id, nuevo, {motivo})`, `presentation/gestion_reservas_screen.dart:78-129` diálogo `AlertDialog Form TextFormField maxLength:500 validator` + card muestra `motivoRechazo` en `Container AppEstados.negativo.tinte`, `mis_reservas_screen.dart:243` igual, `notificaciones` ya vienen con motivo en el mensaje.
+
+**Delta KPIs (backend + Flutter).** Con autorización:
+- `schemas/admin_dashboard.py:43` nuevas `PeriodoDelta, DeltaInt, DeltaFloat, DashboardDeltas{periodo_dias, periodoActual, periodoPrevio, totalReservas, ocupacionPorcentaje}` + `AdminDashboardSummary.deltas: DashboardDeltas|None`.
+- `api/admin_dashboard.py:23` `_calcular_ocupacion_porcentaje` + `_construir_resumen(..., periodo_dias=None)` + cálculo de `deltas` cuando `periodo_dias` viene: ventanas `actual [hoy-periodo+1, hoy]` y `previo [actual- periodo, actual-1]` con `date.today()` y `timedelta`, `total_actual/previo` vía `count()`, `delta/pct`, y `bloque_actual/previo` para ocupación (reusa `_calcular_ocupacion_porcentaje`). Endpoints `GET /admin/dashboard/summary?periodo_dias=30` y `/gestion/dashboard/summary?periodo_dias` (`Query ge1 le365`).
+- Flutter `domain/dashboard_summary.dart:74-105` espejo `PeriodoDelta/DeltaInt/DeltaFloat/DashboardDeltas` + `deltas`, `data/dashboard_repository.dart:14` `GET ...?periodo_dias=30`, `presentation/dashboard_screen.dart:121-350` `_SummaryStrip` pasa `DeltaInt` a `_StatItem` que muestra `_DeltaBadge` (`trendingUp/Down/minus` + `+delta (+pct%)` con `AppEstados.positivo/negativo/neutro`), `_OcupacionHero` muestra `_DeltaBadge` bajo el porcentaje + `vs 30 días previos`.
+
+### Pendiente fino (requiere toolchain, no tocado sin confirmación)
+
+- Compilar Windows/Android: `flutter doctor` sigue `X Visual Studio not installed` + `X Android SDK` (`windows: flutter generated_plugin_registrant` warnings son CRLF, no fallo). Requiere instalar VS workload C++ + Android Studio/SDK.
+- Proxy same-origin real de Fase 6-Web: `docker-compose.yml` sin `ports:` en `backend` + `env/web.json` `/api` siguen necesitando servicio `nginx/caddy` con confirmación.
 
 ## Sistema de diseño (pases 1 y 2 — histórico)
 
@@ -173,6 +197,8 @@ El paquete declara 7 familias de fuente en su propio `pubspec.yaml` (`Lucide` + 
 ## Backend intacto — nunca modificar sin aprobación aparte
 
 Igual que `frontend/CLAUDE.md`: ningún cambio en `backend/app/schemas/`, routers de `backend/app/api/`, OpenAPI, ni en la política de cookie/CORS de `backend/app/main.py`, sin aprobación explícita separada. `app_flutter/` se adapta al contrato existente, nunca al revés.
+
+**Excepción 2026-08-21 (autorizada en esta sesión, ver `git log` y `openapi.snapshot.json`):** con autorización explícita del usuario se tocó `backend/` solo para los dos pendientes que lo exigían: `motivo_rechazo` (`schemas/reserva.py:75`, `models/reserva.py:36`, `migrations.py:453`, `services/reservas.py:636`, `api/reservas.py:53`, `api/notificaciones.py:33`, regenerado `openapi.snapshot.json:1254`) y `deltas` (`schemas/admin_dashboard.py:43`, `api/admin_dashboard.py:23`), más `frontend/` (`types/reserva.ts:63`, `services/reservas.ts:19`, `admin/reservas/page.tsx:79`). Fuera de esto sigue vigente “frontend se adapta, no al revés”.
 
 ## Sesión: cookie HttpOnly, nunca un token en el cliente
 

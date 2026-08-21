@@ -57,6 +57,8 @@ export interface Reserva {
   // Fase 12D-bis: asistencia real, separada de estado/aprobación; `null`
   // cuando aún no se marcó.
   asistio?: boolean | null;
+  // Fase 6: motivo de rechazo (solo cuando estado == rechazada).
+  motivo_rechazo?: string | null;
   // Fase 12E: ensayos seleccionados (N:1 Zona)
   ensayo_ids?: number[];
   ensayos?: EnsayoReserva[];
@@ -98,6 +100,7 @@ export interface ReservaCreate {
 
 export interface ReservaEstadoUpdate {
   nuevo_estado: Extract<ReservaEstado, 'aprobada' | 'rechazada' | 'cancelada'>;
+  motivo?: string | null;
 }
 
 export interface ReservaAsistioUpdate {

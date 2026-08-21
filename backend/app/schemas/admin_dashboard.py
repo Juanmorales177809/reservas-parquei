@@ -40,6 +40,33 @@ class OcupacionGlobal(BaseModel):
     porcentaje: float
 
 
+class PeriodoDelta(BaseModel):
+    desde: date
+    hasta: date
+
+
+class DeltaInt(BaseModel):
+    actual: int
+    previo: int
+    delta: int
+    delta_pct: float | None
+
+
+class DeltaFloat(BaseModel):
+    actual: float
+    previo: float
+    delta: float
+    delta_pct: float | None
+
+
+class DashboardDeltas(BaseModel):
+    periodo_dias: int
+    periodo_actual: PeriodoDelta
+    periodo_previo: PeriodoDelta
+    total_reservas: DeltaInt
+    ocupacion_porcentaje: DeltaFloat
+
+
 class AdminDashboardSummary(BaseModel):
     total_reservas: int
     reservas_pendientes: int
@@ -52,3 +79,4 @@ class AdminDashboardSummary(BaseModel):
     recursos_mas_reservados: list[RecursoMasReservado]
     ocupacion_por_dia_hora: list[OcupacionDiaHora]
     ocupacion_global: OcupacionGlobal
+    deltas: DashboardDeltas | None = None

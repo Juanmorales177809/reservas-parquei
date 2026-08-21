@@ -79,7 +79,21 @@ export default function AdminReservasPage() {
   async function handleEstado(id: number, nuevo_estado: ReservaEstadoUpdate['nuevo_estado']) {
     setError(null);
     try {
-      await cambiarEstado(id, nuevo_estado);
+      if (nuevo_estado === 'rechazada') {
+        const motivo = window.prompt('Motivo del rechazo (obligatorio, máx. 500 caracteres):');
+        if (motivo === null) return;
+        if (!motivo.trim()) {
+          setError('Debes indicar el motivo del rechazo');
+          return;
+        }
+        if (motivo.trim().length > 500) {
+          setError('El motivo no puede superar los 500 caracteres');
+          return;
+        }
+        await cambiarEstado(id, nuevo_estado, motivo.trim());
+      } else {
+        await cambiarEstado(id, nuevo_estado);
+      }
       await loadReservas();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la reserva');
@@ -203,6 +217,9 @@ export default function AdminReservasPage() {
                       <span className={`badge ${badgeEstadoReserva(reserva.estado)}`}>
                         {labelEstadoReserva(reserva.estado)}
                       </span>
+                      {reserva.estado === 'rechazada' && reserva.motivo_rechazo && (
+                        <div className="mt-1 text-xs text-text-secondary">Motivo: {reserva.motivo_rechazo}</div>
+                      )}
                     </td>
                     <td>
                       {reserva.asistio === true ? (

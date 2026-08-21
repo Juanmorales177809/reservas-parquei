@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
@@ -74,10 +75,10 @@ class _GestionReservaCard extends ConsumerStatefulWidget {
 class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
   bool _enviando = false;
 
-  Future<void> _cambiarEstado(EstadoReserva nuevo) async {
+  Future<void> _cambiarEstado(EstadoReserva nuevo, {String? motivo}) async {
     setState(() => _enviando = true);
     try {
-      await ref.read(reservasRepositoryProvider).cambiarEstado(widget.reserva.id, nuevo);
+      await ref.read(reservasRepositoryProvider).cambiarEstado(widget.reserva.id, nuevo, motivo: motivo);
       ref.invalidate(reservasGestionProvider);
     } on Object catch (e) {
       if (mounted) {
@@ -88,6 +89,47 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
     } finally {
       if (mounted) setState(() => _enviando = false);
     }
+  }
+
+  Future<void> _pedirMotivoYRechazar() async {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final motivo = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rechazar reserva'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 500,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Motivo *',
+              hintText: 'Explicá por qué se rechaza',
+              border: OutlineInputBorder(),
+            ),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'El motivo es obligatorio';
+              if (v.trim().length > 500) return 'Máx. 500 caracteres';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(ctx, controller.text.trim());
+            },
+            child: const Text('Rechazar'),
+          ),
+        ],
+      ),
+    );
+    if (motivo == null) return;
+    await _cambiarEstado(EstadoReserva.rechazada, motivo: motivo);
   }
 
   Future<void> _marcarAsistencia(bool asistio) async {
@@ -148,21 +190,61 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                 if (reserva.tipo != null) _InfoChip(icon: LucideIcons.tag, text: tipoReservaLabel(reserva.tipo!)),
               ],
             ),
+            if (reserva.estado == EstadoReserva.rechazada && reserva.motivoRechazo != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppEstados.negativo.tinte,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppEstados.negativo.borde.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(LucideIcons.info, size: 14, color: AppEstados.negativo.sobreTinte),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'Motivo: ${reserva.motivoRechazo}',
+                        style: textTheme.bodySmall?.copyWith(color: AppEstados.negativo.sobreTinte),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (reserva.estado == EstadoReserva.esperando) ...[
               const SizedBox(height: AppSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _enviando ? null : () => _cambiarEstado(EstadoReserva.rechazada),
-                    icon: const Icon(LucideIcons.x, size: 16),
-                    label: const Text('Rechazar'),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
                   FilledButton.icon(
                     onPressed: _enviando ? null : () => _cambiarEstado(EstadoReserva.aprobada),
                     icon: const Icon(LucideIcons.check, size: 16),
                     label: const Text('Aprobar'),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  PopupMenuButton<String>(
+                    enabled: !_enviando,
+                    tooltip: 'Más acciones',
+                    icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
+                    onSelected: (v) {
+                      if (v == 'rechazar') _pedirMotivoYRechazar();
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'rechazar',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.x, size: 16, color: AppColors.textoSecundario),
+                            SizedBox(width: AppSpacing.sm),
+                            Text('Rechazar'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -184,9 +266,25 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                     onSelected: _enviando ? null : (_) => _marcarAsistencia(false),
                   ),
                   const Spacer(),
-                  OutlinedButton(
-                    onPressed: _enviando ? null : () => _cambiarEstado(EstadoReserva.cancelada),
-                    child: const Text('Cancelar'),
+                  PopupMenuButton<String>(
+                    enabled: !_enviando,
+                    tooltip: 'Más acciones',
+                    icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
+                    onSelected: (v) {
+                      if (v == 'cancelar') _cambiarEstado(EstadoReserva.cancelada);
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'cancelar',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.x, size: 16, color: AppColors.textoSecundario),
+                            SizedBox(width: AppSpacing.sm),
+                            Text('Cancelar'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

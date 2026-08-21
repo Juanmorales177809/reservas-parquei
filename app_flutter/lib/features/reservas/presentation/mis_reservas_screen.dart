@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
@@ -45,14 +48,71 @@ class MisReservasScreen extends ConsumerWidget {
             ),
           );
         }
-        final ordenadas = [...reservas]..sort((a, b) => b.fecha.compareTo(a.fecha));
+        // Agrupado por tiempo con encabezado adhesivo (como auditoría por día).
+        // `fecha` es `YYYY-MM-DD` naive en `America/Bogota` — el backend no
+        // expone un "hoy" canónico, así que se compara contra el hoy de esa
+        // zona calculado desde el reloj del dispositivo en UTC-5 (Bogotá no
+        // tiene horario de verano). Comparar contra `DateTime.now()` local
+        // daría una etiqueta equivocada fuera de esa zona (mismo riesgo que
+        // hizo que auditoría evitara "Hoy"/"Ayer").
+        final hoyStr = _hoyBogotaStr();
+        final limiteSemanaStr = _hoyBogotaPlusDiasStr(7, hoyStr);
+        final grupos = <_GrupoReserva, List<Reserva>>{
+          _GrupoReserva.hoy: [],
+          _GrupoReserva.estaSemana: [],
+          _GrupoReserva.proximas: [],
+          _GrupoReserva.pasadas: [],
+        };
+        for (final r in reservas) {
+          grupos[_grupoPara(r.fecha, hoyStr, limiteSemanaStr)]!.add(r);
+        }
+        // Orden interno: futuras ascendente (la más próxima primero), pasadas
+        // descendente (la más reciente primero) — es lo que el ojo espera en
+        // cada bloque.
+        for (final entry in grupos.entries) {
+          entry.value.sort((a, b) {
+            final cmpFecha = a.fecha.compareTo(b.fecha);
+            if (cmpFecha != 0) {
+              return entry.key == _GrupoReserva.pasadas ? -cmpFecha : cmpFecha;
+            }
+            return a.horaInicio.compareTo(b.horaInicio);
+          });
+        }
+        final ordenGrupos = [
+          _GrupoReserva.hoy,
+          _GrupoReserva.estaSemana,
+          _GrupoReserva.proximas,
+          _GrupoReserva.pasadas,
+        ];
+        final gruposConDatos = ordenGrupos.where((g) => grupos[g]!.isNotEmpty).toList();
+
         return RefreshIndicator(
           onRefresh: () => ref.refresh(misReservasProvider.future),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            itemCount: ordenadas.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) => _ReservaCard(reserva: ordenadas[index]).staggerEntrance(index),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              for (final grupo in gruposConDatos)
+                SliverMainAxisGroup(
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _EncabezadoGrupoReserva(grupo: grupo, cantidad: grupos[grupo]!.length),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      sliver: SliverList.separated(
+                        itemCount: grupos[grupo]!.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+                        itemBuilder: (context, index) {
+                          final globalIndex = ordenGrupos.indexOf(grupo) * 100 + index;
+                          return _ReservaCard(reserva: grupos[grupo]![index]).staggerEntrance(globalIndex);
+                        },
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
+                  ],
+                ),
+            ],
           ),
         );
       },
@@ -152,6 +212,31 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                 Text('${reserva.asistentes} asistentes', style: textTheme.bodyMedium),
               ],
             ),
+            if (reserva.estado == EstadoReserva.rechazada && reserva.motivoRechazo != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppEstados.negativo.tinte,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppEstados.negativo.borde.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(LucideIcons.info, size: 14, color: AppEstados.negativo.sobreTinte),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'Motivo: ${reserva.motivoRechazo}',
+                        style: textTheme.bodySmall?.copyWith(color: AppEstados.negativo.sobreTinte),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (reserva.puedeCancelarse) ...[
               const SizedBox(height: AppSpacing.md),
               Align(
@@ -179,4 +264,80 @@ String _formatearFecha(String fechaIso) {
   final partes = fechaIso.split('-');
   if (partes.length != 3) return fechaIso;
   return '${partes[2]}/${partes[1]}/${partes[0]}';
+}
+
+enum _GrupoReserva { hoy, estaSemana, proximas, pasadas }
+
+String _etiquetaGrupo(_GrupoReserva g) => switch (g) {
+      _GrupoReserva.hoy => 'HOY',
+      _GrupoReserva.estaSemana => 'ESTA SEMANA',
+      _GrupoReserva.proximas => 'PRÓXIMAS',
+      _GrupoReserva.pasadas => 'PASADAS',
+    };
+
+String _hoyBogotaStr() {
+  final ahoraUtc = DateTime.now().toUtc();
+  final bogota = ahoraUtc.subtract(const Duration(hours: 5));
+  return '${bogota.year.toString().padLeft(4, '0')}-${bogota.month.toString().padLeft(2, '0')}-${bogota.day.toString().padLeft(2, '0')}';
+}
+
+String _hoyBogotaPlusDiasStr(int dias, String hoyStr) {
+  final partes = hoyStr.split('-');
+  if (partes.length != 3) return hoyStr;
+  final y = int.tryParse(partes[0]) ?? 2026;
+  final m = int.tryParse(partes[1]) ?? 1;
+  final d = int.tryParse(partes[2]) ?? 1;
+  final base = DateTime.utc(y, m, d);
+  final destino = base.add(Duration(days: dias));
+  return '${destino.year.toString().padLeft(4, '0')}-${destino.month.toString().padLeft(2, '0')}-${destino.day.toString().padLeft(2, '0')}';
+}
+
+_GrupoReserva _grupoPara(String fecha, String hoyStr, String limiteSemanaStr) {
+  if (fecha == hoyStr) return _GrupoReserva.hoy;
+  if (fecha.compareTo(hoyStr) < 0) return _GrupoReserva.pasadas;
+  if (fecha.compareTo(limiteSemanaStr) <= 0) return _GrupoReserva.estaSemana;
+  return _GrupoReserva.proximas;
+}
+
+class _EncabezadoGrupoReserva extends SliverPersistentHeaderDelegate {
+  const _EncabezadoGrupoReserva({required this.grupo, required this.cantidad});
+
+  final _GrupoReserva grupo;
+  final int cantidad;
+
+  @override
+  double get minExtent => 36;
+
+  @override
+  double get maxExtent => 36;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppColors.fondo,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      alignment: Alignment.centerLeft,
+      child: Row(
+        children: [
+          Text(_etiquetaGrupo(grupo), style: AppText.overline()),
+          const SizedBox(width: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: Border.all(color: AppColors.borde),
+            ),
+            child: Text(
+              '$cantidad',
+              style: AppText.numerico(fontSize: 11, color: AppColors.textoTerciario, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _EncabezadoGrupoReserva old) => old.grupo != grupo || old.cantidad != cantidad;
 }

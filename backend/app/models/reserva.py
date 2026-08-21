@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, func
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -32,6 +32,10 @@ class Reserva(Base):
     # por diseño (sin backfill): las reservas existentes lo dejan sin valor.
     # Solo gestor/admin pueden escribirlo vía endpoint dedicado.
     asistio = Column(Boolean, nullable=True)
+    # Fase 6: motivo de rechazo (solo cuando estado == rechazada). Nullable
+    # para histórico; se limpia al cambiar de rechazada a otro estado
+    # (aunque hoy rechazada es terminal, ver TRANSICIONES_ESTADO_RESERVA).
+    motivo_rechazo = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

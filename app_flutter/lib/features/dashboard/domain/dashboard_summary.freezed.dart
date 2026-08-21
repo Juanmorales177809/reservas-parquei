@@ -1631,9 +1631,1166 @@ as double,
 
 
 /// @nodoc
+mixin _$PeriodoDelta {
+
+ String get desde; String get hasta;
+/// Create a copy of PeriodoDelta
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PeriodoDeltaCopyWith<PeriodoDelta> get copyWith => _$PeriodoDeltaCopyWithImpl<PeriodoDelta>(this as PeriodoDelta, _$identity);
+
+  /// Serializes this PeriodoDelta to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PeriodoDelta&&(identical(other.desde, desde) || other.desde == desde)&&(identical(other.hasta, hasta) || other.hasta == hasta));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,desde,hasta);
+
+@override
+String toString() {
+  return 'PeriodoDelta(desde: $desde, hasta: $hasta)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PeriodoDeltaCopyWith<$Res>  {
+  factory $PeriodoDeltaCopyWith(PeriodoDelta value, $Res Function(PeriodoDelta) _then) = _$PeriodoDeltaCopyWithImpl;
+@useResult
+$Res call({
+ String desde, String hasta
+});
+
+
+
+
+}
+/// @nodoc
+class _$PeriodoDeltaCopyWithImpl<$Res>
+    implements $PeriodoDeltaCopyWith<$Res> {
+  _$PeriodoDeltaCopyWithImpl(this._self, this._then);
+
+  final PeriodoDelta _self;
+  final $Res Function(PeriodoDelta) _then;
+
+/// Create a copy of PeriodoDelta
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? desde = null,Object? hasta = null,}) {
+  return _then(PeriodoDelta(
+desde: null == desde ? _self.desde : desde // ignore: cast_nullable_to_non_nullable
+as String,hasta: null == hasta ? _self.hasta : hasta // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PeriodoDelta].
+extension PeriodoDeltaPatterns on PeriodoDelta {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PeriodoDelta value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PeriodoDelta() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PeriodoDelta value)  $default,){
+final _that = this;
+switch (_that) {
+case _PeriodoDelta():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PeriodoDelta value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PeriodoDelta() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String desde,  String hasta)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PeriodoDelta() when $default != null:
+return $default(_that.desde,_that.hasta);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String desde,  String hasta)  $default,) {final _that = this;
+switch (_that) {
+case _PeriodoDelta():
+return $default(_that.desde,_that.hasta);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String desde,  String hasta)?  $default,) {final _that = this;
+switch (_that) {
+case _PeriodoDelta() when $default != null:
+return $default(_that.desde,_that.hasta);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PeriodoDelta implements PeriodoDelta {
+  const _PeriodoDelta({required this.desde, required this.hasta});
+  factory _PeriodoDelta.fromJson(Map<String, dynamic> json) => _$PeriodoDeltaFromJson(json);
+
+@override final  String desde;
+@override final  String hasta;
+
+/// Create a copy of PeriodoDelta
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PeriodoDeltaCopyWith<_PeriodoDelta> get copyWith => __$PeriodoDeltaCopyWithImpl<_PeriodoDelta>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PeriodoDeltaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PeriodoDelta&&(identical(other.desde, desde) || other.desde == desde)&&(identical(other.hasta, hasta) || other.hasta == hasta));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,desde,hasta);
+
+@override
+String toString() {
+  return 'PeriodoDelta(desde: $desde, hasta: $hasta)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PeriodoDeltaCopyWith<$Res> implements $PeriodoDeltaCopyWith<$Res> {
+  factory _$PeriodoDeltaCopyWith(_PeriodoDelta value, $Res Function(_PeriodoDelta) _then) = __$PeriodoDeltaCopyWithImpl;
+@override @useResult
+$Res call({
+ String desde, String hasta
+});
+
+
+
+
+}
+/// @nodoc
+class __$PeriodoDeltaCopyWithImpl<$Res>
+    implements _$PeriodoDeltaCopyWith<$Res> {
+  __$PeriodoDeltaCopyWithImpl(this._self, this._then);
+
+  final _PeriodoDelta _self;
+  final $Res Function(_PeriodoDelta) _then;
+
+/// Create a copy of PeriodoDelta
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? desde = null,Object? hasta = null,}) {
+  return _then(_PeriodoDelta(
+desde: null == desde ? _self.desde : desde // ignore: cast_nullable_to_non_nullable
+as String,hasta: null == hasta ? _self.hasta : hasta // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$DeltaInt {
+
+ int get actual; int get previo; int get delta; double? get deltaPct;
+/// Create a copy of DeltaInt
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DeltaIntCopyWith<DeltaInt> get copyWith => _$DeltaIntCopyWithImpl<DeltaInt>(this as DeltaInt, _$identity);
+
+  /// Serializes this DeltaInt to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeltaInt&&(identical(other.actual, actual) || other.actual == actual)&&(identical(other.previo, previo) || other.previo == previo)&&(identical(other.delta, delta) || other.delta == delta)&&(identical(other.deltaPct, deltaPct) || other.deltaPct == deltaPct));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actual,previo,delta,deltaPct);
+
+@override
+String toString() {
+  return 'DeltaInt(actual: $actual, previo: $previo, delta: $delta, deltaPct: $deltaPct)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DeltaIntCopyWith<$Res>  {
+  factory $DeltaIntCopyWith(DeltaInt value, $Res Function(DeltaInt) _then) = _$DeltaIntCopyWithImpl;
+@useResult
+$Res call({
+ int actual, int previo, int delta, double? deltaPct
+});
+
+
+
+
+}
+/// @nodoc
+class _$DeltaIntCopyWithImpl<$Res>
+    implements $DeltaIntCopyWith<$Res> {
+  _$DeltaIntCopyWithImpl(this._self, this._then);
+
+  final DeltaInt _self;
+  final $Res Function(DeltaInt) _then;
+
+/// Create a copy of DeltaInt
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? actual = null,Object? previo = null,Object? delta = null,Object? deltaPct = freezed,}) {
+  return _then(DeltaInt(
+actual: null == actual ? _self.actual : actual // ignore: cast_nullable_to_non_nullable
+as int,previo: null == previo ? _self.previo : previo // ignore: cast_nullable_to_non_nullable
+as int,delta: null == delta ? _self.delta : delta // ignore: cast_nullable_to_non_nullable
+as int,deltaPct: freezed == deltaPct ? _self.deltaPct : deltaPct // ignore: cast_nullable_to_non_nullable
+as double?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DeltaInt].
+extension DeltaIntPatterns on DeltaInt {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DeltaInt value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DeltaInt() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DeltaInt value)  $default,){
+final _that = this;
+switch (_that) {
+case _DeltaInt():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DeltaInt value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DeltaInt() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int actual,  int previo,  int delta,  double? deltaPct)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DeltaInt() when $default != null:
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int actual,  int previo,  int delta,  double? deltaPct)  $default,) {final _that = this;
+switch (_that) {
+case _DeltaInt():
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int actual,  int previo,  int delta,  double? deltaPct)?  $default,) {final _that = this;
+switch (_that) {
+case _DeltaInt() when $default != null:
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DeltaInt implements DeltaInt {
+  const _DeltaInt({required this.actual, required this.previo, required this.delta, this.deltaPct});
+  factory _DeltaInt.fromJson(Map<String, dynamic> json) => _$DeltaIntFromJson(json);
+
+@override final  int actual;
+@override final  int previo;
+@override final  int delta;
+@override final  double? deltaPct;
+
+/// Create a copy of DeltaInt
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DeltaIntCopyWith<_DeltaInt> get copyWith => __$DeltaIntCopyWithImpl<_DeltaInt>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DeltaIntToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeltaInt&&(identical(other.actual, actual) || other.actual == actual)&&(identical(other.previo, previo) || other.previo == previo)&&(identical(other.delta, delta) || other.delta == delta)&&(identical(other.deltaPct, deltaPct) || other.deltaPct == deltaPct));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actual,previo,delta,deltaPct);
+
+@override
+String toString() {
+  return 'DeltaInt(actual: $actual, previo: $previo, delta: $delta, deltaPct: $deltaPct)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DeltaIntCopyWith<$Res> implements $DeltaIntCopyWith<$Res> {
+  factory _$DeltaIntCopyWith(_DeltaInt value, $Res Function(_DeltaInt) _then) = __$DeltaIntCopyWithImpl;
+@override @useResult
+$Res call({
+ int actual, int previo, int delta, double? deltaPct
+});
+
+
+
+
+}
+/// @nodoc
+class __$DeltaIntCopyWithImpl<$Res>
+    implements _$DeltaIntCopyWith<$Res> {
+  __$DeltaIntCopyWithImpl(this._self, this._then);
+
+  final _DeltaInt _self;
+  final $Res Function(_DeltaInt) _then;
+
+/// Create a copy of DeltaInt
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? actual = null,Object? previo = null,Object? delta = null,Object? deltaPct = freezed,}) {
+  return _then(_DeltaInt(
+actual: null == actual ? _self.actual : actual // ignore: cast_nullable_to_non_nullable
+as int,previo: null == previo ? _self.previo : previo // ignore: cast_nullable_to_non_nullable
+as int,delta: null == delta ? _self.delta : delta // ignore: cast_nullable_to_non_nullable
+as int,deltaPct: freezed == deltaPct ? _self.deltaPct : deltaPct // ignore: cast_nullable_to_non_nullable
+as double?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$DeltaFloat {
+
+ double get actual; double get previo; double get delta; double? get deltaPct;
+/// Create a copy of DeltaFloat
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DeltaFloatCopyWith<DeltaFloat> get copyWith => _$DeltaFloatCopyWithImpl<DeltaFloat>(this as DeltaFloat, _$identity);
+
+  /// Serializes this DeltaFloat to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeltaFloat&&(identical(other.actual, actual) || other.actual == actual)&&(identical(other.previo, previo) || other.previo == previo)&&(identical(other.delta, delta) || other.delta == delta)&&(identical(other.deltaPct, deltaPct) || other.deltaPct == deltaPct));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actual,previo,delta,deltaPct);
+
+@override
+String toString() {
+  return 'DeltaFloat(actual: $actual, previo: $previo, delta: $delta, deltaPct: $deltaPct)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DeltaFloatCopyWith<$Res>  {
+  factory $DeltaFloatCopyWith(DeltaFloat value, $Res Function(DeltaFloat) _then) = _$DeltaFloatCopyWithImpl;
+@useResult
+$Res call({
+ double actual, double previo, double delta, double? deltaPct
+});
+
+
+
+
+}
+/// @nodoc
+class _$DeltaFloatCopyWithImpl<$Res>
+    implements $DeltaFloatCopyWith<$Res> {
+  _$DeltaFloatCopyWithImpl(this._self, this._then);
+
+  final DeltaFloat _self;
+  final $Res Function(DeltaFloat) _then;
+
+/// Create a copy of DeltaFloat
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? actual = null,Object? previo = null,Object? delta = null,Object? deltaPct = freezed,}) {
+  return _then(DeltaFloat(
+actual: null == actual ? _self.actual : actual // ignore: cast_nullable_to_non_nullable
+as double,previo: null == previo ? _self.previo : previo // ignore: cast_nullable_to_non_nullable
+as double,delta: null == delta ? _self.delta : delta // ignore: cast_nullable_to_non_nullable
+as double,deltaPct: freezed == deltaPct ? _self.deltaPct : deltaPct // ignore: cast_nullable_to_non_nullable
+as double?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DeltaFloat].
+extension DeltaFloatPatterns on DeltaFloat {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DeltaFloat value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DeltaFloat() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DeltaFloat value)  $default,){
+final _that = this;
+switch (_that) {
+case _DeltaFloat():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DeltaFloat value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DeltaFloat() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double actual,  double previo,  double delta,  double? deltaPct)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DeltaFloat() when $default != null:
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double actual,  double previo,  double delta,  double? deltaPct)  $default,) {final _that = this;
+switch (_that) {
+case _DeltaFloat():
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double actual,  double previo,  double delta,  double? deltaPct)?  $default,) {final _that = this;
+switch (_that) {
+case _DeltaFloat() when $default != null:
+return $default(_that.actual,_that.previo,_that.delta,_that.deltaPct);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DeltaFloat implements DeltaFloat {
+  const _DeltaFloat({required this.actual, required this.previo, required this.delta, this.deltaPct});
+  factory _DeltaFloat.fromJson(Map<String, dynamic> json) => _$DeltaFloatFromJson(json);
+
+@override final  double actual;
+@override final  double previo;
+@override final  double delta;
+@override final  double? deltaPct;
+
+/// Create a copy of DeltaFloat
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DeltaFloatCopyWith<_DeltaFloat> get copyWith => __$DeltaFloatCopyWithImpl<_DeltaFloat>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DeltaFloatToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeltaFloat&&(identical(other.actual, actual) || other.actual == actual)&&(identical(other.previo, previo) || other.previo == previo)&&(identical(other.delta, delta) || other.delta == delta)&&(identical(other.deltaPct, deltaPct) || other.deltaPct == deltaPct));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,actual,previo,delta,deltaPct);
+
+@override
+String toString() {
+  return 'DeltaFloat(actual: $actual, previo: $previo, delta: $delta, deltaPct: $deltaPct)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DeltaFloatCopyWith<$Res> implements $DeltaFloatCopyWith<$Res> {
+  factory _$DeltaFloatCopyWith(_DeltaFloat value, $Res Function(_DeltaFloat) _then) = __$DeltaFloatCopyWithImpl;
+@override @useResult
+$Res call({
+ double actual, double previo, double delta, double? deltaPct
+});
+
+
+
+
+}
+/// @nodoc
+class __$DeltaFloatCopyWithImpl<$Res>
+    implements _$DeltaFloatCopyWith<$Res> {
+  __$DeltaFloatCopyWithImpl(this._self, this._then);
+
+  final _DeltaFloat _self;
+  final $Res Function(_DeltaFloat) _then;
+
+/// Create a copy of DeltaFloat
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? actual = null,Object? previo = null,Object? delta = null,Object? deltaPct = freezed,}) {
+  return _then(_DeltaFloat(
+actual: null == actual ? _self.actual : actual // ignore: cast_nullable_to_non_nullable
+as double,previo: null == previo ? _self.previo : previo // ignore: cast_nullable_to_non_nullable
+as double,delta: null == delta ? _self.delta : delta // ignore: cast_nullable_to_non_nullable
+as double,deltaPct: freezed == deltaPct ? _self.deltaPct : deltaPct // ignore: cast_nullable_to_non_nullable
+as double?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$DashboardDeltas {
+
+ int get periodoDias; PeriodoDelta get periodoActual; PeriodoDelta get periodoPrevio; DeltaInt get totalReservas; DeltaFloat get ocupacionPorcentaje;
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DashboardDeltasCopyWith<DashboardDeltas> get copyWith => _$DashboardDeltasCopyWithImpl<DashboardDeltas>(this as DashboardDeltas, _$identity);
+
+  /// Serializes this DashboardDeltas to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardDeltas&&(identical(other.periodoDias, periodoDias) || other.periodoDias == periodoDias)&&(identical(other.periodoActual, periodoActual) || other.periodoActual == periodoActual)&&(identical(other.periodoPrevio, periodoPrevio) || other.periodoPrevio == periodoPrevio)&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.ocupacionPorcentaje, ocupacionPorcentaje) || other.ocupacionPorcentaje == ocupacionPorcentaje));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,periodoDias,periodoActual,periodoPrevio,totalReservas,ocupacionPorcentaje);
+
+@override
+String toString() {
+  return 'DashboardDeltas(periodoDias: $periodoDias, periodoActual: $periodoActual, periodoPrevio: $periodoPrevio, totalReservas: $totalReservas, ocupacionPorcentaje: $ocupacionPorcentaje)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DashboardDeltasCopyWith<$Res>  {
+  factory $DashboardDeltasCopyWith(DashboardDeltas value, $Res Function(DashboardDeltas) _then) = _$DashboardDeltasCopyWithImpl;
+@useResult
+$Res call({
+ int periodoDias, PeriodoDelta periodoActual, PeriodoDelta periodoPrevio, DeltaInt totalReservas, DeltaFloat ocupacionPorcentaje
+});
+
+
+$PeriodoDeltaCopyWith<$Res> get periodoActual;$PeriodoDeltaCopyWith<$Res> get periodoPrevio;$DeltaIntCopyWith<$Res> get totalReservas;$DeltaFloatCopyWith<$Res> get ocupacionPorcentaje;
+
+}
+/// @nodoc
+class _$DashboardDeltasCopyWithImpl<$Res>
+    implements $DashboardDeltasCopyWith<$Res> {
+  _$DashboardDeltasCopyWithImpl(this._self, this._then);
+
+  final DashboardDeltas _self;
+  final $Res Function(DashboardDeltas) _then;
+
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? periodoDias = null,Object? periodoActual = null,Object? periodoPrevio = null,Object? totalReservas = null,Object? ocupacionPorcentaje = null,}) {
+  return _then(DashboardDeltas(
+periodoDias: null == periodoDias ? _self.periodoDias : periodoDias // ignore: cast_nullable_to_non_nullable
+as int,periodoActual: null == periodoActual ? _self.periodoActual : periodoActual // ignore: cast_nullable_to_non_nullable
+as PeriodoDelta,periodoPrevio: null == periodoPrevio ? _self.periodoPrevio : periodoPrevio // ignore: cast_nullable_to_non_nullable
+as PeriodoDelta,totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
+as DeltaInt,ocupacionPorcentaje: null == ocupacionPorcentaje ? _self.ocupacionPorcentaje : ocupacionPorcentaje // ignore: cast_nullable_to_non_nullable
+as DeltaFloat,
+  ));
+}
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodoDeltaCopyWith<$Res> get periodoActual {
+  
+  return $PeriodoDeltaCopyWith<$Res>(_self.periodoActual, (value) {
+    return _then(_self.copyWith(periodoActual: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodoDeltaCopyWith<$Res> get periodoPrevio {
+  
+  return $PeriodoDeltaCopyWith<$Res>(_self.periodoPrevio, (value) {
+    return _then(_self.copyWith(periodoPrevio: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DeltaIntCopyWith<$Res> get totalReservas {
+  
+  return $DeltaIntCopyWith<$Res>(_self.totalReservas, (value) {
+    return _then(_self.copyWith(totalReservas: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DeltaFloatCopyWith<$Res> get ocupacionPorcentaje {
+  
+  return $DeltaFloatCopyWith<$Res>(_self.ocupacionPorcentaje, (value) {
+    return _then(_self.copyWith(ocupacionPorcentaje: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [DashboardDeltas].
+extension DashboardDeltasPatterns on DashboardDeltas {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DashboardDeltas value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DashboardDeltas() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DashboardDeltas value)  $default,){
+final _that = this;
+switch (_that) {
+case _DashboardDeltas():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DashboardDeltas value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DashboardDeltas() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int periodoDias,  PeriodoDelta periodoActual,  PeriodoDelta periodoPrevio,  DeltaInt totalReservas,  DeltaFloat ocupacionPorcentaje)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DashboardDeltas() when $default != null:
+return $default(_that.periodoDias,_that.periodoActual,_that.periodoPrevio,_that.totalReservas,_that.ocupacionPorcentaje);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int periodoDias,  PeriodoDelta periodoActual,  PeriodoDelta periodoPrevio,  DeltaInt totalReservas,  DeltaFloat ocupacionPorcentaje)  $default,) {final _that = this;
+switch (_that) {
+case _DashboardDeltas():
+return $default(_that.periodoDias,_that.periodoActual,_that.periodoPrevio,_that.totalReservas,_that.ocupacionPorcentaje);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int periodoDias,  PeriodoDelta periodoActual,  PeriodoDelta periodoPrevio,  DeltaInt totalReservas,  DeltaFloat ocupacionPorcentaje)?  $default,) {final _that = this;
+switch (_that) {
+case _DashboardDeltas() when $default != null:
+return $default(_that.periodoDias,_that.periodoActual,_that.periodoPrevio,_that.totalReservas,_that.ocupacionPorcentaje);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DashboardDeltas implements DashboardDeltas {
+  const _DashboardDeltas({required this.periodoDias, required this.periodoActual, required this.periodoPrevio, required this.totalReservas, required this.ocupacionPorcentaje});
+  factory _DashboardDeltas.fromJson(Map<String, dynamic> json) => _$DashboardDeltasFromJson(json);
+
+@override final  int periodoDias;
+@override final  PeriodoDelta periodoActual;
+@override final  PeriodoDelta periodoPrevio;
+@override final  DeltaInt totalReservas;
+@override final  DeltaFloat ocupacionPorcentaje;
+
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DashboardDeltasCopyWith<_DashboardDeltas> get copyWith => __$DashboardDeltasCopyWithImpl<_DashboardDeltas>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DashboardDeltasToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardDeltas&&(identical(other.periodoDias, periodoDias) || other.periodoDias == periodoDias)&&(identical(other.periodoActual, periodoActual) || other.periodoActual == periodoActual)&&(identical(other.periodoPrevio, periodoPrevio) || other.periodoPrevio == periodoPrevio)&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.ocupacionPorcentaje, ocupacionPorcentaje) || other.ocupacionPorcentaje == ocupacionPorcentaje));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,periodoDias,periodoActual,periodoPrevio,totalReservas,ocupacionPorcentaje);
+
+@override
+String toString() {
+  return 'DashboardDeltas(periodoDias: $periodoDias, periodoActual: $periodoActual, periodoPrevio: $periodoPrevio, totalReservas: $totalReservas, ocupacionPorcentaje: $ocupacionPorcentaje)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DashboardDeltasCopyWith<$Res> implements $DashboardDeltasCopyWith<$Res> {
+  factory _$DashboardDeltasCopyWith(_DashboardDeltas value, $Res Function(_DashboardDeltas) _then) = __$DashboardDeltasCopyWithImpl;
+@override @useResult
+$Res call({
+ int periodoDias, PeriodoDelta periodoActual, PeriodoDelta periodoPrevio, DeltaInt totalReservas, DeltaFloat ocupacionPorcentaje
+});
+
+
+@override $PeriodoDeltaCopyWith<$Res> get periodoActual;@override $PeriodoDeltaCopyWith<$Res> get periodoPrevio;@override $DeltaIntCopyWith<$Res> get totalReservas;@override $DeltaFloatCopyWith<$Res> get ocupacionPorcentaje;
+
+}
+/// @nodoc
+class __$DashboardDeltasCopyWithImpl<$Res>
+    implements _$DashboardDeltasCopyWith<$Res> {
+  __$DashboardDeltasCopyWithImpl(this._self, this._then);
+
+  final _DashboardDeltas _self;
+  final $Res Function(_DashboardDeltas) _then;
+
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? periodoDias = null,Object? periodoActual = null,Object? periodoPrevio = null,Object? totalReservas = null,Object? ocupacionPorcentaje = null,}) {
+  return _then(_DashboardDeltas(
+periodoDias: null == periodoDias ? _self.periodoDias : periodoDias // ignore: cast_nullable_to_non_nullable
+as int,periodoActual: null == periodoActual ? _self.periodoActual : periodoActual // ignore: cast_nullable_to_non_nullable
+as PeriodoDelta,periodoPrevio: null == periodoPrevio ? _self.periodoPrevio : periodoPrevio // ignore: cast_nullable_to_non_nullable
+as PeriodoDelta,totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
+as DeltaInt,ocupacionPorcentaje: null == ocupacionPorcentaje ? _self.ocupacionPorcentaje : ocupacionPorcentaje // ignore: cast_nullable_to_non_nullable
+as DeltaFloat,
+  ));
+}
+
+/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodoDeltaCopyWith<$Res> get periodoActual {
+  
+  return $PeriodoDeltaCopyWith<$Res>(_self.periodoActual, (value) {
+    return _then(_self.copyWith(periodoActual: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodoDeltaCopyWith<$Res> get periodoPrevio {
+  
+  return $PeriodoDeltaCopyWith<$Res>(_self.periodoPrevio, (value) {
+    return _then(_self.copyWith(periodoPrevio: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DeltaIntCopyWith<$Res> get totalReservas {
+  
+  return $DeltaIntCopyWith<$Res>(_self.totalReservas, (value) {
+    return _then(_self.copyWith(totalReservas: value));
+  });
+}/// Create a copy of DashboardDeltas
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DeltaFloatCopyWith<$Res> get ocupacionPorcentaje {
+  
+  return $DeltaFloatCopyWith<$Res>(_self.ocupacionPorcentaje, (value) {
+    return _then(_self.copyWith(ocupacionPorcentaje: value));
+  });
+}
+}
+
+
+/// @nodoc
 mixin _$DashboardSummary {
 
- int get totalReservas; int get reservasPendientes; int get recursosActivos; int get usuarios; String? get espacioNombre; ReservasPorEstado get reservasPorEstado; List<ReservasPorFecha> get reservasPorFecha; List<ReservasPorEspacio> get reservasPorEspacio; List<RecursoMasReservado> get recursosMasReservados; List<OcupacionDiaHora> get ocupacionPorDiaHora; OcupacionGlobal get ocupacionGlobal;
+ int get totalReservas; int get reservasPendientes; int get recursosActivos; int get usuarios; String? get espacioNombre; ReservasPorEstado get reservasPorEstado; List<ReservasPorFecha> get reservasPorFecha; List<ReservasPorEspacio> get reservasPorEspacio; List<RecursoMasReservado> get recursosMasReservados; List<OcupacionDiaHora> get ocupacionPorDiaHora; OcupacionGlobal get ocupacionGlobal; DashboardDeltas? get deltas;
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1646,16 +2803,16 @@ $DashboardSummaryCopyWith<DashboardSummary> get copyWith => _$DashboardSummaryCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other.reservasPorFecha, reservasPorFecha)&&const DeepCollectionEquality().equals(other.reservasPorEspacio, reservasPorEspacio)&&const DeepCollectionEquality().equals(other.recursosMasReservados, recursosMasReservados)&&const DeepCollectionEquality().equals(other.ocupacionPorDiaHora, ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other.reservasPorFecha, reservasPorFecha)&&const DeepCollectionEquality().equals(other.reservasPorEspacio, reservasPorEspacio)&&const DeepCollectionEquality().equals(other.recursosMasReservados, recursosMasReservados)&&const DeepCollectionEquality().equals(other.ocupacionPorDiaHora, ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(reservasPorFecha),const DeepCollectionEquality().hash(reservasPorEspacio),const DeepCollectionEquality().hash(recursosMasReservados),const DeepCollectionEquality().hash(ocupacionPorDiaHora),ocupacionGlobal);
+int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(reservasPorFecha),const DeepCollectionEquality().hash(reservasPorEspacio),const DeepCollectionEquality().hash(recursosMasReservados),const DeepCollectionEquality().hash(ocupacionPorDiaHora),ocupacionGlobal,deltas);
 
 @override
 String toString() {
-  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal)';
+  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
 }
 
 
@@ -1666,11 +2823,11 @@ abstract mixin class $DashboardSummaryCopyWith<$Res>  {
   factory $DashboardSummaryCopyWith(DashboardSummary value, $Res Function(DashboardSummary) _then) = _$DashboardSummaryCopyWithImpl;
 @useResult
 $Res call({
- int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal
+ int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
 });
 
 
-$ReservasPorEstadoCopyWith<$Res> get reservasPorEstado;$OcupacionGlobalCopyWith<$Res> get ocupacionGlobal;
+$ReservasPorEstadoCopyWith<$Res> get reservasPorEstado;$OcupacionGlobalCopyWith<$Res> get ocupacionGlobal;$DashboardDeltasCopyWith<$Res>? get deltas;
 
 }
 /// @nodoc
@@ -1683,7 +2840,7 @@ class _$DashboardSummaryCopyWithImpl<$Res>
 
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
   return _then(DashboardSummary(
 totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
 as int,reservasPendientes: null == reservasPendientes ? _self.reservasPendientes : reservasPendientes // ignore: cast_nullable_to_non_nullable
@@ -1696,7 +2853,8 @@ as List<ReservasPorFecha>,reservasPorEspacio: null == reservasPorEspacio ? _self
 as List<ReservasPorEspacio>,recursosMasReservados: null == recursosMasReservados ? _self.recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
 as List<RecursoMasReservado>,ocupacionPorDiaHora: null == ocupacionPorDiaHora ? _self.ocupacionPorDiaHora : ocupacionPorDiaHora // ignore: cast_nullable_to_non_nullable
 as List<OcupacionDiaHora>,ocupacionGlobal: null == ocupacionGlobal ? _self.ocupacionGlobal : ocupacionGlobal // ignore: cast_nullable_to_non_nullable
-as OcupacionGlobal,
+as OcupacionGlobal,deltas: freezed == deltas ? _self.deltas : deltas // ignore: cast_nullable_to_non_nullable
+as DashboardDeltas?,
   ));
 }
 /// Create a copy of DashboardSummary
@@ -1716,6 +2874,18 @@ $OcupacionGlobalCopyWith<$Res> get ocupacionGlobal {
   
   return $OcupacionGlobalCopyWith<$Res>(_self.ocupacionGlobal, (value) {
     return _then(_self.copyWith(ocupacionGlobal: value));
+  });
+}/// Create a copy of DashboardSummary
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DashboardDeltasCopyWith<$Res>? get deltas {
+    if (_self.deltas == null) {
+    return null;
+  }
+
+  return $DashboardDeltasCopyWith<$Res>(_self.deltas!, (value) {
+    return _then(_self.copyWith(deltas: value));
   });
 }
 }
@@ -1799,10 +2969,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DashboardSummary() when $default != null:
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   return orElse();
 
 }
@@ -1820,10 +2990,10 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)  $default,) {final _that = this;
 switch (_that) {
 case _DashboardSummary():
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1840,10 +3010,10 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,) {final _that = this;
 switch (_that) {
 case _DashboardSummary() when $default != null:
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   return null;
 
 }
@@ -1855,7 +3025,7 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 @JsonSerializable()
 
 class _DashboardSummary implements DashboardSummary {
-  const _DashboardSummary({required this.totalReservas, required this.reservasPendientes, required this.recursosActivos, required this.usuarios, this.espacioNombre, required this.reservasPorEstado, required  List<ReservasPorFecha> reservasPorFecha, required  List<ReservasPorEspacio> reservasPorEspacio, required  List<RecursoMasReservado> recursosMasReservados, required  List<OcupacionDiaHora> ocupacionPorDiaHora, required this.ocupacionGlobal}): _reservasPorFecha = reservasPorFecha,_reservasPorEspacio = reservasPorEspacio,_recursosMasReservados = recursosMasReservados,_ocupacionPorDiaHora = ocupacionPorDiaHora;
+  const _DashboardSummary({required this.totalReservas, required this.reservasPendientes, required this.recursosActivos, required this.usuarios, this.espacioNombre, required this.reservasPorEstado, required  List<ReservasPorFecha> reservasPorFecha, required  List<ReservasPorEspacio> reservasPorEspacio, required  List<RecursoMasReservado> recursosMasReservados, required  List<OcupacionDiaHora> ocupacionPorDiaHora, required this.ocupacionGlobal, this.deltas}): _reservasPorFecha = reservasPorFecha,_reservasPorEspacio = reservasPorEspacio,_recursosMasReservados = recursosMasReservados,_ocupacionPorDiaHora = ocupacionPorDiaHora;
   factory _DashboardSummary.fromJson(Map<String, dynamic> json) => _$DashboardSummaryFromJson(json);
 
 @override final  int totalReservas;
@@ -1893,6 +3063,7 @@ class _DashboardSummary implements DashboardSummary {
 }
 
 @override final  OcupacionGlobal ocupacionGlobal;
+@override final  DashboardDeltas? deltas;
 
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -1907,16 +3078,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other._reservasPorFecha, _reservasPorFecha)&&const DeepCollectionEquality().equals(other._reservasPorEspacio, _reservasPorEspacio)&&const DeepCollectionEquality().equals(other._recursosMasReservados, _recursosMasReservados)&&const DeepCollectionEquality().equals(other._ocupacionPorDiaHora, _ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other._reservasPorFecha, _reservasPorFecha)&&const DeepCollectionEquality().equals(other._reservasPorEspacio, _reservasPorEspacio)&&const DeepCollectionEquality().equals(other._recursosMasReservados, _recursosMasReservados)&&const DeepCollectionEquality().equals(other._ocupacionPorDiaHora, _ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(_reservasPorFecha),const DeepCollectionEquality().hash(_reservasPorEspacio),const DeepCollectionEquality().hash(_recursosMasReservados),const DeepCollectionEquality().hash(_ocupacionPorDiaHora),ocupacionGlobal);
+int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(_reservasPorFecha),const DeepCollectionEquality().hash(_reservasPorEspacio),const DeepCollectionEquality().hash(_recursosMasReservados),const DeepCollectionEquality().hash(_ocupacionPorDiaHora),ocupacionGlobal,deltas);
 
 @override
 String toString() {
-  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal)';
+  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
 }
 
 
@@ -1927,11 +3098,11 @@ abstract mixin class _$DashboardSummaryCopyWith<$Res> implements $DashboardSumma
   factory _$DashboardSummaryCopyWith(_DashboardSummary value, $Res Function(_DashboardSummary) _then) = __$DashboardSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal
+ int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
 });
 
 
-@override $ReservasPorEstadoCopyWith<$Res> get reservasPorEstado;@override $OcupacionGlobalCopyWith<$Res> get ocupacionGlobal;
+@override $ReservasPorEstadoCopyWith<$Res> get reservasPorEstado;@override $OcupacionGlobalCopyWith<$Res> get ocupacionGlobal;@override $DashboardDeltasCopyWith<$Res>? get deltas;
 
 }
 /// @nodoc
@@ -1944,7 +3115,7 @@ class __$DashboardSummaryCopyWithImpl<$Res>
 
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
   return _then(_DashboardSummary(
 totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
 as int,reservasPendientes: null == reservasPendientes ? _self.reservasPendientes : reservasPendientes // ignore: cast_nullable_to_non_nullable
@@ -1957,7 +3128,8 @@ as List<ReservasPorFecha>,reservasPorEspacio: null == reservasPorEspacio ? _self
 as List<ReservasPorEspacio>,recursosMasReservados: null == recursosMasReservados ? _self._recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
 as List<RecursoMasReservado>,ocupacionPorDiaHora: null == ocupacionPorDiaHora ? _self._ocupacionPorDiaHora : ocupacionPorDiaHora // ignore: cast_nullable_to_non_nullable
 as List<OcupacionDiaHora>,ocupacionGlobal: null == ocupacionGlobal ? _self.ocupacionGlobal : ocupacionGlobal // ignore: cast_nullable_to_non_nullable
-as OcupacionGlobal,
+as OcupacionGlobal,deltas: freezed == deltas ? _self.deltas : deltas // ignore: cast_nullable_to_non_nullable
+as DashboardDeltas?,
   ));
 }
 
@@ -1978,6 +3150,18 @@ $OcupacionGlobalCopyWith<$Res> get ocupacionGlobal {
   
   return $OcupacionGlobalCopyWith<$Res>(_self.ocupacionGlobal, (value) {
     return _then(_self.copyWith(ocupacionGlobal: value));
+  });
+}/// Create a copy of DashboardSummary
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DashboardDeltasCopyWith<$Res>? get deltas {
+    if (_self.deltas == null) {
+    return null;
+  }
+
+  return $DashboardDeltasCopyWith<$Res>(_self.deltas!, (value) {
+    return _then(_self.copyWith(deltas: value));
   });
 }
 }

@@ -409,10 +409,11 @@ class TestTransiciones:
         ).json()
         rechazada = client.put(
             f"/reservas/{creada['id']}/estado",
-            json={"nuevo_estado": "rechazada"},
+            json={"nuevo_estado": "rechazada", "motivo": "No hay disponibilidad"},
             headers=cookies_para(gestor),
         )
         assert rechazada.status_code == 200
+        assert rechazada.json()["motivo_rechazo"] == "No hay disponibilidad"
         aprobar = client.put(
             f"/reservas/{creada['id']}/estado",
             json={"nuevo_estado": "aprobada"},

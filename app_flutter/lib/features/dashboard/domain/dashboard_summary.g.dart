@@ -90,6 +90,70 @@ Map<String, dynamic> _$OcupacionGlobalToJson(_OcupacionGlobal instance) =>
       'porcentaje': instance.porcentaje,
     };
 
+_PeriodoDelta _$PeriodoDeltaFromJson(Map<String, dynamic> json) =>
+    _PeriodoDelta(
+      desde: json['desde'] as String,
+      hasta: json['hasta'] as String,
+    );
+
+Map<String, dynamic> _$PeriodoDeltaToJson(_PeriodoDelta instance) =>
+    <String, dynamic>{'desde': instance.desde, 'hasta': instance.hasta};
+
+_DeltaInt _$DeltaIntFromJson(Map<String, dynamic> json) => _DeltaInt(
+  actual: (json['actual'] as num).toInt(),
+  previo: (json['previo'] as num).toInt(),
+  delta: (json['delta'] as num).toInt(),
+  deltaPct: (json['delta_pct'] as num?)?.toDouble(),
+);
+
+Map<String, dynamic> _$DeltaIntToJson(_DeltaInt instance) => <String, dynamic>{
+  'actual': instance.actual,
+  'previo': instance.previo,
+  'delta': instance.delta,
+  'delta_pct': instance.deltaPct,
+};
+
+_DeltaFloat _$DeltaFloatFromJson(Map<String, dynamic> json) => _DeltaFloat(
+  actual: (json['actual'] as num).toDouble(),
+  previo: (json['previo'] as num).toDouble(),
+  delta: (json['delta'] as num).toDouble(),
+  deltaPct: (json['delta_pct'] as num?)?.toDouble(),
+);
+
+Map<String, dynamic> _$DeltaFloatToJson(_DeltaFloat instance) =>
+    <String, dynamic>{
+      'actual': instance.actual,
+      'previo': instance.previo,
+      'delta': instance.delta,
+      'delta_pct': instance.deltaPct,
+    };
+
+_DashboardDeltas _$DashboardDeltasFromJson(Map<String, dynamic> json) =>
+    _DashboardDeltas(
+      periodoDias: (json['periodo_dias'] as num).toInt(),
+      periodoActual: PeriodoDelta.fromJson(
+        json['periodo_actual'] as Map<String, dynamic>,
+      ),
+      periodoPrevio: PeriodoDelta.fromJson(
+        json['periodo_previo'] as Map<String, dynamic>,
+      ),
+      totalReservas: DeltaInt.fromJson(
+        json['total_reservas'] as Map<String, dynamic>,
+      ),
+      ocupacionPorcentaje: DeltaFloat.fromJson(
+        json['ocupacion_porcentaje'] as Map<String, dynamic>,
+      ),
+    );
+
+Map<String, dynamic> _$DashboardDeltasToJson(_DashboardDeltas instance) =>
+    <String, dynamic>{
+      'periodo_dias': instance.periodoDias,
+      'periodo_actual': instance.periodoActual,
+      'periodo_previo': instance.periodoPrevio,
+      'total_reservas': instance.totalReservas,
+      'ocupacion_porcentaje': instance.ocupacionPorcentaje,
+    };
+
 _DashboardSummary _$DashboardSummaryFromJson(Map<String, dynamic> json) =>
     _DashboardSummary(
       totalReservas: (json['total_reservas'] as num).toInt(),
@@ -115,6 +179,9 @@ _DashboardSummary _$DashboardSummaryFromJson(Map<String, dynamic> json) =>
       ocupacionGlobal: OcupacionGlobal.fromJson(
         json['ocupacion_global'] as Map<String, dynamic>,
       ),
+      deltas: json['deltas'] == null
+          ? null
+          : DashboardDeltas.fromJson(json['deltas'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
@@ -130,4 +197,5 @@ Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
       'recursos_mas_reservados': instance.recursosMasReservados,
       'ocupacion_por_dia_hora': instance.ocupacionPorDiaHora,
       'ocupacion_global': instance.ocupacionGlobal,
+      'deltas': instance.deltas,
     };

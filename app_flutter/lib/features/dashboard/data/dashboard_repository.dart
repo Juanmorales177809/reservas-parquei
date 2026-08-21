@@ -11,13 +11,19 @@ class DashboardRepository {
 
   final Dio _dio;
 
-  Future<DashboardSummary> resumenAdmin() async {
-    final response = await _dio.get<Map<String, dynamic>>('/admin/dashboard/summary');
+  Future<DashboardSummary> resumenAdmin({int periodoDias = 30}) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/admin/dashboard/summary',
+      queryParameters: {'periodo_dias': periodoDias},
+    );
     return DashboardSummary.fromJson(response.data!);
   }
 
-  Future<DashboardSummary> resumenGestion() async {
-    final response = await _dio.get<Map<String, dynamic>>('/gestion/dashboard/summary');
+  Future<DashboardSummary> resumenGestion({int periodoDias = 30}) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/gestion/dashboard/summary',
+      queryParameters: {'periodo_dias': periodoDias},
+    );
     return DashboardSummary.fromJson(response.data!);
   }
 }

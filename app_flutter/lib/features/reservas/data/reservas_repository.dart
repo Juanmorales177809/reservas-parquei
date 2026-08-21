@@ -72,10 +72,13 @@ class ReservasRepository {
   /// `PUT /reservas/{id}/estado` — aprobar/rechazar/cancelar, solo
   /// gestor/admin. Transiciones válidas las valida el backend
   /// (`esperando -> aprobada|rechazada|cancelada`, `aprobada -> cancelada`).
-  Future<Reserva> cambiarEstado(int reservaId, EstadoReserva nuevoEstado) async {
+  /// `motivo` es obligatorio cuando `nuevoEstado == rechazada`.
+  Future<Reserva> cambiarEstado(int reservaId, EstadoReserva nuevoEstado, {String? motivo}) async {
+    final data = <String, dynamic>{'nuevo_estado': estadoReservaToJson(nuevoEstado)};
+    if (motivo != null) data['motivo'] = motivo;
     final response = await _dio.put<Map<String, dynamic>>(
       '/reservas/$reservaId/estado',
-      data: {'nuevo_estado': estadoReservaToJson(nuevoEstado)},
+      data: data,
     );
     return Reserva.fromJson(response.data!);
   }

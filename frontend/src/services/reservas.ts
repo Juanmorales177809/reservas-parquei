@@ -16,10 +16,16 @@ export function listarMisReservas(): Promise<Reserva[]> {
   return apiFetch<Reserva[]>('/reservas/mis-reservas');
 }
 
-export function cambiarEstado(id: number, nuevo_estado: ReservaEstadoUpdate['nuevo_estado']): Promise<Reserva> {
+export function cambiarEstado(
+  id: number,
+  nuevo_estado: ReservaEstadoUpdate['nuevo_estado'],
+  motivo?: string | null,
+): Promise<Reserva> {
+  const body: Record<string, unknown> = { nuevo_estado };
+  if (motivo !== undefined) body.motivo = motivo;
   return apiFetch<Reserva>(`/reservas/${id}/estado`, {
     method: 'PUT',
-    body: JSON.stringify({ nuevo_estado }),
+    body: JSON.stringify(body),
   });
 }
 

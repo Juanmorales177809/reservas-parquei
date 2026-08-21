@@ -37,7 +37,11 @@ def _mensaje(notificacion: Notificacion) -> str:
     if notificacion.tipo == "Aprobada":
         return f"Tu reserva de {etiqueta} fue aprobada"
     if notificacion.tipo == "Rechazada":
-        return f"Tu reserva de {etiqueta} fue rechazada"
+        base = f"Tu reserva de {etiqueta} fue rechazada"
+        motivo = getattr(notificacion.reserva, "motivo_rechazo", None) if notificacion.reserva else None
+        if motivo:
+            return f"{base}: {motivo}"
+        return base
     return f"Tu reserva de {etiqueta} fue cancelada"
 
 
