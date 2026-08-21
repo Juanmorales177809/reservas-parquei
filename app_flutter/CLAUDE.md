@@ -228,9 +228,9 @@ Nunca hardcodear una URL de backend en código. Archivos en `env/`:
 
 Ejemplo: `flutter run -d chrome --dart-define-from-file=env/dev.json`.
 
-## `docker-compose.yml` actual NO expone el backend al host
+## `docker-compose.yml` — backend sin `ports:`, Flutter Web vía `flutter_proxy`
 
-`backend` (en `docker-compose.yml`, raíz del repo) no tiene `ports:` — solo es alcanzable desde `frontend` (Next.js) vía red interna de Docker, igual que documenta el README. Un cliente Flutter nativo corriendo en el host **no puede** llegar a `http://localhost:8000` así levantando ese stack; para eso haría falta agregar `ports: ["8000:8000"]` al servicio `backend`, cambio de `docker-compose.yml` que requiere confirmación explícita (regla ya vigente del proyecto) antes de aplicarse — no se ha hecho.
+`backend` (en `docker-compose.yml`, raíz del repo) **sigue sin `ports:`** — solo es alcanzable vía red interna `application_network` (antes desde `frontend:3000`, ahora desde `flutter_proxy:8090`). Un cliente nativo corriendo en el host **tampoco** llega a `http://localhost:8000` con ese stack. `flutter_proxy` (`nginx:alpine`, `8090:80`, `volumes: nginx.conf:ro + build/web:ro`, `depends_on: backend:healthy`) es el que expone la Web al host y proxea `/api/` → `http://backend:8000/` (strip con `proxy_pass ...8000/` + `try_files /index.html` para SPA). Verificado 2026-08-21: `curl -i http://127.0.0.1:8090/` `200` html, `curl http://127.0.0.1:8090/api/health` `200 {"status":"ok"}`, `curl /espacios/3` `200` fallback — `SECRET_KEY` seteada en la shell del `up` (`clave-de-prueba...` 32+).
 
 ## Cómo se verificó la Fase 0 sin ese puerto expuesto (y sin tocar `reservas_db`)
 
@@ -241,6 +241,8 @@ Regla dura del proyecto: ninguna tarea asistida debe leer/escribir/migrar `reser
 3. Para el build Web (Chrome era el único target disponible en esta máquina: sin Visual Studio ni Android SDK instalados todavía), se sirvió `flutter build web` detrás de un proxy same-origin **desechable** (script Python de un solo archivo, fuera del repo, en el scratchpad de la sesión) que reenvía `/api/*` a `http://localhost:8000` — el mismo patrón arquitectónico que se documentó para la Fase 6-Web, pero como script de verificación puntual, no como el proxy real de producción (ese se construye en la Fase 6-Web con su propio servicio en `docker-compose.yml`, confirmado aparte).
 
 Ninguno de estos tres pasos es permanente ni forma parte del repo: son solo la forma de verificar la Fase 0 en esta máquina. Antes de retomar el trabajo hay que volver a levantarlos (o instalar Visual Studio/Android SDK para probar nativo, lo cual evita el problema del proxy Web por completo ya que los clientes nativos no están sujetos a CORS).
+
+**Verificación Fase 6-Web real (2026-08-21):** con `frontend/` ya borrado, `SECRET_KEY=dummy...` + `docker compose up -d --build flutter_proxy --wait` (usa `app_flutter/nginx.conf` y `build/web` montados) + `flutter build web --dart-define-from-file=env/web.json` (`161s`, `√ Built build/web`). `curl -i http://127.0.0.1:8090/` `200` `text/html` `flutter_bootstrap.js`, `curl http://127.0.0.1:8090/api/health` `200 {"status":"ok"}` (proxy strip `proxy_pass http://backend:8000/`), `curl /espacios/3` `200` fallback `try_files` — sin exponer `backend:8000` al host.
 
 ## Riesgos de dependencias detectados en la Fase 0 (no reabrir sin verificar de nuevo)
 
