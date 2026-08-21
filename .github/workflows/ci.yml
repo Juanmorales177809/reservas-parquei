@@ -150,6 +150,20 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
+      - name: Configurar Flutter 3.47.1 (para rebuild web en este job)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app_flutter/package-lock.json
+
       - name: Arrancar backend en segundo plano
         working-directory: backend
         env:
@@ -171,8 +185,15 @@ jobs:
           echo "El backend no respondió a tiempo." >&2
           exit 1
 
-      - name: Verificar que Flutter Web build existe (smoke)
+      - name: Build Flutter Web (para este job)
+        working-directory: app_flutter
+        run: flutter build web --dart-define-from-file=env/web.json
+
+      - name: Smoke — Flutter Web + proxy same-origin
         working-directory: app_flutter
         run: |
-          ls -lh build/web/index.html || echo "build/web no existe, se asume que el job flutter ya lo generó en su workspace (artefacto no compartido entre jobs en este CI mínimo)"
-          echo "E2E Playwright de Next.js retirado con frontend/ — Flutter E2E via Patrol/integration_test pendiente de Fase 7"
+          ls -lh build/web/index.html
+          echo "Verificando proxy nginx.conf..."
+          cat nginx.conf | head -n 20
+          echo "E2E Playwright de Next.js retirado — Flutter Web smoke via build/web + backend health suficiente para este CI mínimo"
+          echo "Para E2E completo ver app_flutter/playwright.config.ts (requiere nginx:alpine + chromium)"

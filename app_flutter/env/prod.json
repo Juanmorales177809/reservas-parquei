@@ -1,0 +1,4 @@
+{
+  "BASE_URL": "https://REEMPLAZAR-con-dominio-produccion",
+  "ENVIRONMENT": "prod"
+}

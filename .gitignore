@@ -6,6 +6,8 @@
 # Entornos virtuales Python
 venv/
 env/
+!app_flutter/env/
+!app_flutter/env/*.json
 .venv/
 
 # Python cache y compilados
