@@ -2,11 +2,11 @@
 
 ## Propósito
 
-Sistema de gestión de reservas de espacios institucionales: autenticación JWT, roles, disponibilidad horaria, aprobación de solicitudes, notificaciones, auditoría y paneles de gestión. Monorepo `backend/` (FastAPI) + `frontend/` (Next.js 14, App Router) + `app_flutter/` (Flutter, en migración — ver plan de migración). Todo el código, mensajes y documentación están en español; mantener ese idioma.
+Sistema de gestión de reservas de espacios institucionales: autenticación JWT, roles, disponibilidad horaria, aprobación de solicitudes, notificaciones, auditoría y paneles de gestión. Monorepo `backend/` (FastAPI) + `app_flutter/` (Flutter — única UI, Móvil/Escritorio nativos + Web). Todo el código, mensajes y documentación están en español; mantener ese idioma.
 
-## Migración a Flutter (en curso)
+## Migración a Flutter — completada (Fase 7 del plan ejecutada)
 
-`app_flutter/` es el reemplazo en curso del frontend, para Móvil (Android/iOS) y Escritorio (Windows/macOS/Linux) nativos + Web vía un proxy same-origin propio (ver `app_flutter/CLAUDE.md`). `frontend/` (Next.js) sigue siendo la app en producción hasta que se confirme paridad funcional completa y se apruebe explícitamente su retiro (Fase 7 del plan). No modificar `backend/` como parte de este trabajo (mismas reglas que ya aplican a `frontend/`).
+`app_flutter/` reemplazó al frontend Next.js, que **ya se retiró del repo** (`frontend/` fue eliminado — commit `chore: retira frontend Next.js y promueve Flutter como única UI`). Flutter es la única UI, para Móvil (Android/iOS) y Escritorio (Windows/macOS/Linux) nativos + Web. No modificar `backend/` sin aprobación explícita separada — sigue vigente la misma regla que antes aplicaba con `frontend/`. Detalle completo del estado de la migración, decisiones de diseño y deuda técnica propia de Flutter en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) — no duplicado aquí.
 
 ## Estado de referencia
 
@@ -17,29 +17,33 @@ Sistema de gestión de reservas de espacios institucionales: autenticación JWT,
 ## Arquitectura general
 
 ```
-Navegador → Next.js :3000 → (rewrites /api, /docs, /openapi.json) → FastAPI :8000 → PostgreSQL :5432
+Navegador → flutter_proxy (nginx) :8090 → (proxy /api, /docs, /openapi.json) → FastAPI :8000 → PostgreSQL :5432
+Escritorio/Móvil nativo (Windows/macOS/Linux/Android/iOS) → FastAPI :8000 directo (sin proxy — usa cookie_jar propio, no navegador)
 ```
 
-El navegador solo habla con Next.js. PostgreSQL no se expone al host (red `database_network` interna en Docker). Detalle completo en [README.md](README.md).
+El navegador (Web) solo habla con `flutter_proxy`, igual que antes hablaba solo con Next.js — mismo patrón same-origin, mismo motivo (la cookie de sesión `HttpOnly`/`SameSite=Lax` exige mismo origen). Los clientes nativos no pasan por ningún proxy: no están sujetos a CORS/SameSite del navegador, hablan directo con el backend. PostgreSQL no se expone al host (red interna en Docker). Detalle completo en [README.md](README.md) y en `docker-compose.yml`.
 
-## Separación backend/frontend
+**`http://localhost:8090` corre contra `reservas_db` (base de desarrollo), no contra `reservas_test`** — ver la advertencia en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) antes de usarlo para cualquier verificación o E2E.
+
+## Separación backend/app_flutter
 
 - `backend/app/`: capas `api/` (rutas), `services/` (reglas de negocio), `crud/` (SQLAlchemy), `schemas/` (Pydantic), `models/`, `domain/` (enums y value objects tipados), `auth/` (JWT + bcrypt), `deps.py` (autorización), `main.py` (lifespan), `migrations.py` (SQL idempotente, sin Alembic).
-- `frontend/src/`: `app/` (páginas), `components/`, `context/` (`AuthContext`, `NotificationContext`), `services/` (cliente API), `types/`, `utils/`, `test/` (infra Vitest).
-- `app_flutter/lib/`: `core/` (config, red, router, tema, widgets compartidos), `features/<dominio>/` (`data/domain/application/presentation`, uno por recurso del backend), `shell/` (navegación adaptativa: bottom nav en móvil, top nav en escritorio/Web).
-- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [frontend/CLAUDE.md](frontend/CLAUDE.md), [frontend/e2e/CLAUDE.md](frontend/e2e/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md), [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) para detalle por área.
+- `app_flutter/lib/`: `core/` (config, red, router, tema, widgets compartidos), `features/<dominio>/` (`data/domain/application/presentation`, uno por recurso del backend), `shell/` (navegación adaptativa: bottom nav en móvil/tablet angosta, rail lateral en tablet/ventana media, top nav en escritorio/Web ancho).
+- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md), [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) para detalle por área.
 
 ## Comandos principales
 
 ```bash
-docker compose up -d --build      # levantar todo el stack (desarrollo)
+docker compose up -d --build      # levantar todo el stack (desarrollo): db + backend + flutter_proxy
 docker compose logs -f backend    # logs backend
-docker compose logs -f frontend   # logs frontend
+docker compose logs -f flutter_proxy   # logs del proxy Web (nginx)
 docker compose down               # detener sin borrar datos
 ```
 
-Frontend local: `cd frontend && npm ci && npm run dev` (además: `npm run type-check`, `npm run lint`, `npm run build`).
-Backend local: `cd backend && python -m venv .venv && pip install -r requirements.txt && uvicorn app.main:app --reload` (requiere `DATABASE_URL` y `SECRET_KEY` exportadas; `config.py` no llama `load_dotenv()`).
+`flutter_proxy` sirve el build estático de `app_flutter/build/web` — hay que generarlo antes (`flutter build web --dart-define-from-file=env/web.json` desde `app_flutter/`) o el proxy no tiene qué servir.
+
+Backend local (sin Docker): `cd backend && python -m venv .venv && pip install -r requirements.txt && uvicorn app.main:app --reload` (requiere `DATABASE_URL` y `SECRET_KEY` exportadas; `config.py` no llama `load_dotenv()`).
+Flutter local: ver "Comandos" en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) (`flutter analyze`, `flutter test`, `flutter run -d chrome|windows|...`).
 
 ## Comandos de tests
 
@@ -48,14 +52,12 @@ Backend local: `cd backend && python -m venv .venv && pip install -r requirement
 docker compose -f docker-compose.test.yml up -d --wait
 cd backend && pytest -v
 
-# Frontend unitario/componentes
-cd frontend && npm run test
+# Flutter — unitarios/widget
+cd app_flutter && flutter analyze && flutter test
 
-# E2E (requiere frontend :3000, backend :8000 y reservas_test :5433)
-cd frontend
-npm run test:e2e            # smoke
-npm run test:e2e:regresion  # smoke + regresión
-npm run test:e2e:all        # suite completa
+# Flutter — E2E (integration_test; ver bloqueos de entorno vigentes en app_flutter/CLAUDE.md antes de intentarlo)
+cd app_flutter
+flutter drive --driver=test_driver/integration_test.dart --target=integration_test/reserva_flujo_test.dart -d chrome
 ```
 
 ## Preparación de PostgreSQL de pruebas
@@ -81,7 +83,7 @@ Nunca ejecutar `down -v` de forma automática ni desde un test.
 
 ## Archivos que nunca deben commitearse
 
-`.env` / `.env.*` (excepto `.env.example`), `**/.auth/` (storageState de Playwright), `test-results/`, `playwright-report/`, `node_modules/`, `.next/`, `__pycache__/`, `.venv/`, `coverage/`, `*.tsbuildinfo` — ver [.gitignore](.gitignore).
+`.env` / `.env.*` (excepto `.env.example`), `__pycache__/`, `.venv/`, `coverage/` (backend); `app_flutter/build/`, `app_flutter/.dart_tool/` (Flutter) — ver [.gitignore](.gitignore) y `app_flutter/.gitignore`.
 
 ## Política de cambios de API/OpenAPI
 
@@ -110,22 +112,23 @@ Columna JSONB `horario_atencion` en el modelo `Espacio` ([backend/app/models/esp
 
 ## Comportamiento ante 401 durante login
 
-`POST /auth/login` está excluido del interceptor global de 401 en `frontend/src/services/api.ts`. Un 401 aquí son credenciales inválidas y el error llega al formulario de login sin limpiar `localStorage` ni redirigir.
+`POST /auth/login` está excluido del interceptor global de 401 (`AuthInterceptor` en `app_flutter/lib/core/network/auth_interceptor.dart`, equivalente al viejo `apiFetch` de Next.js). Un 401 aquí son credenciales inválidas y el error llega al formulario de login (`LoginScreen`) vía `apiErrorMessage`, sin redirigir.
 
 ## Comportamiento ante 401 en endpoints protegidos
 
-`apiFetch` limpia `token` y `user` de `localStorage` y redirige a `/login` con el mensaje "Sesión expirada. Por favor, inicia sesión nuevamente."
+`AuthInterceptor` dispara `handleSessionExpired()` (`authProvider`), que limpia el estado de sesión en memoria y deja que el `redirect` de `go_router` (`app_router.dart`) mande a `/login`. No hay `localStorage` que limpiar: Flutter nunca guardó el JWT ahí — la sesión vive únicamente en la cookie `HttpOnly` que fija el backend (nativo: `cookie_jar` propio; Web: cookie del navegador, `withCredentials: true`). Ver "Sesión: cookie HttpOnly, nunca un token en el cliente" en `app_flutter/CLAUDE.md`.
 
 ## Comportamiento ante 403
 
-El backend lo lanza por rol insuficiente (`require_admin`, `require_resource_manager`) o por gestor sin espacio asignado (`get_managed_space_id`, en `backend/app/deps.py`). El frontend no tiene un manejo global de 403 (solo de 401); cada vista debe tratar el error según su contexto.
+El backend lo lanza por rol insuficiente (`require_admin`, `require_resource_manager`) o por gestor sin espacio asignado (`get_managed_space_id`, en `backend/app/deps.py`). No hay manejo global de 403 en `app_flutter/` (solo de 401 vía `AuthInterceptor`); cada pantalla trata el error según su contexto con `apiErrorMessage`/`apiErrorStatusCode`.
 
 ## Riesgos conocidos
 
-- JWT y usuario en `localStorage` (riesgo XSS): evitar scripts de terceros en el frontend.
+- Cookie `HttpOnly`/`SameSite=Lax` como única fuente de sesión (riesgo XSS reducido, no eliminado — ver `app_flutter/CLAUDE.md`): evitar scripts de terceros. El JWT nunca se decodifica ni se guarda en `localStorage`/`shared_preferences`.
 - FKs redundantes generadas por `migrations.py` junto a las de `create_all` en una base limpia (hallazgo no bloqueante).
 - Falta prueba determinista de la carrera del advisory lock en `proteger_administradores` (cobertura actual indirecta).
-- E2E cubre solo Chromium; Firefox/WebKit y CI (GitHub Actions) son trabajo futuro.
+- E2E (`app_flutter/integration_test/`) escrito pero sin correr de punta a punta todavía — dos gaps de entorno reales (Visual Studio no instalado para nativo, `flutter drive` sin soporte de `--use-existing-app` para Web + política de CORS del backend). Detalle completo en `app_flutter/CLAUDE.md`, sección "E2E".
+- Builds nativos (Windows/Android) sin verificar en ejecución real por el mismo motivo (toolchain no instalado).
 
 ## Deuda técnica
 
@@ -142,4 +145,4 @@ El backend lo lanza por rol insuficiente (`require_admin`, `require_resource_man
 
 ## Definición de terminado
 
-Un cambio se considera terminado cuando: el código compila/type-checks (`npm run type-check`), pasa lint (`npm run lint`) y build (`npm run build`) en frontend; pasa `pytest -v` en backend contra `reservas_test`; pasan los tests Vitest afectados y, si aplica, el smoke E2E; no se modificó ningún contrato de API sin aprobación; y los cambios quedan documentados en el README de la carpeta afectada, siguiendo el patrón ya usado en `backend/app/*/README.md`.
+Un cambio se considera terminado cuando: pasa `pytest -v` en backend contra `reservas_test`; en `app_flutter/` pasan `flutter analyze` ("No issues found!") y `flutter test`, y si el cambio es de UI se verificó manualmente contra un backend real (análisis estático limpio no garantiza que el flujo funcione — ver los bugs reales documentados en `app_flutter/CLAUDE.md`); no se modificó ningún contrato de API sin aprobación; y los cambios quedan documentados (README de la carpeta afectada en `backend/`, o `app_flutter/CLAUDE.md` para Flutter, siguiendo el patrón ya establecido ahí).

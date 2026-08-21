@@ -1,8 +1,16 @@
 # app_flutter/CLAUDE.md
 
-## Estado
+## Estado (2026-08-21)
 
-Fases 0-5 completas (dashboard y auditoría — última pieza de la Fase 5 — cerrados el 2026-08-20). Restan Fase 6 (pulido multiplataforma) y Fase 6-Web (proxy real). Fase 1: listado público de espacios (`/espacios`), detalle (`/espacios/:id`, ruta empujada fuera del `ShellRoute` — ver "Rutas empujadas vs. destinos del shell" más abajo) con sus recursos activos, y disponibilidad real de un recurso. Fase 2: esa misma grilla de disponibilidad se volvió seleccionable (`SelectableSlotGrid`) para usuarios autenticados — elegir un rango de franjas libres consecutivas + formulario mínimo (asistentes, tipo opcional) crea la reserva (`POST /reservas`, solo `recurso_ids`); pantalla "Mis reservas" (`/reservas/mis-reservas`) lista, muestra estado y permite cancelar. Zonas/ensayos/acompañantes NO tienen UI de selección todavía (alcance acotado a la modalidad "equipos" — ver plan). Fase 3: campana de notificaciones con contador (`NotificationBell`, polling 30s vía `NotificacionesUnreadCountProvider`) en el `AppBar` de ambos shells, panel con lista + marcar leída/todas (`NotificacionesSheet`). Fase 4: `GestionReservasScreen` (`/admin/reservas`, gestor/admin) — aprobar/rechazar/marcar asistencia/cancelar; `ConfiguracionEspacioScreen` (`/admin/configuracion`, SOLO gestor) — ahora con editor completo `horario_atencion` día×hora (6-22, `HorarioEditor`, validación "al menos una franja") + antelación + aprobación automática; `GestionRecursosScreen`/`GestionZonasScreen`/`GestionEnsayosScreen` (`/admin/recursos|zonas|ensayos`, gestor/admin) — crear/editar/eliminar con `409` si tiene reservas/recursos/ensayos; guard por ROL vía `kNavDestinations` (admin redirigido en `/admin/configuracion`); navegación adaptativa con `Recursos|Zonas|Ensayos` en top nav + shortcuts en `InicioScreen` para móvil. Fase 5 (parcial, 2026-08-20): `GestionUsuariosScreen` (`/usuarios`, SOLO admin) — listar (`GET /usuarios`), crear (`POST`, `409` username/email duplicado, `400` gestor sin `espacio_id`), editar (`PUT`, password opcional, `409` username/email en uso, `409` último admin `proteger_administradores` con `pg_advisory_xact_lock`), eliminar (`DELETE`, oculta botón propio, `409` self y `409` último admin), validación email/username/password, `espacio` nullable; guard `kNavDestinations` admin-only (gestor → `/espacios`, `403` backend `Solo un administrador…`), todo verificado Playwright (admin_flutter crea/edita/borra, gestor 403). Fase 5 (cierre, 2026-08-20): dashboard (heatmap 7×13, gráficos fl_chart — ver "Pase de animaciones"/"Dashboard: gráficos grandes" más abajo) y `AuditoriaScreen` (`/admin/control-cambios`, SOLO admin) — solo lectura, `GET /admin/control-cambios` (`limit=200`), lista de tarjetas (no tabla: no cabe en móvil sin scroll horizontal) con ícono/color por `accion` (texto libre del backend, no enum — mapeo con fallback genérico, ver `_estiloAccion` en `auditoria_screen.dart`), agrupada bajo "Gestión ▾" en desktop y shortcut en `InicioScreen` en móvil; guard `kNavDestinations` admin-only verificado (gestor → `/espacios`). Restan Fase 6 (pulido multiplataforma) y Fase 6-Web (proxy real). `flutter analyze` No issues, `flutter test` 1/1. Ver el plan completo — vive fuera del repo en `~/.claude/plans/`.
+**Funcionalmente completo.** Fases 0-5 (auth, espacios/recursos públicos, reservas de usuario, notificaciones, gestión reservas/recursos/zonas/ensayos/horario, usuarios, dashboard, auditoría) + Fase 7 (cutover: `frontend/` Next.js **retirado del repo**, Flutter es la única UI) + trabajo adicional de paridad que no estaba en el plan original (P1: CRUD de espacios para admin; P2: reserva multi-eje — recursos+zonas+ensayos+acompañantes en un solo flujo, `EspacioReservaSheet`; P3: términos, edición/eliminación de reservas, dashboard también para rol `usuario`). El pase de diseño de Fase 6 (revisión externa + ejecución) está cerrado — ver "Sistema de diseño — Fase 6" más abajo y su "Cuarta tanda" para el detalle punto por punto de qué se cerró.
+
+**Lo que realmente falta** (detalle en cada sección referenciada):
+- **Builds nativos verificados** (Windows/Android): el código está escrito pero sin Visual Studio (workload C++) ni Android SDK instalados no se puede compilar de verdad — ver "Toolchains nativas" más abajo.
+- **E2E automatizado sin correr de punta a punta**: escrito (`integration_test/`), analiza limpio, pero bloqueado por dos gaps de entorno reales (no por el código) — ver sección "E2E" más abajo.
+- **CI no ejecuta el E2E real** — acoplado al punto anterior.
+- Zonas/ensayos: la UI de selección **si existe ya** (contradice lo que decía esta misma línea en versiones anteriores del documento) vía `EspacioReservaSheet` — la limitación de "solo modalidad equipos" quedó superada por el P2 de arriba.
+
+`flutter analyze`: "No issues found!". `flutter test`: 9/9. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
 
 ## Usuario de prueba `gestor_flutter`
 
@@ -175,8 +183,8 @@ La corrección **no fue "elegir otro verde"**: fue que un color de estado necesi
 
 ### Pendiente fino (requiere toolchain, no tocado sin confirmación)
 
-- Compilar Windows/Android: `flutter doctor` sigue `X Visual Studio not installed` + `X Android SDK` (`windows: flutter generated_plugin_registrant` warnings son CRLF, no fallo). Requiere instalar VS workload C++ + Android Studio/SDK.
-- Proxy same-origin real de Fase 6-Web: `docker-compose.yml` sin `ports:` en `backend` + `env/web.json` `/api` siguen necesitando servicio `nginx/caddy` con confirmación.
+- Compilar Windows/Android: `flutter doctor` sigue `X Visual Studio not installed` + `X Android SDK` (`windows: flutter generated_plugin_registrant` warnings son CRLF, no fallo). Requiere instalar VS workload C++ + Android Studio/SDK. Confirmado de nuevo el 2026-08-21 (`flutter drive -d windows` → `Unable to find suitable Visual Studio toolchain`).
+- ~~Proxy same-origin real de Fase 6-Web~~ — **ya no está pendiente.** Nota obsoleta: quedó escrita antes de la Fase 7 (`chore: retira frontend Next.js y promueve Flutter como unica UI`), que agregó el servicio `flutter_proxy` (`nginx:alpine`) a `docker-compose.yml` — ver "`docker-compose.yml` — backend sin `ports:`, Flutter Web vía `flutter_proxy`" más abajo. Verificado de nuevo el 2026-08-21 por HTTP contra un proxy equivalente propio apuntado a `reservas_test` (no contra `:8090`, ver advertencia sobre `reservas_db` más abajo): cookie `HttpOnly; Path=/; SameSite=lax` sin `Domain` se fija correctamente en el login, `/admin/reservas` (ruta protegida, recarga directa) devuelve el mismo `index.html` que `/` byte a byte (fallback SPA real, no 404), `/api/health` responde a través del proxy con el prefijo recortado, `main.dart.js` es el bundle minificado de un build release (~3.5MB, sin nombres de variable Dart legibles).
 
 ## Sistema de diseño (pases 1 y 2 — histórico)
 
@@ -264,7 +272,53 @@ Desde la Fase 1 hay un `app_flutter/build.yaml` que configura `field_rename: sna
 
 ## Toolchains nativas: pendientes de instalar
 
-`flutter doctor` reporta Web (Chrome/Edge) funcional. Windows desktop requiere Visual Studio (workload "Desktop development with C++") y Android requiere Android Studio/SDK — ninguna de las dos está instalada todavía (decisión explícita: se difirió para no bloquear la Fase 0 con descargas grandes). Sin esto, los targets Windows/Android quedan escritos pero **sin verificar en ejecución real** — solo pasan `flutter analyze`/`flutter test`.
+`flutter doctor` reporta Web (Chrome/Edge) funcional. Windows desktop requiere Visual Studio (workload "Desktop development with C++") y Android requiere Android Studio/SDK — ninguna de las dos está instalada todavía (decisión explícita: se difirió para no bloquear la Fase 0 con descargas grandes). Sin esto, los targets Windows/Android quedan escritos pero **sin verificar en ejecución real** — solo pasan `flutter analyze`/`flutter test`. Confirmado de nuevo el 2026-08-21 al intentar `flutter drive -d windows`: `Unable to find suitable Visual Studio toolchain`.
+
+## ⚠️ `http://localhost:8090` (el `flutter_proxy` de `docker-compose.yml`) apunta a `reservas_db`, NO a `reservas_test`
+
+Trampa real, fácil de pisar porque *parece* el mismo patrón same-origin usado para verificación manual en toda la Fase 0-6: `app_flutter/nginx.conf` hace `proxy_pass http://backend:8000/`, y ese `backend` es el servicio de `docker-compose.yml` cuyo `DATABASE_URL` por defecto es `reservas_db` (ver la línea `POSTGRES_DB: ${POSTGRES_DB:-reservas_db}` / `DATABASE_URL: ...db:5432/reservas_db`), **la base de desarrollo**. Nunca usar `:8090` para nada que escriba datos de prueba (fixtures, E2E, exploración con mutaciones) — es exactamente lo que la regla dura del proyecto prohíbe ("ninguna tarea asistida debe leer/escribir/migrar `reservas_db`"). Confirmado el 2026-08-21: navegar `:8090` mostraba recursos ("Recurso Auditorio 1/2") que no existían en absoluto en `reservas_test` — eran datos reales de `reservas_db`.
+
+Para cualquier verificación/E2E, usar el proxy desechable propio apuntado al backend local (ver "Cómo se verificó la Fase 0" arriba), en un puerto **distinto** a 8090 si el stack de Docker ya está arriba (por ejemplo 8095) para no confundir cuál es cuál.
+
+## E2E: `integration_test` de Flutter (2026-08-21) — escrito y analizado, ejecución automatizada bloqueada por dos gaps de entorno reales
+
+Antes había un esqueleto de Playwright (`playwright.config.ts` + `e2e/tests/smoke/01-publico.spec.ts`) agregado por otra sesión: sin `package.json`/`node_modules` en ningún lado (no corría), con solo 2 chequeos superficiales, y el propio `ci.yml` admitía en un comentario que el job `e2e` no lo ejecutaba ("E2E Playwright de Next.js retirado..."). Se **eliminó** (`playwright.config.ts`, `e2e/`) a favor del paquete oficial `integration_test` — decisión explícita del usuario entre las dos opciones, alineada con lo que ya decía el plan de migración original antes de que apareciera el esqueleto de Playwright.
+
+### Qué hay
+
+- `integration_test/utils/e2e_fixtures.dart` — fixtures **por API** (login como admin de arranque + `dio`/`cookie_jar` propio, sin compartir sesión con la app que conduce el test): crea `gestor_flutter`/`usuario_e2e` si faltan, pone `horas_antelacion: 0` + `aprobacion_automatica: false` en el espacio 1 (para que "hoy" tenga franjas reservables sin tener que automatizar el `DatePicker` de Material, mucho más frágil), crea el recurso "Proyector E2E". Idempotente — no falla si ya existe.
+- `integration_test/utils/e2e_actions.dart` — `irA()` (navega directo por `GoRouter.of(context).go(path)`, para llegar a un punto de partida conocido sin encadenar taps por 3-4 pantallas), `login()`/`logout()` (taps reales sobre el form), `franjaLibre()` (encuentra un `SlotChip` con `estado: libre` por **predicado del widget**, nunca por texto de hora exacto — qué franjas están libres depende de qué haya dejado ocupado una corrida anterior).
+- `integration_test/publico_y_auth_test.dart` — anónimo ve `/espacios` sin sesión y sin ver "Inicio" en el nav; gestor intentando `/usuarios` (admin-only) es redirigido por el guard.
+- `integration_test/reserva_flujo_test.dart` — el test insignia: `esperando -> aprobada -> cancelada` completo (usuario crea, gestor aprueba, usuario cancela). Es exactamente el ciclo donde vivía el bug real de la Fase 2 (`Reserva.puedeCancelarse` permitía cancelar `esperando`, cuando el backend solo lo permite en `aprobada`) — un widget test con providers mockeados no puede atrapar esa clase de error, hace falta la reacción real del backend a cada transición.
+- `test_driver/integration_test.dart` — puente estándar para `flutter drive`.
+
+`flutter analyze` (paquete completo, incluido `integration_test/`) queda en "No issues found!".
+
+### Cómo correr (cuando el bloqueo de abajo esté resuelto)
+
+```bash
+flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/reserva_flujo_test.dart \
+  -d chrome  # o -d windows, una vez instalado el toolchain
+```
+
+`E2E_BACKEND_URL`/`E2E_ADMIN_USERNAME`/`E2E_ADMIN_PASSWORD` son configurables por `--dart-define` si el admin de arranque no es `admin_flutter`/`ClaveFase0Temp123` (el que usa el resto de este documento).
+
+### Los dos gaps reales que bloquean correrlo automatizado hoy (no son errores de escritura del test)
+
+1. **`flutter drive` para Web no soporta `--use-existing-app`** (confirmado 2026-08-21: `--use-existing-app is not supported with flutter web driver`). Solo sabe lanzar su propio dev-server efímero, en un origen distinto al build real servido por un proxy same-origin. Y ese dev-server efímero no sirve: el backend tiene `allow_credentials=False` en `CORSMiddleware` **a propósito** (`backend/app/main.py`, comentario explícito: "el backend nunca autoriza credenciales cross-origin de navegador") — sin eso, ninguna llamada con cookie (ni siquiera un `GET /espacios` anónimo, porque el cliente Web manda `withCredentials: true` siempre) sobrevive el CORS del navegador contra un origen distinto. No es negociable tocar esa política sin aprobación aparte — no se tocó.
+2. **Nativo (Windows) sigue sin Visual Studio instalado** (ver arriba) — sin esto, ni `flutter drive -d windows` ni `flutter run -d windows` compilan, y nativo es el único target donde este problema de cookie cross-origin ni siquiera existe (usa `cookie_jar` propio, no navegador).
+
+**Verificación de que la lógica es correcta, a pesar de no poder correr el harness todavía**: se recorrió a mano el flujo de login + navegación a detalle de espacio contra un proxy desechable propio (puerto 8095, apuntado al backend local sobre `reservas_test` — nunca contra `:8090`, ver advertencia arriba), confirmando el layout exacto de 2 campos + "Entrar" que asume `e2e_actions.login()`, y confirmando que el botón "Reservar" de la cabecera del espacio (flujo multi-eje agregado en la Fase 6-Web) **comparte texto literal** con el botón de confirmación del sheet de un recurso — por eso `reserva_flujo_test.dart` acota ese finder con `find.descendant(of: find.byType(RecursoDisponibilidadSheet), ...)`. La escritura de texto en los campos no se pudo completar de punta a punta por un problema de la herramienta de navegador embebida en esta sesión (desfase de coordenadas de CanvasKit ya documentado antes en este archivo), no algo atribuible al test.
+
+**Nota para quien reuse el proxy desechable de un solo archivo**: si sirve la app pero el tipeo/interacción se siente errático o incompleto (no solo el problema de coordenadas de CanvasKit ya conocido), verificar que la clase del server herede de `socketserver.ThreadingMixIn` además de `TCPServer` — la versión de un solo hilo puede encolar/bloquear conexiones que Flutter Web mantiene abiertas, y eso se manifestó el 2026-08-21 como "el campo tiene foco pero no acepta texto".
+
+### Pendiente
+
+- Correr `reserva_flujo_test.dart`/`publico_y_auth_test.dart` de punta a punta apenas se resuelva el gap 1 o 2 de arriba, y arreglar lo que la corrida real encuentre (`flutter analyze` limpio no garantiza que el flujo funcione — ya pasó varias veces en este proyecto).
+- Un cuarto archivo con CRUD real de recursos vía UI (crear/editar/eliminar en `GestionRecursosScreen`) quedó fuera de este pase por presupuesto de tiempo, no por dificultad — el patrón para escribirlo ya está establecido en los tres archivos existentes.
+- Wiring de CI (`ci.yml`) para ejecutar esto de verdad, hoy el job `e2e` solo hace un smoke de que `build/web/index.html` exista — bloqueado por los mismos dos gaps (CI corre en `ubuntu-latest`, así que tampoco tiene Windows/Visual Studio disponible sin cambiar de runner).
 
 ## Comandos
 
@@ -273,4 +327,5 @@ flutter analyze
 flutter test
 flutter pub run build_runner build   # tras tocar modelos freezed/json o providers @riverpod (--delete-conflicting-outputs ya no existe en este build_runner, se ignora)
 flutter run -d chrome --dart-define-from-file=env/dev.json        # nota: login chocará con CORS sin el proxy same-origin (ver arriba)
+flutter drive --driver=test_driver/integration_test.dart --target=integration_test/reserva_flujo_test.dart -d chrome   # ver limitaciones en la sección E2E arriba
 ```
