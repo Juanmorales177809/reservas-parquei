@@ -4,20 +4,23 @@ import 'package:integration_test/integration_test.dart';
 import 'utils/e2e_actions.dart';
 import 'utils/e2e_fixtures.dart';
 
-/// Corre contra la app YA BUILDEADA Y SERVIDA (no contra un dev-server
-/// nuevo):
+/// Corre nativo (Windows/macOS/Linux) — evita por completo el problema de
+/// cookies cross-origin que bloquea `flutter drive` en Web (ni
+/// `--use-existing-app` ni un dev-server efímero funcionan ahí, ver
+/// "E2E" en `app_flutter/CLAUDE.md`). En nativo la sesión vive en un
+/// `cookie_jar` en disco, no en un navegador, así que no hay origen que
+/// negociar:
 ///
 /// ```
 /// flutter drive \
 ///   --driver=test_driver/integration_test.dart \
 ///   --target=integration_test/publico_y_auth_test.dart \
-///   -d chrome --use-existing-app=http://localhost:8090
+///   -d windows --dart-define-from-file=env/dev.json
 /// ```
 ///
-/// Así se prueba el artefacto real (mismo proxy same-origin que
-/// producción), no una versión recompilada aparte para el test — y la
-/// cookie de sesión funciona porque es genuinamente same-origin. Ver "Cómo
-/// correr el E2E" en `app_flutter/CLAUDE.md`.
+/// Requiere el backend local corriendo contra `reservas_test` en
+/// `http://localhost:8000` (nunca `reservas_db` — ver
+/// `app_flutter/CLAUDE.md`).
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -25,8 +28,8 @@ void main() {
 
   group('Público y guard de rol', () {
     testWidgets('un visitante anónimo ve /espacios sin que lo redirijan a /login', (tester) async {
-      irA(tester, '/espacios');
-      await tester.pumpAndSettle();
+      await iniciarApp(tester);
+      await irA(tester, '/espacios');
 
       expect(find.text('Elegí un espacio para ver sus recursos y disponibilidad'), findsOneWidget);
       // Sin sesión, "Inicio" no debe verse: `NavDestinationSpec` para
@@ -36,10 +39,10 @@ void main() {
     });
 
     testWidgets('un gestor no puede entrar a /usuarios (admin-only): el guard lo redirige', (tester) async {
+      await iniciarApp(tester);
       await login(tester, usuario: gestorE2eUsername, clave: gestorE2ePassword);
 
-      irA(tester, '/usuarios');
-      await tester.pumpAndSettle();
+      await irA(tester, '/usuarios');
 
       // `app_router.dart` redirige a /espacios cuando el rol no coincide
       // con `rolesPermitidos` del destino — la pantalla de gestión de

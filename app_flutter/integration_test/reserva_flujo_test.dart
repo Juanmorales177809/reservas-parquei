@@ -17,12 +17,15 @@ import 'utils/e2e_fixtures.dart';
 /// hace falta la reacción real del backend a cada transición de estado, y
 /// eso es justo lo que da un E2E y no un widget test.
 ///
+/// Corre nativo (Windows/macOS/Linux) — ver el porqué en
+/// `publico_y_auth_test.dart` (misma limitación de Web, mismo motivo).
+///
 /// Correr con:
 /// ```
 /// flutter drive \
 ///   --driver=test_driver/integration_test.dart \
 ///   --target=integration_test/reserva_flujo_test.dart \
-///   -d chrome --use-existing-app=http://localhost:8090
+///   -d windows --dart-define-from-file=env/dev.json
 /// ```
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -30,11 +33,12 @@ void main() {
   setUpAll(asegurarFixturesE2e);
 
   testWidgets('crear reserva (usuario) -> aprobar (gestor) -> cancelar (usuario)', (tester) async {
+    await iniciarApp(tester);
+
     // 1) El usuario crea la reserva.
     await login(tester, usuario: usuarioE2eUsername, clave: usuarioE2ePassword);
 
-    irA(tester, AppRoutes.espacioDetalle(espacioE2eId));
-    await tester.pumpAndSettle();
+    await irA(tester, AppRoutes.espacioDetalle(espacioE2eId));
 
     await tester.tap(find.text(recursoE2eNombre));
     await tester.pumpAndSettle();
@@ -63,8 +67,7 @@ void main() {
     // cerrarse solo — dar más margen que el pumpAndSettle por defecto.
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    irA(tester, AppRoutes.misReservas);
-    await tester.pumpAndSettle();
+    await irA(tester, AppRoutes.misReservas);
     expect(find.text('Esperando'), findsOneWidget);
     // Esperando no se puede cancelar todavía — el botón no debe existir
     // (es exactamente la regla que antes estaba mal implementada).
@@ -74,8 +77,7 @@ void main() {
 
     // 2) El gestor aprueba.
     await login(tester, usuario: gestorE2eUsername, clave: gestorE2ePassword);
-    irA(tester, AppRoutes.adminReservas);
-    await tester.pumpAndSettle();
+    await irA(tester, AppRoutes.adminReservas);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Aprobar').first);
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -84,8 +86,7 @@ void main() {
 
     // 3) El usuario ve "Aprobada" y ahora SÍ puede cancelar.
     await login(tester, usuario: usuarioE2eUsername, clave: usuarioE2ePassword);
-    irA(tester, AppRoutes.misReservas);
-    await tester.pumpAndSettle();
+    await irA(tester, AppRoutes.misReservas);
     expect(find.text('Aprobada'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Cancelar'));
@@ -93,7 +94,12 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Cancelar reserva'));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
-    expect(find.text('Cancelada'), findsOneWidget);
+    // No `findsOneWidget`: corridas anteriores de este mismo archivo dejan
+    // sus propias reservas "Cancelada" en `reservas_test` (la fixture nunca
+    // las purga, igual que documenta `franjaLibre()` para las franjas
+    // libres) — lo que importa es que la transición haya ocurrido, no
+    // cuántas reservas canceladas acumule el historial.
+    expect(find.text('Cancelada'), findsWidgets);
 
     await logout(tester);
   });

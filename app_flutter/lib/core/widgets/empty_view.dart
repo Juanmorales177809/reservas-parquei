@@ -98,7 +98,7 @@ class _GrillaEsquematica extends StatelessWidget {
                         Container(
                           width: 26,
                           height: 26,
-                          margin: const EdgeInsets.only(right: 4),
+                          margin: EdgeInsets.only(right: col < 3 ? 4 : 0),
                           decoration: BoxDecoration(
                             color: AppColors.fondo,
                             borderRadius: BorderRadius.circular(AppRadius.xs),

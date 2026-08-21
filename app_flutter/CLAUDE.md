@@ -5,9 +5,9 @@
 **Funcionalmente completo.** Fases 0-5 (auth, espacios/recursos públicos, reservas de usuario, notificaciones, gestión reservas/recursos/zonas/ensayos/horario, usuarios, dashboard, auditoría) + Fase 7 (cutover: `frontend/` Next.js **retirado del repo**, Flutter es la única UI) + trabajo adicional de paridad que no estaba en el plan original (P1: CRUD de espacios para admin; P2: reserva multi-eje — recursos+zonas+ensayos+acompañantes en un solo flujo, `EspacioReservaSheet`; P3: términos, edición/eliminación de reservas, dashboard también para rol `usuario`). El pase de diseño de Fase 6 (revisión externa + ejecución) está cerrado — ver "Sistema de diseño — Fase 6" más abajo y su "Cuarta tanda" para el detalle punto por punto de qué se cerró.
 
 **Lo que realmente falta** (detalle en cada sección referenciada):
-- **Builds nativos verificados** (Windows/Android): el código está escrito pero sin Visual Studio (workload C++) ni Android SDK instalados no se puede compilar de verdad — ver "Toolchains nativas" más abajo.
-- **E2E automatizado sin correr de punta a punta**: escrito (`integration_test/`), analiza limpio, pero bloqueado por dos gaps de entorno reales (no por el código) — ver sección "E2E" más abajo.
-- **CI no ejecuta el E2E real** — acoplado al punto anterior.
+- **Build nativo Windows verificado; Android sigue pendiente**: Visual Studio (workload C++) se instaló y `flutter build windows`/`flutter drive -d windows` compilan y corren de verdad — ver "Toolchains nativas" más abajo. Android SDK sigue sin instalar.
+- **E2E ya corrió de punta a punta en nativo Windows** (2026-08-21) — los dos archivos (`publico_y_auth_test.dart`, `reserva_flujo_test.dart`) pasan completos contra un backend real sobre `reservas_test`. El gap de Web (CORS/`--use-existing-app`) sigue vigente, no bloqueante para nativo — ver sección "E2E" más abajo.
+- **CI sigue sin ejecutar el E2E real** — el job `e2e` de `ci.yml` corre en `ubuntu-latest` sin Visual Studio; wiring pendiente, requeriría un runner Windows.
 - Zonas/ensayos: la UI de selección **si existe ya** (contradice lo que decía esta misma línea en versiones anteriores del documento) vía `EspacioReservaSheet` — la limitación de "solo modalidad equipos" quedó superada por el P2 de arriba.
 
 `flutter analyze`: "No issues found!". `flutter test`: 9/9. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
@@ -270,9 +270,11 @@ Desde la Fase 1 hay un `app_flutter/build.yaml` que configura `field_rename: sna
 
 `main.dart` llama `usePathUrlStrategy()` (paquete `flutter_web_plugins`, no-op fuera de Web) para que las rutas en Web sean limpias (`/espacios/3`) en vez de con `#` (`/#/espacios/3`) — necesario para que una recarga de página o un enlace compartido a `/espacios/3` funcione, siempre que el proxy same-origin (real en Fase 6-Web, desechable mientras tanto) sirva `index.html` como fallback de SPA para rutas no-archivo.
 
-## Toolchains nativas: pendientes de instalar
+## Toolchains nativas
 
-`flutter doctor` reporta Web (Chrome/Edge) funcional. Windows desktop requiere Visual Studio (workload "Desktop development with C++") y Android requiere Android Studio/SDK — ninguna de las dos está instalada todavía (decisión explícita: se difirió para no bloquear la Fase 0 con descargas grandes). Sin esto, los targets Windows/Android quedan escritos pero **sin verificar en ejecución real** — solo pasan `flutter analyze`/`flutter test`. Confirmado de nuevo el 2026-08-21 al intentar `flutter drive -d windows`: `Unable to find suitable Visual Studio toolchain`.
+**Windows: instalado y verificado (2026-08-21).** Visual Studio Build Tools 2022 (workload "Desktop development with C++" + Windows 11 SDK 10.0.26100.7705), instalado en `D:\VisualStudio` (no en `C:\`, a pedido explícito). `flutter doctor -v` reporta `[√] Visual Studio - develop Windows apps`. `flutter build windows --debug` compila y `flutter drive -d windows` corre de punta a punta contra un backend real — ver sección "E2E" más abajo. Instalación no trivial: requirió elevación UAC manual (`vs_installer.exe modify` sin admin falla en silencio), un ID de componente inválido para el SDK (`Windows10SDK.20348` no existe en el catálogo actual, usar el genérico `Windows10SDK` y dejar que el instalador resuelva a la versión 11 vigente), y seleccionar el **workload completo** "Desktop development with C++" desde la pestaña Workloads del instalador gráfico en vez de componentes individuales (una selección manual por componentes individuales dejó fuera el compilador MSVC y CMake).
+
+**Android: sigue sin instalar** (Android Studio/SDK, decisión explícita, se difiere para no bloquear con descargas grandes). El target queda escrito pero sin verificar en ejecución real — solo pasa `flutter analyze`/`flutter test`.
 
 ## ⚠️ `http://localhost:8090` (el `flutter_proxy` de `docker-compose.yml`) apunta a `reservas_db`, NO a `reservas_test`
 
@@ -280,7 +282,7 @@ Trampa real, fácil de pisar porque *parece* el mismo patrón same-origin usado 
 
 Para cualquier verificación/E2E, usar el proxy desechable propio apuntado al backend local (ver "Cómo se verificó la Fase 0" arriba), en un puerto **distinto** a 8090 si el stack de Docker ya está arriba (por ejemplo 8095) para no confundir cuál es cuál.
 
-## E2E: `integration_test` de Flutter (2026-08-21) — escrito y analizado, ejecución automatizada bloqueada por dos gaps de entorno reales
+## E2E: `integration_test` de Flutter (2026-08-21) — corrido de punta a punta en nativo Windows, ambos archivos pasan
 
 Antes había un esqueleto de Playwright (`playwright.config.ts` + `e2e/tests/smoke/01-publico.spec.ts`) agregado por otra sesión: sin `package.json`/`node_modules` en ningún lado (no corría), con solo 2 chequeos superficiales, y el propio `ci.yml` admitía en un comentario que el job `e2e` no lo ejecutaba ("E2E Playwright de Next.js retirado..."). Se **eliminó** (`playwright.config.ts`, `e2e/`) a favor del paquete oficial `integration_test` — decisión explícita del usuario entre las dos opciones, alineada con lo que ya decía el plan de migración original antes de que apareciera el esqueleto de Playwright.
 
@@ -294,31 +296,38 @@ Antes había un esqueleto de Playwright (`playwright.config.ts` + `e2e/tests/smo
 
 `flutter analyze` (paquete completo, incluido `integration_test/`) queda en "No issues found!".
 
-### Cómo correr (cuando el bloqueo de abajo esté resuelto)
+### Cómo correr (verificado, nativo Windows)
 
 ```bash
 flutter drive \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/reserva_flujo_test.dart \
-  -d chrome  # o -d windows, una vez instalado el toolchain
+  -d windows --dart-define-from-file=env/dev.json
 ```
 
-`E2E_BACKEND_URL`/`E2E_ADMIN_USERNAME`/`E2E_ADMIN_PASSWORD` son configurables por `--dart-define` si el admin de arranque no es `admin_flutter`/`ClaveFase0Temp123` (el que usa el resto de este documento).
+Requiere el backend local corriendo contra `reservas_test` en `http://localhost:8000` (nunca `reservas_db`, ver advertencia arriba) y `reservas_test` levantada (`docker compose -f docker-compose.test.yml up -d --wait`). `E2E_BACKEND_URL`/`E2E_ADMIN_USERNAME`/`E2E_ADMIN_PASSWORD` son configurables por `--dart-define` si el admin de arranque no es `admin_flutter`/`ClaveFase0Temp123` (el que usa el resto de este documento).
 
-### Los dos gaps reales que bloquean correrlo automatizado hoy (no son errores de escritura del test)
+**Resultado 2026-08-21**: `publico_y_auth_test.dart` (2/2, ~13s) y `reserva_flujo_test.dart` (1/1, ~38s, ciclo completo `esperando → aprobada → cancelada`) pasan enteros contra Visual Studio Build Tools 2022 recién instalado (workload "Desktop development with C++" + Windows 11 SDK) — primera ejecución automatizada real de esta suite en la historia del proyecto.
 
-1. **`flutter drive` para Web no soporta `--use-existing-app`** (confirmado 2026-08-21: `--use-existing-app is not supported with flutter web driver`). Solo sabe lanzar su propio dev-server efímero, en un origen distinto al build real servido por un proxy same-origin. Y ese dev-server efímero no sirve: el backend tiene `allow_credentials=False` en `CORSMiddleware` **a propósito** (`backend/app/main.py`, comentario explícito: "el backend nunca autoriza credenciales cross-origin de navegador") — sin eso, ninguna llamada con cookie (ni siquiera un `GET /espacios` anónimo, porque el cliente Web manda `withCredentials: true` siempre) sobrevive el CORS del navegador contra un origen distinto. No es negociable tocar esa política sin aprobación aparte — no se tocó.
-2. **Nativo (Windows) sigue sin Visual Studio instalado** (ver arriba) — sin esto, ni `flutter drive -d windows` ni `flutter run -d windows` compilan, y nativo es el único target donde este problema de cookie cross-origin ni siquiera existe (usa `cookie_jar` propio, no navegador).
+### El gap de Web sigue vigente (no bloqueante — nativo cubre el harness)
 
-**Verificación de que la lógica es correcta, a pesar de no poder correr el harness todavía**: se recorrió a mano el flujo de login + navegación a detalle de espacio contra un proxy desechable propio (puerto 8095, apuntado al backend local sobre `reservas_test` — nunca contra `:8090`, ver advertencia arriba), confirmando el layout exacto de 2 campos + "Entrar" que asume `e2e_actions.login()`, y confirmando que el botón "Reservar" de la cabecera del espacio (flujo multi-eje agregado en la Fase 6-Web) **comparte texto literal** con el botón de confirmación del sheet de un recurso — por eso `reserva_flujo_test.dart` acota ese finder con `find.descendant(of: find.byType(RecursoDisponibilidadSheet), ...)`. La escritura de texto en los campos no se pudo completar de punta a punta por un problema de la herramienta de navegador embebida en esta sesión (desfase de coordenadas de CanvasKit ya documentado antes en este archivo), no algo atribuible al test.
+`flutter drive` para Web no soporta `--use-existing-app` (confirmado 2026-08-21: `--use-existing-app is not supported with flutter web driver`). Solo sabe lanzar su propio dev-server efímero, en un origen distinto al build real servido por un proxy same-origin, y ese dev-server efímero no sirve: el backend tiene `allow_credentials=False` en `CORSMiddleware` **a propósito** (`backend/app/main.py`, comentario explícito: "el backend nunca autoriza credenciales cross-origin de navegador") — sin eso, ninguna llamada con cookie sobrevive el CORS del navegador contra un origen distinto. No es negociable tocar esa política sin aprobación aparte — no se tocó, y no hace falta: nativo (Windows, y en teoría macOS/Linux) no está sujeto a este problema en absoluto (usa `cookie_jar` propio, no navegador), y ya es el harness que corre en esta máquina.
 
-**Nota para quien reuse el proxy desechable de un solo archivo**: si sirve la app pero el tipeo/interacción se siente errático o incompleto (no solo el problema de coordenadas de CanvasKit ya conocido), verificar que la clase del server herede de `socketserver.ThreadingMixIn` además de `TCPServer` — la versión de un solo hilo puede encolar/bloquear conexiones que Flutter Web mantiene abiertas, y eso se manifestó el 2026-08-21 como "el campo tiene foco pero no acepta texto".
+### Cinco bugs reales que encontró la corrida (ninguno lo atrapó `flutter analyze`/`flutter test`)
+
+1. **`flutter drive --target=integration_test/x.dart` reemplaza el entrypoint entero.** El `main()` de `lib/main.dart` nunca se ejecutaba solo — hacía falta un helper `iniciarApp(tester)` en `e2e_actions.dart` que importa y llama al `main()` real (`app_main.main()`) al principio de cada `testWidgets`. Sin esto, `find.byType(MaterialApp)` fallaba con `Bad state: No element` porque el árbol de widgets estaba genuinamente vacío.
+2. **`GoRouter.of(context)` no funciona con el contexto de `MaterialApp`.** Con `MaterialApp.router`, el `InheritedGoRouter` que expone `GoRouter.of` lo inserta el `Router` interno **por debajo** de `MaterialApp` en el árbol — buscar `.of(context)` desde el propio elemento de `MaterialApp` mira hacia arriba, nunca hacia abajo, y falla con `No GoRouter found in context`. `irA()` ahora toma el contexto de `find.byType(Scaffold).first` (toda pantalla de la app tiene un `Scaffold`).
+3. **`EmptyView`/`_GrillaEsquematica` (`core/widgets/empty_view.dart:94`) tenía un overflow real de 4px.** 4 columnas de 26px con `margin: right 4` en las **cuatro** (no solo entre ellas) suman 120px dentro de un `SizedBox` de 116px — el ancho correcto para 4 celdas con 3 separaciones intermedias, no 4. `flutter analyze`/`flutter test` nunca lo vieron porque ningún widget test monta `EmptyView` con ancho acotado; el E2E lo disparó apenas arrancó la app (estado vacío transitorio de alguna lista mientras carga). Fix: sin margen en la última columna (`margin: EdgeInsets.only(right: col < 3 ? 4 : 0)`).
+4. **Una corrida interrumpida deja la sesión colgada para la siguiente.** En nativo la sesión vive en un `cookie_jar` en disco — si una corrida anterior falla en un `expect` ANTES de llegar a su propio `logout()` final, la sesión de ese usuario sigue viva. La siguiente corrida entonces arranca ya autenticada, el guard del router redirige lejos de `/login`, y `login()` no encontraba ningún `TextFormField`. Fix en `e2e_actions.dart`: `login()` detecta la ausencia de campos, llama a `logout()` primero, y reintenta — la suite se recupera sola en vez de arrastrar el problema a corridas siguientes.
+5. **`expect(find.text('Cancelada'), findsOneWidget)` no es idempotente entre corridas.** La fixture nunca purga reservas de corridas anteriores (mismo principio ya documentado para `franjaLibre()`), así que tras varias ejecuciones hay varias reservas "Cancelada" en pantalla, no una sola. Cambiado a `findsWidgets` — lo que importa es que la transición haya ocurrido, no cuántas acumule el historial.
+
+Lección repetida (ya van tres veces en este proyecto — Fase 2, Fase 6, y ahora E2E): `flutter analyze` limpio y `flutter test` en verde no garantizan que el flujo real funcione. Solo correr la app de verdad contra un backend real lo confirma.
 
 ### Pendiente
 
-- Correr `reserva_flujo_test.dart`/`publico_y_auth_test.dart` de punta a punta apenas se resuelva el gap 1 o 2 de arriba, y arreglar lo que la corrida real encuentre (`flutter analyze` limpio no garantiza que el flujo funcione — ya pasó varias veces en este proyecto).
-- Un cuarto archivo con CRUD real de recursos vía UI (crear/editar/eliminar en `GestionRecursosScreen`) quedó fuera de este pase por presupuesto de tiempo, no por dificultad — el patrón para escribirlo ya está establecido en los tres archivos existentes.
-- Wiring de CI (`ci.yml`) para ejecutar esto de verdad, hoy el job `e2e` solo hace un smoke de que `build/web/index.html` exista — bloqueado por los mismos dos gaps (CI corre en `ubuntu-latest`, así que tampoco tiene Windows/Visual Studio disponible sin cambiar de runner).
+- Un cuarto archivo con CRUD real de recursos vía UI (crear/editar/eliminar en `GestionRecursosScreen`) quedó fuera de este pase por presupuesto de tiempo, no por dificultad — el patrón para escribirlo ya está establecido en los archivos existentes.
+- Wiring de CI (`ci.yml`) para ejecutar esto de verdad — hoy el job `e2e` solo hace un smoke de que `build/web/index.html` exista. Bloqueado por infraestructura, no por el test: CI corre en `ubuntu-latest`, sin Visual Studio, y el harness que funciona hoy es nativo Windows — requeriría cambiar (o añadir) un runner Windows en `ci.yml`.
+- macOS/Linux nativos no se probaron (sin esas plataformas disponibles en esta máquina) — en teoría corren igual que Windows (mismo `cookie_jar`, sin navegador de por medio), pero no está confirmado.
 
 ## Comandos
 
@@ -327,5 +336,5 @@ flutter analyze
 flutter test
 flutter pub run build_runner build   # tras tocar modelos freezed/json o providers @riverpod (--delete-conflicting-outputs ya no existe en este build_runner, se ignora)
 flutter run -d chrome --dart-define-from-file=env/dev.json        # nota: login chocará con CORS sin el proxy same-origin (ver arriba)
-flutter drive --driver=test_driver/integration_test.dart --target=integration_test/reserva_flujo_test.dart -d chrome   # ver limitaciones en la sección E2E arriba
+flutter drive --driver=test_driver/integration_test.dart --target=integration_test/reserva_flujo_test.dart -d windows --dart-define-from-file=env/dev.json   # verificado, ver sección E2E arriba
 ```
