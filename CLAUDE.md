@@ -2,7 +2,11 @@
 
 ## Propósito
 
-Sistema de gestión de reservas de espacios institucionales: autenticación JWT, roles, disponibilidad horaria, aprobación de solicitudes, notificaciones, auditoría y paneles de gestión. Monorepo `backend/` (FastAPI) + `frontend/` (Next.js 14, App Router). Todo el código, mensajes y documentación están en español; mantener ese idioma.
+Sistema de gestión de reservas de espacios institucionales: autenticación JWT, roles, disponibilidad horaria, aprobación de solicitudes, notificaciones, auditoría y paneles de gestión. Monorepo `backend/` (FastAPI) + `frontend/` (Next.js 14, App Router) + `app_flutter/` (Flutter, en migración — ver plan de migración). Todo el código, mensajes y documentación están en español; mantener ese idioma.
+
+## Migración a Flutter (en curso)
+
+`app_flutter/` es el reemplazo en curso del frontend, para Móvil (Android/iOS) y Escritorio (Windows/macOS/Linux) nativos + Web vía un proxy same-origin propio (ver `app_flutter/CLAUDE.md`). `frontend/` (Next.js) sigue siendo la app en producción hasta que se confirme paridad funcional completa y se apruebe explícitamente su retiro (Fase 7 del plan). No modificar `backend/` como parte de este trabajo (mismas reglas que ya aplican a `frontend/`).
 
 ## Estado de referencia
 
@@ -22,7 +26,8 @@ El navegador solo habla con Next.js. PostgreSQL no se expone al host (red `datab
 
 - `backend/app/`: capas `api/` (rutas), `services/` (reglas de negocio), `crud/` (SQLAlchemy), `schemas/` (Pydantic), `models/`, `domain/` (enums y value objects tipados), `auth/` (JWT + bcrypt), `deps.py` (autorización), `main.py` (lifespan), `migrations.py` (SQL idempotente, sin Alembic).
 - `frontend/src/`: `app/` (páginas), `components/`, `context/` (`AuthContext`, `NotificationContext`), `services/` (cliente API), `types/`, `utils/`, `test/` (infra Vitest).
-- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [frontend/CLAUDE.md](frontend/CLAUDE.md), [frontend/e2e/CLAUDE.md](frontend/e2e/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md) para detalle por área.
+- `app_flutter/lib/`: `core/` (config, red, router, tema, widgets compartidos), `features/<dominio>/` (`data/domain/application/presentation`, uno por recurso del backend), `shell/` (navegación adaptativa: bottom nav en móvil, top nav en escritorio/Web).
+- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [frontend/CLAUDE.md](frontend/CLAUDE.md), [frontend/e2e/CLAUDE.md](frontend/e2e/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md), [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) para detalle por área.
 
 ## Comandos principales
 
