@@ -19,6 +19,8 @@ class ReservasRepository {
   final Dio _dio;
 
   /// `POST /reservas`. `horaInicio`/`horaFin` en formato `"HH:MM"`.
+  /// Fase P2: ahora soporta todos los ejes (`recurso_ids`/`zona_ids`/`ensayo_ids`/`acompanantes`/`tipo`)
+  /// según `modalidad_reserva` y validaciones de `services/reservas.py`.
   Future<Reserva> crear({
     required List<int> recursoIds,
     required DateTime fecha,
@@ -26,15 +28,18 @@ class ReservasRepository {
     required String horaFin,
     required int asistentes,
     TipoReserva? tipo,
+    List<int> zonaIds = const [],
+    List<int> ensayoIds = const [],
+    List<Map<String, String>> acompanantes = const [],
   }) async {
     final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
     final response = await _dio.post<Map<String, dynamic>>(
       '/reservas',
       data: {
         'recurso_ids': recursoIds,
-        'zona_ids': <int>[],
-        'ensayo_ids': <int>[],
-        'acompanantes': <Map<String, dynamic>>[],
+        'zona_ids': zonaIds,
+        'ensayo_ids': ensayoIds,
+        'acompanantes': acompanantes,
         'fecha': _formatoFecha.format(fecha),
         'hora_inicio': horaInicio,
         'hora_fin': horaFin,
@@ -90,6 +95,28 @@ class ReservasRepository {
       data: {'asistio': asistio},
     );
     return Reserva.fromJson(response.data!);
+  }
+
+  /// `PATCH /reservas/{id}` — editar propia (usuario si esperando) o gestor/admin.
+  Future<Reserva> actualizar(
+    int reservaId, {
+    DateTime? fecha,
+    String? horaInicio,
+    String? horaFin,
+    int? asistentes,
+  }) async {
+    final data = <String, dynamic>{};
+    if (fecha != null) data['fecha'] = _formatoFecha.format(fecha);
+    if (horaInicio != null) data['hora_inicio'] = horaInicio;
+    if (horaFin != null) data['hora_fin'] = horaFin;
+    if (asistentes != null) data['asistentes'] = asistentes;
+    final response = await _dio.patch<Map<String, dynamic>>('/reservas/$reservaId', data: data);
+    return Reserva.fromJson(response.data!);
+  }
+
+  /// `DELETE /reservas/{id}` — solo gestor/admin (usuario no puede).
+  Future<void> eliminar(int reservaId) async {
+    await _dio.delete<void>('/reservas/$reservaId');
   }
 }
 

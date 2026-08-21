@@ -148,6 +148,66 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
     }
   }
 
+  Future<void> _editarReserva() async {
+    final formKey = GlobalKey<FormState>();
+    String fecha = widget.reserva.fecha;
+    String horaInicio = widget.reserva.horaInicio.substring(0, 5);
+    String horaFin = widget.reserva.horaFin.substring(0, 5);
+    int asistentes = widget.reserva.asistentes;
+    final fechaCtrl = TextEditingController(text: fecha);
+    final inicioCtrl = TextEditingController(text: horaInicio);
+    final finCtrl = TextEditingController(text: horaFin);
+    final asistCtrl = TextEditingController(text: '$asistentes');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar reserva'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextFormField(controller: fechaCtrl, decoration: const InputDecoration(labelText: 'Fecha (YYYY-MM-DD)'), readOnly: true, onTap: () async {
+                final ini = DateTime.tryParse(fechaCtrl.text) ?? DateTime.now();
+                final picked = await showDatePicker(context: ctx, initialDate: ini, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                if (picked != null) fechaCtrl.text = '${picked.year.toString().padLeft(4,'0')}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}';
+              }, validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(controller: inicioCtrl, decoration: const InputDecoration(labelText: 'Hora inicio (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(controller: finCtrl, decoration: const InputDecoration(labelText: 'Hora fin (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(controller: asistCtrl, decoration: const InputDecoration(labelText: 'Asistentes'), keyboardType: TextInputType.number, validator: (v) { final n = int.tryParse(v ?? ''); if (n == null || n <=0) return '>0'; return null; }),
+            ]),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () { if (formKey.currentState!.validate()) Navigator.pop(ctx, true); }, child: const Text('Guardar'))],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _enviando = true);
+    try {
+      final parsed = DateTime.parse(fechaCtrl.text);
+      await ref.read(reservasRepositoryProvider).actualizar(widget.reserva.id, fecha: parsed, horaInicio: inicioCtrl.text, horaFin: finCtrl.text, asistentes: int.parse(asistCtrl.text));
+      ref.invalidate(reservasGestionProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reserva actualizada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo actualizar la reserva.'))));
+    } finally { if (mounted) setState(() => _enviando = false); }
+  }
+
+  Future<void> _eliminarReserva() async {
+    final confirmar = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Eliminar reserva'), content: Text('¿Eliminar la reserva #${widget.reserva.id}?'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar'))]));
+    if (confirmar != true) return;
+    setState(() => _enviando = true);
+    try {
+      await ref.read(reservasRepositoryProvider).eliminar(widget.reserva.id);
+      ref.invalidate(reservasGestionProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reserva eliminada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo eliminar la reserva.'))));
+    } finally { if (mounted) setState(() => _enviando = false); }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reserva = widget.reserva;
@@ -232,6 +292,8 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                     icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
                     onSelected: (v) {
                       if (v == 'rechazar') _pedirMotivoYRechazar();
+                      if (v == 'editar') _editarReserva();
+                      if (v == 'eliminar') _eliminarReserva();
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -243,6 +305,14 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                             Text('Rechazar'),
                           ],
                         ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(children: [Icon(LucideIcons.pencil, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Editar')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Eliminar')]),
                       ),
                     ],
                   ),
@@ -272,6 +342,8 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                     icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
                     onSelected: (v) {
                       if (v == 'cancelar') _cambiarEstado(EstadoReserva.cancelada);
+                      if (v == 'editar') _editarReserva();
+                      if (v == 'eliminar') _eliminarReserva();
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -283,6 +355,14 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                             Text('Cancelar'),
                           ],
                         ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(children: [Icon(LucideIcons.pencil, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Editar')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Eliminar')]),
                       ),
                     ],
                   ),

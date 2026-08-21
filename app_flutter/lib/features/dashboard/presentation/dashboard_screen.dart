@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -14,6 +18,7 @@ import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../reservas/application/reservas_providers.dart';
 import '../application/dashboard_providers.dart';
 import '../domain/dashboard_summary.dart';
 
@@ -70,6 +75,10 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.rol == RolUsuario.usuario) {
+      return _UsuarioDashboard();
+    }
     final summaryAsync = ref.watch(dashboardSummaryProvider);
 
     return Scaffold(
@@ -84,7 +93,6 @@ class DashboardScreen extends ConsumerWidget {
           if (summary.totalReservas == 0 && summary.recursosActivos == 0) {
             // Permite ver gráficas vacías igualmente, pero muestra estado inicial
           }
-          final user = ref.watch(authProvider).value;
           final esAdmin = user?.rol == RolUsuario.admin;
           final esGestor = user?.rol == RolUsuario.gestor;
           return RefreshIndicator(
@@ -109,6 +117,76 @@ class DashboardScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+}
+
+class _UsuarioDashboard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reservasAsync = ref.watch(misReservasProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dashboard')),
+      body: reservasAsync.when(
+        loading: () => const LoadingSpinner(),
+        error: (e, _) => ErrorView(message: apiErrorMessage(e, fallback: 'No se pudo cargar tu resumen.'), onRetry: () => ref.invalidate(misReservasProvider)),
+        data: (reservas) {
+          final total = reservas.length;
+          final pendientes = reservas.where((r) => r.estado == EstadoReserva.esperando).length;
+          final aprobadas = reservas.where((r) => r.estado == EstadoReserva.aprobada).length;
+          final proximas = reservas.where((r) => r.fecha.compareTo(_hoyStr()) >= 0).length;
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(misReservasProvider.future),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: LayoutBuilder(builder: (context, c) {
+                        final isNarrow = c.maxWidth < 520;
+                        final items = [
+                          _StatItem(icon: LucideIcons.calendarDays, label: 'Total', value: total, color: AppColors.marca),
+                          _StatItem(icon: LucideIcons.clock, label: 'Pendientes', value: pendientes, color: AppEstados.pendiente.relleno),
+                          _StatItem(icon: LucideIcons.check, label: 'Aprobadas', value: aprobadas, color: AppEstados.positivo.relleno),
+                          _StatItem(icon: LucideIcons.calendarCheck, label: 'Próximas', value: proximas, color: AppColors.accion),
+                        ];
+                        if (isNarrow) {
+                          return Wrap(runSpacing: AppSpacing.xl, children: [for (var i = 0; i < items.length; i++) SizedBox(width: (c.maxWidth - AppSpacing.lg) / 2, child: items[i])]);
+                        }
+                        return Row(children: [for (var i = 0; i < items.length; i++) ...[if (i > 0) Container(width: 1, height: 44, color: AppColors.borde, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md)), Expanded(child: items[i])]]);
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Acciones rápidas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: AppSpacing.md),
+                        Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.sm, children: [
+                          FilledButton.icon(onPressed: () => context.go(AppRoutes.espacios), icon: const Icon(LucideIcons.building2, size: 18), label: const Text('Ver espacios')),
+                          OutlinedButton.icon(onPressed: () => context.go(AppRoutes.misReservas), icon: const Icon(LucideIcons.calendarDays, size: 18), label: const Text('Mis reservas')),
+                        ]),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _hoyStr() {
+    final ahoraUtc = DateTime.now().toUtc();
+    final bogota = ahoraUtc.subtract(const Duration(hours: 5));
+    return '${bogota.year.toString().padLeft(4, '0')}-${bogota.month.toString().padLeft(2, '0')}-${bogota.day.toString().padLeft(2, '0')}';
   }
 }
 

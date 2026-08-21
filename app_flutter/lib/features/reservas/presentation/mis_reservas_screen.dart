@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -166,6 +167,93 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
     }
   }
 
+  Future<void> _editarReserva(BuildContext context) async {
+    final formKey = GlobalKey<FormState>();
+    final fecha = widget.reserva.fecha;
+    final horaInicio = widget.reserva.horaInicio.substring(0, 5);
+    final horaFin = widget.reserva.horaFin.substring(0, 5);
+    final asistentes = widget.reserva.asistentes;
+    final fechaCtrl = TextEditingController(text: fecha);
+    final inicioCtrl = TextEditingController(text: horaInicio);
+    final finCtrl = TextEditingController(text: horaFin);
+    final asistCtrl = TextEditingController(text: '$asistentes');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar reserva'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: fechaCtrl,
+                  decoration: const InputDecoration(labelText: 'Fecha (YYYY-MM-DD)'),
+                  readOnly: true,
+                  onTap: () async {
+                    final ini = DateTime.tryParse(fechaCtrl.text) ?? DateTime.now();
+                    final picked = await showDatePicker(context: ctx, initialDate: ini, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                    if (picked != null) {
+                      final f = '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                      fechaCtrl.text = f;
+                    }
+                  },
+                  validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: inicioCtrl,
+                  decoration: const InputDecoration(labelText: 'Hora inicio (HH:MM)'),
+                  validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'Formato HH:MM' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: finCtrl,
+                  decoration: const InputDecoration(labelText: 'Hora fin (HH:MM)'),
+                  validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'Formato HH:MM' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: asistCtrl,
+                  decoration: const InputDecoration(labelText: 'Asistentes'),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    final n = int.tryParse(v ?? '');
+                    if (n == null || n <= 0) return 'Debe ser > 0';
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => { if (formKey.currentState!.validate()) Navigator.pop(ctx, true) }, child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _cancelando = true);
+    try {
+      final parsedFecha = DateTime.parse(fechaCtrl.text);
+      await ref.read(reservasRepositoryProvider).actualizar(
+            widget.reserva.id,
+            fecha: parsedFecha,
+            horaInicio: inicioCtrl.text,
+            horaFin: finCtrl.text,
+            asistentes: int.parse(asistCtrl.text),
+          );
+      ref.invalidate(misReservasProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reserva actualizada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo actualizar la reserva.'))));
+    } finally {
+      if (mounted) setState(() => _cancelando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reserva = widget.reserva;
@@ -234,6 +322,17 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+            if (reserva.estado == EstadoReserva.esperando) ...[
+              const SizedBox(height: AppSpacing.md),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: _cancelando ? null : () => _editarReserva(context),
+                  icon: const Icon(LucideIcons.pencil, size: 16),
+                  label: const Text('Editar'),
                 ),
               ),
             ],

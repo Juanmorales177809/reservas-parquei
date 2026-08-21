@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:flutter/services.dart';
 
+import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
@@ -14,8 +15,10 @@ import '../../../core/widgets/estado_badge.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../recursos/application/recursos_providers.dart';
 import '../../recursos/domain/recurso.dart';
+import '../../zonas/application/zonas_providers.dart';
 import '../application/espacios_providers.dart';
 import '../domain/espacio.dart';
+import '../../reservas/presentation/espacio_reserva_sheet.dart';
 import '../../reservas/presentation/recurso_disponibilidad_sheet.dart';
 
 class EspacioDetalleScreen extends ConsumerWidget {
@@ -48,6 +51,8 @@ class _EspacioDetalleBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recursos = ref.watch(recursosPorEspacioProvider(espacio.id));
+    final zonasAsync = ref.watch(zonasGestionProvider);
+    final zonas = (zonasAsync.value ?? []).where((z) => z.espacioId == espacio.id).toList();
     final textTheme = Theme.of(context).textTheme;
 
     return CustomScrollView(
@@ -134,21 +139,55 @@ class _EspacioDetalleBody extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text('Recursos', style: textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
-              if (recursos.isEmpty)
-                const EmptyView(
-                  icon: LucideIcons.boxes,
-                  message: 'Este espacio no tiene recursos activos.',
-                )
-              else
-                ...recursos.map(
-                  (recurso) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _RecursoTile(recurso: recurso),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => EspacioReservaSheet(espacio: espacio),
                   ),
+                  icon: const Icon(LucideIcons.calendarPlus, size: 18),
+                  label: const Text('Reservar'),
                 ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              if (espacio.modalidadReserva != ModalidadEspacio.zonas) ...[
+                Text('Recursos', style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                if (recursos.isEmpty)
+                  const EmptyView(
+                    icon: LucideIcons.boxes,
+                    message: 'Este espacio no tiene recursos activos.',
+                  )
+                else
+                  ...recursos.map(
+                    (recurso) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: _RecursoTile(recurso: recurso),
+                    ),
+                  ),
+              ],
+              if (espacio.modalidadReserva != ModalidadEspacio.equipos) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('Zonas', style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                if (zonas.isEmpty)
+                  const EmptyView(icon: LucideIcons.mapPinned, message: 'Este espacio no tiene zonas.')
+                else
+                  ...zonas.map((z) => Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+                            child: const Icon(LucideIcons.mapPinned, size: 20),
+                          ),
+                          title: Text(z.nombre),
+                          subtitle: Text(z.descripcion ?? ''),
+                          trailing: Text('${z.capacidad ?? espacio.capacidad} cap.', style: Theme.of(context).textTheme.bodySmall),
+                        ),
+                      )),
+              ],
             ],
           ),
         ),

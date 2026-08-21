@@ -151,7 +151,6 @@ const kNavDestinations = <NavDestinationSpec>[
     icon: LucideIcons.layoutDashboard,
     path: AppRoutes.admin,
     primario: true,
-    rolesPermitidos: {RolUsuario.gestor, RolUsuario.admin},
   ),
   NavDestinationSpec(
     id: 'auditoria',

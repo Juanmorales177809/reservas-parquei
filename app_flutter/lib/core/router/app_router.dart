@@ -12,6 +12,7 @@ import '../../features/espacios/presentation/configuracion_espacio_screen.dart';
 import '../../features/espacios/presentation/espacio_detalle_screen.dart';
 import '../../features/espacios/presentation/espacios_list_screen.dart';
 import '../../features/espacios/presentation/gestion_espacios_screen.dart';
+import '../../features/legal/presentation/terminos_screen.dart';
 import '../../features/recursos/presentation/gestion_recursos_screen.dart';
 import '../../features/reservas/presentation/gestion_reservas_screen.dart';
 import '../../features/reservas/presentation/mis_reservas_screen.dart';
@@ -101,6 +102,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
+      GoRoute(path: AppRoutes.terminos, builder: (context, state) => const TerminosScreen()),
       // Fuera del ShellRoute a propósito: es una pantalla "empujada" (con
       // su propia AppBar + botón atrás), no un destino de la barra de
       // navegación — anidarla dentro del shell duplicaría la AppBar.
