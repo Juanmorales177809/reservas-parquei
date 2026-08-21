@@ -49,8 +49,23 @@ def login(payload: UsuarioLogin, request: Request, response: Response, db: Sessi
 
     limitador_login.reiniciar(ip, payload.username)
 
+    # Scopes OAuth2 (aditivo, sin romper): se emiten junto a rol/role para exigencias externas.
+    # Jerarquía: admin implica gestor y usuario, gestor implica usuario.
+    scopes_por_rol = {
+        "admin": ["admin:*", "gestor:*", "usuario:*"],
+        "gestor": ["gestor:*", "usuario:*"],
+        "usuario": ["usuario:*"],
+    }
+    scopes = scopes_por_rol.get(usuario.rol, ["usuario:*"])
+    # Compatibilidad: algunos validadores leen `scope` (string space-separated) y otros `scopes` (lista).
     access_token = create_access_token(
-        data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
+        data={
+            "sub": str(usuario.id),
+            "rol": usuario.rol,
+            "role": usuario.rol,
+            "scope": " ".join(scopes),
+            "scopes": scopes,
+        }
     )
     # Fase 9G (cookie-only): la cookie HttpOnly es el único mecanismo de
     # sesión. El body devuelve únicamente el usuario; `access_token` ya no
