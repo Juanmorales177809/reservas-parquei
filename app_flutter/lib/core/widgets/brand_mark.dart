@@ -27,7 +27,7 @@ class BrandMark extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         Text(
-          'Reservas Parquei',
+          'Reservas Parque i',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
       ],

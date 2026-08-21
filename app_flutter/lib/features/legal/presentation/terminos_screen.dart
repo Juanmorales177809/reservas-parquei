@@ -16,7 +16,7 @@ class TerminosScreen extends StatelessWidget {
             Text('Términos y condiciones', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Al usar Reservas Parquei aceptás las normas de uso de los espacios institucionales. '
+              'Al usar Reservas Parque i aceptás las normas de uso de los espacios institucionales. '
               'Las reservas están sujetas a aprobación, respeto de horarios y capacidad, y pueden ser canceladas '
               'si no se cumplen las condiciones. El uso indebido puede derivar en sanciones.\n\n'
               'Este es un placeholder estático — el contenido legal será provisto por la institución.',

@@ -10,7 +10,7 @@ Copiá todo el bloque de abajo como primer mensaje.
 
 ## PROMPT
 
-Estoy construyendo **Reservas Parquei**, un sistema de reservas de espacios institucionales para una universidad (laboratorios, auditorios, salas de estudio, salas de juntas) — lo van a usar estudiantes y personal académico real, así que la calidad visual importa, no es un prototipo descartable. El frontend se está migrando de Next.js a **Flutter** (multiplataforma: Android, iOS, Windows, macOS, Linux y Web), y ya tiene toda la funcionalidad construida. Lo que te pido es una revisión de diseño experta para elevar el nivel visual antes de la fase de pulido final ("Fase 6" en mi plan interno) — no tenés que escribir código Flutter si no querés, pero sí quiero recomendaciones concretas y accionables (colores exactos, espaciados, tipografía, jerarquía, motion), no principios genéricos de UI/UX que ya conozco.
+Estoy construyendo **Reservas Parque i**, un sistema de reservas de espacios institucionales para una universidad (laboratorios, auditorios, salas de estudio, salas de juntas) — lo van a usar estudiantes y personal académico real, así que la calidad visual importa, no es un prototipo descartable. El frontend se está migrando de Next.js a **Flutter** (multiplataforma: Android, iOS, Windows, macOS, Linux y Web), y ya tiene toda la funcionalidad construida. Lo que te pido es una revisión de diseño experta para elevar el nivel visual antes de la fase de pulido final ("Fase 6" en mi plan interno) — no tenés que escribir código Flutter si no querés, pero sí quiero recomendaciones concretas y accionables (colores exactos, espaciados, tipografía, jerarquía, motion), no principios genéricos de UI/UX que ya conozco.
 
 ### Quiénes lo usan
 

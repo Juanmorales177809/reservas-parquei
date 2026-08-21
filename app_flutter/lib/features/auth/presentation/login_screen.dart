@@ -101,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: const Icon(LucideIcons.calendarCheck, color: Colors.white, size: 34),
                       ).animate().scale(begin: const Offset(0.6, 0.6), end: const Offset(1, 1), duration: 500.ms, curve: Curves.elasticOut),
                       const SizedBox(height: AppSpacing.lg),
-                      Text('Reservas Parquei', style: Theme.of(context).textTheme.headlineSmall)
+                      Text('Reservas Parque i', style: Theme.of(context).textTheme.headlineSmall)
                           .animate()
                           .fadeIn(delay: 150.ms, duration: 300.ms)
                           .slideY(begin: 0.2, end: 0),

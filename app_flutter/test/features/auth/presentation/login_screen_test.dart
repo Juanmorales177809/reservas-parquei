@@ -12,7 +12,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Reservas Parquei'), findsOneWidget);
+    expect(find.text('Reservas Parque i'), findsOneWidget);
 
     await tester.tap(find.text('Entrar'));
     await tester.pump();

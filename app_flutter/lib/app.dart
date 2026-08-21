@@ -11,7 +11,7 @@ class ReservasApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
-      title: 'Reservas Parquei',
+      title: 'Reservas Parque i',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       // Fijado a claro a propósito: la identidad "tech-clean" académica se
