@@ -40,7 +40,15 @@ docker compose logs -f flutter_proxy   # logs del proxy Web (nginx)
 docker compose down               # detener sin borrar datos
 ```
 
-`flutter_proxy` sirve el build estático de `app_flutter/build/web` — hay que generarlo antes (`flutter build web --dart-define-from-file=env/web.json` desde `app_flutter/`) o el proxy no tiene qué servir.
+`flutter_proxy` sirve el build estático de `app_flutter/build/web` — hay que generarlo antes (`flutter build web --dart-define-from-file=env/web.json` desde `app_flutter/`) o el proxy no tiene qué servir. **Si ese directorio falta, nginx responde 403, no 404.**
+
+## Despliegue continuo (CD)
+
+El servidor **no se actualiza a mano**: un agente propio (`deploy/`) consulta cada 3 minutos la última corrida **verde** de CI en `feature/soV0.1`, descarga el bundle web que esa corrida publicó como artefacto, deja el checkout en ese commit exacto y converge el stack, con health check y rollback automático.
+
+Es un modelo *pull* (el servidor consulta a GitHub, GitHub nunca entra) porque el servidor tiene IP privada y quien lo opera no es admin del repo. El ciclo completo es: `git push` → ~7 min de CI → hasta 3 min de poll. Nadie compila Flutter en el servidor.
+
+Detalle completo, instalación y las decisiones no obvias en [deploy/README.md](deploy/README.md) — incluido que **el agente no se autoactualiza**: cambiar `deploy/reservas-deploy.sh` exige reinstalarlo a mano.
 
 Backend local (sin Docker): `cd backend && python -m venv .venv && pip install -r requirements.txt && uvicorn app.main:app --reload` (requiere `DATABASE_URL` y `SECRET_KEY` exportadas; `config.py` no llama `load_dotenv()`).
 Flutter local: ver "Comandos" en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) (`flutter analyze`, `flutter test`, `flutter run -d chrome|windows|...`).
