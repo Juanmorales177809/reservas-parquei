@@ -101,6 +101,20 @@ sudo systemctl start reservas-deploy.service  # forzar un ciclo ya
 sudo -u bastion GH_TOKEN=... /usr/local/bin/reservas-deploy --force   # redesplegar el mismo SHA
 ```
 
+## ⚠️ El agente no se actualiza solo
+
+`/usr/local/bin/reservas-deploy` es una **copia** instalada a mano. El agente despliega el checkout del repo, pero no se reemplaza a sí mismo, así que un cambio en `deploy/reservas-deploy.sh` **no surte efecto hasta reinstalarlo**:
+
+```bash
+sudo install -m 0755 -o root -g root ~/reservas-parquei/deploy/reservas-deploy.sh /usr/local/bin/reservas-deploy
+```
+
+Esperar primero a que el agente haya desplegado el commit que trae el cambio (así el archivo ya está en el checkout), o hacer `git switch feature/soV0.1 && git pull` a mano.
+
+Es deliberado y no un descuido: si el servicio ejecutara el script directamente desde el checkout, una versión rota del agente se autodesplegaría y podría dejar el despliegue inservible sin forma cómoda de volver atrás. Con la copia instalada, el agente que corre siempre es uno que alguien puso ahí a conciencia. El costo es este paso manual, poco frecuente.
+
+Lo mismo aplica a las unidades de systemd (`.service` / `.timer`): si cambian, hay que reinstalarlas y hacer `sudo systemctl daemon-reload`.
+
 ## Ejercitar el rollback
 
 Un rollback que nunca se probó es una suposición, no un mecanismo. No se puede provocar el fallo "de verdad" sin romper el stack (parar el backend a mano no sirve: `docker compose up -d` lo levanta antes de llegar al health check), así que el script trae una válvula explícita.
