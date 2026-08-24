@@ -86,7 +86,13 @@ class TopNavShell extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
               child: FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.login),
+                // `go`, no `push`: con `push` la ubicación del router sigue
+                // siendo la ruta de fondo (ej. `/espacios`) y el guard de
+                // `app_router.dart` — que compara `matchedLocation` contra
+                // `/login` para mandar a inicio tras autenticarse — nunca
+                // dispara: el login funcionaba pero el formulario quedaba
+                // apilado hasta recargar la página.
+                onPressed: () => context.go(AppRoutes.login),
                 icon: const Icon(LucideIcons.logIn, size: 18),
                 label: const Text('Iniciar sesión'),
               ),

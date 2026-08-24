@@ -193,7 +193,11 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
                       FilledButton.icon(
                         onPressed: () {
                           Navigator.of(context).pop();
-                          context.push(AppRoutes.login);
+                          // `go`, no `push`: ver comentario en
+                          // `top_nav_shell.dart` — con `push` el guard de
+                          // `app_router.dart` no detecta `/login` como
+                          // ubicación y no redirige tras autenticarse.
+                          context.go(AppRoutes.login);
                         },
                         icon: const Icon(LucideIcons.logIn, size: 18),
                         label: const Text('Iniciá sesión para reservar'),

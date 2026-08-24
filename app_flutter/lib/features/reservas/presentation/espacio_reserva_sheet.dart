@@ -231,7 +231,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                     error: (error, _) => ErrorView(message: apiErrorMessage(error, fallback: 'No se pudo cargar la disponibilidad.'), onRetry: () => ref.invalidate(recursoDisponibilidadProvider(rid, _fecha))),
                     data: (slots) {
                       if (slots.isEmpty) return const EmptyView(icon: LucideIcons.calendarX, message: 'No hay franjas disponibles para esta fecha.');
-                      if (!isAuthenticated) return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [DisponibilidadSlotGrid(slots: slots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.push(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
+                      if (!isAuthenticated) return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [DisponibilidadSlotGrid(slots: slots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
                       return _FormularioMulti(slots: slots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(slots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), onConfirmar: () => _reservar(slots));
                     },
                   );
@@ -240,7 +240,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                 if (_zonaIds.isNotEmpty) {
                   // horario local: usar slotsDesdeHorario si existiera, por ahora mostrar mensaje y permitir seleccionar horario fijo 08-10 como demo
                   final fakeSlots = List.generate(12, (i) => DisponibilidadSlot(horaInicio: '${7 + i}:00'.padLeft(5,'0'), horaFin: '${8 + i}:00'.padLeft(5,'0'), estado: EstadoSlot.libre));
-                  if (!isAuthenticated) return Column(children: [DisponibilidadSlotGrid(slots: fakeSlots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.push(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
+                  if (!isAuthenticated) return Column(children: [DisponibilidadSlotGrid(slots: fakeSlots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
                   return _FormularioMulti(slots: fakeSlots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(fakeSlots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), onConfirmar: () => _reservar(fakeSlots));
                 }
                 return const EmptyView(icon: LucideIcons.info, message: 'Seleccioná al menos un recurso o una zona para ver disponibilidad.');
