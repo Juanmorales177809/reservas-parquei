@@ -107,9 +107,24 @@ sudo -u bastion GH_TOKEN=... /usr/local/bin/reservas-deploy --force   # redesple
 
 **Se usa `git switch --detach`, nunca `reset --hard`.** `switch` aborta si fuese a pisar cambios locales; `reset --hard` los destruye en silencio. Y si el árbol está sucio, el agente se planta y avisa en vez de forzar.
 
-## Antes de activar esto: pendiente de seguridad
+## pgAdmin ya no se publica en la red
 
-`docker-compose.yml` publica pgAdmin en `${PGADMIN_HOST_PORT:-8085}` sobre **todas** las interfaces, con credenciales que ni siquiera figuran en `.env.example`. Cualquiera en la red del servidor llega a una consola de administración de la base con datos reales. Conviene atarlo a loopback (`127.0.0.1:8085:5050`, y acceder por túnel SSH) o directamente no levantar ese servicio en el servidor.
+`docker-compose.yml` publicaba pgAdmin en `8085` sobre **todas** las interfaces, con credenciales que ni siquiera figuraban en `.env.example`: cualquiera en la red del servidor llegaba a una consola de administración de la base con datos reales. Ahora se ata a loopback por defecto (`PGADMIN_BIND=127.0.0.1`).
+
+Al aplicar este cambio en un servidor donde pgAdmin ya corría, hay que recrear el contenedor para que tome el nuevo mapeo:
+
+```bash
+docker compose up -d --force-recreate pgadmin
+docker compose port pgadmin 5050    # debe imprimir 127.0.0.1:8085, no 0.0.0.0:8085
+```
+
+Para entrar desde otra máquina, túnel SSH:
+
+```bash
+ssh -L 8085:127.0.0.1:8085 usuario@servidor
+```
+
+y abrir `http://127.0.0.1:8085` en el navegador local.
 
 ## Limitaciones conocidas
 

@@ -35,7 +35,20 @@ services:
       - application_network
       - database_network
     ports:
-      - "${PGADMIN_HOST_PORT:-8085}:${PGADMIN_LISTEN_PORT:-5050}"
+      # Atado a loopback A PROPÓSITO. Antes era "8085:5050", que publica en
+      # TODAS las interfaces: en el servidor de despliegue eso dejaba una
+      # consola de administración de la base con datos reales accesible para
+      # cualquiera en la red, con credenciales que ni siquiera figuraban en
+      # .env.example (y por lo tanto nadie habia revisado).
+      #
+      # Para llegar a pgAdmin desde otra máquina, túnel SSH:
+      #   ssh -L 8085:127.0.0.1:8085 usuario@servidor
+      # y luego http://127.0.0.1:8085 en el navegador local.
+      #
+      # Si se necesita exponerlo en la red de nuevo, poner
+      # PGADMIN_BIND=0.0.0.0 en el .env — pero que sea una decisión
+      # explícita y no el valor por defecto.
+      - "${PGADMIN_BIND:-127.0.0.1}:${PGADMIN_HOST_PORT:-8085}:${PGADMIN_LISTEN_PORT:-5050}"
 
   backend:
     build:
