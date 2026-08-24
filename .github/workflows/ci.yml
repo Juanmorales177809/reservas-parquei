@@ -2,11 +2,16 @@ name: CI
 
 # Todo el código y comentarios del repo están en español; se conserva aquí.
 #
-# Alcance de esta Fase 8: solo gates de regresión (backend, frontend, E2E).
-# Sin despliegue automático. Ninguna credencial usada aquí es real: son los
-# mismos valores ficticios ya presentes en backend/tests/conftest.py y
-# frontend/playwright.config.ts, reutilizados tal cual (no se introduce
-# ningún GitHub Secret nuevo).
+# Gates de regresión: backend (pytest), Flutter (analyze/test/build web) y
+# un smoke que levanta el backend y verifica el bundle web.
+#
+# Este workflow no despliega, pero sí PUBLICA el bundle web como artefacto
+# (`flutter-web`): el servidor de despliegue no puede reconstruirlo por su
+# cuenta a un costo razonable, y lo baja desde acá. Ver "CD" en
+# app_flutter/CLAUDE.md.
+#
+# Ninguna credencial usada aquí es real: son los mismos valores ficticios
+# que backend/tests/conftest.py (no se usa ningún GitHub Secret).
 
 on:
   push:
@@ -25,10 +30,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Compartidas por los tres jobs: mismos valores ficticios que ya usan
-  # backend/tests/conftest.py (TEST_DATABASE_URL/TEST_SECRET_KEY) y
-  # frontend/playwright.config.ts (INITIAL_ADMIN_*). Ninguna es un secreto
-  # real; no se usa GitHub Secrets para esto.
+  # Compartidas por los tres jobs: mismos valores ficticios que ya usa
+  # backend/tests/conftest.py. Ninguna es un secreto real; no se usa
+  # GitHub Secrets para esto.
   TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reservas_test
   TEST_SECRET_KEY: clave-ci-solo-proceso-minimo-32-caracteres
   INITIAL_ADMIN_USERNAME: e2e-admin
@@ -116,6 +120,30 @@ jobs:
         working-directory: app_flutter
         run: flutter build web --dart-define-from-file=env/web.json
 
+      # El bundle es lo único que el servidor de despliegue necesita y no
+      # puede obtener de git (`app_flutter/build/` está en .gitignore).
+      # Publicarlo acá evita que el bastión tenga que bajar ~1GB de SDK y
+      # compilar 5 minutos en cada despliegue. Lo consume el job `e2e` (en
+      # vez de recompilar) y el agente de despliegue del servidor.
+      #
+      # `path` es el DIRECTORIO, no un glob: así el ancestro común que
+      # calcula upload-artifact es `build/web` y el zip queda con
+      # `index.html` en la raíz. Si alguien agrega una segunda entrada a
+      # `path`, el layout del zip cambia y el despliegue deja de encontrar
+      # el index.
+      #
+      # `if-no-files-found: error` no es decorativo: el default es `warn`,
+      # y un artefacto vacío se traduce en un 403 de nginx en producción
+      # (ya pasó una vez, con el directorio ausente).
+      - name: Publicar bundle web
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web
+          path: app_flutter/build/web
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 9
+
   e2e:
     name: E2E (backend + Flutter Web smoke)
     needs: [backend, flutter]
@@ -150,13 +178,6 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
-      - name: Configurar Flutter 3.47.1 (para rebuild web en este job)
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.1'
-          channel: 'stable'
-          cache: true
-
       - name: Arrancar backend en segundo plano
         working-directory: backend
         env:
@@ -178,15 +199,34 @@ jobs:
           echo "El backend no respondió a tiempo." >&2
           exit 1
 
-      - name: Build Flutter Web (para este job)
-        working-directory: app_flutter
-        run: flutter build web --dart-define-from-file=env/web.json
+      # Antes este job instalaba Flutter de nuevo y recompilaba la Web
+      # (~5 min) para producir un bundle idéntico al del job `flutter`, del
+      # que solo comprobaba que existiera el index. Ahora descarga aquel:
+      # más rápido, y sobre todo valida EL MISMO artefacto que se despliega,
+      # no uno equivalente. `needs: [backend, flutter]` garantiza que ya
+      # está publicado.
+      - name: Descargar bundle web del job flutter
+        uses: actions/download-artifact@v4
+        with:
+          name: flutter-web
+          path: app_flutter/build/web
 
-      - name: Smoke — Flutter Web + proxy same-origin
+      # Comprueba que el artefacto descargado es un bundle servible, no solo
+      # que existe un index.html: si cualquiera de estos falta, nginx
+      # arranca igual y sirve una página en blanco o un 404 por archivo, que
+      # es peor de diagnosticar que un fallo acá.
+      #
+      # El E2E real (`integration_test/`) NO corre en este job: necesita un
+      # runner Windows con Visual Studio (ver "E2E" en app_flutter/CLAUDE.md).
+      # La suite de Playwright que este texto mencionaba se eliminó del repo.
+      - name: Smoke — el bundle web es servible
         working-directory: app_flutter
         run: |
-          ls -lh build/web/index.html
-          echo "Verificando proxy nginx.conf..."
-          cat nginx.conf | head -n 20
-          echo "E2E Playwright de Next.js retirado — Flutter Web smoke via build/web + backend health suficiente para este CI mínimo"
-          echo "Para E2E completo ver app_flutter/playwright.config.ts (requiere nginx:alpine + chromium)"
+          set -euo pipefail
+          for archivo in index.html main.dart.js flutter_bootstrap.js version.json; do
+            if [ ! -s "build/web/$archivo" ]; then
+              echo "Falta o está vacío build/web/$archivo" >&2
+              exit 1
+            fi
+            printf '%-24s %s\n' "$archivo" "$(du -h "build/web/$archivo" | cut -f1)"
+          done

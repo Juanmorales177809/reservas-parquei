@@ -1,0 +1,27 @@
+[Unit]
+Description=Despliegue de reservas-parquei desde el último artefacto verde de CI
+Documentation=file:///home/bastion/reservas-parquei/deploy/README.md
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=bastion
+Group=bastion
+# Garantiza acceso al socket de Docker aunque el usuario no esté en el grupo.
+SupplementaryGroups=docker
+Environment=HOME=/home/bastion
+EnvironmentFile=/etc/reservas-deploy/deploy.env
+WorkingDirectory=/home/bastion/reservas-parquei
+ExecStart=/usr/local/bin/reservas-deploy
+# Un `docker compose build backend` sin caché de capas puede tardar varios
+# minutos; este timeout es holgado a propósito.
+TimeoutStartSec=1800
+Nice=5
+NoNewPrivileges=true
+PrivateTmp=true
+SyslogIdentifier=reservas-deploy
+
+# Sin [Install] a propósito: esta unidad la dispara el timer. Con
+# WantedBy=multi-user.target correría además en cada arranque, descoordinada.

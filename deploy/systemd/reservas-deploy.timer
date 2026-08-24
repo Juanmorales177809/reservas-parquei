@@ -1,0 +1,16 @@
+[Unit]
+Description=Consulta cada pocos minutos si hay un commit verde nuevo para desplegar
+
+[Timer]
+Unit=reservas-deploy.service
+OnBootSec=3min
+# OnUnitInactiveSec (desde que TERMINÓ), no OnUnitActiveSec (desde que
+# EMPEZÓ): con el segundo, un despliegue de 8 minutos acumularía disparos.
+# Así el solapamiento es imposible por construcción.
+OnUnitInactiveSec=3min
+# Evita alinearse con otros timers del host.
+RandomizedDelaySec=30
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target
