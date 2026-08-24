@@ -23,14 +23,29 @@ class BottomNavShell extends ConsumerWidget {
     final autenticado = ref.watch(isAuthenticatedProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const BrandMark(),
+        // Solo el ícono: en celular el ancho es escaso y el título competía
+        // con el botón de "Iniciar sesión" hasta desbordar. El rail y el top
+        // nav sí muestran el wordmark completo.
+        title: const BrandMark(compact: true),
         actions: [
           if (autenticado) const NotificationBell(),
-          if (autenticado) const SessionMenu(),
+          // SIN `if (autenticado)`: ver el comentario en `SessionMenu`.
+          // Condicionarlo dejaba a este shell (celular) sin botón de
+          // "Iniciar sesión" para un visitante anónimo.
+          const SessionMenu(),
         ],
       ),
       body: child,
-      bottomNavigationBar: destinos.isEmpty
+      // `NavigationBar` de Material exige `destinations.length >= 2` (assert
+      // en navigation_bar.dart). La guarda anterior era `destinos.isEmpty`,
+      // que solo cubría el cero — y el caso de UNO es perfectamente
+      // alcanzable: un visitante anónimo ve un único destino, porque
+      // "Espacios" es el único con `requiereSesion: false`. En release el
+      // assert no corre, así que esto no se veía como pantalla roja, pero la
+      // barra quedaba en un estado no soportado. Con menos de dos destinos
+      // no hay nada que elegir: no se muestra barra (el acceso a login vive
+      // en la `AppBar`, ver `SessionMenu`).
+      bottomNavigationBar: destinos.length < 2
           ? null
           : NavigationBar(
               selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,

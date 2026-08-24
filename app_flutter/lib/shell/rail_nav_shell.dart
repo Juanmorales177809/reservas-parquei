@@ -44,7 +44,8 @@ class RailNavShell extends ConsumerWidget {
         title: const BrandMark(),
         actions: [
           if (autenticado) const NotificationBell(),
-          if (autenticado) const SessionMenu(),
+          // SIN `if (autenticado)`: ver el comentario en `SessionMenu`.
+          const SessionMenu(),
           const SizedBox(width: AppSpacing.md),
         ],
       ),

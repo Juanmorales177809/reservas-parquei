@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../core/router/app_routes.dart';
 import '../core/router/nav_destinations.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
@@ -83,22 +82,11 @@ class TopNavShell extends ConsumerWidget {
             ),
           const SizedBox(width: AppSpacing.sm),
           if (autenticado) const NotificationBell(),
-          if (autenticado) const SessionMenu(),
-          if (!autenticado)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: FilledButton.icon(
-                // `go`, no `push`: con `push` la ubicación del router sigue
-                // siendo la ruta de fondo (ej. `/espacios`) y el guard de
-                // `app_router.dart` — que compara `matchedLocation` contra
-                // `/login` para mandar a inicio tras autenticarse — nunca
-                // dispara: el login funcionaba pero el formulario quedaba
-                // apilado hasta recargar la página.
-                onPressed: () => context.go(AppRoutes.login),
-                icon: const Icon(LucideIcons.logIn, size: 18),
-                label: const Text('Iniciar sesión'),
-              ),
-            ),
+          // SIN `if (autenticado)`: `SessionMenu` resuelve los dos casos
+          // (botón de "Iniciar sesión" si no hay sesión, avatar + logout si
+          // la hay). Condicionarlo acá fue exactamente el bug que dejó a
+          // móvil y tablet sin forma de iniciar sesión.
+          const SessionMenu(),
           const SizedBox(width: AppSpacing.md),
         ],
       ),
