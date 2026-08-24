@@ -20,6 +20,24 @@ Primera vez que la app se levanta en un host que no es la máquina de desarrollo
 - **Botón "Iniciar sesión" en la nav superior** (`top_nav_shell.dart`): no existía **ningún** punto de entrada a `/login` en el shell; un visitante anónimo solo llegaba al login por redirección del guard o por los CTAs dentro de las hojas de reserva.
 - **Bug real de navegación post-login (`push` vs `go`)** — encontrado por el usuario usando ese botón nuevo, afectaba también a tres CTAs preexistentes.
 - **El gestor veía espacios y zonas ajenos** en las pantallas de gestión — ver la sección siguiente.
+- **El shell adaptativo perdió funciones enteras en móvil** al eliminar `InicioScreen` — ver "Lo que se rompe al tocar el shell adaptativo" más abajo. **Queda un cambio sin verificar; leer esa sección antes de seguir.**
+
+## ⚠️ Lo que se rompe al tocar el shell adaptativo (2026-08-24)
+
+`AppShell` elige entre tres shells según el ancho: `BottomNavShell` (< 600dp), `RailNavShell` (600–1240dp) y `TopNavShell` (≥ 1240dp). **Todo lo que sea esencial tiene que existir en los tres.** En un mismo día se violó esa regla tres veces, en tres direcciones distintas:
+
+1. **El logout vivía solo en `InicioScreen`.** Al eliminar esa pantalla, la app se quedaba sin forma de cerrar sesión en cualquier ancho. Se creó `SessionMenu` (avatar + identidad + "Cerrar sesión") y se montó en los tres.
+2. **El botón "Iniciar sesión" se agregó solo a `TopNavShell`.** En celular y tablet un visitante anónimo no tenía por dónde entrar. Ahora `SessionMenu` resuelve **los dos** estados de sesión y los tres shells lo montan **sin** `if (autenticado)` alrededor — no reintroducir esa condición.
+3. **Los destinos de gestión quedaron inalcanzables en celular.** `AppShell` filtraba con `primarioOnly` para el caso compacto, así que la bottom nav solo veía Espacios/Reservas/Dashboard; Recursos, Zonas, Ensayos, Usuarios, Configuración y Auditoría **no tenían ningún camino**. Funcionaban antes porque `InicioScreen` era una pantalla de atajos — su propio docstring lo advertía ("en móvil la bottom nav solo muestra destinos `primario`, así que este es el único camino móvil") y se pasó por alto al borrarla. Un admin en el teléfono se quedaba sin la mitad de la app.
+
+**Estado del arreglo de (3):** `AppShell` ahora pasa la lista completa a los tres shells y `BottomNavShell` hace el reparto él mismo (primarios a la barra, resto a un menú "Gestión" con ícono de engranaje en la `AppBar`, igual que `TopNavShell`). **Este cambio se pusheó SIN pasar `flutter analyze`/`flutter test` en local** — la corrida se interrumpió. El CI es el gate y el agente de CD solo despliega commits verdes, así que si falló no llegó al servidor: verificar el estado del workflow antes de seguir.
+
+### Dos bugs preexistentes que destapó el test de anchos
+
+Ninguno lo había visto nadie; los encontró `test/shell/session_menu_test.dart` al montar `AppShell` a 375dp, algo que ninguna prueba hacía antes.
+
+- **`NavigationBar` exige `destinations.length >= 2`** (assert en `navigation_bar.dart`). `BottomNavShell` protegía con `destinos.isEmpty`, que solo cubre el cero — y el caso de UNO es alcanzable: un visitante anónimo ve un único destino, porque "Espacios" es el único con `requiereSesion: false`. En release los `assert` no corren, por eso nunca se vio como pantalla roja.
+- **`BrandMark` desbordaba 106px en 375dp.** Aceptaba un parámetro `compact` **desde siempre que su `build` ignoraba por completo**: alguien previó el problema, dejó la puerta y no la conectó. Ahora recorta al ícono, y en el caso normal el wordmark va en `Flexible` con elipsis — el ancho disponible depende de las acciones de la `AppBar` **y del factor de escala de texto de accesibilidad**, así que un ancho "que siempre entra" no existe.
 
 ## ⚠️ El alcance del gestor NO viene filtrado en los listados: hay que aplicarlo en el cliente (2026-08-24)
 

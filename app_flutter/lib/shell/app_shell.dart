@@ -43,10 +43,13 @@ class AppShell extends ConsumerWidget {
     final user = ref.watch(authProvider).value;
     final clase = claseDeAncho(MediaQuery.sizeOf(context).width);
 
-    // Solo la bottom nav está limitada a 4-5 slots. El rail crece hacia
-    // abajo y el top nav agrupa el excedente en "Gestión", así que ambos
-    // reciben la lista completa.
-    final destinos = visibleDestinations(user, primarioOnly: clase == ClaseVentana.compacta);
+    // Los tres shells reciben la lista COMPLETA y cada uno decide cómo
+    // repartirla: la bottom nav está limitada a 4-5 ranuras, así que manda
+    // los `primario` a la barra y el resto a su menú "Gestión" — igual que
+    // el top nav. Antes acá se filtraba con `primarioOnly` para el caso
+    // compacto, y eso dejaba los destinos de gestión sin ningún camino en
+    // celular una vez eliminada la `InicioScreen` de atajos.
+    final destinos = visibleDestinations(user, primarioOnly: false);
 
     return switch (clase) {
       ClaseVentana.compacta => BottomNavShell(destinos: destinos, currentPath: currentPath, child: child),
