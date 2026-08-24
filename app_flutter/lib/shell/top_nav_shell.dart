@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../core/router/app_routes.dart';
 import '../core/router/nav_destinations.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
@@ -81,6 +82,15 @@ class TopNavShell extends ConsumerWidget {
             ),
           const SizedBox(width: AppSpacing.sm),
           if (autenticado) const NotificationBell(),
+          if (!autenticado)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              child: FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.login),
+                icon: const Icon(LucideIcons.logIn, size: 18),
+                label: const Text('Iniciar sesión'),
+              ),
+            ),
           const SizedBox(width: AppSpacing.md),
         ],
       ),
