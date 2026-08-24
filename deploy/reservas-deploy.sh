@@ -271,6 +271,19 @@ PORT="$(docker compose port flutter_proxy 80 | sed 's/.*://')"
 BASE="http://127.0.0.1:${PORT:-8091}"
 
 salud() {
+  # Válvula para ejercitar el rollback a propósito:
+  #   sudo systemctl stop reservas-deploy.timer
+  #   sudo -u bastion DEPLOY_FORZAR_FALLO_SALUD=1 GH_TOKEN=... \
+  #        /usr/local/bin/reservas-deploy --force
+  # No hay forma de provocar este fallo "de verdad" sin romper el stack:
+  # parar el backend a mano no sirve porque `docker compose up -d` lo vuelve
+  # a levantar antes de llegar acá. Y un rollback que nunca se ejercitó es
+  # una suposición, no un mecanismo.
+  if [ "${DEPLOY_FORZAR_FALLO_SALUD:-0}" = "1" ]; then
+    warn "DEPLOY_FORZAR_FALLO_SALUD=1: se simula un health check fallido."
+    return 1
+  fi
+
   curl -fsS --max-time 10 "$BASE/health" | grep -q '"status":"ok"' || return 1
   [ "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 10 "$BASE/")" = "200" ] || return 1
   curl -fsS --max-time 10 -o /dev/null "$BASE/main.dart.js" || return 1
@@ -286,7 +299,13 @@ salud() {
 }
 
 ok=0
-for _ in $(seq 1 12); do salud && { ok=1; break; }; sleep 5; done
+for _ in $(seq 1 12); do
+  salud && { ok=1; break; }
+  # En la simulación no tiene sentido reintentar 12 veces: iría al rollback
+  # un minuto más tarde y con doce avisos repetidos en el journal.
+  [ "${DEPLOY_FORZAR_FALLO_SALUD:-0}" = "1" ] && break
+  sleep 5
+done
 
 if [ "$ok" -ne 1 ]; then
   warn "El health check falló; revirtiendo a $PREV_SHA."

@@ -101,6 +101,32 @@ sudo systemctl start reservas-deploy.service  # forzar un ciclo ya
 sudo -u bastion GH_TOKEN=... /usr/local/bin/reservas-deploy --force   # redesplegar el mismo SHA
 ```
 
+## Ejercitar el rollback
+
+Un rollback que nunca se probó es una suposición, no un mecanismo. No se puede provocar el fallo "de verdad" sin romper el stack (parar el backend a mano no sirve: `docker compose up -d` lo levanta antes de llegar al health check), así que el script trae una válvula explícita.
+
+```bash
+sudo systemctl stop reservas-deploy.timer     # que no interfiera a mitad
+sudo -u bastion DEPLOY_FORZAR_FALLO_SALUD=1 \
+     GH_TOKEN="$(sudo sed -n 's/^GH_TOKEN=//p' /etc/reservas-deploy/deploy.env)" \
+     /usr/local/bin/reservas-deploy --force
+```
+
+Debe: sincronizar el bundle, fallar el health check, **restaurar el bundle anterior**, volver el checkout al commit previo, reiniciar el proxy y terminar con `Despliegue revertido`. Comprobar después:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8091/   # 200: el sitio sigue en pie
+cat ~/reservas-deploy/state.json                                   # status: "failed"
+```
+
+Para recuperarse hace falta `--force`: un SHA registrado como fallido **no se reintenta solo** (ver más abajo). Reactivar el timer al terminar:
+
+```bash
+sudo -u bastion GH_TOKEN="$(sudo sed -n 's/^GH_TOKEN=//p' /etc/reservas-deploy/deploy.env)" \
+     /usr/local/bin/reservas-deploy --force
+sudo systemctl start reservas-deploy.timer
+```
+
 ## Decisiones que parecen raras y no lo son
 
 **El agente nunca compila Flutter.** Si el artefacto expiró (14 días), aborta y te pide relanzar el workflow en GitHub. Compilar en el servidor como respaldo desplegaría un bundle *no verificado por CI*, que es justo lo que este diseño evita.
