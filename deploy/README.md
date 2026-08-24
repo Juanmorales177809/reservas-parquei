@@ -67,7 +67,17 @@ sudo systemctl daemon-reload
 
 Si el usuario del servidor no es `bastion`, ajustá `User=`, `Group=`, `Environment=HOME=` y `WorkingDirectory=` en el `.service` antes del `daemon-reload`.
 
-### 3. Probarlo A MANO antes de activar el timer
+### 3. Dar la propiedad de `build/` al usuario de despliegue
+
+Si alguna vez se compiló la Web en el servidor con el contenedor descartable, todo `app_flutter/build/` quedó de **root**: los contenedores escriben como root en los volúmenes montados. El agente corre sin privilegios y no podría escribir ahí.
+
+```bash
+sudo chown -R "$(id -un):$(id -gn)" ~/reservas-parquei/app_flutter/build
+```
+
+El agente comprueba esto por adelantado y aborta con este mismo comando en el mensaje si detecta el problema, sin tocar el bundle que está sirviendo.
+
+### 4. Probarlo A MANO antes de activar el timer
 
 ```bash
 sudo systemctl start reservas-deploy.service && journalctl -u reservas-deploy -n 50 --no-pager
@@ -75,7 +85,7 @@ sudo systemctl start reservas-deploy.service && journalctl -u reservas-deploy -n
 
 Debe terminar en `Desplegado correctamente en http://127.0.0.1:8091`. Si algo falla, falla **sin tocar** lo que está sirviendo (todas las validaciones ocurren antes del primer efecto secundario).
 
-### 4. Activar el timer
+### 5. Activar el timer
 
 ```bash
 sudo systemctl enable --now reservas-deploy.timer && systemctl list-timers reservas-deploy.timer

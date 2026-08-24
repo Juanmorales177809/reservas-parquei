@@ -210,15 +210,34 @@ fi
 # directorio.
 WEB_DIR="$REPO_DIR/app_flutter/build/web"
 mkdir -p "$WEB_DIR"
+
+# Se comprueba ANTES de tocar nada. Si `flutter build web` se corrió alguna
+# vez con el contenedor descartable, todo build/ quedó de root (los
+# contenedores escriben como root en los volúmenes montados) y este agente,
+# que corre sin privilegios, no puede escribir ahí. Sin esta comprobación el
+# fallo aparece a mitad del rsync, con decenas de "Permission denied" y el
+# despliegue a medias.
+if [ ! -w "$WEB_DIR" ]; then
+  die "No se puede escribir en $WEB_DIR (dueño: $(stat -c '%U:%G' "$WEB_DIR")). Suele pasar tras compilar con el contenedor descartable, que escribe como root. Corregilo una vez con:
+    sudo chown -R \"\$(id -un):\$(id -gn)\" \"$REPO_DIR/app_flutter/build\""
+fi
+
 ROLLBACK_DIR="$DEPLOY_ROOT/rollback/web-$(date +%Y%m%d-%H%M%S)"
-cp -a "$WEB_DIR" "$ROLLBACK_DIR"
+# --preserve=mode,timestamps en vez de `cp -a`: preservar el DUEÑO exige
+# privilegios que este agente no tiene (y no los necesita).
+cp -R --preserve=mode,timestamps "$WEB_DIR" "$ROLLBACK_DIR"
+
+# --no-owner --no-group por el mismo motivo: sin ellos, `-a` intenta un
+# chgrp por archivo que falla para un usuario sin privilegios. Al agente le
+# importa el contenido y los permisos de lectura, no la propiedad.
+RSYNC_OPTS=(-a --no-owner --no-group)
 
 # Los puntos de entrada van al final: referencian los hashes del build nuevo,
 # así que copiarlos primero abriría una ventana en la que el navegador pide
 # assets que todavía no existen.
-rsync -a --delete-after --exclude='index.html' --exclude='flutter_bootstrap.js' "$REL"/ "$WEB_DIR"/
-rsync -a "$REL"/index.html "$WEB_DIR"/
-[ -f "$REL/flutter_bootstrap.js" ] && rsync -a "$REL"/flutter_bootstrap.js "$WEB_DIR"/
+rsync "${RSYNC_OPTS[@]}" --delete-after --exclude='index.html' --exclude='flutter_bootstrap.js' "$REL"/ "$WEB_DIR"/
+rsync "${RSYNC_OPTS[@]}" "$REL"/index.html "$WEB_DIR"/
+[ -f "$REL/flutter_bootstrap.js" ] && rsync "${RSYNC_OPTS[@]}" "$REL"/flutter_bootstrap.js "$WEB_DIR"/
 chmod -R a+rX "$WEB_DIR"
 
 # --- 7. Converger el stack ----------------------------------------------
@@ -266,7 +285,7 @@ for _ in $(seq 1 12); do salud && { ok=1; break; }; sleep 5; done
 
 if [ "$ok" -ne 1 ]; then
   warn "El health check falló; revirtiendo a $PREV_SHA."
-  rsync -a --delete-after "$ROLLBACK_DIR"/ "$WEB_DIR"/
+  rsync "${RSYNC_OPTS[@]}" --delete-after "$ROLLBACK_DIR"/ "$WEB_DIR"/
   restaurar_checkout
   if [ "$REBUILD" -eq 1 ]; then
     docker compose build backend && docker compose up -d --wait --wait-timeout 300 backend || true
