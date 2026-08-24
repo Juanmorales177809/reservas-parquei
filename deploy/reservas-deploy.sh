@@ -277,7 +277,12 @@ salud() {
   # 401 es la respuesta CORRECTA de un endpoint autenticado sin cookie:
   # distingue "el backend responde y /api/ enruta bien" de un 502 del proxy
   # (IP cacheada) o un 404 de nginx.
-  [ "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 10 "$BASE/api/usuarios/me")" = "401" ] || return 1
+  #
+  # SIN -f a propósito: con -f, curl trata el 401 como fallo y escribe
+  # "curl: (22) ... error: 401" en el journal — o sea, la comprobación
+  # pasando se leía como un error. Acá el 401 es el resultado buscado, así
+  # que se pide solo el código y se compara.
+  [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$BASE/api/usuarios/me")" = "401" ] || return 1
 }
 
 ok=0
