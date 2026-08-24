@@ -210,7 +210,11 @@ class _ZonaFormDialogState extends ConsumerState<_ZonaFormDialog> {
     _descripcion = z?.descripcion ?? '';
     _capacidad = z?.capacidad;
     _estado = z?.estado ?? EstadoEntidad.activo;
-    _espacioId = z?.espacioId;
+    // Al crear, un gestor no elige espacio: se siembra con el suyo (uno
+    // solo por definición, ver tabla de roles en el CLAUDE.md raíz), y el
+    // selector queda oculto más abajo. Para un admin `espacio` es null,
+    // así que esto queda en null y el selector sí se muestra.
+    _espacioId = z?.espacioId ?? ref.read(authProvider).value?.espacio?.id;
   }
 
   Future<void> _guardar() async {
@@ -275,7 +279,14 @@ class _ZonaFormDialogState extends ConsumerState<_ZonaFormDialog> {
                 onSaved: (v) => _nombre = v!.trim(),
               ),
               const SizedBox(height: AppSpacing.md),
-              if (!_esEdicion || esAdmin)
+              // Solo admin elige espacio — mismo criterio que
+              // `GestionRecursosScreen`. Antes era `!_esEdicion || esAdmin`,
+              // que al CREAR se lo mostraba también al gestor con la lista
+              // global de espacios; peor aún, el `initialValue` de abajo
+              // preseleccionaba `espacios.first` y el `onSaved` lo confirmaba
+              // en el estado, así que un gestor que ni tocaba el campo
+              // enviaba un espacio ajeno y recibía un 403 del backend.
+              if (esAdmin)
                 espaciosAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los espacios.')),
