@@ -10,6 +10,7 @@ import '../core/theme/app_spacing.dart';
 import '../core/widgets/brand_mark.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/notificaciones/presentation/notification_bell.dart';
+import 'session_menu.dart';
 
 /// Navegación superior para PC/pantallas grandes (≥ 840dp). Consume la
 /// misma lista de destinos que [BottomNavShell] — nunca la duplica.
@@ -82,6 +83,7 @@ class TopNavShell extends ConsumerWidget {
             ),
           const SizedBox(width: AppSpacing.sm),
           if (autenticado) const NotificationBell(),
+          if (autenticado) const SessionMenu(),
           if (!autenticado)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),

@@ -19,7 +19,6 @@ import '../../features/reservas/presentation/mis_reservas_screen.dart';
 import '../../features/usuarios/presentation/gestion_usuarios_screen.dart';
 import '../../features/zonas/presentation/gestion_zonas_screen.dart';
 import '../../shell/app_shell.dart';
-import '../../shell/inicio_screen.dart';
 import 'app_routes.dart';
 import 'nav_destinations.dart';
 
@@ -91,7 +90,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final esRutaPublica = AppRoutes.publicas.contains(state.fullPath);
 
       if (user == null && !esRutaPublica) return AppRoutes.login;
-      if (user != null && state.matchedLocation == AppRoutes.login) return AppRoutes.inicio;
+      if (user != null && state.matchedLocation == AppRoutes.login) return AppRoutes.admin;
 
       final destinosDeLaRuta = kNavDestinations.where((d) => d.path == state.matchedLocation);
       final destino = destinosDeLaRuta.isEmpty ? null : destinosDeLaRuta.first;
@@ -123,7 +122,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: AppRoutes.inicio, pageBuilder: (context, state) => _fadeThroughPage(state, const InicioScreen())),
           GoRoute(
             path: AppRoutes.espacios,
             pageBuilder: (context, state) => _fadeThroughPage(state, const EspaciosListScreen()),

@@ -32,10 +32,12 @@ void main() {
       await irA(tester, '/espacios');
 
       expect(find.text('Elegí un espacio para ver sus recursos y disponibilidad'), findsOneWidget);
-      // Sin sesión, "Inicio" no debe verse: `NavDestinationSpec` para
-      // 'inicio' no declara `requiereSesion: false`, así que por defecto
-      // exige sesión — solo "Espacios" es público (ver nav_destinations.dart).
-      expect(find.text('Inicio'), findsNothing);
+      // Sin sesión, "Dashboard" no debe verse: su `NavDestinationSpec` no
+      // declara `requiereSesion: false`, así que por defecto exige sesión —
+      // solo "Espacios" es público (ver nav_destinations.dart). Antes esta
+      // aserción usaba "Inicio", el destino que se eliminó al pasar a ser
+      // el dashboard el punto de aterrizaje tras autenticarse.
+      expect(find.text('Dashboard'), findsNothing);
     });
 
     testWidgets('un gestor no puede entrar a /usuarios (admin-only): el guard lo redirige', (tester) async {

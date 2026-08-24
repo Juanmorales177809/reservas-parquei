@@ -6,6 +6,7 @@ import '../core/router/nav_destinations.dart';
 import '../core/widgets/brand_mark.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/notificaciones/presentation/notification_bell.dart';
+import 'session_menu.dart';
 
 /// Navegación inferior con iconos para móvil (< 840dp). Consume la misma
 /// lista de destinos que [TopNavShell] — nunca la duplica.
@@ -23,7 +24,10 @@ class BottomNavShell extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const BrandMark(),
-        actions: [if (autenticado) const NotificationBell()],
+        actions: [
+          if (autenticado) const NotificationBell(),
+          if (autenticado) const SessionMenu(),
+        ],
       ),
       body: child,
       bottomNavigationBar: destinos.isEmpty

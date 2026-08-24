@@ -4,7 +4,9 @@
 abstract final class AppRoutes {
   static const login = '/login';
   static const terminos = '/terminos';
-  static const inicio = '/dashboard';
+  // No hay `inicio`: tras autenticarse se aterriza en [admin], el
+  // dashboard real. La antigua `/dashboard` servía una `InicioScreen`
+  // placeholder y se eliminó el 2026-08-24.
   static const espacios = '/espacios';
   static const espacioDetalleTemplate = '/espacios/:id';
   static String espacioDetalle(int id) => '/espacios/$id';

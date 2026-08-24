@@ -6,6 +6,7 @@ import 'package:app_flutter/core/domain/enums.dart';
 import 'package:app_flutter/core/router/app_routes.dart';
 import 'package:app_flutter/features/espacios/presentation/slot_chip.dart';
 import 'package:app_flutter/main.dart' as app_main;
+import 'package:app_flutter/shell/session_menu.dart';
 
 /// Arranca la app real.
 ///
@@ -88,11 +89,17 @@ Future<void> login(WidgetTester tester, {required String usuario, required Strin
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 
-/// `InicioScreen` es el único lugar de la app con un botón de logout
-/// visible en todos los roles (ver `shell/inicio_screen.dart`).
+/// El logout vive en el [SessionMenu] de la `AppBar`, que montan los tres
+/// shells (bottom/rail/top), así que sirve en cualquier ancho de ventana y
+/// desde cualquier pantalla con shell — no hace falta navegar antes.
+///
+/// Hasta 2026-08-24 estaba en `InicioScreen`, que era el único lugar de la
+/// app con botón de logout; esa pantalla se eliminó cuando el inicio pasó a
+/// ser el dashboard.
 Future<void> logout(WidgetTester tester) async {
-  await irA(tester, AppRoutes.inicio);
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Cerrar sesión'));
+  await tester.tap(find.byType(SessionMenu));
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(MenuItemButton, 'Cerrar sesión'));
   await tester.pumpAndSettle(const Duration(seconds: 1));
 }
 

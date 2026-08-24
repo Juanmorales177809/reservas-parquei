@@ -8,6 +8,7 @@ import '../core/theme/app_spacing.dart';
 import '../core/widgets/brand_mark.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/notificaciones/presentation/notification_bell.dart';
+import 'session_menu.dart';
 
 /// Navegación lateral para el tamaño **medio** (600–1240dp): tablets,
 /// ventanas a media pantalla en escritorio, Web sin maximizar.
@@ -43,6 +44,7 @@ class RailNavShell extends ConsumerWidget {
         title: const BrandMark(),
         actions: [
           if (autenticado) const NotificationBell(),
+          if (autenticado) const SessionMenu(),
           const SizedBox(width: AppSpacing.md),
         ],
       ),

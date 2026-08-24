@@ -73,13 +73,10 @@ const kNavDestinations = <NavDestinationSpec>[
     primario: true,
     requiereSesion: false,
   ),
-  NavDestinationSpec(
-    id: 'inicio',
-    label: 'Inicio',
-    icon: LucideIcons.house,
-    path: AppRoutes.inicio,
-    primario: true,
-  ),
+  // No hay destino "Inicio": el inicio ES el dashboard (`id: 'dashboard'`
+  // más abajo). Hasta 2026-08-24 existía una `InicioScreen` separada —un
+  // placeholder de la Fase 0 con un saludo y atajos que duplicaban esta
+  // misma barra— que sobrevivió a la llegada del dashboard real.
   NavDestinationSpec(
     id: 'mis-reservas',
     label: 'Reservas',
