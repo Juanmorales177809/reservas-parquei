@@ -12,6 +12,30 @@
 
 `flutter analyze`: "No issues found!". `flutter test`: 9/9. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
 
+### Cambios del 2026-08-24 (primer despliegue en servidor real)
+
+Primera vez que la app se levanta en un host que no es la máquina de desarrollo (bastion Ubuntu 24.04). Tres cosas salieron de ahí, cada una detallada en su sección:
+
+- **Puerto del `flutter_proxy`: 8090 → 8091** — el 8090 estaba ocupado por otro proyecto en ese host.
+- **Botón "Iniciar sesión" en la nav superior** (`top_nav_shell.dart`): no existía **ningún** punto de entrada a `/login` en el shell; un visitante anónimo solo llegaba al login por redirección del guard o por los CTAs dentro de las hojas de reserva.
+- **Bug real de navegación post-login (`push` vs `go`)** — encontrado por el usuario usando ese botón nuevo, afectaba también a tres CTAs preexistentes.
+- **El gestor veía espacios y zonas ajenos** en las pantallas de gestión — ver la sección siguiente.
+
+## ⚠️ El alcance del gestor NO viene filtrado en los listados: hay que aplicarlo en el cliente (2026-08-24)
+
+Regla a recordar, porque es contraintuitiva y ya causó dos defectos:
+
+> El backend **sí** impone el alcance del gestor en las **escrituras** (403, o sobrescritura silenciosa del `espacio_id`), pero los **listados de lectura devuelven todo**. `GET /espacios` solo filtra por estado (`api/espacios.py:50-53`, RN-005) y `GET /zonas` tampoco acota al espacio gestionado (`api/zonas.py:31-36`): gestor y admin reciben los de todos los espacios. **Si una pantalla de gestión muestra una lista o un selector, el filtro por espacio es responsabilidad del cliente.**
+
+El dato para filtrar ya está en memoria y no hace falta pedir nada: `AuthUser.espacio` (`features/auth/domain/auth_user.dart`) es un `EspacioResumen{id, nombre, ubicacion}` que `GET /usuarios/me` y `POST /auth/login` devuelven poblado para el gestor (`null` para admin y para rol `usuario`).
+
+Lo que estaba mal, reportado por el usuario contra el despliegue real:
+
+1. **Formulario de zonas** (`gestion_zonas_screen.dart`): la condición del selector de espacio era `if (!_esEdicion || esAdmin)`, así que **al crear** se le mostraba también al gestor, con la lista global. El agravante no era el ruido visual sino la trampa: el `DropdownButtonFormField` preseleccionaba `espacios.first` vía `initialValue` y su `onSaved` confirmaba ese valor en el estado durante `_formKey.currentState!.save()` — un gestor que ni tocaba el campo enviaba un espacio ajeno y se comía un 403 incomprensible. Arreglado a `if (esAdmin)`, con `_espacioId` sembrado en `initState` desde `AuthUser.espacio`.
+2. **`zonasGestionProvider`** (`zonas/application/zonas_providers.dart`): tenía un comentario afirmando *"Para gestor, el backend ya filtra al espacio gestionado"*. **Era falso.** Por eso el gestor veía en `GestionZonasScreen` las zonas de todos los espacios, y el desplegable de zona de `GestionEnsayosScreen` —alimentado por el mismo provider— le ofrecía zonas ajenas que el backend luego rechazaba. `ZonasRepository.listar({int? espacioId})` ya aceptaba el filtro; nunca se le pasaba. Ahora el provider conmuta por rol, igual que `dashboard_providers.dart:14`.
+
+`GestionRecursosScreen` ya lo hacía bien desde antes (envuelve el selector en `if (esAdmin)` y deja que el backend complete el espacio) — **ese es el patrón a copiar** para cualquier pantalla de gestión nueva. `GestionUsuariosScreen` y `GestionEspaciosScreen` sí deben listar todos los espacios: son exclusivas de admin.
+
 ## Usuario de prueba `gestor_flutter`
 
 Creado en `reservas_test` durante la verificación de la Fase 4 para poder probar rutas exclusivas de `gestor` (que `admin_flutter`, usado en fases anteriores, no puede — `GET/PUT /espacios/gestion/configuracion` da 403 incluso a admin). Usuario `gestor_flutter` / clave `ClaveGestor123`, asignado al espacio "Auditorio Principal" (id 1). Vive en `reservas_test`, se pierde si se recrea el contenedor — recrear con `POST /usuarios` (`{"username":"gestor_flutter","email":"gestor_flutter@example.com","password":"ClaveGestor123","rol":"gestor","espacio_id":1}`, autenticado como admin) si hace falta.
@@ -260,7 +284,25 @@ Ninguno de estos tres pasos es permanente ni forma parte del repo: son solo la f
 
 ## Rutas empujadas vs. destinos del shell (lección de la Fase 1)
 
-`ShellRoute` (bottom/top nav) es solo para las pantallas "raíz" de cada destino de navegación (`/espacios`, `/dashboard`, ...). Una pantalla de detalle abierta por navegación normal (`/espacios/:id`) **no** va dentro del `ShellRoute`: anidarla ahí duplica el `Scaffold`/`AppBar` (el de `BottomNavShell`/`TopNavShell` MÁS el propio de la pantalla), un bug real que se detectó visualmente en la Fase 1. Las rutas "empujadas" (con su propia `AppBar` + botón atrás, sin bottom/top nav) se registran como `GoRoute` de nivel superior en `app_router.dart`, igual que `/login`, y se navega a ellas con `context.push(...)` (preserva la pila), no `context.go(...)`.
+`ShellRoute` (bottom/top nav) es solo para las pantallas "raíz" de cada destino de navegación (`/espacios`, `/dashboard`, ...). Una pantalla de detalle abierta por navegación normal (`/espacios/:id`) **no** va dentro del `ShellRoute`: anidarla ahí duplica el `Scaffold`/`AppBar` (el de `BottomNavShell`/`TopNavShell` MÁS el propio de la pantalla), un bug real que se detectó visualmente en la Fase 1. Las rutas "empujadas" (con su propia `AppBar` + botón atrás, sin bottom/top nav) se registran como `GoRoute` de nivel superior en `app_router.dart` y se navega a ellas con `context.push(...)` (preserva la pila), no `context.go(...)`.
+
+**`/login` es la excepción: se registra igual (nivel superior) pero se navega con `go`, nunca con `push`** — ver la sección siguiente. Esta advertencia se agregó el 2026-08-24 justo porque esta misma sección decía antes "igual que `/login`" y esa frase indujo el bug.
+
+## ⚠️ A `/login` se navega con `go`, NUNCA con `push` (bug real, 2026-08-24)
+
+Síntoma reportado por el usuario, contra el despliegue real: se ingresaban credenciales válidas, el backend respondía `POST /auth/login 200 OK`, y la app **se quedaba mostrando el formulario de login**. Recargando la página aparecía la sesión ya iniciada. Parecía un 401 intermitente y no lo era.
+
+Causa: `context.push(AppRoutes.login)`. En `go_router`, `push` agrega un `ImperativeRouteMatch` **encima** de la `RouteMatchList` actual sin cambiar el `uri` de esa lista — la barra de direcciones seguía marcando `/espacios` mientras se veía la pantalla de login (así se detectó, por captura del navegador). El guard de `app_router.dart` decide la navegación post-login con:
+
+```dart
+if (user != null && state.matchedLocation == AppRoutes.login) return AppRoutes.inicio;
+```
+
+Como `matchedLocation` valía `/espacios` y no `/login`, la condición nunca se cumplía: el login se completaba de verdad (cookie fijada, de ahí que recargar funcionara), pero nadie desapilaba el formulario. Con `go`, `/login` pasa a ser la ubicación real, el `refreshListenable` reevalúa el `redirect` al cambiar `authProvider` y la redirección a `/dashboard` ocurre sola.
+
+Afectaba a los cuatro accesos a login que existen: el botón "Iniciar sesión" de `top_nav_shell.dart` (agregado ese mismo día) y los tres CTAs "Iniciá sesión para reservar" de `recurso_disponibilidad_sheet.dart` y `espacio_reserva_sheet.dart` — estos últimos rotos desde antes, nunca detectados porque el E2E que existe corre sobre nativo Windows y su helper `login()` navega con `irA()`/`GoRouter.go`, no tocando estos botones.
+
+Cuarta repetición de la misma lección del proyecto: `flutter analyze` en "No issues found!" y `flutter test` en verde no dicen nada sobre si el flujo real funciona.
 
 ## `build.yaml`: `json_serializable` con `field_rename: snake`
 
@@ -276,11 +318,13 @@ Desde la Fase 1 hay un `app_flutter/build.yaml` que configura `field_rename: sna
 
 **Android: sigue sin instalar** (Android Studio/SDK, decisión explícita, se difiere para no bloquear con descargas grandes). El target queda escrito pero sin verificar en ejecución real — solo pasa `flutter analyze`/`flutter test`.
 
-## ⚠️ `http://localhost:8090` (el `flutter_proxy` de `docker-compose.yml`) apunta a `reservas_db`, NO a `reservas_test`
+## ⚠️ `http://localhost:8091` (el `flutter_proxy` de `docker-compose.yml`) apunta a `reservas_db`, NO a `reservas_test`
 
-Trampa real, fácil de pisar porque *parece* el mismo patrón same-origin usado para verificación manual en toda la Fase 0-6: `app_flutter/nginx.conf` hace `proxy_pass http://backend:8000/`, y ese `backend` es el servicio de `docker-compose.yml` cuyo `DATABASE_URL` por defecto es `reservas_db` (ver la línea `POSTGRES_DB: ${POSTGRES_DB:-reservas_db}` / `DATABASE_URL: ...db:5432/reservas_db`), **la base de desarrollo**. Nunca usar `:8090` para nada que escriba datos de prueba (fixtures, E2E, exploración con mutaciones) — es exactamente lo que la regla dura del proyecto prohíbe ("ninguna tarea asistida debe leer/escribir/migrar `reservas_db`"). Confirmado el 2026-08-21: navegar `:8090` mostraba recursos ("Recurso Auditorio 1/2") que no existían en absoluto en `reservas_test` — eran datos reales de `reservas_db`.
+**El puerto por defecto pasó de 8090 a 8091 el 2026-08-24** (`FLUTTER_PROXY_PORT` en `docker-compose.yml`, junto con el default de `BACKEND_CORS_ORIGINS`): en el host de despliegue el 8090 ya estaba tomado por otro proyecto sin relación y `docker compose up` fallaba con `Bind for 0.0.0.0:8090 failed: port is already allocated`. Sigue siendo configurable por `FLUTTER_PROXY_PORT`; las menciones a `:8090` en las secciones históricas más arriba (verificaciones de Fase 6-Web, fechadas 2026-08-21) se dejaron como estaban porque describen lo que se corrió ese día.
 
-Para cualquier verificación/E2E, usar el proxy desechable propio apuntado al backend local (ver "Cómo se verificó la Fase 0" arriba), en un puerto **distinto** a 8090 si el stack de Docker ya está arriba (por ejemplo 8095) para no confundir cuál es cuál.
+Trampa real, fácil de pisar porque *parece* el mismo patrón same-origin usado para verificación manual en toda la Fase 0-6: `app_flutter/nginx.conf` hace `proxy_pass http://backend:8000/`, y ese `backend` es el servicio de `docker-compose.yml` cuyo `DATABASE_URL` por defecto es `reservas_db` (ver la línea `POSTGRES_DB: ${POSTGRES_DB:-reservas_db}` / `DATABASE_URL: ...db:5432/reservas_db`), **la base de desarrollo**. Nunca usar ese puerto para nada que escriba datos de prueba (fixtures, E2E, exploración con mutaciones) — es exactamente lo que la regla dura del proyecto prohíbe ("ninguna tarea asistida debe leer/escribir/migrar `reservas_db`"). Confirmado el 2026-08-21: navegar el proxy mostraba recursos ("Recurso Auditorio 1/2") que no existían en absoluto en `reservas_test` — eran datos reales de `reservas_db`.
+
+Para cualquier verificación/E2E, usar el proxy desechable propio apuntado al backend local (ver "Cómo se verificó la Fase 0" arriba), en un puerto **distinto** al del `flutter_proxy` si el stack de Docker ya está arriba (por ejemplo 8095) para no confundir cuál es cuál.
 
 ## E2E: `integration_test` de Flutter (2026-08-21) — corrido de punta a punta en nativo Windows, ambos archivos pasan
 
@@ -338,3 +382,30 @@ flutter pub run build_runner build   # tras tocar modelos freezed/json o provide
 flutter run -d chrome --dart-define-from-file=env/dev.json        # nota: login chocará con CORS sin el proxy same-origin (ver arriba)
 flutter drive --driver=test_driver/integration_test.dart --target=integration_test/reserva_flujo_test.dart -d windows --dart-define-from-file=env/dev.json   # verificado, ver sección E2E arriba
 ```
+
+### Buildear la Web en un host SIN Flutter instalado (servidor de despliegue)
+
+`flutter_proxy` sirve `build/web` como volumen: si esa carpeta no existe, nginx responde **403 Forbidden** (no 404) y parece un problema de permisos del proxy cuando en realidad no hay nada que servir. El servidor de despliegue no tiene el SDK, así que el build se hace en un contenedor descartable con el SDK oficial:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app ubuntu:24.04 bash -c '
+set -e
+apt-get update -qq
+apt-get install -y -qq curl xz-utils git ca-certificates > /dev/null
+curl -sSL --retry 5 --retry-delay 3 --speed-time 20 --speed-limit 5000 \
+  https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.1-stable.tar.xz -o /tmp/flutter.tar.xz
+tar -xJf /tmp/flutter.tar.xz -C /opt
+export PATH="$PATH:/opt/flutter/bin"
+git config --global --add safe.directory /opt/flutter
+git config --global --add safe.directory /app
+flutter config --no-analytics --no-cli-animations
+flutter build web --dart-define-from-file=env/web.json
+'
+```
+
+Detalles que costaron tiempo la primera vez (2026-08-24):
+
+- **No usar `ghcr.io/cirruslabs/flutter`**: no publica un tag `3.47.1`, y su `latest` traía Dart 3.12.0 mientras `pubspec.yaml` exige `^3.13.1` → "version solving failed". El SDK oficial versionado evita depender de que un tag de terceros esté al día.
+- **Los flags `--retry`/`--speed-time`/`--speed-limit` del `curl` no son decorativos**: sin ellos, una descarga estancada (pasó: se cortó en 257MB de ~1GB y quedó colgada indefinidamente, con el enlace del host a 37MB/s) deja el contenedor esperando para siempre sin imprimir nada. Toda la fase previa a `flutter config` es silenciosa, así que "no pasa nada en pantalla" es indistinguible de un cuelgue — diagnóstico: `docker exec <id> ls -la /tmp/flutter.tar.xz` dos veces y ver si el tamaño crece.
+- **Desde Git Bash en Windows** hay que anteponer `MSYS_NO_PATHCONV=1`, o convierte `/app` a una ruta de Windows y `docker run` falla con "working directory ... is invalid".
+- **Efecto colateral en Windows**: correr esto sobre un checkout Windows reescribe `*/flutter/generated_plugin_registrant.*` y `generated_plugins.cmake` con fin de línea LF. El diff es solo de line-endings; descartarlo (`git checkout --`) antes de commitear.

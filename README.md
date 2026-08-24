@@ -4,16 +4,21 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 
 ## Funcionalidades
 
-- Consulta pública de espacios, recursos activos y disponibilidad.
+- Consulta pública de espacios, recursos activos, zonas y disponibilidad.
 - Reservas de uno o varios bloques horarios consecutivos.
+- Reservas multi-recurso y multi-zona: una misma reserva puede combinar varios recursos y/o zonas del mismo espacio.
+- Modalidad de reserva por espacio (`equipos`, `zonas` o `mixto`), que determina si expone recursos individuales, zonas reservables (con o sin recursos propios), o ambos.
+- Ensayos asociados a una zona, seleccionables opcionalmente al reservar.
+- Acompañantes nombrados (nombre y correo) por reserva.
+- Tipo de reserva académica (investigación, trabajo de grado, servicio de ensayo) y recursos de prestación de servicios (PS) restringidos por rol y tipo.
 - Validación de capacidad, anticipación, estado y horario de atención.
 - Prevención transaccional de reservas superpuestas en PostgreSQL.
 - Aprobación automática de reservas: se aplica tanto por un flag configurable por espacio (afecta a cualquier rol, incluido `usuario`) como, de forma independiente, cuando un `gestor` reserva en el espacio que administra — detalle exacto y referencias de código en [`CHANGELOG.md`](CHANGELOG.md) (Fase 12A, corrección de RN-021).
-- Gestión de solicitudes por administradores y gestores.
+- Gestión de solicitudes por administradores y gestores, incluido el registro de asistencia.
 - Notificaciones de solicitudes pendientes, aprobaciones, rechazos y cancelaciones.
 - Dashboard con estadísticas de reservas y ocupación.
 - Registro administrativo de cambios.
-- Administración de usuarios, espacios y recursos.
+- Administración de usuarios, espacios, recursos, zonas y ensayos.
 
 ## Tecnologías
 
@@ -59,7 +64,7 @@ El navegador siempre se comunica con Next.js. Las solicitudes a `/api/*` son ree
 | Rol | Capacidades principales |
 | --- | --- |
 | `usuario` | Consultar disponibilidad, crear reservas, consultar y editar solicitudes pendientes, cancelar reservas aprobadas y leer notificaciones. |
-| `gestor` | Gestionar recursos, configuración y reservas únicamente del espacio asignado. |
+| `gestor` | Gestionar recursos, zonas, ensayos, configuración y reservas únicamente del espacio asignado. |
 | `admin` | Gestión global de usuarios, espacios, recursos, reservas, dashboard y control de cambios. |
 
 Un gestor solo puede estar asignado a un espacio. La aplicación impide eliminar o degradar la propia cuenta administrativa y garantiza que permanezca al menos un administrador.
@@ -68,15 +73,23 @@ Un gestor solo puede estar asignado a un espacio. La aplicación impide eliminar
 
 Para crear o modificar una reserva:
 
-- El espacio y el recurso deben estar activos.
-- El número de asistentes no puede superar la capacidad del recurso.
+- El espacio debe estar activo, y también cada recurso o zona incluido (`recurso_ids`/`zona_ids`). Debe indicarse al menos uno de los dos.
+- El número de asistentes no puede superar la capacidad mínima entre los recursos y zonas seleccionados (si ninguno tiene capacidad definida, no se aplica el límite).
 - El intervalo debe estar contenido completamente en el horario configurado.
 - Las horas deben ser bloques completos; por ejemplo, `08:00–10:00`.
 - Debe cumplirse la anticipación mínima configurada para el espacio.
-- No puede existir otra reserva `esperando` o `aprobada` que se solape para el mismo recurso y fecha.
+- No puede existir otra reserva `esperando` o `aprobada` que se solape para el mismo recurso o zona y fecha.
 - Los intervalos contiguos sí están permitidos: `08:00–10:00` y `10:00–11:00`.
 
 PostgreSQL aplica la restricción de solapamiento mediante la extensión `btree_gist`. La validación del backend ofrece un mensaje inmediato y la base de datos protege también frente a solicitudes concurrentes.
+
+### Zonas, ensayos, tipo y acompañantes
+
+- Cada espacio tiene una modalidad de reserva (`equipos`, `zonas` o `mixto`) que determina si expone recursos individuales, zonas, o ambos.
+- Una zona pertenece a un único espacio y puede tener recursos asociados (un recurso pertenece, como máximo, a una zona); es reservable aunque no tenga recursos propios.
+- Los ensayos pertenecen a una zona y pueden seleccionarse opcionalmente al reservar; cada ensayo elegido debe corresponder a una de las zonas efectivamente reservadas.
+- El tipo de reserva (`trabajo_investigacion`, `trabajo_grado`, `servicio_de_ensayo`) es opcional, salvo para los recursos marcados como prestación de servicios (PS): no están disponibles para el rol `usuario`, y `gestor`/`admin` solo pueden reservarlos con `tipo=servicio_de_ensayo`.
+- Los acompañantes son opcionales: nombre y correo por cada persona adicional registrada en la reserva.
 
 ### Estados
 
@@ -217,12 +230,18 @@ Los endpoints protegidos se autentican únicamente con la cookie de sesión `acc
 | `GET /recursos` | Público | Listar o filtrar recursos. |
 | `GET /recursos/{id}/disponibilidad` | Público | Consultar disponibilidad de un recurso. |
 | `POST/PUT/DELETE /recursos` | Admin o gestor | Administrar recursos dentro del alcance permitido. |
-| `POST /reservas` | Autenticado | Crear una reserva. |
+| `GET /zonas` | Público | Listar zonas de un espacio. |
+| `POST/PUT/DELETE /zonas` | Admin o gestor | Administrar zonas dentro del alcance permitido. |
+| `PUT /zonas/{id}/recursos` | Admin o gestor | Reemplazar por completo los recursos asociados a una zona. |
+| `GET /ensayos` | Público | Listar ensayos de una zona. |
+| `POST/PUT/DELETE /ensayos` | Admin o gestor | Administrar ensayos dentro del alcance permitido. |
+| `POST /reservas` | Autenticado | Crear una reserva (uno o varios recursos y/o zonas). |
 | `GET /reservas/mis-reservas` | Autenticado | Consultar reservas propias. |
 | `PATCH /reservas/{id}` | Autenticado | Editar una reserva dentro de los permisos aplicables. |
 | `PUT /reservas/{id}/cancelar` | Propietario | Cancelar una reserva aprobada propia. |
 | `GET /reservas` | Admin o gestor | Listar reservas gestionables. |
 | `PUT /reservas/{id}/estado` | Admin o gestor | Aprobar, rechazar o cancelar. |
+| `PUT /reservas/{id}/asistio` | Admin o gestor | Registrar si el reservante asistió. |
 | `GET/PATCH /notificaciones` | Autenticado | Consultar y marcar notificaciones. |
 | `GET /admin/dashboard/summary` | Admin | Estadísticas globales. |
 | `GET /gestion/dashboard/summary` | Admin o gestor | Estadísticas dentro del alcance gestionado. |
@@ -234,15 +253,19 @@ La especificación completa y los esquemas de solicitud y respuesta están dispo
 
 ```text
 gestionReservas/
+├── .github/workflows/    # CI (GitHub Actions)
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # Endpoints FastAPI
 │   │   ├── auth/         # Hash de contraseñas y JWT
 │   │   ├── crud/         # Consultas de persistencia
+│   │   ├── domain/       # Enums y value objects tipados (horarios, roles, estados)
+│   │   ├── middleware/   # Middleware ASGI (trazabilidad por request id)
 │   │   ├── models/       # Modelos SQLAlchemy
 │   │   ├── schemas/      # Contratos Pydantic
 │   │   ├── services/     # Reglas de negocio
 │   │   ├── migrations.py # Ajustes incrementales de PostgreSQL
+│   │   ├── deps.py       # Dependencias de autorización
 │   │   └── main.py       # Inicialización de la API
 │   ├── tests/            # Suite automatizada (pytest + PostgreSQL de prueba)
 │   ├── pytest.ini
@@ -252,8 +275,9 @@ gestionReservas/
 │   ├── src/app/          # Páginas Next.js
 │   ├── src/components/   # Componentes compartidos
 │   ├── src/context/      # Autenticación y notificaciones
-│   ├── src/services/     # Cliente de la API
+│   ├── src/services/     # Cliente de la API (espacios, recursos, zonas, ensayos, reservas...)
 │   ├── src/types/        # Tipos TypeScript
+│   ├── e2e/              # Suite E2E (Playwright)
 │   └── Dockerfile
 ├── .env.example
 ├── docker-compose.yml
@@ -384,6 +408,18 @@ docker compose -f docker-compose.test.yml down -v
 ```
 
 No deben rastrearse en git los artefactos de esta suite: `frontend/e2e/.auth/` (sesiones guardadas), `frontend/test-results/`, `frontend/playwright-report/`, ni ningún secreto o credencial real (las credenciales usadas en `playwright.config.ts` son ficticias y exclusivas del proceso E2E local). Detalle completo en `frontend/e2e/README.md`.
+
+## Integración continua (CI)
+
+`.github/workflows/ci.yml` corre en cada push a `feature/soV0.1` y en cada pull request contra `feature/v0.1` o `feature/soV0.1`, con tres jobs independientes:
+
+| Job | Contenido |
+| --- | --- |
+| `backend` | `pytest -v` (incluye el contrato de OpenAPI) contra un Postgres 13 de servicio, propio del job. |
+| `frontend` | `npm run lint`, `type-check`, `test` (Vitest) y `build`; auditoría de dependencias (`npm audit`) informativa, no bloqueante. |
+| `e2e` | Levanta backend y frontend en el runner y corre la suite completa de Playwright (`npm run test:e2e:all`) contra su propio Postgres de servicio. Depende de que `backend` y `frontend` hayan pasado. |
+
+Ninguna credencial usada en el workflow es real: son los mismos valores ficticios ya presentes en `backend/tests/conftest.py` y `frontend/playwright.config.ts`. No hay despliegue automático — el alcance de CI es solo verificación.
 
 ## Solución de problemas
 
