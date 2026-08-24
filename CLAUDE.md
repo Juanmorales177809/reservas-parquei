@@ -17,13 +17,13 @@ Sistema de gestión de reservas de espacios institucionales: autenticación JWT,
 ## Arquitectura general
 
 ```
-Navegador → flutter_proxy (nginx) :8090 → (proxy /api, /docs, /openapi.json) → FastAPI :8000 → PostgreSQL :5432
+Navegador → flutter_proxy (nginx) :8091 → (proxy /api, /docs, /openapi.json) → FastAPI :8000 → PostgreSQL :5432
 Escritorio/Móvil nativo (Windows/macOS/Linux/Android/iOS) → FastAPI :8000 directo (sin proxy — usa cookie_jar propio, no navegador)
 ```
 
 El navegador (Web) solo habla con `flutter_proxy`, igual que antes hablaba solo con Next.js — mismo patrón same-origin, mismo motivo (la cookie de sesión `HttpOnly`/`SameSite=Lax` exige mismo origen). Los clientes nativos no pasan por ningún proxy: no están sujetos a CORS/SameSite del navegador, hablan directo con el backend. PostgreSQL no se expone al host (red interna en Docker). Detalle completo en [README.md](README.md) y en `docker-compose.yml`.
 
-**`http://localhost:8090` corre contra `reservas_db` (base de desarrollo), no contra `reservas_test`** — ver la advertencia en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) antes de usarlo para cualquier verificación o E2E.
+**`http://localhost:8091` corre contra `reservas_db` (base de desarrollo), no contra `reservas_test`** — ver la advertencia en [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) antes de usarlo para cualquier verificación o E2E.
 
 ## Separación backend/app_flutter
 
