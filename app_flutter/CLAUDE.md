@@ -10,7 +10,7 @@
 - **CI sigue sin ejecutar el E2E real** — el job `e2e` de `ci.yml` corre en `ubuntu-latest` sin Visual Studio; wiring pendiente, requeriría un runner Windows.
 - Zonas/ensayos: la UI de selección **si existe ya** (contradice lo que decía esta misma línea en versiones anteriores del documento) vía `EspacioReservaSheet` — la limitación de "solo modalidad equipos" quedó superada por el P2 de arriba.
 
-`flutter analyze`: "No issues found!". `flutter test`: 9/9. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
+`flutter analyze`: "No issues found!". `flutter test`: 19/19. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
 
 ### Cambios del 2026-08-24 (primer despliegue en servidor real)
 
@@ -113,6 +113,26 @@ Un `AnimationController` que se repite para siempre (`.animate(onPlay: (c) => c.
 Ver `test/features/auth/presentation/login_screen_test.dart` para el patrón exacto.
 
 **Riesgo pendiente, no resuelto todavía**: `espacios_list_screen.dart` tiene un ícono de brújula con rotación infinita (`.animate(onPlay: (c) => c.repeat()).rotate(...)`) — hoy no rompe nada porque `EspaciosListScreen` no tiene widget test propio, pero si se agrega uno que monte esa pantalla sin `pumpAndSettle`-avoidance, va a fallar con el mismo síntoma. Si se escribe ese test, aplicar la misma lección (quitar el `.repeat()` o evitar `pumpAndSettle` sobre esa pantalla).
+
+## ⚠️ Un `SnackBar` con `action` NO se auto-cierra: hay que pasarle `persist: false`
+
+Bug real reportado en producción (2026-08-25): el aviso "Se vació el Dom" del editor de horario (`ConfiguracionEspacioScreen._actualizarHorario`) quedaba clavado en pantalla para siempre, sin importar el `duration: 8s`.
+
+La causa está en el framework, no en la app — `snack_bar.dart`:
+
+```dart
+persist = persist ?? action != null;
+```
+
+**Cualquier `SnackBar` que lleve `action` toma `persist: true` por defecto**, y un snackbar que persiste no se cierra solo nunca: el timer de `duration` se dispara, ve `persist`, y retorna sin cerrarlo (`scaffold.dart`, donde se arma `_snackBarTimer`). La documentación del campo lo dice explícitamente: *"If not provided, but the snackbar action is not null, the snackbar will persist as well."*
+
+**Regla**: todo `SnackBar` con `action` que deba desaparecer solo necesita `persist: false` explícito. Ajustar `duration` no sirve de nada — se ignora por completo.
+
+Dos intentos previos fallaron antes de encontrar esto, y vale la pena saber por qué para no repetirlos: no es un problema de cómo se reemplaza el snackbar anterior (`hideCurrentSnackBar` vs `removeCurrentSnackBar` es irrelevante acá), ni una carrera entre dos operaciones masivas seguidas. Cubierto por `test/features/espacios/presentation/configuracion_espacio_screen_test.dart`, verificado en ambos sentidos: el test falla si se quita el `persist: false`.
+
+### El font de prueba desborda layouts que en la app real entran bien
+
+Al escribir ese test apareció un `RenderFlex overflowed by 47 pixels` en `horario_editor.dart` (`_EtiquetaHora`) que **no existe en producción**: `flutter test` no carga fuentes reales y usa una de reemplazo donde cada glifo mide exactamente el tamaño de fuente, así que `"06:00–07:00"` ocupa ~121px donde Inter ocupa ~60 y revienta la columna de 112px. Antes de "arreglar" un overflow que solo aparece en un widget test, comprobar si el ancho del texto es el culpable — la salida a mano es compensar el escalado en el harness del test (`MediaQuery` con `textScaler` reducido, ver ese archivo), nunca deformar el widget de producción para complacer al test. **Ojo**: esto NO aplica al overflow de `EmptyView` documentado en la sección de E2E — ese era real y se veía en la app.
 
 ## Stack
 

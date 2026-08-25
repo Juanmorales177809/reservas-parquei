@@ -77,20 +77,25 @@ class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
       _success = null;
     });
     if (operacionMasiva == null || !mounted) return;
-    // `removeCurrentSnackBar()`, no `hideCurrentSnackBar()`: este último
-    // reproduce una animación de salida antes de mostrar el siguiente, y si
-    // el usuario dispara una segunda operación masiva mientras esa animación
-    // está en curso (por ejemplo, activar y enseguida desactivar el mismo
-    // día), el temporizador de auto-cierre del snackbar nuevo puede quedar
-    // sin armar — el "Deshacer" queda pegado en pantalla indefinidamente.
-    // `removeCurrentSnackBar()` quita el anterior al instante, sin animación,
-    // así el reemplazo siempre parte de un estado limpio.
+    // `removeCurrentSnackBar()` (no `hideCurrentSnackBar()`) para que el
+    // reemplazo sea inmediato: acá siempre estamos sustituyendo un aviso por
+    // otro, no vale la pena animar la salida del anterior.
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(operacionMasiva),
           duration: const Duration(seconds: 8),
+          // `persist: false` es OBLIGATORIO acá, no un ajuste de gusto: un
+          // `SnackBar` con `action` toma `persist = true` por defecto
+          // (`snack_bar.dart`: `persist = persist ?? action != null`), y un
+          // snackbar que persiste NO se auto-cierra nunca — el timer de
+          // `duration` se dispara, ve `persist`, y retorna sin cerrarlo
+          // (`scaffold.dart`, arranque de `_snackBarTimer`). El resultado es
+          // el "Deshacer" clavado en pantalla para siempre. `duration` sola
+          // no alcanza: sin esto, se ignora por completo. Bug real reportado
+          // en producción.
+          persist: false,
           action: SnackBarAction(
             label: 'Deshacer',
             onPressed: () => setState(() => _horario = anterior),
