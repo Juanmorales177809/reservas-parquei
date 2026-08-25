@@ -77,8 +77,16 @@ class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
       _success = null;
     });
     if (operacionMasiva == null || !mounted) return;
+    // `removeCurrentSnackBar()`, no `hideCurrentSnackBar()`: este último
+    // reproduce una animación de salida antes de mostrar el siguiente, y si
+    // el usuario dispara una segunda operación masiva mientras esa animación
+    // está en curso (por ejemplo, activar y enseguida desactivar el mismo
+    // día), el temporizador de auto-cierre del snackbar nuevo puede quedar
+    // sin armar — el "Deshacer" queda pegado en pantalla indefinidamente.
+    // `removeCurrentSnackBar()` quita el anterior al instante, sin animación,
+    // así el reemplazo siempre parte de un estado limpio.
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(operacionMasiva),
