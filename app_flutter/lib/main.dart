@@ -4,8 +4,10 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'app.dart';
 import 'core/config/app_config.dart';
+import 'core/config/supabase_config.dart';
 import 'core/network/dio_client.dart';
 import 'features/auth/application/auth_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,16 @@ Future<void> main() async {
   usePathUrlStrategy();
 
   final config = AppConfig.fromEnvironment();
+
+  // Supabase Auth hybrid: solo si SUPABASE_ENABLED=true y con URL+anonKey
+  // configurados (Cloud free tier). Con false no se toca nada y el flujo
+  // clásico sigue intacto.
+  if (SupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+  }
 
   // `late final container`: buildDioClient necesita el callback de sesión
   // expirada antes de que exista el ProviderContainer, pero el callback

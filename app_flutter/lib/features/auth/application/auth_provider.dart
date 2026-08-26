@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/config/supabase_config.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/auth_repository.dart';
+import '../data/supabase_auth_repository.dart';
 import '../domain/auth_user.dart';
 
 part 'auth_provider.g.dart';
@@ -27,6 +29,16 @@ class Auth extends _$Auth {
   }
 
   Future<void> login({required String username, required String password}) async {
+    // Hybrid: si Supabase está configurado, el usuario puede estar logueándose
+    // con email (Supabase) en vez de username clásico. Heurística simple:
+    // si contiene '@' y Supabase está activo, usar flujo Supabase (email),
+    // si no, flujo clásico (username). Mantiene compatibilidad total cuando
+    // SUPABASE_ENABLED=false.
+    if (SupabaseConfig.isConfigured && username.contains('@')) {
+      final user = await ref.read(supabaseAuthRepositoryProvider).login(email: username, password: password);
+      state = AsyncData(user);
+      return;
+    }
     final user = await ref.read(authRepositoryProvider).login(username: username, password: password);
     state = AsyncData(user);
   }
@@ -36,7 +48,11 @@ class Auth extends _$Auth {
   /// shell) no espera la promesa.
   Future<void> logout() async {
     try {
-      await ref.read(authRepositoryProvider).logout();
+      if (SupabaseConfig.isConfigured) {
+        await ref.read(supabaseAuthRepositoryProvider).logout();
+      } else {
+        await ref.read(authRepositoryProvider).logout();
+      }
     } catch (_) {
       // Fallo de red al cerrar sesión: se ignora a propósito, mismo
       // comportamiento que hoy en Navbar.tsx.
