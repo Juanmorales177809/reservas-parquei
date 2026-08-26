@@ -110,3 +110,16 @@ class RestablecerPasswordRequest(BaseModel):
     identificador: str = Field(min_length=1, max_length=255)
     codigo: str = Field(min_length=6, max_length=6)
     password_nueva: str = Field(min_length=6, max_length=72)
+
+
+class SupabaseSesionRequest(BaseModel):
+    """Body de `POST /auth/supabase/sesion` (hybrid, SUPABASE_ENABLED).
+
+    El cliente Flutter tras `supabase.auth.signIn()` obtiene un JWT cuyo
+    `sub` es el UUID de `auth.users`. Este endpoint verifica ese JWT con
+    `SUPABASE_JWT_SECRET`, vincula `usuarios.supabase_id` por email (auto-link
+    en el primer login) y fija la cookie `access_token` con el MISMO token
+    de Supabase -- así el resto de la API sigue leyendo solo la cookie.
+    """
+
+    supabase_token: str = Field(min_length=10, max_length=4096)

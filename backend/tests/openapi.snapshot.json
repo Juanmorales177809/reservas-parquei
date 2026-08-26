@@ -1837,6 +1837,22 @@
         "title": "SolicitarRecuperacionRequest",
         "type": "object"
       },
+      "SupabaseSesionRequest": {
+        "description": "Body de `POST /auth/supabase/sesion` (hybrid, SUPABASE_ENABLED).\n\nEl cliente Flutter tras `supabase.auth.signIn()` obtiene un JWT cuyo\n`sub` es el UUID de `auth.users`. Este endpoint verifica ese JWT con\n`SUPABASE_JWT_SECRET`, vincula `usuarios.supabase_id` por email (auto-link\nen el primer login) y fija la cookie `access_token` con el MISMO token\nde Supabase -- así el resto de la API sigue leyendo solo la cookie.",
+        "properties": {
+          "supabase_token": {
+            "maxLength": 4096,
+            "minLength": 10,
+            "title": "Supabase Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "supabase_token"
+        ],
+        "title": "SupabaseSesionRequest",
+        "type": "object"
+      },
       "TipoNotificacion": {
         "description": "Tipos de notificación internos.\n\nOrigen verificado de los valores: el constraint `notificaciones_tipo_check`\nexiste en base de datos — declarado en `app/models/notificacion.py`\n(`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +\nADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')`).\nSe conservan exactamente esos valores.",
         "enum": [
@@ -2685,6 +2701,48 @@
           }
         },
         "summary": "Restablecer Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/supabase/sesion": {
+      "post": {
+        "description": "Intercambia un JWT de Supabase por sesión de cookie (hybrid).\n\nCon SUPABASE_ENABLED=false responde 404 para no exponer superficie\nnueva. Con true: verifica el JWT con SUPABASE_JWT_SECRET (aud sin\nverificar, ver deps._decode_token), extrae sub=UUID + email, busca\nUsuario por supabase_id o por email (auto-link), o crea uno nuevo con\nrol usuario si no existe -- institucional sin recursos: alta abierta\npero sin privilegios. El JWT de Supabase se fija tal cual como cookie\n`access_token`; el resto de la API lo verifica vía deps hybrid.",
+        "operationId": "supabase_sesion_auth_supabase_sesion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupabaseSesionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Supabase Sesion",
         "tags": [
           "auth"
         ]

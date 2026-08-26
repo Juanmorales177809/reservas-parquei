@@ -32,6 +32,19 @@ class Settings:
     smtp_starttls: bool = os.getenv("SMTP_STARTTLS", "true").lower() == "true"
     email_enabled: bool = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
 
+    # Supabase Auth (hybrid, institucional sin recursos extra).
+    # Con SUPABASE_ENABLED=false (default) todo el flujo clásico JWT-propietario
+    # sigue intacto -- así se puede pushear este código sin tener proyecto
+    # Supabase creado. Para open source institucional con recursos limitados,
+    # el recomendado es Cloud free tier (sin infra extra): solo estas 4 vars.
+    # Self-hosted GoTrue se difiere hasta que haya recursos (mismo patrón que
+    # mailpit con --profile dev, no en prod por defecto).
+    supabase_url: str = os.getenv("SUPABASE_URL", "")
+    supabase_anon_key: str = os.getenv("SUPABASE_ANON_KEY", "")
+    supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    supabase_jwt_secret: str = os.getenv("SUPABASE_JWT_SECRET", "")
+    supabase_enabled: bool = os.getenv("SUPABASE_ENABLED", "false").lower() == "true"
+
     def validate(self) -> None:
         if len(self.secret_key) < 32 or self.secret_key == "change-me-in-production":
             raise RuntimeError(
@@ -56,6 +69,11 @@ class Settings:
         if self.email_enabled and not (self.smtp_host and self.smtp_from):
             raise RuntimeError(
                 "EMAIL_ENABLED=true requiere SMTP_HOST y SMTP_FROM configurados"
+            )
+
+        if self.supabase_enabled and not (self.supabase_url and self.supabase_jwt_secret):
+            raise RuntimeError(
+                "SUPABASE_ENABLED=true requiere SUPABASE_URL y SUPABASE_JWT_SECRET configurados"
             )
 
 

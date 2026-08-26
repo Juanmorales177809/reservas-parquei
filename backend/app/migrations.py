@@ -461,6 +461,12 @@ def migrate_resource_reservations() -> None:
         # criterio ya documentado más arriba para reserva_recursos/
         # reserva_zonas).
         "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false",
+        # Supabase Auth hybrid (institucional sin recursos extra): puente
+        # UUID nullable + índice único. Mantiene PK Integer y 8 FKs intactos
+        # (ver ya-tenemos-el-ci-calm-octopus.md) -- con SUPABASE_ENABLED=false
+        # esta columna queda NULL y no afecta el flujo clásico.
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS supabase_id UUID",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_supabase_id ON usuarios (supabase_id)",
     )
 
     with engine.begin() as connection:

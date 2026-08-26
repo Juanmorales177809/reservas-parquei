@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -17,6 +18,9 @@ class Usuario(Base):
     # cambio en el primer login. Ver app/api/usuarios.py y
     # app/api/auth.py::cambiar_password.
     debe_cambiar_password = Column(Boolean, nullable=False, default=False)
+    # Puente Supabase Auth hybrid: UUID de auth.users (nullable para que
+    # SUPABASE_ENABLED=false no rompa el flujo clásico; único cuando no nulo).
+    supabase_id = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

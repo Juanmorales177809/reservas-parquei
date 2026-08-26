@@ -19,6 +19,7 @@ from app.schemas.usuario import (
     LoginResponse,
     RestablecerPasswordRequest,
     SolicitarRecuperacionRequest,
+    SupabaseSesionRequest,
     UsuarioLogin,
     UsuarioResponse,
 )
@@ -194,3 +195,90 @@ def restablecer_password(
     usuario.debe_cambiar_password = False
     db.add(usuario)
     db.commit()
+
+
+@router.post("/supabase/sesion", response_model=LoginResponse)
+def supabase_sesion(
+    payload: SupabaseSesionRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    """Intercambia un JWT de Supabase por sesión de cookie (hybrid).
+
+    Con SUPABASE_ENABLED=false responde 404 para no exponer superficie
+    nueva. Con true: verifica el JWT con SUPABASE_JWT_SECRET (aud sin
+    verificar, ver deps._decode_token), extrae sub=UUID + email, busca
+    Usuario por supabase_id o por email (auto-link), o crea uno nuevo con
+    rol usuario si no existe -- institucional sin recursos: alta abierta
+    pero sin privilegios. El JWT de Supabase se fija tal cual como cookie
+    `access_token`; el resto de la API lo verifica vía deps hybrid.
+    """
+    if not settings.supabase_enabled or not settings.supabase_jwt_secret:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supabase Auth no habilitado")
+    # Verificación con el mismo criterio que deps._decode_token (aud no verificado).
+    try:
+        from jose import JWTError, jwt as jose_jwt
+        import uuid as _uuid
+
+        claims = jose_jwt.decode(
+            payload.supabase_token, settings.supabase_jwt_secret, algorithms=[settings.algorithm], options={"verify_aud": False}
+        )
+        sub = claims.get("sub")
+        email = claims.get("email")
+        if sub is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido")
+        try:
+            supa_uuid = _uuid.UUID(str(sub))
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido")
+
+    usuario = db.query(Usuario).filter(Usuario.supabase_id == supa_uuid).first()
+    if usuario is None and email:
+        usuario = get_usuario_by_email(db, str(email))
+        if usuario is not None:
+            # Auto-link en el primer login con Supabase (migración progresiva).
+            usuario.supabase_id = supa_uuid
+            db.add(usuario)
+            db.commit()
+            db.refresh(usuario)
+    if usuario is None:
+        # Alta automática institucional: sin privilegios (usuario base).
+        # Username derivado de email para no colisionar con existentes.
+        if not email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El token de Supabase no trae email")
+        base_username = str(email).split("@")[0][:80]
+        username = base_username
+        suffix = 0
+        while get_usuario_by_username(db, username) is not None:
+            suffix += 1
+            username = f"{base_username[:70]}{suffix}"[:80]
+            if suffix > 1000:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="No se pudo generar username")
+        # Password aleatoria: nunca se usa (login es via Supabase), pero el
+        # modelo exige hashed_password. Se genera y se marca debe_cambiar=false.
+        import secrets
+
+        temp_pw = secrets.token_urlsafe(12)
+        usuario = Usuario(
+            username=username,
+            email=str(email),
+            hashed_password=hash_password(temp_pw),
+            rol="usuario",
+            supabase_id=supa_uuid,
+            debe_cambiar_password=False,
+        )
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+
+    response.set_cookie(
+        key=NOMBRE_COOKIE_ACCESO,
+        value=payload.supabase_token,
+        max_age=max_age_cookie_acceso(),
+        **atributos_cookie_acceso(),
+    )
+    return LoginResponse(user=UsuarioResponse.model_validate(usuario))

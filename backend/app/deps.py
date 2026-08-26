@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyCookie
 from jose import JWTError, jwt
@@ -23,15 +25,53 @@ cookie_auth = APIKeyCookie(
 )
 
 
+def _es_uuid(valor: str) -> bool:
+    try:
+        uuid.UUID(str(valor))
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def _decode_token(token: str) -> dict:
+    """Decodifica JWT clásico o Supabase (hybrid, institucional sin recursos extra).
+
+    Con SUPABASE_ENABLED=false solo prueba SECRET_KEY (comportamiento histórico).
+    Con true prueba SUPABASE_JWT_SECRET primero y luego SECRET_KEY como
+    fallback -- durante la migración coexisten sesiones clásicas (sub=int) y
+    Supabase (sub=UUID) sin romper las 645 pruebas existentes.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudo validar la autenticación",
     )
+    # Supabase JWT (HS256 con SUPABASE_JWT_SECRET, aud=authenticated)
+    if settings.supabase_enabled and settings.supabase_jwt_secret:
+        try:
+            return jwt.decode(
+                token, settings.supabase_jwt_secret, algorithms=[settings.algorithm], options={"verify_aud": False}
+            )
+        except JWTError:
+            pass
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
     except JWTError as exc:
         raise credentials_exception from exc
+
+
+def _usuario_por_sub(db: Session, sub: str) -> Usuario | None:
+    """Resuelve Usuario por sub híbrido: UUID → supabase_id, int → id."""
+    sub_str = str(sub)
+    if _es_uuid(sub_str):
+        try:
+            uid = uuid.UUID(sub_str)
+        except ValueError:
+            return None
+        return db.query(Usuario).filter(Usuario.supabase_id == uid).first()
+    try:
+        return db.query(Usuario).filter(Usuario.id == int(sub_str)).first()
+    except (TypeError, ValueError):
+        return None
 
 
 def _credenciales_invalidas() -> HTTPException:
@@ -50,14 +90,15 @@ def get_current_user(
         raise credentials_exception
     try:
         payload = _decode_token(token)
-        user_id = payload.get("sub")
-        if user_id is None:
+        sub = payload.get("sub")
+        if sub is None:
             raise credentials_exception
-        user_id = int(user_id)
-    except (TypeError, ValueError) as exc:
+    except HTTPException:
+        raise
+    except Exception as exc:
         raise credentials_exception from exc
 
-    usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
+    usuario = _usuario_por_sub(db, str(sub))
     if usuario is None:
         raise credentials_exception
     return usuario
@@ -86,12 +127,10 @@ def require_admin_dashboard(
             detail="El dashboard requiere role=admin o scope admin:*",
         )
 
-    try:
-        user_id = int(payload.get("sub"))
-    except (TypeError, ValueError) as exc:
-        raise credentials_exception from exc
-
-    usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
+    sub = payload.get("sub")
+    if sub is None:
+        raise credentials_exception
+    usuario = _usuario_por_sub(db, str(sub))
     if usuario is None:
         raise credentials_exception
     return usuario
@@ -137,14 +176,17 @@ def get_current_user_optional(
     Lee solo la cookie `access_token` (Fase 9G). Sin `Depends(cookie_auth)` a
     propósito, para NO añadir el esquema de seguridad al OpenAPI de los
     endpoints públicos que lo usan (RN-005 en GET /espacios). Un token
-    inválido se trata como acceso anónimo.
+    inválido se trata como acceso anónimo. Híbrido: sub UUID → supabase_id,
+    int → id (ver _usuario_por_sub).
     """
     token = request.cookies.get(NOMBRE_COOKIE_ACCESO)
     if not token:
         return None
     try:
         payload = _decode_token(token)
-        user_id = int(payload.get("sub"))
+        sub = payload.get("sub")
+        if sub is None:
+            return None
     except (HTTPException, TypeError, ValueError):
         return None
-    return db.query(Usuario).filter(Usuario.id == user_id).first()
+    return _usuario_por_sub(db, str(sub))
