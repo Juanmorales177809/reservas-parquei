@@ -285,7 +285,7 @@ as String,
 /// @nodoc
 mixin _$AuthUser {
 
- int get id; String get username; String get email; RolUsuario get rol; EspacioResumen? get espacio;
+ int get id; String get username; String get email; RolUsuario get rol; EspacioResumen? get espacio; bool get debeCambiarPassword;
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -298,16 +298,16 @@ $AuthUserCopyWith<AuthUser> get copyWith => _$AuthUserCopyWithImpl<AuthUser>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.debeCambiarPassword, debeCambiarPassword) || other.debeCambiarPassword == debeCambiarPassword));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio);
+int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio,debeCambiarPassword);
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio)';
+  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio, debeCambiarPassword: $debeCambiarPassword)';
 }
 
 
@@ -318,7 +318,7 @@ abstract mixin class $AuthUserCopyWith<$Res>  {
   factory $AuthUserCopyWith(AuthUser value, $Res Function(AuthUser) _then) = _$AuthUserCopyWithImpl;
 @useResult
 $Res call({
- int id, String username, String email, RolUsuario rol, EspacioResumen? espacio
+ int id, String username, String email, RolUsuario rol, EspacioResumen? espacio, bool debeCambiarPassword
 });
 
 
@@ -335,14 +335,15 @@ class _$AuthUserCopyWithImpl<$Res>
 
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,Object? debeCambiarPassword = null,}) {
   return _then(AuthUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,rol: null == rol ? _self.rol : rol // ignore: cast_nullable_to_non_nullable
 as RolUsuario,espacio: freezed == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioResumen?,
+as EspacioResumen?,debeCambiarPassword: null == debeCambiarPassword ? _self.debeCambiarPassword : debeCambiarPassword // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of AuthUser
@@ -439,10 +440,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  bool debeCambiarPassword)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthUser() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.debeCambiarPassword);case _:
   return orElse();
 
 }
@@ -460,10 +461,10 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  bool debeCambiarPassword)  $default,) {final _that = this;
 switch (_that) {
 case _AuthUser():
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.debeCambiarPassword);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -480,10 +481,10 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  bool debeCambiarPassword)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthUser() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.debeCambiarPassword);case _:
   return null;
 
 }
@@ -495,7 +496,7 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio);cas
 @JsonSerializable()
 
 class _AuthUser extends AuthUser {
-  const _AuthUser({required this.id, required this.username, required this.email, required this.rol, this.espacio}): super._();
+  const _AuthUser({required this.id, required this.username, required this.email, required this.rol, this.espacio, this.debeCambiarPassword = false}): super._();
   factory _AuthUser.fromJson(Map<String, dynamic> json) => _$AuthUserFromJson(json);
 
 @override final  int id;
@@ -503,6 +504,7 @@ class _AuthUser extends AuthUser {
 @override final  String email;
 @override final  RolUsuario rol;
 @override final  EspacioResumen? espacio;
+@override@JsonKey() final  bool debeCambiarPassword;
 
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
@@ -517,16 +519,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.debeCambiarPassword, debeCambiarPassword) || other.debeCambiarPassword == debeCambiarPassword));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio);
+int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio,debeCambiarPassword);
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio)';
+  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio, debeCambiarPassword: $debeCambiarPassword)';
 }
 
 
@@ -537,7 +539,7 @@ abstract mixin class _$AuthUserCopyWith<$Res> implements $AuthUserCopyWith<$Res>
   factory _$AuthUserCopyWith(_AuthUser value, $Res Function(_AuthUser) _then) = __$AuthUserCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String username, String email, RolUsuario rol, EspacioResumen? espacio
+ int id, String username, String email, RolUsuario rol, EspacioResumen? espacio, bool debeCambiarPassword
 });
 
 
@@ -554,14 +556,15 @@ class __$AuthUserCopyWithImpl<$Res>
 
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,Object? debeCambiarPassword = null,}) {
   return _then(_AuthUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,rol: null == rol ? _self.rol : rol // ignore: cast_nullable_to_non_nullable
 as RolUsuario,espacio: freezed == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioResumen?,
+as EspacioResumen?,debeCambiarPassword: null == debeCambiarPassword ? _self.debeCambiarPassword : debeCambiarPassword // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

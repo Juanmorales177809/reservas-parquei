@@ -13,6 +13,7 @@ from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
 from app.middleware.request_id import HEADER, RequestIdMiddleware, resolver_request_id
 from app.migrations import migrate_resource_reservations
+from app.services.email import procesar_pendientes
 
 
 @asynccontextmanager
@@ -21,6 +22,15 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     migrate_resource_reservations()
     seed_admin_user()
+    # Autocuración tras un reinicio: si el proceso murió con correos
+    # `pendiente` en el outbox (ver app/services/email.py), se reintentan acá
+    # en vez de esperar a que un evento nuevo los procese. Sin efecto si
+    # EMAIL_ENABLED=false.
+    db = SessionLocal()
+    try:
+        procesar_pendientes(db)
+    finally:
+        db.close()
     yield
     # engine.dispose() solo cierra conexiones del pool; el engine global de
     # app.db sigue siendo utilizable después (nuevas conexiones al usarlo).

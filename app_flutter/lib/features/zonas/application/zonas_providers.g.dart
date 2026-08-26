@@ -83,8 +83,30 @@ final class ZonasListFamily extends $Family
   String toString() => r'zonasListProvider';
 }
 
+/// Zonas para las pantallas de gestión (`GestionZonasScreen` y el
+/// desplegable de zona de `GestionEnsayosScreen`).
+///
+/// El filtro por espacio se aplica **desde el cliente** a propósito: al
+/// contrario de lo que decía el comentario anterior aquí, `GET /zonas`
+/// NO acota al espacio gestionado — `backend/app/api/zonas.py` solo
+/// filtra por estado, así que gestor y admin reciben las zonas de todos
+/// los espacios. Sin este filtro, un gestor veía zonas ajenas en la
+/// lista y podía elegir una en el formulario de ensayos, que el backend
+/// después rechazaba con 403.
+
 @ProviderFor(zonasGestion)
 final zonasGestionProvider = ZonasGestionProvider._();
+
+/// Zonas para las pantallas de gestión (`GestionZonasScreen` y el
+/// desplegable de zona de `GestionEnsayosScreen`).
+///
+/// El filtro por espacio se aplica **desde el cliente** a propósito: al
+/// contrario de lo que decía el comentario anterior aquí, `GET /zonas`
+/// NO acota al espacio gestionado — `backend/app/api/zonas.py` solo
+/// filtra por estado, así que gestor y admin reciben las zonas de todos
+/// los espacios. Sin este filtro, un gestor veía zonas ajenas en la
+/// lista y podía elegir una en el formulario de ensayos, que el backend
+/// después rechazaba con 403.
 
 final class ZonasGestionProvider
     extends
@@ -94,6 +116,16 @@ final class ZonasGestionProvider
           FutureOr<List<Zona>>
         >
     with $FutureModifier<List<Zona>>, $FutureProvider<List<Zona>> {
+  /// Zonas para las pantallas de gestión (`GestionZonasScreen` y el
+  /// desplegable de zona de `GestionEnsayosScreen`).
+  ///
+  /// El filtro por espacio se aplica **desde el cliente** a propósito: al
+  /// contrario de lo que decía el comentario anterior aquí, `GET /zonas`
+  /// NO acota al espacio gestionado — `backend/app/api/zonas.py` solo
+  /// filtra por estado, así que gestor y admin reciben las zonas de todos
+  /// los espacios. Sin este filtro, un gestor veía zonas ajenas en la
+  /// lista y podía elegir una en el formulario de ensayos, que el backend
+  /// después rechazaba con 403.
   ZonasGestionProvider._()
     : super(
         from: null,
@@ -119,4 +151,4 @@ final class ZonasGestionProvider
   }
 }
 
-String _$zonasGestionHash() => r'0c2ad2d88b2cf1cd596106b5ba70189d3bffc26a';
+String _$zonasGestionHash() => r'6834d7dd8a403a2350b59afa5abd228d63dfc5c9';

@@ -453,6 +453,14 @@ def migrate_resource_reservations() -> None:
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN",
         # Fase 6: motivo de rechazo (texto libre, solo para rechazada).
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT",
+        # Correo saliente (alta de usuario / recuperación de contraseña):
+        # marca que la contraseña actual es una temporal generada por el
+        # backend y debe cambiarse en el próximo login. `correo_saliente`
+        # no necesita entrada aquí: es tabla nueva, la crea
+        # Base.metadata.create_all() como el resto de tablas nuevas (mismo
+        # criterio ya documentado más arriba para reserva_recursos/
+        # reserva_zonas).
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false",
     )
 
     with engine.begin() as connection:

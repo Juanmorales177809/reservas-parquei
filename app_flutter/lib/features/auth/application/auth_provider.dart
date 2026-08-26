@@ -50,6 +50,27 @@ class Auth extends _$Auth {
   void handleSessionExpired() {
     state = const AsyncData(null);
   }
+
+  /// Cubre el cambio obligatorio tras recibir una contraseña temporal
+  /// (alta de usuario o recuperación) y el autoservicio voluntario.
+  ///
+  /// Actualiza `debeCambiarPassword` en el estado local en vez de volver a
+  /// pedir `/usuarios/me`: el backend ya confirmó el cambio (si tirara
+  /// excepción no llegaríamos a esta línea), y es exactamente el mismo dato
+  /// que acabamos de fijar — un round-trip extra no cambiaría el resultado.
+  /// Este método es lo que hace que el guard de `app_router.dart` deje de
+  /// forzar `CambiarPasswordTemporalScreen` (reevalúa `redirect` en cada
+  /// cambio de este estado, vía `refreshListenable`).
+  Future<void> cambiarPassword({required String passwordActual, required String passwordNueva}) async {
+    await ref.read(authRepositoryProvider).cambiarPassword(
+          passwordActual: passwordActual,
+          passwordNueva: passwordNueva,
+        );
+    final actual = state.value;
+    if (actual != null) {
+      state = AsyncData(actual.copyWith(debeCambiarPassword: false));
+    }
+  }
 }
 
 @riverpod

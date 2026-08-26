@@ -20,6 +20,18 @@ class Settings:
     ]
     environment: str = os.getenv("ENVIRONMENT", "development")
 
+    # Correo saliente (outbox pattern, app/services/email.py). EMAIL_ENABLED
+    # en false (default) mantiene el sistema funcionando solo con
+    # notificaciones in-app, sin intentar ningún envío real -- así se puede
+    # desplegar todo este código antes de tener credenciales SMTP reales.
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    smtp_from: str = os.getenv("SMTP_FROM", "")
+    smtp_starttls: bool = os.getenv("SMTP_STARTTLS", "true").lower() == "true"
+    email_enabled: bool = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
+
     def validate(self) -> None:
         if len(self.secret_key) < 32 or self.secret_key == "change-me-in-production":
             raise RuntimeError(
@@ -39,6 +51,11 @@ class Settings:
         if self.initial_admin_password and len(self.initial_admin_password) < 12:
             raise RuntimeError(
                 "INITIAL_ADMIN_PASSWORD debe tener al menos 12 caracteres"
+            )
+
+        if self.email_enabled and not (self.smtp_host and self.smtp_from):
+            raise RuntimeError(
+                "EMAIL_ENABLED=true requiere SMTP_HOST y SMTP_FROM configurados"
             )
 
 

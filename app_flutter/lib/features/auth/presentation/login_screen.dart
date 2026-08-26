@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../application/auth_provider.dart';
 
@@ -141,6 +143,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   autofillHints: const [AutofillHints.password],
                                   validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
                                   onFieldSubmitted: (_) => _submit(),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    // `push`, no `go`: es una ruta pública fuera del
+                                    // ShellRoute igual que /login, no hay guard que
+                                    // dependa de la ubicación acá (a diferencia del
+                                    // caso "a /login" documentado en
+                                    // app_flutter/CLAUDE.md).
+                                    onPressed: () => context.push(AppRoutes.recuperar),
+                                    child: const Text('¿Olvidaste tu contraseña?'),
+                                  ),
                                 ),
                                 if (_errorMessage != null) ...[
                                   const SizedBox(height: AppSpacing.md),

@@ -79,3 +79,8 @@ class LimitadorIntentosLogin:
 
 
 limitador_login = LimitadorIntentosLogin()
+
+# Instancia SEPARADA de la de login, misma clase: un fallo de recuperación
+# de contraseña no debe consumir ni verse afectado por el presupuesto de
+# intentos de login del mismo par (ip, identificador), y viceversa.
+limitador_recuperacion = LimitadorIntentosLogin()

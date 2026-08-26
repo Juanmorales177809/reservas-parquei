@@ -29,6 +29,11 @@ def create_usuario(db: Session, usuario: UsuarioCreate) -> Usuario:
         email=usuario.email,
         hashed_password=hash_password(usuario.password),
         rol=getattr(usuario, "rol", "usuario"),
+        # Único llamador es create_usuario_admin (app/api/usuarios.py), que
+        # SIEMPRE genera la contraseña que llega en `usuario.password` --
+        # nunca es una elegida por la propia persona, así que se fuerza el
+        # cambio en el primer login.
+        debe_cambiar_password=True,
     )
     db.add(db_usuario)
     db.flush()

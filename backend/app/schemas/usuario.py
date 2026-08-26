@@ -27,10 +27,17 @@ class UsuarioCreate(BaseModel):
 
 
 class AdminUsuarioCreate(UsuarioCreate):
-    """Permite al admin asignar un rol al crear un usuario."""
+    """Permite al admin asignar un rol al crear un usuario.
+
+    `password` se acepta por compatibilidad con clientes que aún la envíen,
+    pero SIEMPRE se ignora: la contraseña real la genera el backend
+    (`create_usuario_admin` en `app/api/usuarios.py`) y se entrega por
+    correo, nunca la elige quien crea el usuario.
+    """
 
     rol: Rol = Rol.USUARIO
     espacio_id: int | None = None
+    password: str | None = Field(default=None, min_length=6, max_length=72)
 
 
 class UsuarioLogin(BaseModel):
@@ -62,6 +69,10 @@ class UsuarioResponse(BaseModel):
     email: str
     rol: Rol
     espacio: UsuarioEspacioResponse | None = None
+    # True si la contraseña actual es una temporal generada por el backend
+    # (alta de usuario o recuperación): el cliente debe forzar el cambio
+    # antes de dejar navegar a cualquier otra pantalla.
+    debe_cambiar_password: bool = False
 
 
 class LoginResponse(BaseModel):
@@ -72,3 +83,30 @@ class LoginResponse(BaseModel):
     """
 
     user: UsuarioResponse
+
+
+class CambiarPasswordRequest(BaseModel):
+    """Body de `POST /auth/cambiar-password` (usuario autenticado).
+
+    Exige la contraseña actual (aunque sea la temporal recién recibida por
+    correo) como confirmación -- evita que una sesión ya autenticada pueda
+    cambiar la contraseña sin que quien la use la conozca.
+    """
+
+    password_actual: str = Field(min_length=1, max_length=72)
+    password_nueva: str = Field(min_length=6, max_length=72)
+
+
+class SolicitarRecuperacionRequest(BaseModel):
+    """Body de `POST /auth/recuperar` (público). Acepta username o email
+    indistintamente -- ver `get_usuario_by_username`/`get_usuario_by_email`."""
+
+    identificador: str = Field(min_length=1, max_length=255)
+
+
+class RestablecerPasswordRequest(BaseModel):
+    """Body de `POST /auth/restablecer` (público)."""
+
+    identificador: str = Field(min_length=1, max_length=255)
+    codigo: str = Field(min_length=6, max_length=6)
+    password_nueva: str = Field(min_length=6, max_length=72)

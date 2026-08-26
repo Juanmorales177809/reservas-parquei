@@ -15,10 +15,12 @@ class UsuariosRepository {
     return response.data!.map((json) => AuthUser.fromJson(json as Map<String, dynamic>)).toList();
   }
 
+  /// Sin `password`: el backend siempre genera una contraseña temporal y la
+  /// entrega por correo (ver `AdminUsuarioCreate.password` en el backend,
+  /// `Optional[str]` ignorado siempre) — el admin ya no la elige.
   Future<AuthUser> crear({
     required String username,
     required String email,
-    required String password,
     required String rol,
     int? espacioId,
   }) async {
@@ -27,7 +29,6 @@ class UsuariosRepository {
       data: {
         'username': username,
         'email': email,
-        'password': password,
         'rol': rol,
         'espacio_id': ?espacioId,
       },

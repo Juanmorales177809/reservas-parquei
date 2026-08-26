@@ -37,6 +37,7 @@ from app.models import (
 )
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.auditoria import registrar_cambio
+from app.services.email import encolar_correo, procesar_pendientes
 from app.services.horarios import horario_cubre_reserva
 from app.services.reloj import RelojLocal
 
@@ -604,7 +605,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
     _reescribir_acompanantes(db, reserva, data.acompanantes)
     if not aprobacion_automatica:
         gestores = (
-            db.query(Usuario.id)
+            db.query(Usuario.id, Usuario.username, Usuario.email)
             .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Usuario.id)
             .filter(
                 Usuario.rol == Rol.GESTOR.value,
@@ -612,13 +613,24 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
             )
             .all()
         )
-        for (gestor_id,) in gestores:
+        for gestor_id, gestor_username, gestor_email in gestores:
             db.add(
                 Notificacion(
                     usuario_id=gestor_id,
                     reserva_id=reserva.id,
                     tipo=TipoNotificacion.PENDIENTE.value,
                 )
+            )
+            encolar_correo(
+                db,
+                destinatario=gestor_email,
+                asunto="Nueva reserva pendiente de aprobación",
+                cuerpo=(
+                    f"Hola {gestor_username},\n\n"
+                    f"Hay una nueva reserva pendiente de tu aprobación en {objetivo.espacio.nombre}.\n"
+                    f"Fecha: {data.fecha} de {data.hora_inicio} a {data.hora_fin}.\n\n"
+                    "Ingresá al sistema de reservas para aprobarla o rechazarla."
+                ),
             )
     registrar_cambio(
         db,
@@ -629,6 +641,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         f"Creó una reserva {_etiqueta_objetivo(objetivo)} con estado {reserva.estado}",
     )
     confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 
@@ -698,6 +711,21 @@ def cambiar_estado(
                 tipo=tipo_notificacion,
             )
         )
+        estado_legible = {
+            EstadoReserva.APROBADA: "aprobada",
+            EstadoReserva.RECHAZADA: "rechazada",
+            EstadoReserva.CANCELADA: "cancelada",
+        }[nuevo]
+        cuerpo_correo = f"Hola {reserva.usuario.username},\n\nTu reserva #{reserva.id} fue {estado_legible}."
+        if nuevo == EstadoReserva.RECHAZADA and motivo:
+            cuerpo_correo += f"\nMotivo: {motivo}"
+        cuerpo_correo += "\n\nIngresá al sistema de reservas para más detalles."
+        encolar_correo(
+            db,
+            destinatario=reserva.usuario.email,
+            asunto=f"Tu reserva fue {estado_legible}",
+            cuerpo=cuerpo_correo,
+        )
         mensaje_auditoria = f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}"
         if nuevo == EstadoReserva.RECHAZADA and motivo:
             mensaje_auditoria += f" - Motivo: {motivo}"
@@ -711,6 +739,7 @@ def cambiar_estado(
         )
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 

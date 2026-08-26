@@ -5,13 +5,26 @@ from app.auth.auth import (
     NOMBRE_COOKIE_ACCESO,
     atributos_cookie_acceso,
     create_access_token,
+    hash_password,
     max_age_cookie_acceso,
     verify_password,
 )
-from app.crud.usuarios import get_usuario_by_username
+from app.config import settings
+from app.crud.usuarios import get_usuario_by_email, get_usuario_by_username
 from app.db import get_db
-from app.schemas.usuario import LoginResponse, UsuarioLogin, UsuarioResponse
-from app.services.rate_limit import limitador_login
+from app.deps import get_current_user
+from app.models.usuario import Usuario
+from app.schemas.usuario import (
+    CambiarPasswordRequest,
+    LoginResponse,
+    RestablecerPasswordRequest,
+    SolicitarRecuperacionRequest,
+    UsuarioLogin,
+    UsuarioResponse,
+)
+from app.services.email import encolar_correo, procesar_pendientes
+from app.services.rate_limit import limitador_login, limitador_recuperacion
+from app.services.recuperacion import recuperacion_password
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -88,3 +101,96 @@ def logout(response: Response) -> None:
     requerir que el cliente tenga un token válido.
     """
     response.delete_cookie(key=NOMBRE_COOKIE_ACCESO, **atributos_cookie_acceso())
+
+
+def _usuario_por_identificador(db: Session, identificador: str) -> Usuario | None:
+    return get_usuario_by_username(db, identificador) or get_usuario_by_email(db, identificador)
+
+
+@router.post("/cambiar-password", status_code=status.HTTP_204_NO_CONTENT)
+def cambiar_password(
+    payload: CambiarPasswordRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Fija una contraseña definitiva. Cubre dos casos con el mismo
+    endpoint: el cambio obligatorio tras recibir una temporal (alta de
+    usuario o recuperación, `debe_cambiar_password=true`) y el autoservicio
+    voluntario de cualquier usuario -- que hoy tampoco existía.
+
+    Exige la contraseña ACTUAL como confirmación (aunque sea la temporal
+    recién recibida por correo): una sesión ya autenticada no debe poder
+    cambiarla sin que quien la usa la conozca.
+    """
+    if not verify_password(payload.password_actual, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="La contraseña actual es incorrecta")
+    current_user.hashed_password = hash_password(payload.password_nueva)
+    current_user.debe_cambiar_password = False
+    db.add(current_user)
+    db.commit()
+
+
+@router.post("/recuperar", status_code=status.HTTP_204_NO_CONTENT)
+def solicitar_recuperacion(
+    payload: SolicitarRecuperacionRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> None:
+    """Solicita un código de recuperación por correo.
+
+    La respuesta es SIEMPRE 204 sin cuerpo, exista o no el identificador --
+    mismo criterio anti-enumeración que ya prueba `TestNoFiltraExistenciaDeUsuario`
+    para /auth/login. Cada pedido (exista o no el usuario) cuenta contra
+    `limitador_recuperacion`: sin esto, alguien podría bombardear de correos
+    de recuperación a un usuario real sin límite -- acá no hay "éxito" que
+    deba resetear el contador, a diferencia del login.
+    """
+    ip = request.client.host if request.client else "desconocido"
+    if limitador_recuperacion.bloqueado(ip, payload.identificador):
+        return
+    limitador_recuperacion.registrar_fallo(ip, payload.identificador)
+
+    usuario = _usuario_por_identificador(db, payload.identificador)
+    if usuario is None or not settings.email_enabled:
+        return
+    codigo = recuperacion_password.generar_codigo(usuario.id)
+    encolar_correo(
+        db,
+        destinatario=usuario.email,
+        asunto="Código para recuperar tu contraseña",
+        cuerpo=(
+            f"Hola {usuario.username},\n\n"
+            f"Tu código para restablecer la contraseña es: {codigo}\n"
+            "Vence en 15 minutos. Si no lo solicitaste, podés ignorar este correo."
+        ),
+    )
+    db.commit()
+    procesar_pendientes(db)
+
+
+@router.post("/restablecer", status_code=status.HTTP_204_NO_CONTENT)
+def restablecer_password(
+    payload: RestablecerPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> None:
+    """Aplica el código de recuperación. A diferencia de /auth/recuperar,
+    acá sí hay un "éxito" real (código correcto) que reinicia el contador
+    de intentos -- mismo patrón exacto que /auth/login."""
+    ip = request.client.host if request.client else "desconocido"
+    if limitador_recuperacion.bloqueado(ip, payload.identificador):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+        )
+
+    usuario = _usuario_por_identificador(db, payload.identificador)
+    if usuario is None or not recuperacion_password.verificar_codigo(usuario.id, payload.codigo):
+        limitador_recuperacion.registrar_fallo(ip, payload.identificador)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código inválido o vencido")
+
+    limitador_recuperacion.reiniciar(ip, payload.identificador)
+    usuario.hashed_password = hash_password(payload.password_nueva)
+    usuario.debe_cambiar_password = False
+    db.add(usuario)
+    db.commit()

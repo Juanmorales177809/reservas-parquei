@@ -35,6 +35,10 @@ abstract class AuthUser with _$AuthUser {
     required String email,
     required RolUsuario rol,
     EspacioResumen? espacio,
+    // True si la contraseña actual es una temporal generada por el backend
+    // (alta de usuario o recuperación) — el router fuerza el cambio antes
+    // de dejar navegar a cualquier otra pantalla, ver app_router.dart.
+    @Default(false) bool debeCambiarPassword,
   }) = _AuthUser;
 
   const AuthUser._();

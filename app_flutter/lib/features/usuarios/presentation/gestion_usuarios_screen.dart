@@ -531,22 +531,27 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
           espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
         );
       } else {
-        if (_password.isEmpty) {
-          setState(() => _error = 'La contraseña es requerida');
-          setState(() => _guardando = false);
-          return;
-        }
+        // Sin contraseña: el backend siempre genera una temporal y la
+        // entrega por correo (ver AdminUsuarioCreate.password en el
+        // backend) — el admin ya no la elige acá.
         await repo.crear(
           username: _username,
           email: _email,
-          password: _password,
           rol: _rol.name,
           espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
         );
       }
       widget.onSaved();
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_esEdicion ? 'Usuario actualizado.' : 'Usuario creado.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _esEdicion ? 'Usuario actualizado.' : 'Usuario creado. Se enviaron las credenciales por correo.',
+            ),
+          ),
+        );
+      }
     } on Object catch (e) {
       setState(() => _error = apiErrorMessage(e, fallback: _esEdicion ? 'No se pudo actualizar el usuario.' : 'No se pudo crear el usuario.'));
     } finally {
@@ -589,20 +594,24 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
                 },
                 onSaved: (v) => _email = v!.trim(),
               ),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(
-                initialValue: null,
-                decoration: InputDecoration(labelText: _esEdicion ? 'Nueva contraseña (opcional)' : 'Contraseña *', hintText: 'Mín. 6 caracteres'),
-                obscureText: true,
-                validator: (v) {
-                  if (!_esEdicion && (v == null || v.isEmpty)) return 'Requerido';
-                  if (v != null && v.isNotEmpty && v.length < 6) return 'Mín. 6 caracteres';
-                  if (v != null && v.length > 72) return 'Máx. 72 caracteres';
-                  return null;
-                },
-                onChanged: (v) => _password = v,
-                onSaved: (v) => _password = v ?? '',
-              ),
+              // Solo en edición: al crear, la contraseña siempre la genera
+              // el backend y se entrega por correo (ver _guardar arriba) —
+              // el admin ya no la elige ni la ve.
+              if (_esEdicion) ...[
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  initialValue: null,
+                  decoration: const InputDecoration(labelText: 'Nueva contraseña (opcional)', hintText: 'Mín. 6 caracteres'),
+                  obscureText: true,
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && v.length < 6) return 'Mín. 6 caracteres';
+                    if (v != null && v.length > 72) return 'Máx. 72 caracteres';
+                    return null;
+                  },
+                  onChanged: (v) => _password = v,
+                  onSaved: (v) => _password = v ?? '',
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<RolUsuario>(
                 initialValue: _rol,

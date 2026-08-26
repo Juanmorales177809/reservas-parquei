@@ -21,6 +21,7 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 | zona.py | Modificado (Fase 12C-3) | Agrega `ZonaRecursosUpdate` (`recurso_ids: list[int]`, reemplazo completo) y `ZonaRecursosResponse` (`zona_id`, `recurso_ids` resultantes) — deliberadamente separados de `ZonaResponse`, sin ampliar ese contrato |
 | reserva.py | Modificado (Fase 12C-6) | Contrato plural aprobado 12C-6: `ReservaCreate`/`ReservaUpdate` pasan a ejes `recurso_ids`/`zona_ids` con `extra="forbid"` — el legacy `recurso_id` se rechaza con 422, no se acepta como alias; `ReservaResponse` aditiva (`recurso_ids`, `zona_ids`, `zonas`), conservando `recurso_id`/`recurso` como forma singular temporal; nuevo `ZonaReservaResponse` |
 | reserva.py | Modificado (Fase 12C-4e-schemas) | `ReservaResponse` retira `recurso_id`/`recurso` (el ancla singular) y agrega `recursos: list[RecursoReservaResponse]`; `recurso_ids`/`zona_ids`/`zonas` sin cambios |
+| usuario.py | Modificado (correo saliente) | `UsuarioResponse` gana `debe_cambiar_password: bool` (default `False`). `AdminUsuarioCreate.password` pasa a `str \| None` — se acepta por compatibilidad pero el backend lo ignora siempre (genera su propia contraseña temporal). Nuevos `CambiarPasswordRequest`, `SolicitarRecuperacionRequest`, `RestablecerPasswordRequest` |
 
 ## Reglas de negocio relacionadas
 

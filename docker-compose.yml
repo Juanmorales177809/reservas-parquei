@@ -65,6 +65,18 @@ services:
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-}
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      # Correo saliente (app/services/email.py). EMAIL_ENABLED=false por
+      # defecto: el resto de estas variables no importan hasta que IT del
+      # ITM entregue un buzón real -- ver deploy/README.md y
+      # app/services/email.py. En development, SMTP_HOST=mailpit apunta al
+      # servicio de abajo (nunca a un buzón real).
+      EMAIL_ENABLED: ${EMAIL_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -83,6 +95,22 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: reservas_mailpit
+    restart: unless-stopped
+    # Solo para desarrollo local -- nunca se levanta con `docker compose up`
+    # a secas (hace falta `--profile dev`). Este mismo docker-compose.yml es
+    # el que converge el agente de CD en el bastión (ver deploy/README.md);
+    # sin el profile, un Mailpit inútil terminaría corriendo en producción.
+    profiles:
+      - dev
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_WEB_PORT:-8025}:8025"
+    networks:
+      - application_network
 
   flutter_proxy:
     image: nginx:alpine

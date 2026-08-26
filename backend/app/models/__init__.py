@@ -1,4 +1,5 @@
 from app.models.control_cambio import ControlCambio
+from app.models.correo_saliente import CorreoSaliente
 from app.models.espacio import Espacio
 from app.models.notificacion import Notificacion
 from app.models.recurso import Recurso, TipoRecurso
@@ -15,6 +16,7 @@ from app.models.zona_recurso import ZonaRecurso
 
 __all__ = [
     "ControlCambio",
+    "CorreoSaliente",
     "Ensayo",
     "Espacio",
     "Notificacion",

@@ -10,7 +10,11 @@ import 'api_exception.dart';
 ///   sin sesión previa es el resultado normal de "no hay sesión", no debe
 ///   forzar la navegación global a /login (el guard de go_router ya cubre
 ///   ese caso al entrar a una ruta protegida).
-const kRutasSinRedirect401 = {'/auth/login', '/usuarios/me'};
+/// - `/auth/cambiar-password`: un 401 aquí es "la contraseña ACTUAL que
+///   escribiste está mal", con sesión perfectamente válida — sin esto, un
+///   simple error de tipeo cerraría la sesión de quien recién la abrió con
+///   su temporal.
+const kRutasSinRedirect401 = {'/auth/login', '/usuarios/me', '/auth/cambiar-password'};
 
 /// Traduce cualquier error de dio a [ApiException] y notifica sesión
 /// expirada en el resto de rutas — equivalente al interceptor de 401 de

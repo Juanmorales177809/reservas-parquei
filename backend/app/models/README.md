@@ -23,6 +23,9 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 | migrations.py | Modificado (Fase 12D, parcial) | Append al final de la tupla: `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS tipo VARCHAR(30)` + `DO $$ ... ADD CONSTRAINT ck_reservas_tipo ...` (patrón `ck_espacios_modalidad_reserva`) |
 | reserva.py | Modificado (Fase 12D-bis) | Nueva columna `asistio` (`Boolean`, nullable) — sin `CheckConstraint` |
 | migrations.py | Modificado (Fase 12D-bis) | Append: `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN` (sin backfill ni constraint) |
+| correo_saliente.py | Nuevo (correo saliente) | Outbox de correo: `id`, `destinatario`, `asunto`, `cuerpo`, `estado` (`CheckConstraint` pendiente/enviado/fallido), `intentos`, `creado_en`, `enviado_en`. Sin FK a `usuarios` (el destinatario es un email de texto, no una relación) — tabla nueva creada por `Base.metadata.create_all()`, sin entrada en `migrations.py` |
+| usuario.py | Modificado (correo saliente) | Nueva columna `debe_cambiar_password` (`Boolean`, NOT NULL, default `false`) — true cuando la contraseña la generó el backend (alta o recuperación) en vez de elegirla la propia persona |
+| migrations.py | Modificado (correo saliente) | Append: `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false` |
 
 ## Reglas de negocio relacionadas
 

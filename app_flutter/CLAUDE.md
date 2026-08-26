@@ -282,6 +282,16 @@ Igual que `frontend/CLAUDE.md`: ningún cambio en `backend/app/schemas/`, router
 
 **Excepción 2026-08-21 (autorizada en esta sesión, ver `git log` y `openapi.snapshot.json`):** con autorización explícita del usuario se tocó `backend/` solo para los dos pendientes que lo exigían: `motivo_rechazo` (`schemas/reserva.py:75`, `models/reserva.py:36`, `migrations.py:453`, `services/reservas.py:636`, `api/reservas.py:53`, `api/notificaciones.py:33`, regenerado `openapi.snapshot.json:1254`) y `deltas` (`schemas/admin_dashboard.py:43`, `api/admin_dashboard.py:23`), más `frontend/` (`types/reserva.ts:63`, `services/reservas.ts:19`, `admin/reservas/page.tsx:79`). Fuera de esto sigue vigente “frontend se adapta, no al revés”.
 
+## Correo saliente: alta de usuario y recuperación de contraseña (2026-08-26)
+
+**Excepción autorizada** a "Backend intacto sin aprobación aparte" (sección de arriba): se agregaron 3 endpoints (`POST /auth/cambiar-password`, `/auth/recuperar`, `/auth/restablecer`) y el campo `debe_cambiar_password` en `UsuarioResponse`/`AuthUser`, aprobados explícitamente en la sesión de diseño de correo saliente. `openapi.snapshot.json` regenerado y revisado.
+
+- **`AuthUser.debeCambiarPassword`**: si es `true`, el guard de `app_router.dart` fuerza `/cambiar-password-temporal` antes de dejar navegar a cualquier otra pantalla — prioridad sobre el guard de rol. Se limpia localmente en `Auth.cambiarPassword()` (sin volver a pedir `/usuarios/me`: el backend ya confirmó el cambio si no tiró excepción).
+- **Alta de usuario ya no pide contraseña**: `gestion_usuarios_screen.dart` quitó el campo del formulario de CREAR (la edición no cambió) — el backend siempre genera una temporal y la entrega por correo. `UsuariosRepository.crear()` perdió el parámetro `password`.
+- **`/auth/cambiar-password` está en `kRutasSinRedirect401`** (`auth_interceptor.dart`): un 401 ahí es "la contraseña actual está mal", con sesión válida — sin esto, un simple error de tipeo cerraría la sesión de quien recién la abrió con su temporal.
+- **`/recuperar` y `/restablecer` son pantallas separadas**, no una sola con dos pasos: la segunda recibe el identificador de la primera vía `extra` de `context.push` (no query param — no hace falta que la URL sea compartible, el código de recuperación no es un link).
+- **Gotcha de test**: en `RestablecerPasswordScreen` y `CambiarPasswordTemporalScreen`, el `AppBar` title y el botón de submit tienen el MISMO texto ("Restablecer contraseña", "Cambiar contraseña") — `find.text(...)` en un test encuentra 2 widgets y `tap()` falla por ambigüedad. Usar `find.widgetWithText(FilledButton, '...')`.
+
 ## Sesión: cookie HttpOnly, nunca un token en el cliente
 
 El backend (Fase 9G) solo acepta la cookie `access_token` (`HttpOnly`, `SameSite=Lax`), fijada por `POST /auth/login`. **Nunca** leer/decodificar el JWT en Dart ni guardar sesión en `shared_preferences`/`localStorage` — sería una fuente de verdad paralela a la cookie (misma regla que ya rige para `frontend/`). Manejo de cookie condicional por plataforma en `lib/core/network/cookie_interceptor*.dart` (conditional import `dart.library.io`):

@@ -21,6 +21,8 @@ Routers FastAPI: endpoints HTTP. Esta capa orquesta la validación de entrada (s
 | recursos.py | Modificado (Fase 12C-4e-lectores) | `_recurso_tiene_reservas` deja de consultar `Reserva.recurso_id` como fallback (solo `reserva_recursos`); `eliminar_recurso` gana `try/except IntegrityError` → 409, necesario porque el ancla de una zona sin recursos ya no lo detecta el guard de aplicación y ahora depende de la FK real de `reservas.recurso_id` (sin retirar) |
 | reservas.py | Modificado (Fase 12D-bis) | Nuevo `PUT /reservas/{id}/asistio` (`ReservaAsistioUpdate`, `marcar_asistencia`, `require_resource_manager` + `get_managed_space_id`, auditoría `marcar_asistencia`) |
 | ensayos.py | Nuevo (Fase 12E) | Router `/ensayos`: `GET ""` (público `?zona_id=`, RN-005-like con `zona.estado`+`espacio.estado`), `POST ""`/`PUT "/{id}"`/`DELETE "/{id}"` (`require_resource_manager`, 2 saltos `ensayo.zona.espacio_id` vs `get_managed_space_id`, `DELETE` 409 si `ReservaEnsayo` existe) |
+| auth.py | Modificado (correo saliente) | Tres endpoints nuevos: `POST /auth/cambiar-password` (autenticado, exige `password_actual`), `POST /auth/recuperar` (público, siempre 204, rate-limited por `ip:identificador` vía `limitador_recuperacion`, nunca revela si el identificador existe) y `POST /auth/restablecer` (público, código de 6 dígitos, mismo limitador). El código vive en memoria del proceso (`services/recuperacion.py`), nunca en la base |
+| usuarios.py | Modificado (correo saliente) | `POST /usuarios` ya no respeta la contraseña del payload: siempre genera una temporal (`secrets.token_urlsafe`), la entrega por correo (outbox `CorreoSaliente`) y marca `debe_cambiar_password=true` en el usuario creado |
 
 ## Reglas de negocio relacionadas
 

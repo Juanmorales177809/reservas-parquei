@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -12,6 +12,11 @@ class Usuario(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     rol = Column(String(20), nullable=False, default="usuario")
+    # True cuando la contraseña la generó el backend (alta de usuario o
+    # recuperación) en vez de elegirla la propia persona -- fuerza el
+    # cambio en el primer login. Ver app/api/usuarios.py y
+    # app/api/auth.py::cambiar_password.
+    debe_cambiar_password = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

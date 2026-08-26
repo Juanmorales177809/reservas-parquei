@@ -115,7 +115,7 @@
         "type": "object"
       },
       "AdminUsuarioCreate": {
-        "description": "Permite al admin asignar un rol al crear un usuario.",
+        "description": "Permite al admin asignar un rol al crear un usuario.\n\n`password` se acepta por compatibilidad con clientes que aún la envíen,\npero SIEMPRE se ignora: la contraseña real la genera el backend\n(`create_usuario_admin` en `app/api/usuarios.py`) y se entrega por\ncorreo, nunca la elige quien crea el usuario.",
         "properties": {
           "email": {
             "maxLength": 255,
@@ -134,10 +134,17 @@
             "title": "Espacio Id"
           },
           "password": {
-            "maxLength": 72,
-            "minLength": 6,
-            "title": "Password",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 72,
+                "minLength": 6,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           },
           "rol": {
             "$ref": "#/components/schemas/Rol",
@@ -152,10 +159,32 @@
         },
         "required": [
           "username",
-          "email",
-          "password"
+          "email"
         ],
         "title": "AdminUsuarioCreate",
+        "type": "object"
+      },
+      "CambiarPasswordRequest": {
+        "description": "Body de `POST /auth/cambiar-password` (usuario autenticado).\n\nExige la contraseña actual (aunque sea la temporal recién recibida por\ncorreo) como confirmación -- evita que una sesión ya autenticada pueda\ncambiar la contraseña sin que quien la use la conozca.",
+        "properties": {
+          "password_actual": {
+            "maxLength": 72,
+            "minLength": 1,
+            "title": "Password Actual",
+            "type": "string"
+          },
+          "password_nueva": {
+            "maxLength": 72,
+            "minLength": 6,
+            "title": "Password Nueva",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password_actual",
+          "password_nueva"
+        ],
+        "title": "CambiarPasswordRequest",
         "type": "object"
       },
       "ConfiguracionEspacioResponse": {
@@ -1752,6 +1781,36 @@
         "title": "ReservasPorFecha",
         "type": "object"
       },
+      "RestablecerPasswordRequest": {
+        "description": "Body de `POST /auth/restablecer` (público).",
+        "properties": {
+          "codigo": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Codigo",
+            "type": "string"
+          },
+          "identificador": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identificador",
+            "type": "string"
+          },
+          "password_nueva": {
+            "maxLength": 72,
+            "minLength": 6,
+            "title": "Password Nueva",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identificador",
+          "codigo",
+          "password_nueva"
+        ],
+        "title": "RestablecerPasswordRequest",
+        "type": "object"
+      },
       "Rol": {
         "description": "Rol funcional de un usuario. Espejo del patrón\n`^(admin|gestor|usuario)$` de `app/schemas/usuario.py`.",
         "enum": [
@@ -1761,6 +1820,22 @@
         ],
         "title": "Rol",
         "type": "string"
+      },
+      "SolicitarRecuperacionRequest": {
+        "description": "Body de `POST /auth/recuperar` (público). Acepta username o email\nindistintamente -- ver `get_usuario_by_username`/`get_usuario_by_email`.",
+        "properties": {
+          "identificador": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identificador",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identificador"
+        ],
+        "title": "SolicitarRecuperacionRequest",
+        "type": "object"
       },
       "TipoNotificacion": {
         "description": "Tipos de notificación internos.\n\nOrigen verificado de los valores: el constraint `notificaciones_tipo_check`\nexiste en base de datos — declarado en `app/models/notificacion.py`\n(`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +\nADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')`).\nSe conservan exactamente esos valores.",
@@ -1885,6 +1960,11 @@
       },
       "UsuarioResponse": {
         "properties": {
+          "debe_cambiar_password": {
+            "default": false,
+            "title": "Debe Cambiar Password",
+            "type": "boolean"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -2444,6 +2524,46 @@
         ]
       }
     },
+    "/auth/cambiar-password": {
+      "post": {
+        "description": "Fija una contraseña definitiva. Cubre dos casos con el mismo\nendpoint: el cambio obligatorio tras recibir una temporal (alta de\nusuario o recuperación, `debe_cambiar_password=true`) y el autoservicio\nvoluntario de cualquier usuario -- que hoy tampoco existía.\n\nExige la contraseña ACTUAL como confirmación (aunque sea la temporal\nrecién recibida por correo): una sesión ya autenticada no debe poder\ncambiarla sin que quien la usa la conozca.",
+        "operationId": "cambiar_password_auth_cambiar_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Cambiar Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login_auth_login_post",
@@ -2495,6 +2615,76 @@
           }
         },
         "summary": "Logout",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/recuperar": {
+      "post": {
+        "description": "Solicita un código de recuperación por correo.\n\nLa respuesta es SIEMPRE 204 sin cuerpo, exista o no el identificador --\nmismo criterio anti-enumeración que ya prueba `TestNoFiltraExistenciaDeUsuario`\npara /auth/login. Cada pedido (exista o no el usuario) cuenta contra\n`limitador_recuperacion`: sin esto, alguien podría bombardear de correos\nde recuperación a un usuario real sin límite -- acá no hay \"éxito\" que\ndeba resetear el contador, a diferencia del login.",
+        "operationId": "solicitar_recuperacion_auth_recuperar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarRecuperacionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Solicitar Recuperacion",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/restablecer": {
+      "post": {
+        "description": "Aplica el código de recuperación. A diferencia de /auth/recuperar,\nacá sí hay un \"éxito\" real (código correcto) que reinicia el contador\nde intentos -- mismo patrón exacto que /auth/login.",
+        "operationId": "restablecer_password_auth_restablecer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestablecerPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restablecer Password",
         "tags": [
           "auth"
         ]
