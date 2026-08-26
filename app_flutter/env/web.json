@@ -3,5 +3,6 @@
   "ENVIRONMENT": "dev",
   "SUPABASE_ENABLED": "true",
   "SUPABASE_URL": "https://ijktwqnkknemjrokwcdn.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_LDxTrM4fhrYbk9TCZdmI6A_XIAQHldu",
   "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqa3R3cW5ra25lbWpyb2t3Y2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NzAzMDIsImV4cCI6MjEwMzM0NjMwMn0.cccz4C4BdRhqgbt5hbOQDRcoHAxAPH8uVJJcuHozr6g"
 }

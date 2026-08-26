@@ -23,6 +23,7 @@ Future<void> main() async {
   // configurados (Cloud free tier). Con false no se toca nada y el flujo
   // clásico sigue intacto.
   if (SupabaseConfig.isConfigured) {
+    // ignore: deprecated_member_use
     await Supabase.initialize(
       url: SupabaseConfig.url,
       anonKey: SupabaseConfig.anonKey,

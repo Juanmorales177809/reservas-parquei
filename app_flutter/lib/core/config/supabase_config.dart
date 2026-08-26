@@ -10,7 +10,12 @@
 abstract final class SupabaseConfig {
   static const enabled = bool.fromEnvironment('SUPABASE_ENABLED', defaultValue: false);
   static const url = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  // Nuevo formato publishable (sb_publishable_...), preferido en Supabase Cloud
+  static const publishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: '');
+  // Legacy JWT anon (eyJ...), deprecado en supabase_flutter pero aún soportado
   static const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
-  static bool get isConfigured => enabled && url.isNotEmpty && anonKey.isNotEmpty;
+  static String get effectiveKey => publishableKey.isNotEmpty ? publishableKey : anonKey;
+
+  static bool get isConfigured => enabled && url.isNotEmpty && effectiveKey.isNotEmpty;
 }
