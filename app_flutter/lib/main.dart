@@ -19,14 +19,13 @@ Future<void> main() async {
 
   final config = AppConfig.fromEnvironment();
 
-  // Supabase Auth hybrid: solo si SUPABASE_ENABLED=true y con URL+anonKey
+  // Supabase Auth hybrid: solo si SUPABASE_ENABLED=true y con URL+key
   // configurados (Cloud free tier). Con false no se toca nada y el flujo
-  // clásico sigue intacto.
+  // clásico sigue intacto. anonKey está deprecado → publishableKey.
   if (SupabaseConfig.isConfigured) {
-    // ignore: deprecated_member_use
     await Supabase.initialize(
       url: SupabaseConfig.url,
-      anonKey: SupabaseConfig.anonKey,
+      publishableKey: SupabaseConfig.effectiveKey,
     );
   }
 
