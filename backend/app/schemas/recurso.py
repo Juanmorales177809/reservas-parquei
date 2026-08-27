@@ -49,3 +49,6 @@ class RecursoResponse(BaseModel):
     espacio: EspacioResponse
     tipo: TipoRecursoResponse
     es_prestacion_servicio: bool
+    # Fase D: identificador de activo físico del inventario institucional
+    # (ej. "05087964") -- `null` para un recurso creado a mano desde la UI.
+    placa: str | None = None

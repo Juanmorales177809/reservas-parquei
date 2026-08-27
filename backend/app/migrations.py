@@ -519,6 +519,15 @@ def migrate_resource_reservations() -> None:
             END IF;
         END $$;
         """,
+        # Fase D (import de inventario institucional): identificador de
+        # activo físico. Nullable (un recurso creado a mano nunca lo trae) +
+        # índice único -- NULL no colisiona consigo mismo en Postgres (ni en
+        # ningún motor SQL estándar), así que múltiples recursos sin placa
+        # conviven sin problema; dos con la MISMA placa sí chocan, que es
+        # justo la garantía que necesita `scripts/importar_inventario.py`
+        # para reintentar sin duplicar.
+        "ALTER TABLE recursos ADD COLUMN IF NOT EXISTS placa VARCHAR(50)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_recursos_placa ON recursos (placa)",
     )
 
     with engine.begin() as connection:

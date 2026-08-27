@@ -1223,6 +1223,17 @@
             "title": "Nombre",
             "type": "string"
           },
+          "placa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placa"
+          },
           "tipo": {
             "$ref": "#/components/schemas/TipoRecursoResponse"
           },

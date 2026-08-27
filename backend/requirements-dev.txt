@@ -1,3 +1,7 @@
 pytest==8.3.5
 # httpx pasó a requirements.txt (dependencia real, app/services/supabase_admin.py)
 tzdata==2025.2
+# Fase D: solo la usa scripts/importar_inventario.py (carga única de datos,
+# nunca corre en producción) -- utilería de desarrollo, no dependencia real
+# de la app.
+openpyxl==3.1.5
