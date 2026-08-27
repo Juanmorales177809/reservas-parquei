@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/domain/enums.dart';
+
 part 'auth_user.freezed.dart';
 part 'auth_user.g.dart';
 
@@ -35,6 +37,13 @@ abstract class AuthUser with _$AuthUser {
     required String email,
     required RolUsuario rol,
     EspacioResumen? espacio,
+    // Fase A2: perfil de usuario -- se completan una vez en `/perfil`,
+    // nunca en cada reserva. Nullable: sin backfill para cuentas viejas.
+    String? documentoIdentificacion,
+    String? telefono,
+    String? institucion,
+    VinculacionUsuario? vinculacion,
+    String? dependencia,
   }) = _AuthUser;
 
   const AuthUser._();

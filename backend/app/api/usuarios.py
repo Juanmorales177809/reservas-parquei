@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.crud.usuarios import create_usuario, get_usuario_by_email, get_usuario_by_username, get_usuarios, get_usuario, update_usuario, delete_usuario
+from app.crud.usuarios import actualizar_perfil, create_usuario, get_usuario_by_email, get_usuario_by_username, get_usuarios, get_usuario, update_usuario, delete_usuario
 from app.db import get_db
 from app.deps import get_current_user, require_admin
 from app.models.espacio import Espacio
 from app.models.usuario import Usuario
-from app.schemas.usuario import AdminUsuarioCreate, ReenviarInvitacionResponse, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import AdminUsuarioCreate, PerfilUpdate, ReenviarInvitacionResponse, UsuarioResponse, UsuarioUpdate
 from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
 from app.services.supabase_admin import (
@@ -163,6 +163,21 @@ def reenviar_invitacion_endpoint(
     db.refresh(correo)
 
     return ReenviarInvitacionResponse(link=link, correo_enviado=correo.estado == "enviado")
+
+
+@router.put("/me", response_model=UsuarioResponse)
+def actualizar_mi_perfil(
+    payload: PerfilUpdate,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Self-service: cualquier usuario autenticado edita su propio perfil
+    (documento/teléfono/institución/vinculación/dependencia). Registrada
+    ANTES de `PUT /usuarios/{usuario_id}` a propósito -- si quedara
+    después, FastAPI intentaría parsear "me" como el `int` de esa ruta y
+    respondería 422 en vez de llegar acá (mismo orden que ya sigue
+    `GET /me` respecto de `GET ""`)."""
+    return actualizar_perfil(db, current_user, payload)
 
 
 @router.put("/{usuario_id}", response_model=UsuarioResponse)

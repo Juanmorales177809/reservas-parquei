@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.usuario import Usuario
 from app.models.usuario_espacio import UsuarioEspacio
-from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
+from app.schemas.usuario import PerfilUpdate, UsuarioCreate, UsuarioUpdate
 
 
 def get_usuario(db: Session, usuario_id: int) -> Usuario | None:
@@ -72,6 +72,18 @@ def update_usuario(db: Session, db_usuario: Usuario, data: UsuarioUpdate) -> Usu
         else:
             asignacion.espacio_id = espacio_id
 
+    db.add(db_usuario)
+    db.commit()
+    db.refresh(db_usuario)
+    return db_usuario
+
+
+def actualizar_perfil(db: Session, db_usuario: Usuario, data: PerfilUpdate) -> Usuario:
+    """Fase A2: self-service, solo los 5 campos de perfil -- a diferencia
+    de `update_usuario`, acá no hay `rol`/`espacio_id` que resolver."""
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_usuario, field, value)
     db.add(db_usuario)
     db.commit()
     db.refresh(db_usuario)

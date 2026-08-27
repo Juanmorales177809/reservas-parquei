@@ -250,6 +250,13 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                 if (reserva.tipo != null) _InfoChip(icon: LucideIcons.tag, text: tipoReservaLabel(reserva.tipo!)),
               ],
             ),
+            if (reserva.descripcion != null && reserva.descripcion!.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                reserva.descripcion!,
+                style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
             if (reserva.estado == EstadoReserva.rechazada && reserva.motivoRechazo != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Container(

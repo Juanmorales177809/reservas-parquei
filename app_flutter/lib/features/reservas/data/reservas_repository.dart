@@ -31,6 +31,7 @@ class ReservasRepository {
     List<int> zonaIds = const [],
     List<int> ensayoIds = const [],
     List<Map<String, String>> acompanantes = const [],
+    String? descripcion,
   }) async {
     final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
     final response = await _dio.post<Map<String, dynamic>>(
@@ -45,6 +46,7 @@ class ReservasRepository {
         'hora_fin': horaFin,
         'asistentes': asistentes,
         'tipo': ?tipoJson,
+        'descripcion': ?descripcion,
       },
     );
     return Reserva.fromJson(response.data!);
@@ -104,12 +106,14 @@ class ReservasRepository {
     String? horaInicio,
     String? horaFin,
     int? asistentes,
+    String? descripcion,
   }) async {
     final data = <String, dynamic>{};
     if (fecha != null) data['fecha'] = _formatoFecha.format(fecha);
     if (horaInicio != null) data['hora_inicio'] = horaInicio;
     if (horaFin != null) data['hora_fin'] = horaFin;
     if (asistentes != null) data['asistentes'] = asistentes;
+    if (descripcion != null) data['descripcion'] = descripcion;
     final response = await _dio.patch<Map<String, dynamic>>('/reservas/$reservaId', data: data);
     return Reserva.fromJson(response.data!);
   }

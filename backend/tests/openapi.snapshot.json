@@ -981,6 +981,72 @@
         "title": "OcupacionGlobal",
         "type": "object"
       },
+      "PerfilUpdate": {
+        "additionalProperties": false,
+        "description": "Body de `PUT /usuarios/me` (self-service, cualquier rol autenticado).\n\nContiene EXCLUSIVAMENTE los campos de perfil -- nunca `rol`,\n`espacio_id`, `username` ni `email`. `extra=\"forbid\"` hace que mandar\ncualquier otro campo (ej. `{\"rol\": \"admin\"}`) sea un 422 de validación,\nno un campo ignorado en silencio: la escalada de privilegios es\nestructuralmente imposible acá, no depende de que el handler se\nacuerde de filtrar. No reusar `UsuarioUpdate` para este endpoint bajo\nninguna circunstancia -- ver `backend/CLAUDE.md`.",
+        "properties": {
+          "dependencia": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependencia"
+          },
+          "documento_identificacion": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento Identificacion"
+          },
+          "institucion": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institucion"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "vinculacion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VinculacionUsuario"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PerfilUpdate",
+        "type": "object"
+      },
       "PeriodoDelta": {
         "properties": {
           "desde": {
@@ -1336,6 +1402,17 @@
             "title": "Asistentes",
             "type": "integer"
           },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
           "ensayo_ids": {
             "items": {
               "type": "integer"
@@ -1450,6 +1527,17 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
           },
           "ensayo_ids": {
             "items": {
@@ -1601,6 +1689,17 @@
               }
             ],
             "title": "Asistentes"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
           },
           "ensayo_ids": {
             "anyOf": [
@@ -1891,6 +1990,28 @@
       },
       "UsuarioResponse": {
         "properties": {
+          "dependencia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependencia"
+          },
+          "documento_identificacion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento Identificacion"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -1909,12 +2030,44 @@
             "title": "Id",
             "type": "integer"
           },
+          "institucion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institucion"
+          },
           "rol": {
             "$ref": "#/components/schemas/Rol"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
           },
           "username": {
             "title": "Username",
             "type": "string"
+          },
+          "vinculacion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VinculacionUsuario"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1928,6 +2081,30 @@
       },
       "UsuarioUpdate": {
         "properties": {
+          "dependencia": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependencia"
+          },
+          "documento_identificacion": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento Identificacion"
+          },
           "email": {
             "anyOf": [
               {
@@ -1951,6 +2128,18 @@
             ],
             "title": "Espacio Id"
           },
+          "institucion": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institucion"
+          },
           "rol": {
             "anyOf": [
               {
@@ -1960,6 +2149,18 @@
                 "type": "null"
               }
             ]
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
           },
           "username": {
             "anyOf": [
@@ -1973,6 +2174,16 @@
               }
             ],
             "title": "Username"
+          },
+          "vinculacion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VinculacionUsuario"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "UsuarioUpdate",
@@ -2017,6 +2228,18 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VinculacionUsuario": {
+        "description": "Vinculación institucional de un usuario con el ITM (Fase A2, perfil\nde usuario). Nombre del campo en `Usuario`: `vinculacion` -- distinto\nde `Rol` (rol funcional dentro de este sistema: usuario/gestor/admin),\nque es un concepto no relacionado aunque ambos describan \"quién es la\npersona\". Cinco categorías estables del formulario real de solicitud\nde laboratorios del ITM -- a diferencia de `institucion`/`dependencia`\n(texto libre, sin CHECK: la lista de facultades puede reestructurarse\nadministrativamente y un CHECK convertiría un renombre en migración),\nestas categorías no cambian con esa frecuencia.",
+        "enum": [
+          "docente",
+          "estudiante",
+          "contratista_empleado",
+          "extension",
+          "otra"
+        ],
+        "title": "VinculacionUsuario",
+        "type": "string"
       },
       "ZonaCreate": {
         "properties": {
@@ -2200,6 +2423,13 @@
           "nombre": {
             "title": "Nombre",
             "type": "string"
+          },
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -4063,6 +4293,51 @@
           }
         ],
         "summary": "Get Me",
+        "tags": [
+          "usuarios"
+        ]
+      },
+      "put": {
+        "description": "Self-service: cualquier usuario autenticado edita su propio perfil\n(documento/teléfono/institución/vinculación/dependencia). Registrada\nANTES de `PUT /usuarios/{usuario_id}` a propósito -- si quedara\ndespués, FastAPI intentaría parsear \"me\" como el `int` de esa ruta y\nrespondería 422 en vez de llegar acá (mismo orden que ya sigue\n`GET /me` respecto de `GET \"\"`).",
+        "operationId": "actualizar_mi_perfil_usuarios_me_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PerfilUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Mi Perfil",
         "tags": [
           "usuarios"
         ]

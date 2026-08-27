@@ -18,6 +18,7 @@ import '../../features/recursos/presentation/gestion_recursos_screen.dart';
 import '../../features/reservas/presentation/gestion_reservas_screen.dart';
 import '../../features/reservas/presentation/mis_reservas_screen.dart';
 import '../../features/usuarios/presentation/gestion_usuarios_screen.dart';
+import '../../features/usuarios/presentation/mi_perfil_screen.dart';
 import '../../features/zonas/presentation/gestion_zonas_screen.dart';
 import '../../shell/app_shell.dart';
 import 'app_routes.dart';
@@ -126,6 +127,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminConfiguracion,
         pageBuilder: (context, state) => _sharedAxisPage(state, const ConfiguracionEspacioScreen()),
+      ),
+      // Empujada, fuera del ShellRoute (mismo motivo que las de arriba):
+      // no es un destino de la barra de navegación, se llega acá desde el
+      // menú de sesión (`SessionMenu`) -- cualquier rol autenticado.
+      GoRoute(
+        path: AppRoutes.perfil,
+        pageBuilder: (context, state) => _sharedAxisPage(state, const MiPerfilScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),

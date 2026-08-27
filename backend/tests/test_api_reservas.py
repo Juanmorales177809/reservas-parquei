@@ -493,6 +493,86 @@ class TestTransiciones:
         assert len(respuesta.json()) == 1
 
 
+class TestDescripcion:
+    """Fase A3: texto libre opcional ('Actividad a realizar' del formulario
+    real de solicitud de laboratorios) -- eje simple, mismo criterio que
+    `tipo`: ausente en el PATCH conserva, `null` explícito limpia."""
+
+    def _payload(self, recurso_id, fecha, descripcion=None):
+        payload = payload_reserva(recurso_id, fecha)
+        if descripcion is not None:
+            payload["descripcion"] = descripcion
+        return payload
+
+    def test_post_sin_descripcion_queda_null(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Desc 0")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert resp.json()["descripcion"] is None
+
+    def test_post_con_descripcion_la_persiste(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Desc 1")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), "Grabación del podcast semanal"),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert resp.json()["descripcion"] == "Grabación del podcast semanal"
+
+    def test_patch_modifica_la_descripcion(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Desc Patch")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), "Original"),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"descripcion": "Actualizada"},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["descripcion"] == "Actualizada"
+
+    def test_patch_sin_descripcion_la_conserva(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Desc Cons")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), "Se mantiene"),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"asistentes": 1},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["descripcion"] == "Se mantiene"
+
+    def test_patch_con_null_explicito_la_limpia(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Desc Null")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), "Se borra"),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"descripcion": None},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["descripcion"] is None
+
+
 class TestAcompanantes:
     def _payload(self, recurso_id, fecha, acompanantes):
         from tests.conftest import payload_reserva_objetivos

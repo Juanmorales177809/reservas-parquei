@@ -43,6 +43,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
   final List<Map<String, String>> _acompanantes = [];
   final _nombreCtrl = TextEditingController();
   final _correoCtrl = TextEditingController();
+  final _descripcionCtrl = TextEditingController();
   Set<int> _seleccion = {};
   int _asistentes = 1;
   TipoReserva? _tipo;
@@ -60,6 +61,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
   void dispose() {
     _nombreCtrl.dispose();
     _correoCtrl.dispose();
+    _descripcionCtrl.dispose();
     super.dispose();
   }
 
@@ -111,6 +113,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
             horaFin: slots[maxIdx].horaFin,
             asistentes: _asistentes,
             tipo: _tipo,
+            descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
           );
       // invalidar disponibilidades de recursos afectados y mis reservas
       for (final id in _recursoIds) { ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
@@ -219,6 +222,14 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                   setState(() { _acompanantes.add({'nombre': n, 'correo': c}); _nombreCtrl.clear(); _correoCtrl.clear(); });
                 }),
               ]),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Actividad a realizar (opcional)', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _descripcionCtrl,
+                decoration: const InputDecoration(hintText: 'Ej. Grabación del podcast semanal', isDense: true),
+                maxLines: 2,
+              ),
               const SizedBox(height: AppSpacing.lg),
               // Disponibilidad
               Builder(builder: (context) {

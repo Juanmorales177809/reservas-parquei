@@ -300,6 +300,13 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                 Text('${reserva.asistentes} asistentes', style: textTheme.bodyMedium),
               ],
             ),
+            if (reserva.descripcion != null && reserva.descripcion!.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                reserva.descripcion!,
+                style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
             if (reserva.estado == EstadoReserva.rechazada && reserva.motivoRechazo != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Container(

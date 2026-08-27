@@ -88,6 +88,45 @@ String tipoReservaLabel(TipoReserva tipo) => switch (tipo) {
       TipoReserva.servicioDeEnsayo => 'Servicio de ensayo',
     };
 
+/// Vinculación institucional de la persona con el ITM (Fase A2, perfil de
+/// usuario) — cinco categorías estables del formulario real de solicitud
+/// de laboratorios. Distinto de `RolUsuario` (rol funcional dentro de esta
+/// app: usuario/gestor/admin), un concepto no relacionado.
+enum VinculacionUsuario {
+  @JsonValue('docente')
+  docente,
+  @JsonValue('estudiante')
+  estudiante,
+  @JsonValue('contratista_empleado')
+  contratistaEmpleado,
+  @JsonValue('extension')
+  extension,
+  @JsonValue('otra')
+  otra,
+}
+
+const _kVinculacionUsuarioJson = {
+  VinculacionUsuario.docente: 'docente',
+  VinculacionUsuario.estudiante: 'estudiante',
+  VinculacionUsuario.contratistaEmpleado: 'contratista_empleado',
+  VinculacionUsuario.extension: 'extension',
+  VinculacionUsuario.otra: 'otra',
+};
+
+/// Codifica un [VinculacionUsuario] al string que espera el backend —
+/// usado por `UsuariosRepository.actualizarMiPerfil`, que arma el body a
+/// mano (no pasa por el `fromJson`/`toJson` de un modelo de respuesta).
+String vinculacionUsuarioToJson(VinculacionUsuario vinculacion) => _kVinculacionUsuarioJson[vinculacion]!;
+
+/// Etiqueta en español para mostrar en el formulario de perfil.
+String vinculacionUsuarioLabel(VinculacionUsuario vinculacion) => switch (vinculacion) {
+      VinculacionUsuario.docente => 'Docente',
+      VinculacionUsuario.estudiante => 'Estudiante',
+      VinculacionUsuario.contratistaEmpleado => 'Contratista/Empleado',
+      VinculacionUsuario.extension => 'Extensión',
+      VinculacionUsuario.otra => 'Otra',
+    };
+
 /// Tipo de notificación — OJO: valores capitalizados en el backend
 /// (`notificaciones_tipo_check`, constraint de base de datos), a
 /// diferencia del resto de enums del dominio que van en minúscula.

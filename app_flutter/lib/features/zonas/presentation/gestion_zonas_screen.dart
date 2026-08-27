@@ -13,6 +13,7 @@ import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../espacios/application/espacios_providers.dart';
+import '../../recursos/application/recursos_providers.dart';
 import '../application/zonas_providers.dart';
 import '../data/zonas_repository.dart';
 import '../domain/zona.dart';
@@ -109,6 +110,13 @@ class _ZonaCardState extends ConsumerState<_ZonaCard> {
     );
   }
 
+  void _gestionarRecursos() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _ZonaRecursosDialog(zona: widget.zona, onSaved: () => ref.invalidate(zonasGestionProvider)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final z = widget.zona;
@@ -142,6 +150,12 @@ class _ZonaCardState extends ConsumerState<_ZonaCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                OutlinedButton.icon(
+                  onPressed: _eliminando ? null : _gestionarRecursos,
+                  icon: const Icon(LucideIcons.boxes, size: 14),
+                  label: const Text('Recursos'),
+                ),
+                const SizedBox(width: AppSpacing.sm),
                 OutlinedButton.icon(
                   onPressed: _eliminando ? null : _editar,
                   icon: const Icon(LucideIcons.pencil, size: 14),
@@ -341,6 +355,97 @@ class _ZonaFormDialogState extends ConsumerState<_ZonaFormDialog> {
           child: _guardando
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
               : Text(_esEdicion ? 'Guardar' : 'Crear'),
+        ),
+      ],
+    );
+  }
+}
+
+/// `PUT /zonas/{id}/recursos` es un reemplazo completo, no un agregar/quitar
+/// incremental -- por eso la selección arranca precargada desde
+/// `zona.recursoIds` (ver `ZonaResponse.recurso_ids`, Fase A1): sin eso, un
+/// gestor que guarde sin darse cuenta de que el diálogo abrió vacío
+/// desasociaría todo lo que la zona ya tenía.
+class _ZonaRecursosDialog extends ConsumerStatefulWidget {
+  const _ZonaRecursosDialog({required this.zona, required this.onSaved});
+  final Zona zona;
+  final VoidCallback onSaved;
+  @override
+  ConsumerState<_ZonaRecursosDialog> createState() => _ZonaRecursosDialogState();
+}
+
+class _ZonaRecursosDialogState extends ConsumerState<_ZonaRecursosDialog> {
+  late final Set<int> _seleccionados = widget.zona.recursoIds.toSet();
+  bool _guardando = false;
+  String? _error;
+
+  Future<void> _guardar() async {
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(zonasRepositoryProvider).reemplazarRecursos(widget.zona.id, _seleccionados.toList());
+      widget.onSaved();
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recursos de la zona actualizados.')));
+      }
+    } on Object catch (e) {
+      setState(() => _error = apiErrorMessage(e, fallback: 'No se pudieron actualizar los recursos de la zona.'));
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recursos = ref.watch(recursosPorEspacioProvider(widget.zona.espacioId));
+
+    return AlertDialog(
+      title: Text('Recursos de ${widget.zona.nombre}'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (recursos.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Text('No hay recursos en este espacio.'),
+                ),
+              ...recursos.map(
+                (r) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(r.nombre),
+                  subtitle: Text(r.tipo.nombre),
+                  value: _seleccionados.contains(r.id),
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _seleccionados.add(r.id);
+                    } else {
+                      _seleccionados.remove(r.id);
+                    }
+                  }),
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _guardando ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Guardar'),
         ),
       ],
     );

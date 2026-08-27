@@ -1672,7 +1672,7 @@ as String,
 /// @nodoc
 mixin _$Reserva {
 
- int get id; int get usuarioId; int get espacioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; bool? get asistio; String? get motivoRechazo; String get createdAt; String get updatedAt; UsuarioReserva get usuario; EspacioReserva get espacio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get zonaIds; List<ZonaReserva> get zonas; List<int> get ensayoIds; List<EnsayoReserva> get ensayos; List<ReservaAcompanante> get acompanantes;
+ int get id; int get usuarioId; int get espacioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; bool? get asistio; String? get motivoRechazo; String? get descripcion; String get createdAt; String get updatedAt; UsuarioReserva get usuario; EspacioReserva get espacio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get zonaIds; List<ZonaReserva> get zonas; List<int> get ensayoIds; List<EnsayoReserva> get ensayos; List<ReservaAcompanante> get acompanantes;
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1685,16 +1685,16 @@ $ReservaCopyWith<Reserva> get copyWith => _$ReservaCopyWithImpl<Reserva>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.zonaIds, zonaIds)&&const DeepCollectionEquality().equals(other.zonas, zonas)&&const DeepCollectionEquality().equals(other.ensayoIds, ensayoIds)&&const DeepCollectionEquality().equals(other.ensayos, ensayos)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.zonaIds, zonaIds)&&const DeepCollectionEquality().equals(other.zonas, zonas)&&const DeepCollectionEquality().equals(other.ensayoIds, ensayoIds)&&const DeepCollectionEquality().equals(other.ensayos, ensayos)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(zonaIds),const DeepCollectionEquality().hash(zonas),const DeepCollectionEquality().hash(ensayoIds),const DeepCollectionEquality().hash(ensayos),const DeepCollectionEquality().hash(acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(zonaIds),const DeepCollectionEquality().hash(zonas),const DeepCollectionEquality().hash(ensayoIds),const DeepCollectionEquality().hash(ensayos),const DeepCollectionEquality().hash(acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
 }
 
 
@@ -1705,7 +1705,7 @@ abstract mixin class $ReservaCopyWith<$Res>  {
   factory $ReservaCopyWith(Reserva value, $Res Function(Reserva) _then) = _$ReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
 });
 
 
@@ -1722,7 +1722,7 @@ class _$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
   return _then(Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -1735,6 +1735,7 @@ as EstadoReserva,asistentes: null == asistentes ? _self.asistentes : asistentes 
 as int,tipo: freezed == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
 as TipoReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
 as bool?,motivoRechazo: freezed == motivoRechazo ? _self.motivoRechazo : motivoRechazo // ignore: cast_nullable_to_non_nullable
+as String?,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable
@@ -1849,10 +1850,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   return orElse();
 
 }
@@ -1870,10 +1871,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
 switch (_that) {
 case _Reserva():
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1890,10 +1891,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   return null;
 
 }
@@ -1905,7 +1906,7 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 @JsonSerializable()
 
 class _Reserva extends Reserva {
-  const _Reserva({required this.id, required this.usuarioId, required this.espacioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.asistio, this.motivoRechazo, required this.createdAt, required this.updatedAt, required this.usuario, required this.espacio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> zonaIds = const [],  List<ZonaReserva> zonas = const [],  List<int> ensayoIds = const [],  List<EnsayoReserva> ensayos = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_zonaIds = zonaIds,_zonas = zonas,_ensayoIds = ensayoIds,_ensayos = ensayos,_acompanantes = acompanantes,super._();
+  const _Reserva({required this.id, required this.usuarioId, required this.espacioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.asistio, this.motivoRechazo, this.descripcion, required this.createdAt, required this.updatedAt, required this.usuario, required this.espacio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> zonaIds = const [],  List<ZonaReserva> zonas = const [],  List<int> ensayoIds = const [],  List<EnsayoReserva> ensayos = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_zonaIds = zonaIds,_zonas = zonas,_ensayoIds = ensayoIds,_ensayos = ensayos,_acompanantes = acompanantes,super._();
   factory _Reserva.fromJson(Map<String, dynamic> json) => _$ReservaFromJson(json);
 
 @override final  int id;
@@ -1919,6 +1920,7 @@ class _Reserva extends Reserva {
 @override final  TipoReserva? tipo;
 @override final  bool? asistio;
 @override final  String? motivoRechazo;
+@override final  String? descripcion;
 @override final  String createdAt;
 @override final  String updatedAt;
 @override final  UsuarioReserva usuario;
@@ -1986,16 +1988,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._zonaIds, _zonaIds)&&const DeepCollectionEquality().equals(other._zonas, _zonas)&&const DeepCollectionEquality().equals(other._ensayoIds, _ensayoIds)&&const DeepCollectionEquality().equals(other._ensayos, _ensayos)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._zonaIds, _zonaIds)&&const DeepCollectionEquality().equals(other._zonas, _zonas)&&const DeepCollectionEquality().equals(other._ensayoIds, _ensayoIds)&&const DeepCollectionEquality().equals(other._ensayos, _ensayos)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_zonaIds),const DeepCollectionEquality().hash(_zonas),const DeepCollectionEquality().hash(_ensayoIds),const DeepCollectionEquality().hash(_ensayos),const DeepCollectionEquality().hash(_acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_zonaIds),const DeepCollectionEquality().hash(_zonas),const DeepCollectionEquality().hash(_ensayoIds),const DeepCollectionEquality().hash(_ensayos),const DeepCollectionEquality().hash(_acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
 }
 
 
@@ -2006,7 +2008,7 @@ abstract mixin class _$ReservaCopyWith<$Res> implements $ReservaCopyWith<$Res> {
   factory _$ReservaCopyWith(_Reserva value, $Res Function(_Reserva) _then) = __$ReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
 });
 
 
@@ -2023,7 +2025,7 @@ class __$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
   return _then(_Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -2036,6 +2038,7 @@ as EstadoReserva,asistentes: null == asistentes ? _self.asistentes : asistentes 
 as int,tipo: freezed == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
 as TipoReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
 as bool?,motivoRechazo: freezed == motivoRechazo ? _self.motivoRechazo : motivoRechazo // ignore: cast_nullable_to_non_nullable
+as String?,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable

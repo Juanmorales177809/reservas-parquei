@@ -17,6 +17,11 @@ _Zona _$ZonaFromJson(Map<String, dynamic> json) => _Zona(
   updatedAt: json['updated_at'] as String,
   createdBy: (json['created_by'] as num).toInt(),
   updatedBy: (json['updated_by'] as num).toInt(),
+  recursoIds:
+      (json['recurso_ids'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$ZonaToJson(_Zona instance) => <String, dynamic>{
@@ -30,6 +35,7 @@ Map<String, dynamic> _$ZonaToJson(_Zona instance) => <String, dynamic>{
   'updated_at': instance.updatedAt,
   'created_by': instance.createdBy,
   'updated_by': instance.updatedBy,
+  'recurso_ids': instance.recursoIds,
 };
 
 const _$EstadoEntidadEnumMap = {

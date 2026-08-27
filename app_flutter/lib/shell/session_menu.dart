@@ -75,6 +75,11 @@ class SessionMenu extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          leadingIcon: const Icon(LucideIcons.userCog, size: 18),
+          onPressed: () => context.push(AppRoutes.perfil),
+          child: const Text('Mi perfil'),
+        ),
+        MenuItemButton(
           leadingIcon: const Icon(LucideIcons.logOut, size: 18),
           onPressed: () => ref.read(authProvider.notifier).logout(),
           child: const Text('Cerrar sesión'),

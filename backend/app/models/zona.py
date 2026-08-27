@@ -20,11 +20,24 @@ class Zona(Base):
 
     # Relación unidireccional a propósito: esta subfase (12C-1) no modifica
     # app/models/espacio.py, así que no hay `back_populates` del lado de
-    # Espacio todavía. La asociación Zona<->Recurso y la integración con
-    # Reserva quedan para subfases posteriores (12C-3, 12C-4).
+    # Espacio todavía. La integración con Reserva queda para subfases
+    # posteriores (12C-4).
     espacio = relationship("Espacio")
     creador = relationship("Usuario", foreign_keys=[created_by])
     actualizador = relationship("Usuario", foreign_keys=[updated_by])
+
+    # viewonly: la escritura de la asociación sigue pasando exclusivamente
+    # por `reemplazar_recursos_de_zona` (PUT /zonas/{id}/recursos), esto es
+    # solo para poder exponer `recurso_ids` en ZonaResponse sin duplicar esa
+    # lógica de reemplazo completo.
+    recursos = relationship(
+        "Recurso",
+        secondary="zona_recursos",
+        primaryjoin="Zona.id == ZonaRecurso.zona_id",
+        secondaryjoin="ZonaRecurso.recurso_id == Recurso.id",
+        uselist=True,
+        viewonly=True,
+    )
 
     __table_args__ = (
         CheckConstraint("estado IN ('activo', 'inactivo', 'mantenimiento')", name="ck_zonas_estado"),
@@ -32,3 +45,7 @@ class Zona(Base):
 
     def __repr__(self):
         return f"<Zona {self.nombre}>"
+
+    @property
+    def recurso_ids(self) -> list[int]:
+        return [r.id for r in self.recursos]

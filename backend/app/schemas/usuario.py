@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.domain.enums import Rol
+from app.domain.enums import Rol, VinculacionUsuario
 
 
 class UsuarioEspacioResponse(BaseModel):
@@ -40,6 +40,14 @@ class UsuarioUpdate(BaseModel):
     email: str | None = Field(default=None, max_length=255)
     rol: Rol | None = None
     espacio_id: int | None = None
+    # Fase A2 (perfil de usuario): el admin también puede editar estos
+    # campos desde la gestión de usuarios, además del self-service de
+    # PerfilUpdate más abajo.
+    documento_identificacion: str | None = Field(default=None, max_length=30)
+    telefono: str | None = Field(default=None, max_length=30)
+    institucion: str | None = Field(default=None, max_length=120)
+    vinculacion: VinculacionUsuario | None = None
+    dependencia: str | None = Field(default=None, max_length=150)
 
     @field_validator("email")
     @classmethod
@@ -47,6 +55,27 @@ class UsuarioUpdate(BaseModel):
         if value is not None and ("@" not in value or "." not in value.split("@")[-1]):
             raise ValueError("El email debe tener un formato válido")
         return value
+
+
+class PerfilUpdate(BaseModel):
+    """Body de `PUT /usuarios/me` (self-service, cualquier rol autenticado).
+
+    Contiene EXCLUSIVAMENTE los campos de perfil -- nunca `rol`,
+    `espacio_id`, `username` ni `email`. `extra="forbid"` hace que mandar
+    cualquier otro campo (ej. `{"rol": "admin"}`) sea un 422 de validación,
+    no un campo ignorado en silencio: la escalada de privilegios es
+    estructuralmente imposible acá, no depende de que el handler se
+    acuerde de filtrar. No reusar `UsuarioUpdate` para este endpoint bajo
+    ninguna circunstancia -- ver `backend/CLAUDE.md`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    documento_identificacion: str | None = Field(default=None, max_length=30)
+    telefono: str | None = Field(default=None, max_length=30)
+    institucion: str | None = Field(default=None, max_length=120)
+    vinculacion: VinculacionUsuario | None = None
+    dependencia: str | None = Field(default=None, max_length=150)
 
 
 class UsuarioResponse(BaseModel):
@@ -57,6 +86,11 @@ class UsuarioResponse(BaseModel):
     email: str
     rol: Rol
     espacio: UsuarioEspacioResponse | None = None
+    documento_identificacion: str | None = None
+    telefono: str | None = None
+    institucion: str | None = None
+    vinculacion: VinculacionUsuario | None = None
+    dependencia: str | None = None
 
 
 class ReenviarInvitacionResponse(BaseModel):

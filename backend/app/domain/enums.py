@@ -57,6 +57,25 @@ class TipoReserva(str, Enum):
     SERVICIO_DE_ENSAYO = "servicio_de_ensayo"
 
 
+class VinculacionUsuario(str, Enum):
+    """Vinculación institucional de un usuario con el ITM (Fase A2, perfil
+    de usuario). Nombre del campo en `Usuario`: `vinculacion` -- distinto
+    de `Rol` (rol funcional dentro de este sistema: usuario/gestor/admin),
+    que es un concepto no relacionado aunque ambos describan "quién es la
+    persona". Cinco categorías estables del formulario real de solicitud
+    de laboratorios del ITM -- a diferencia de `institucion`/`dependencia`
+    (texto libre, sin CHECK: la lista de facultades puede reestructurarse
+    administrativamente y un CHECK convertiría un renombre en migración),
+    estas categorías no cambian con esa frecuencia.
+    """
+
+    DOCENTE = "docente"
+    ESTUDIANTE = "estudiante"
+    CONTRATISTA_EMPLEADO = "contratista_empleado"
+    EXTENSION = "extension"
+    OTRA = "otra"
+
+
 class EstadoEntidad(str, Enum):
     """Estado de entidades gestionables (espacios y recursos)."""
 

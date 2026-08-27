@@ -64,6 +64,14 @@ class Auth extends _$Auth {
   void handleSessionExpired() {
     state = const AsyncData(null);
   }
+
+  /// Actualiza el estado local con el `AuthUser` que ya devolvió
+  /// `PUT /usuarios/me` (Fase A2, `MiPerfilScreen`) -- sin volver a pedir
+  /// `/usuarios/me`: el backend ya confirmó el guardado, mismo criterio que
+  /// [login]/[completarCuenta].
+  void actualizarPerfilLocal(AuthUser user) {
+    state = AsyncData(user);
+  }
 }
 
 @riverpod

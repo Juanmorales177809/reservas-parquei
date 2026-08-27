@@ -26,6 +26,9 @@ class ReservaCreate(BaseModel):
     ensayo_ids: list[int] = Field(default_factory=list)
     # Fase 12E: acompañantes nombrados (N:1 Reserva, RN-015).
     acompanantes: list[AcompananteInput] = Field(default_factory=list)
+    # Fase A3: texto libre opcional -- "Actividad a realizar" del formulario
+    # real de solicitud de laboratorios.
+    descripcion: str | None = None
     fecha: date
     hora_inicio: time
     hora_fin: time
@@ -56,6 +59,9 @@ class ReservaUpdate(BaseModel):
     # Fase 12E: eje de reemplazo completo para acompañantes (ausente
     # conserva, presente reemplaza; `[]` explícito la vacía).
     acompanantes: list[AcompananteInput] | None = None
+    # Fase A3: eje simple, mismo criterio que `tipo` -- ausente conserva el
+    # valor actual, `null` explícito lo limpia.
+    descripcion: str | None = None
     fecha: date | None = None
     hora_inicio: time | None = None
     hora_fin: time | None = None
@@ -200,6 +206,8 @@ class ReservaResponse(BaseModel):
     asistio: bool | None = None
     # Motivo de rechazo (Fase 6): `null` salvo cuando `estado == rechazada`.
     motivo_rechazo: str | None = None
+    # Fase A3: `null` cuando no se especificó ninguna descripción.
+    descripcion: str | None = None
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse

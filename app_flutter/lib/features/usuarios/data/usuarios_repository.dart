@@ -1,10 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/domain/enums.dart';
 import '../../../core/network/dio_client.dart';
 import '../../auth/domain/auth_user.dart';
 
-/// Espejo de `frontend/src/services/usuarios.ts` — solo admin (`require_admin`).
+/// Espejo de `frontend/src/services/usuarios.ts`. La mayoría de los
+/// métodos son solo admin (`require_admin`) -- excepto
+/// `actualizarMiPerfil` (`PUT /usuarios/me`), self-service para cualquier
+/// rol autenticado (Fase A2).
 class UsuariosRepository {
   UsuariosRepository(this._dio);
 
@@ -58,6 +62,29 @@ class UsuariosRepository {
 
   Future<void> eliminar(int usuarioId) async {
     await _dio.delete<void>('/usuarios/$usuarioId');
+  }
+
+  /// `PUT /usuarios/me` — self-service, cualquier usuario autenticado edita
+  /// su propio perfil. A propósito NO acepta `rol`/`espacioId`/`username`/
+  /// `email`: el backend (`PerfilUpdate`, `extra="forbid"`) los rechaza con
+  /// 422 si llegaran -- ni siquiera existe la forma de mandarlos desde acá.
+  Future<AuthUser> actualizarMiPerfil({
+    String? documentoIdentificacion,
+    String? telefono,
+    String? institucion,
+    VinculacionUsuario? vinculacion,
+    String? dependencia,
+  }) async {
+    final vinculacionJson = vinculacion == null ? null : vinculacionUsuarioToJson(vinculacion);
+    final data = <String, dynamic>{
+      'documento_identificacion': ?documentoIdentificacion,
+      'telefono': ?telefono,
+      'institucion': ?institucion,
+      'vinculacion': ?vinculacionJson,
+      'dependencia': ?dependencia,
+    };
+    final response = await _dio.put<Map<String, dynamic>>('/usuarios/me', data: data);
+    return AuthUser.fromJson(response.data!);
   }
 
   /// Genera un link de invitación fresco y lo encola por correo (cubre el

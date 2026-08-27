@@ -111,6 +111,8 @@ abstract class Reserva with _$Reserva {
     TipoReserva? tipo,
     bool? asistio,
     String? motivoRechazo,
+    // Fase A3: texto libre opcional -- "Actividad a realizar".
+    String? descripcion,
     required String createdAt,
     required String updatedAt,
     required UsuarioReserva usuario,

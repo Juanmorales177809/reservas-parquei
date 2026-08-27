@@ -28,6 +28,14 @@ _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
   espacio: json['espacio'] == null
       ? null
       : EspacioResumen.fromJson(json['espacio'] as Map<String, dynamic>),
+  documentoIdentificacion: json['documento_identificacion'] as String?,
+  telefono: json['telefono'] as String?,
+  institucion: json['institucion'] as String?,
+  vinculacion: $enumDecodeNullable(
+    _$VinculacionUsuarioEnumMap,
+    json['vinculacion'],
+  ),
+  dependencia: json['dependencia'] as String?,
 );
 
 Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
@@ -36,12 +44,25 @@ Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
   'email': instance.email,
   'rol': _$RolUsuarioEnumMap[instance.rol]!,
   'espacio': instance.espacio,
+  'documento_identificacion': instance.documentoIdentificacion,
+  'telefono': instance.telefono,
+  'institucion': instance.institucion,
+  'vinculacion': _$VinculacionUsuarioEnumMap[instance.vinculacion],
+  'dependencia': instance.dependencia,
 };
 
 const _$RolUsuarioEnumMap = {
   RolUsuario.usuario: 'usuario',
   RolUsuario.gestor: 'gestor',
   RolUsuario.admin: 'admin',
+};
+
+const _$VinculacionUsuarioEnumMap = {
+  VinculacionUsuario.docente: 'docente',
+  VinculacionUsuario.estudiante: 'estudiante',
+  VinculacionUsuario.contratistaEmpleado: 'contratista_empleado',
+  VinculacionUsuario.extension: 'extension',
+  VinculacionUsuario.otra: 'otra',
 };
 
 _LoginResponse _$LoginResponseFromJson(Map<String, dynamic> json) =>

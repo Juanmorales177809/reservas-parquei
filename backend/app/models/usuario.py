@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -26,6 +26,19 @@ class Usuario(Base):
     # el momento en que se crea (app/services/supabase_admin.py) -- nunca
     # queda en null para una cuenta que pueda loguearse.
     supabase_id = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)
+    # Fase A2 (perfil de usuario): datos del formulario real de solicitud
+    # de laboratorios del ITM que hoy no existían en ningún lado del
+    # sistema. Se completan una vez, en el perfil propio (PUT /usuarios/me),
+    # no en cada reserva -- por eso todos son nullable, sin backfill
+    # posible para las cuentas ya existentes.
+    documento_identificacion = Column(String(30), nullable=True)
+    telefono = Column(String(30), nullable=True)
+    # Texto libre a propósito, sin CHECK: la lista de facultades/dependencias
+    # del ITM puede reestructurarse administrativamente, y un CHECK en base
+    # de datos convertiría un simple renombre en una migración.
+    institucion = Column(String(120), nullable=True)
+    vinculacion = Column(String(30), nullable=True)
+    dependencia = Column(String(150), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -35,6 +48,14 @@ class Usuario(Base):
     recursos_actualizados = relationship("Recurso", foreign_keys="Recurso.update_by")
     notificaciones = relationship("Notificacion", back_populates="usuario", cascade="all, delete-orphan")
     control_cambios = relationship("ControlCambio", back_populates="usuario")
+
+    __table_args__ = (
+        CheckConstraint(
+            "vinculacion IS NULL OR vinculacion IN "
+            "('docente', 'estudiante', 'contratista_empleado', 'extension', 'otra')",
+            name="ck_usuarios_vinculacion",
+        ),
+    )
 
     @property
     def espacio(self):

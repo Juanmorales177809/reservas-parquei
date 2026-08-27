@@ -594,6 +594,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
         tipo=data.tipo,
+        descripcion=data.descripcion,
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
@@ -868,6 +869,7 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     reserva.hora_fin = hora_fin
     reserva.asistentes = asistentes
     reserva.tipo = cambios.get("tipo", reserva.tipo)
+    reserva.descripcion = cambios.get("descripcion", reserva.descripcion)
     reserva.recurso_id = _recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos)
     _reescribir_asociaciones(db, reserva, objetivo)
     if "ensayo_ids" in cambios:

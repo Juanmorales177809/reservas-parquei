@@ -21,6 +21,7 @@ abstract class Zona with _$Zona {
     required String updatedAt,
     required int createdBy,
     required int updatedBy,
+    @Default([]) List<int> recursoIds,
   }) = _Zona;
 
   factory Zona.fromJson(Map<String, dynamic> json) => _$ZonaFromJson(json);

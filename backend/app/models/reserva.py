@@ -36,6 +36,10 @@ class Reserva(Base):
     # para histórico; se limpia al cambiar de rechazada a otro estado
     # (aunque hoy rechazada es terminal, ver TRANSICIONES_ESTADO_RESERVA).
     motivo_rechazo = Column(Text, nullable=True)
+    # Fase A3: texto libre opcional donde quien reserva describe la
+    # actividad ("Actividad a realizar" del formulario real de solicitud
+    # de laboratorios) -- sin CheckConstraint, es puramente descriptivo.
+    descripcion = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

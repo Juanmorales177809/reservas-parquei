@@ -44,7 +44,7 @@ final class AuthProvider extends $AsyncNotifierProvider<Auth, AuthUser?> {
   Auth create() => Auth();
 }
 
-String _$authHash() => r'8acf65a8628553c8bc2a8328a36845d627be780e';
+String _$authHash() => r'bb5a33b55af9d47548fdf3f60bf0b475bf605df4';
 
 /// Espejo de `frontend/src/context/AuthContext.tsx`. Fuente única de verdad
 /// de la sesión: `null` = anónimo, cargando = sondeo en curso, error =

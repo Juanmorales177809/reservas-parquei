@@ -453,6 +453,9 @@ def migrate_resource_reservations() -> None:
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN",
         # Fase 6: motivo de rechazo (texto libre, solo para rechazada).
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT",
+        # Fase A3: descripción libre y opcional de la actividad ("Actividad
+        # a realizar" del formulario real) -- puramente aditivo, sin CHECK.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS descripcion TEXT",
         # Correo saliente (alta de usuario / recuperación de contraseña):
         # marca que la contraseña actual es una temporal generada por el
         # backend y debe cambiarse en el próximo login. `correo_saliente`
@@ -467,6 +470,27 @@ def migrate_resource_reservations() -> None:
         # esta columna queda NULL y no afecta el flujo clásico.
         "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS supabase_id UUID",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_supabase_id ON usuarios (supabase_id)",
+        # Fase A2 (perfil de usuario): datos del formulario real de
+        # solicitud de laboratorios del ITM (documento, teléfono,
+        # institución, vinculación, dependencia) que hoy no existían en
+        # ningún lado del sistema. Todos nullable, sin backfill posible.
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS documento_identificacion VARCHAR(30)",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefono VARCHAR(30)",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS institucion VARCHAR(120)",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS vinculacion VARCHAR(30)",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS dependencia VARCHAR(150)",
+        # `IS NULL OR` es obligatorio: sin él, ninguna fila existente (todas
+        # con vinculacion NULL) pasaría el CHECK.
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_usuarios_vinculacion') THEN
+                ALTER TABLE usuarios ADD CONSTRAINT ck_usuarios_vinculacion
+                CHECK (vinculacion IS NULL OR vinculacion IN
+                    ('docente', 'estudiante', 'contratista_empleado', 'extension', 'otra'));
+            END IF;
+        END $$;
+        """,
     )
 
     with engine.begin() as connection:

@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/domain/enums.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/auth_user.dart';
+import '../data/usuarios_repository.dart';
+
+/// `PUT /usuarios/me` -- self-service, cualquier usuario autenticado edita
+/// su propio perfil (Fase A2). Los campos vienen del formulario real de
+/// solicitud de laboratorios del ITM (documento, teléfono, institución,
+/// vinculación, dependencia) y se completan acá una sola vez, no en cada
+/// reserva -- ver `EspacioReservaSheet`, que ya no vuelve a pedirlos.
+class MiPerfilScreen extends ConsumerStatefulWidget {
+  const MiPerfilScreen({super.key});
+
+  @override
+  ConsumerState<MiPerfilScreen> createState() => _MiPerfilScreenState();
+}
+
+class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _documentoController = TextEditingController();
+  final _telefonoController = TextEditingController();
+  final _institucionController = TextEditingController();
+  final _dependenciaController = TextEditingController();
+  VinculacionUsuario? _vinculacion;
+  bool _guardando = false;
+  bool _precargado = false;
+  String? _error;
+
+  /// Precarga los controllers la primera vez que `authProvider` resuelve un
+  /// usuario -- no puede hacerse en `initState`: en el primer frame ese
+  /// provider puede seguir en `AsyncLoading` (su `build()` es async), y
+  /// `.value` daría `null` incluso con sesión real. `_precargado` evita
+  /// pisar lo que la persona ya haya escrito en rebuilds posteriores.
+  void _precargarSiHaceFalta(AuthUser? usuario) {
+    if (_precargado || usuario == null) return;
+    _documentoController.text = usuario.documentoIdentificacion ?? '';
+    _telefonoController.text = usuario.telefono ?? '';
+    _institucionController.text = usuario.institucion ?? '';
+    _dependenciaController.text = usuario.dependencia ?? '';
+    _vinculacion = usuario.vinculacion;
+    _precargado = true;
+  }
+
+  @override
+  void dispose() {
+    _documentoController.dispose();
+    _telefonoController.dispose();
+    _institucionController.dispose();
+    _dependenciaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      final user = await ref.read(usuariosRepositoryProvider).actualizarMiPerfil(
+            documentoIdentificacion: _documentoController.text.trim(),
+            telefono: _telefonoController.text.trim(),
+            institucion: _institucionController.text.trim(),
+            vinculacion: _vinculacion,
+            dependencia: _dependenciaController.text.trim(),
+          );
+      ref.read(authProvider.notifier).actualizarPerfilLocal(user);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
+      }
+    } on Object catch (e) {
+      setState(() => _error = apiErrorMessage(e, fallback: 'No se pudo actualizar el perfil.'));
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _precargarSiHaceFalta(ref.watch(authProvider).value);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mi perfil')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Estos datos se completan una sola vez y se reutilizan al hacer una solicitud.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                TextFormField(
+                  controller: _documentoController,
+                  decoration: const InputDecoration(labelText: 'Documento de identificación'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: _telefonoController,
+                  decoration: const InputDecoration(labelText: 'Teléfono/celular'),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: _institucionController,
+                  decoration: const InputDecoration(labelText: 'Institución a la que pertenece'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                DropdownButtonFormField<VinculacionUsuario>(
+                  initialValue: _vinculacion,
+                  decoration: const InputDecoration(labelText: 'Vinculación'),
+                  items: VinculacionUsuario.values
+                      .map((v) => DropdownMenuItem(value: v, child: Text(vinculacionUsuarioLabel(v))))
+                      .toList(),
+                  onChanged: (v) => setState(() => _vinculacion = v),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: _dependenciaController,
+                  decoration: const InputDecoration(labelText: 'Dependencia / Facultad'),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                FilledButton(
+                  onPressed: _guardando ? null : _guardar,
+                  child: _guardando
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Guardar'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

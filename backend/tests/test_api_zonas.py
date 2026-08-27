@@ -440,6 +440,42 @@ class TestEliminarZona:
         assert respuesta.status_code == 409
 
 
+class TestZonaResponseRecursoIds:
+    """Fase A1 (recursos por zona): `ZonaResponse.recurso_ids` refleja la
+    asociación Zona<->Recurso vigente -- necesario para que la UI de
+    gestión pueda mostrar la selección actual antes de dejarla editar
+    (PUT /zonas/{id}/recursos es un reemplazo completo)."""
+
+    def test_zona_sin_recursos_da_lista_vacia(self, client, db):
+        espacio = crear_espacio(db, nombre="Espacio Zona Sin Recursos")
+        admin = crear_usuario(db, username="admin_zrid1", email="admin_zrid1@example.com", rol="admin")
+        _crear_zona_directa(db, espacio=espacio, usuario=admin, nombre="Zona Sin Recursos")
+
+        respuesta = client.get("/zonas", params={"espacio_id": espacio.id}, headers=cookies_para(admin))
+
+        assert respuesta.status_code == 200
+        assert respuesta.json()[0]["recurso_ids"] == []
+
+    def test_zona_con_recursos_asociados_los_expone(self, client, db):
+        from app.models.zona_recurso import ZonaRecurso
+
+        espacio = crear_espacio(db, nombre="Espacio Zona Con Recursos")
+        admin = crear_usuario(db, username="admin_zrid2", email="admin_zrid2@example.com", rol="admin")
+        recurso_a = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso A")
+        recurso_b = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso B")
+        zona = _crear_zona_directa(db, espacio=espacio, usuario=admin, nombre="Zona Con Recursos")
+        db.add_all([
+            ZonaRecurso(zona_id=zona.id, recurso_id=recurso_a.id),
+            ZonaRecurso(zona_id=zona.id, recurso_id=recurso_b.id),
+        ])
+        db.commit()
+
+        respuesta = client.get("/zonas", params={"espacio_id": espacio.id}, headers=cookies_para(admin))
+
+        assert respuesta.status_code == 200
+        assert set(respuesta.json()[0]["recurso_ids"]) == {recurso_a.id, recurso_b.id}
+
+
 class TestSinEndpointDeUnaSolaZona:
     """Decision deliberada de 12C-2: Recurso no tiene GET /recursos/{id} de
     un solo recurso (solo listado, /gestion y /disponibilidad); Zona sigue

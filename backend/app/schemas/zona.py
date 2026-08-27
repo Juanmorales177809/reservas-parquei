@@ -34,6 +34,11 @@ class ZonaResponse(BaseModel):
     updated_at: datetime
     created_by: int
     updated_by: int
+    # Fase A1 (recursos por zona): qué recursos tiene asociados hoy la
+    # zona -- sin esto, la UI que deja editar la asociación (reemplazo
+    # completo vía PUT /zonas/{id}/recursos) no puede mostrar la selección
+    # actual antes de dejarla cambiar.
+    recurso_ids: list[int] = Field(default_factory=list)
 
 
 class ZonaRecursosUpdate(BaseModel):

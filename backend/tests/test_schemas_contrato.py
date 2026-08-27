@@ -182,7 +182,9 @@ class TestContratoJsonConservado:
         )
         assert modelo.model_dump()["rol"] == "gestor"
         assert modelo.model_dump_json() == (
-            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null}'
+            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null,'
+            '"documento_identificacion":null,"telefono":null,"institucion":null,'
+            '"vinculacion":null,"dependencia":null}'
         )
 
     def test_estados_serializan_como_strings_actuales(self):
