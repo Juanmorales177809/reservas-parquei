@@ -1,13 +1,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from jose import JWTError, jwt as jose_jwt
 from sqlalchemy.orm import Session
 
 from app.auth.auth import NOMBRE_COOKIE_ACCESO, atributos_cookie_acceso, max_age_cookie_acceso
-from app.config import settings
 from app.crud.usuarios import get_usuario_by_supabase_id
 from app.db import get_db
+from app.deps import decode_token
 from app.schemas.usuario import LoginResponse, SupabaseSesionRequest, UsuarioResponse
 
 
@@ -45,20 +44,25 @@ def supabase_sesion(
     registrarse en el proyecto de Supabase con ese email. No reintroducir
     esa lógica.
     """
+    # Reusa el mismo decodificador que `deps.py` (ES256 vía JWKS público de
+    # Supabase, con HS256 como fallback solo para tests) -- antes este
+    # endpoint tenía su propia verificación duplicada, siempre HS256, y
+    # rechazaba con 401 CUALQUIER login real: un proyecto de Supabase real
+    # firma con ES256, nunca con el secreto compartido legado. Confirmado
+    # corriendo el flujo completo contra un proyecto real el 2026-08-27.
+    # El mensaje de error se preserva tal cual (pineado en
+    # test_api_auth.py y test_exception_handler.py) envolviendo el 401
+    # genérico de `decode_token` con el propio de este endpoint.
     try:
-        claims = jose_jwt.decode(
-            payload.supabase_token,
-            settings.supabase_jwt_secret,
-            algorithms=[settings.algorithm],
-            options={"verify_aud": False},
-        )
-        sub = claims.get("sub")
-        if sub is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido")
+        claims = decode_token(payload.supabase_token)
+    except HTTPException as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido") from exc
+    sub = claims.get("sub")
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido")
+    try:
         supabase_id = uuid.UUID(str(sub))
-    except HTTPException:
-        raise
-    except (JWTError, ValueError) as exc:
+    except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido") from exc
 
     usuario = get_usuario_by_supabase_id(db, supabase_id)

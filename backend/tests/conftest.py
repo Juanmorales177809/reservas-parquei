@@ -188,7 +188,7 @@ def crear_recurso(
 def token_supabase_para(usuario) -> str:
     """JWT con la MISMA forma que emite Supabase (`sub`=UUID, `email`),
     firmado con `SUPABASE_JWT_SECRET` -- exactamente lo que
-    `app/deps.py::_decode_token` verifica desde la migración a Supabase
+    `app/deps.py::decode_token` verifica desde la migración a Supabase
     Auth. Nunca se le pega a la red real de Supabase para esto."""
     if usuario.supabase_id is None:
         raise ValueError(

@@ -231,7 +231,7 @@ class TestNoSeRegistranCredenciales:
         def _boom(*args, **kwargs):
             raise RuntimeError("fallo-interno-no-relacionado-con-el-token")
 
-        monkeypatch.setattr("app.deps._decode_token", _boom)
+        monkeypatch.setattr("app.deps.decode_token", _boom)
 
         with caplog.at_level(logging.ERROR):
             cliente_sin_relanzar.get("/usuarios/me")

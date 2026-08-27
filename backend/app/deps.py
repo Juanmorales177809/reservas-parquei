@@ -10,6 +10,7 @@ from app.config import settings
 from app.crud.usuarios import get_usuario_by_supabase_id
 from app.db import get_db
 from app.models import Usuario, UsuarioEspacio
+from app.services.supabase_jwks import obtener_clave as obtener_clave_jwks
 
 
 # El mecanismo de sesión es únicamente la cookie HttpOnly `access_token`,
@@ -28,16 +29,48 @@ cookie_auth = APIKeyCookie(
 )
 
 
-def _decode_token(token: str) -> dict:
+def decode_token(token: str) -> dict:
     """Decodifica el JWT de Supabase (único emisor de tokens desde la
     migración -- este backend ya no emite JWT propios, ver
     app/api/auth.py). `verify_aud` desactivado: Supabase pone
     `aud=authenticated` y no hace falta validarlo para este caso de uso.
+
+    Dos algoritmos soportados, elegidos por el `alg` que el propio token
+    declara en su header (nunca se "prueban los dos" contra la misma
+    clave -- cada uno verifica solo contra la clave pensada para él, así
+    que no hay confusión de algoritmo posible):
+
+    - **ES256**: el esquema real de Supabase hoy ("JWT Signing Keys",
+      clave asimétrica). Se verifica contra el JWKS público de Supabase
+      (`app/services/supabase_jwks.py`), nunca contra un secreto. Es lo
+      único que emite un proyecto de Supabase real -- confirmado
+      corriendo el flujo completo contra un proyecto real (crear usuario,
+      login real, canjear el JWT acá) el 2026-08-27: el token que
+      devuelve Supabase trae `alg: ES256`.
+    - **HS256**: legado, y en este código base solo lo usan los tests
+      (`tests/conftest.py::token_supabase_para`, que firma localmente con
+      `SUPABASE_JWT_SECRET` y nunca le pega a la red -- no puede firmar
+      con la clave privada real de Supabase, que nunca sale de sus
+      servidores). Se mantiene para no reescribir esa infraestructura de
+      pruebas.
     """
     try:
-        return jwt.decode(
-            token, settings.supabase_jwt_secret, algorithms=[settings.algorithm], options={"verify_aud": False}
-        )
+        alg = jwt.get_unverified_header(token).get("alg")
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No se pudo validar la autenticación",
+        ) from exc
+    try:
+        if alg == "ES256":
+            kid = jwt.get_unverified_header(token).get("kid")
+            clave = obtener_clave_jwks(kid)
+            return jwt.decode(token, clave, algorithms=["ES256"], options={"verify_aud": False})
+        if alg == "HS256":
+            return jwt.decode(
+                token, settings.supabase_jwt_secret, algorithms=["HS256"], options={"verify_aud": False}
+            )
+        raise JWTError(f"Algoritmo de firma no soportado: {alg!r}")
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,7 +102,7 @@ def get_current_user(
     if not token:
         raise credentials_exception
     try:
-        payload = _decode_token(token)
+        payload = decode_token(token)
         sub = payload.get("sub")
         if sub is None:
             raise credentials_exception
@@ -91,7 +124,7 @@ def require_admin_dashboard(
     credentials_exception = _credenciales_invalidas()
     if not token:
         raise credentials_exception
-    payload = _decode_token(token)
+    payload = decode_token(token)
     sub = payload.get("sub")
     if sub is None:
         raise credentials_exception
@@ -151,7 +184,7 @@ def get_current_user_optional(
     if not token:
         return None
     try:
-        payload = _decode_token(token)
+        payload = decode_token(token)
         sub = payload.get("sub")
         if sub is None:
             return None
