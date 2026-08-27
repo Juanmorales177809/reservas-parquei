@@ -183,16 +183,26 @@ jobs:
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
           SECRET_KEY: ${{ env.TEST_SECRET_KEY }}
-          # Sin INITIAL_ADMIN_*: este job no ejercita login (el E2E real con
-          # integration_test/ no corre acá, ver el comentario del paso de
-          # smoke más abajo), así que seed_admin_user() no necesita crear un
-          # admin. Es deliberado, no un descuido: con INITIAL_ADMIN_USERNAME
-          # seteado, seed_admin_user() (app/main.py) intentaría crear el
-          # admin también en Supabase vía crear_usuario_confirmado() -- una
-          # llamada de red real, sin ningún mock posible (este es un proceso
-          # uvicorn real, no pytest), que fallaría contra el SUPABASE_URL
-          # ficticio de abajo y tumbaría el lifespan completo.
+          # Vaciadas a propósito, NO simplemente omitidas: el `env:` de nivel
+          # workflow (arriba del todo en este archivo) las define para TODOS
+          # los jobs/steps, y omitirlas acá no las "quita" -- el valor
+          # heredado (INITIAL_ADMIN_USERNAME=e2e-admin, etc.) seguiría
+          # presente en el proceso igual. Hay que sobreescribirlas con
+          # cadena vacía explícita para que realmente no lleguen.
           #
+          # Por qué hace falta vaciarlas: este job no ejercita login (el E2E
+          # real con integration_test/ no corre acá, ver el comentario del
+          # paso de smoke más abajo), así que seed_admin_user() no necesita
+          # crear un admin. Con INITIAL_ADMIN_USERNAME presente,
+          # seed_admin_user() (app/main.py) intentaría crear el admin
+          # también en Supabase vía crear_usuario_confirmado() -- una
+          # llamada de red real, sin ningún mock posible (este es un proceso
+          # uvicorn real, no pytest), que falla contra el SUPABASE_URL
+          # ficticio de abajo y tumba el lifespan completo (confirmado en la
+          # corrida real: SupabaseAdminError antes de que /health responda).
+          INITIAL_ADMIN_USERNAME: ""
+          INITIAL_ADMIN_EMAIL: ""
+          INITIAL_ADMIN_PASSWORD: ""
           # SUPABASE_URL/JWT_SECRET/SERVICE_ROLE_KEY sí son obligatorias
           # igual: config.py::validate() las exige con RuntimeError al
           # importar, sin importar si se van a usar. Mismos valores
