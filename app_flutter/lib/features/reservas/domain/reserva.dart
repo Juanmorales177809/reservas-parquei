@@ -113,6 +113,10 @@ abstract class Reserva with _$Reserva {
     String? motivoRechazo,
     // Fase A3: texto libre opcional -- "Actividad a realizar".
     String? descripcion,
+    // Fase B: siempre tiene valor (NOT NULL con default en el backend).
+    @Default(TipoSolicitud.reservaEnLaboratorio) TipoSolicitud tipoSolicitud,
+    String? ubicacionUso,
+    @Default(false) bool requiereApoyoAuxiliar,
     required String createdAt,
     required String updatedAt,
     required UsuarioReserva usuario,

@@ -300,6 +300,23 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                 Text('${reserva.asistentes} asistentes', style: textTheme.bodyMedium),
               ],
             ),
+            if (reserva.tipoSolicitud != TipoSolicitud.reservaEnLaboratorio) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Icon(LucideIcons.mapPin, size: 16, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      reserva.ubicacionUso != null && reserva.ubicacionUso!.isNotEmpty
+                          ? '${tipoSolicitudLabel(reserva.tipoSolicitud)} · ${reserva.ubicacionUso}'
+                          : tipoSolicitudLabel(reserva.tipoSolicitud),
+                      style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (reserva.descripcion != null && reserva.descripcion!.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(

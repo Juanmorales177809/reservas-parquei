@@ -29,8 +29,16 @@ import 'selectable_slot_grid.dart';
 /// Cubre `recurso_ids`/`zona_ids`/`tipo` y deja preparado `ensayo_ids`/`acompanantes` (paridad con `frontend/src/app/espacios/page.tsx:246`).
 /// Se abre desde `EspacioDetalleScreen` con el `Espacio` completo, no con un solo `Recurso`.
 class EspacioReservaSheet extends ConsumerStatefulWidget {
-  const EspacioReservaSheet({required this.espacio, super.key});
+  const EspacioReservaSheet({
+    required this.espacio,
+    this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio,
+    super.key,
+  });
   final Espacio espacio;
+  // Fase B: motivo elegido en `_MotivoSolicitudDialog` (EspacioDetalleScreen)
+  // antes de abrir este sheet. Default al motivo de siempre para no romper
+  // los callers existentes (ninguno lo pasaba antes de la Fase B).
+  final TipoSolicitud tipoSolicitud;
   @override
   ConsumerState<EspacioReservaSheet> createState() => _EspacioReservaSheetState();
 }
@@ -44,9 +52,11 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
   final _nombreCtrl = TextEditingController();
   final _correoCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
+  final _ubicacionUsoCtrl = TextEditingController();
   Set<int> _seleccion = {};
   int _asistentes = 1;
   TipoReserva? _tipo;
+  bool _requiereApoyoAuxiliar = false;
   bool _enviando = false;
   String? _error;
 
@@ -62,6 +72,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
     _nombreCtrl.dispose();
     _correoCtrl.dispose();
     _descripcionCtrl.dispose();
+    _ubicacionUsoCtrl.dispose();
     super.dispose();
   }
 
@@ -99,6 +110,10 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
 
   Future<void> _reservar(List<DisponibilidadSlot> slots) async {
     if (_recursoIds.isEmpty && _zonaIds.isEmpty) { setState(() => _error = 'Seleccioná al menos un recurso o una zona.'); return; }
+    if (widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio && _ubicacionUsoCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Indicá dónde se va a usar el equipo.');
+      return;
+    }
     final minIdx = _seleccion.reduce((a, b) => a < b ? a : b);
     final maxIdx = _seleccion.reduce((a, b) => a > b ? a : b);
     setState(() { _enviando = true; _error = null; });
@@ -114,6 +129,11 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
             asistentes: _asistentes,
             tipo: _tipo,
             descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
+            tipoSolicitud: widget.tipoSolicitud,
+            ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio
+                ? _ubicacionUsoCtrl.text.trim()
+                : null,
+            requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
           );
       // invalidar disponibilidades de recursos afectados y mis reservas
       for (final id in _recursoIds) { ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
@@ -154,6 +174,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
               Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: AppSpacing.lg), decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(999)))),
               Text('Reservar en ${espacio.nombre}', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.xs),
+              Text(tipoSolicitudLabel(widget.tipoSolicitud), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
               Text('Modalidad: ${modalidad.name}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(onPressed: _elegirFecha, icon: const Icon(LucideIcons.calendar, size: 18), label: Text('${_fecha.day}/${_fecha.month}/${_fecha.year}')),
@@ -229,6 +250,21 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                 controller: _descripcionCtrl,
                 decoration: const InputDecoration(hintText: 'Ej. Grabación del podcast semanal', isDense: true),
                 maxLines: 2,
+              ),
+              if (widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text('¿Dónde se va a usar el equipo?', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  controller: _ubicacionUsoCtrl,
+                  decoration: const InputDecoration(hintText: 'Ej. Auditorio del bloque 5', isDense: true),
+                ),
+              ],
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('¿Requiere apoyo del auxiliar del laboratorio?'),
+                value: _requiereApoyoAuxiliar,
+                onChanged: (v) => setState(() => _requiereApoyoAuxiliar = v),
               ),
               const SizedBox(height: AppSpacing.lg),
               // Disponibilidad

@@ -130,6 +130,11 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
   asistio: json['asistio'] as bool?,
   motivoRechazo: json['motivo_rechazo'] as String?,
   descripcion: json['descripcion'] as String?,
+  tipoSolicitud:
+      $enumDecodeNullable(_$TipoSolicitudEnumMap, json['tipo_solicitud']) ??
+      TipoSolicitud.reservaEnLaboratorio,
+  ubicacionUso: json['ubicacion_uso'] as String?,
+  requiereApoyoAuxiliar: json['requiere_apoyo_auxiliar'] as bool? ?? false,
   createdAt: json['created_at'] as String,
   updatedAt: json['updated_at'] as String,
   usuario: UsuarioReserva.fromJson(json['usuario'] as Map<String, dynamic>),
@@ -184,6 +189,9 @@ Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
   'asistio': instance.asistio,
   'motivo_rechazo': instance.motivoRechazo,
   'descripcion': instance.descripcion,
+  'tipo_solicitud': _$TipoSolicitudEnumMap[instance.tipoSolicitud]!,
+  'ubicacion_uso': instance.ubicacionUso,
+  'requiere_apoyo_auxiliar': instance.requiereApoyoAuxiliar,
   'created_at': instance.createdAt,
   'updated_at': instance.updatedAt,
   'usuario': instance.usuario,
@@ -208,4 +216,10 @@ const _$TipoReservaEnumMap = {
   TipoReserva.trabajoInvestigacion: 'trabajo_investigacion',
   TipoReserva.trabajoGrado: 'trabajo_grado',
   TipoReserva.servicioDeEnsayo: 'servicio_de_ensayo',
+};
+
+const _$TipoSolicitudEnumMap = {
+  TipoSolicitud.reservaEnLaboratorio: 'reserva_en_laboratorio',
+  TipoSolicitud.reservaFueraLaboratorio: 'reserva_fuera_laboratorio',
+  TipoSolicitud.ordenSalida: 'orden_salida',
 };

@@ -104,6 +104,18 @@ Primera fase de un plan más grande motivado por el formulario real de solicitud
 - **`Reserva.descripcion`** (texto libre opcional, "Actividad a realizar" del formulario real) — eje simple en `ReservaUpdate`, mismo criterio que `tipo` (ausente en el PATCH conserva, `null` explícito limpia).
 - `openapi.snapshot.json` regenerado (endpoint nuevo + campos aditivos en 4 schemas) y revisado a mano — puramente aditivo, ninguna ruta ni campo existente cambió de forma.
 
+## Fase B — motivo de la solicitud (2026-08-27)
+
+Segunda fase del mismo plan. Agrega las 2 ramas del formulario real que sí encajan en el modelo actual de `Reserva` (franja horaria de un día) — las otras 2 (orden de salida, mano de obra) quedan para la Fase C, en una tabla aparte (ver la sección "Hoja de ruta" del plan).
+
+- **`TipoSolicitud`** (`app/domain/enums.py`), 3 valores: `reserva_en_laboratorio` (default), `reserva_fuera_laboratorio`, `orden_salida`. Concepto DISTINTO de `TipoReserva` (académico) y de `modalidad_reserva` de `Espacio` — nombres parecidos, no relacionados.
+- **`Reserva` gana 3 columnas**: `tipo_solicitud` (NOT NULL, default `reserva_en_laboratorio`, backfill vía `UPDATE ... WHERE ... IS NULL` mismo molde que `modalidad_reserva` de `Espacio`), `ubicacion_uso` (nullable, solo aplica a `reserva_fuera_laboratorio`), `requiere_apoyo_auxiliar` (NOT NULL, default `false`).
+- **El `CheckConstraint` de `tipo_solicitud` está acotado a 2 valores** (`reserva_en_laboratorio`, `reserva_fuera_laboratorio`) — **no a los 3 del enum**. `orden_salida` existe en `TipoSolicitud` porque el enum se declaró completo desde ya (para no reabrir el CHECK en la Fase C), pero la base de datos todavía lo rechaza: es la garantía estructural de que un bug de ruteo en la Fase C no pueda colar una fila de ese tipo en `reservas` sin que PostgreSQL la rechace. Ver `tests/test_reserva_tipo_solicitud.py::test_orden_salida_rechazado_por_check_constraint`.
+- **`ReservaCreate`/`ReservaUpdate` rechazan `tipo_solicitud=orden_salida` con 422** (`field_validator`), redundante a propósito con el CHECK de base de datos — el endpoint público jamás debe aceptar ese valor; solo lo materializará internamente `services/solicitudes.py` en la Fase C.
+- **`tipo_solicitud`/`requiere_apoyo_auxiliar` en `ReservaUpdate` NO llevan `| None`** (a diferencia de `descripcion`/`ubicacion_uso`, que sí son nullable de verdad): son columnas NOT NULL, así que mandar `null` explícito debe dar 422 de validación, no un intento silencioso de romper la constraint en el servicio. `exclude_unset` sigue distinguiendo "ausente" (conserva) de "presente" (reemplaza) sin necesidad de que el tipo permita `None` — el valor por default declarado en el schema nunca se usa para nada, solo habilita que el campo sea opcional en el JSON de entrada.
+- **`ubicacion_uso` se valida cruzado con `tipo_solicitud`**: en `ReservaCreate`, un `model_validator` rechaza con 422 si `ubicacion_uso` viene sin `tipo_solicitud == reserva_fuera_laboratorio`. En `ReservaUpdate` esa validación NO puede vivir en el schema (un PATCH no ve el estado actual de la reserva) — vive en `actualizar_reserva` (`services/reservas.py`), comparando el `tipo_solicitud` ya mergeado (`cambios.get(...) or reserva.tipo_solicitud`) contra el `ubicacion_uso` ya mergeado, 400 si la combinación final es inválida.
+- `openapi.snapshot.json` regenerado (3 campos aditivos en 3 schemas + enum `TipoSolicitud` nuevo) y revisado a mano.
+
 ## Reglas de autorización
 
 Un gestor solo puede estar asignado a un espacio. No se puede eliminar ni degradar la propia cuenta administrativa, y siempre debe quedar al menos un `admin` en el sistema (protegido con advisory lock en `proteger_administradores`).

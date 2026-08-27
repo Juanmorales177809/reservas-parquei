@@ -57,6 +57,33 @@ class TipoReserva(str, Enum):
     SERVICIO_DE_ENSAYO = "servicio_de_ensayo"
 
 
+class TipoSolicitud(str, Enum):
+    """Motivo de la solicitud (Fase B), del formulario real de solicitud de
+    laboratorios del ITM. Nombre del campo en `Reserva`: `tipo_solicitud`
+    -- concepto DISTINTO de `tipo` (académico: trabajo_investigacion/
+    trabajo_grado/servicio_de_ensayo, `TipoReserva` arriba) y de
+    `modalidad_reserva` de `Espacio` (`ModalidadEspacio`): los tres tienen
+    nombres parecidos pero responden preguntas distintas.
+
+    El formulario real tiene 4 motivos; solo los 2 primeros viven acá.
+    RESERVA_EN_LABORATORIO (dentro del laboratorio, el modelo de siempre) y
+    RESERVA_FUERA_LABORATORIO (equipo usado fuera del laboratorio pero
+    dentro de la sede) comparten la misma forma -- franja horaria de un
+    día -- así que ambos son ejes de `Reserva`. ORDEN_SALIDA (equipo fuera
+    de la sede, rango de días) se agrega acá desde ya para no reabrir este
+    `CheckConstraint` en la Fase C, pero solo existirá como fila real en
+    `reservas` cuando `services/solicitudes.py` (Fase C) la materialice
+    día por día para lograr el bloqueo automático del calendario -- nunca
+    llega directamente desde `ReservaCreate`. El cuarto motivo, MANO_OBRA,
+    no usa ningún recurso ni bloquea nada: vive exclusivamente en la tabla
+    `solicitudes_especiales` de la Fase C, nunca en `Reserva`.
+    """
+
+    RESERVA_EN_LABORATORIO = "reserva_en_laboratorio"
+    RESERVA_FUERA_LABORATORIO = "reserva_fuera_laboratorio"
+    ORDEN_SALIDA = "orden_salida"
+
+
 class VinculacionUsuario(str, Enum):
     """Vinculación institucional de un usuario con el ITM (Fase A2, perfil
     de usuario). Nombre del campo en `Usuario`: `vinculacion` -- distinto

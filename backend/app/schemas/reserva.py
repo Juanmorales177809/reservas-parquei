@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.domain.enums import EstadoEntidad, EstadoReserva, Rol, TipoReserva
+from app.domain.enums import EstadoEntidad, EstadoReserva, Rol, TipoReserva, TipoSolicitud
 
 
 class ReservaCreate(BaseModel):
@@ -29,15 +29,39 @@ class ReservaCreate(BaseModel):
     # Fase A3: texto libre opcional -- "Actividad a realizar" del formulario
     # real de solicitud de laboratorios.
     descripcion: str | None = None
+    # Fase B: motivo de la solicitud. Default RESERVA_EN_LABORATORIO (mismo
+    # default que la columna) -- la inmensa mayoría de los llamadores no lo
+    # declara explícitamente. ORDEN_SALIDA existe en el enum (ver su
+    # docstring) pero NUNCA se acepta acá -- solo lo materializa
+    # internamente `services/solicitudes.py` en la Fase C, nunca desde este
+    # endpoint público.
+    tipo_solicitud: TipoSolicitud = TipoSolicitud.RESERVA_EN_LABORATORIO
+    # Fase B: solo tiene sentido junto con RESERVA_FUERA_LABORATORIO --
+    # validado más abajo, no es opcional-y-listo para cualquier tipo.
+    ubicacion_uso: str | None = Field(default=None, max_length=200)
+    requiere_apoyo_auxiliar: bool = False
     fecha: date
     hora_inicio: time
     hora_fin: time
     asistentes: int = Field(gt=0)
 
+    @field_validator("tipo_solicitud")
+    @classmethod
+    def _tipo_solicitud_no_orden_salida(cls, value: TipoSolicitud) -> TipoSolicitud:
+        if value == TipoSolicitud.ORDEN_SALIDA:
+            raise ValueError("orden_salida no se crea desde este endpoint")
+        return value
+
     @model_validator(mode="after")
     def _al_menos_un_recurso_o_zona(self) -> "ReservaCreate":
         if not self.recurso_ids and not self.zona_ids:
             raise ValueError("Debes indicar al menos un recurso o una zona")
+        return self
+
+    @model_validator(mode="after")
+    def _ubicacion_uso_solo_fuera_del_laboratorio(self) -> "ReservaCreate":
+        if self.ubicacion_uso is not None and self.tipo_solicitud != TipoSolicitud.RESERVA_FUERA_LABORATORIO:
+            raise ValueError("ubicacion_uso solo aplica cuando tipo_solicitud es reserva_fuera_laboratorio")
         return self
 
 
@@ -62,10 +86,29 @@ class ReservaUpdate(BaseModel):
     # Fase A3: eje simple, mismo criterio que `tipo` -- ausente conserva el
     # valor actual, `null` explícito lo limpia.
     descripcion: str | None = None
+    # Fase B: a diferencia de `descripcion`/`tipo` (columnas nullable, donde
+    # `null` explícito tiene sentido como "limpiar"), estas dos son
+    # NOT NULL en la base -- por eso NO llevan `| None`. `exclude_unset`
+    # sigue distinguiendo "ausente" (se ignora en `cambios`, conserva el
+    # valor actual) de "presente" (reemplaza) sin depender del valor por
+    # default declarado acá, así que mandar explícitamente `null` da 422
+    # de validación en vez de romper el NOT NULL en el servicio.
+    tipo_solicitud: TipoSolicitud = TipoSolicitud.RESERVA_EN_LABORATORIO
+    requiere_apoyo_auxiliar: bool = False
+    # Sigue siendo nullable de verdad -- `null` explícito limpia
+    # `ubicacion_uso` si la reserva deja de ser `reserva_fuera_laboratorio`.
+    ubicacion_uso: str | None = Field(default=None, max_length=200)
     fecha: date | None = None
     hora_inicio: time | None = None
     hora_fin: time | None = None
     asistentes: int | None = Field(default=None, gt=0)
+
+    @field_validator("tipo_solicitud")
+    @classmethod
+    def _tipo_solicitud_no_orden_salida(cls, value: TipoSolicitud) -> TipoSolicitud:
+        if value == TipoSolicitud.ORDEN_SALIDA:
+            raise ValueError("orden_salida no se asigna desde este endpoint")
+        return value
 
 
 class ReservaAsistioUpdate(BaseModel):
@@ -208,6 +251,10 @@ class ReservaResponse(BaseModel):
     motivo_rechazo: str | None = None
     # Fase A3: `null` cuando no se especificó ninguna descripción.
     descripcion: str | None = None
+    # Fase B: siempre tiene valor (NOT NULL con default en la columna).
+    tipo_solicitud: TipoSolicitud
+    ubicacion_uso: str | None = None
+    requiere_apoyo_auxiliar: bool
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse

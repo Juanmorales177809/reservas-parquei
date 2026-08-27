@@ -143,13 +143,9 @@ class _EspacioDetalleBody extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) => EspacioReservaSheet(espacio: espacio),
-                  ),
+                  onPressed: () => _mostrarMotivoSolicitud(context, espacio),
                   icon: const Icon(LucideIcons.calendarPlus, size: 18),
-                  label: const Text('Reservar'),
+                  label: const Text('Nueva solicitud'),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -240,6 +236,68 @@ class _RecursoTile extends StatelessWidget {
           builder: (context) => RecursoDisponibilidadSheet(recurso: recurso),
         ),
       ),
+    );
+  }
+}
+
+/// Espejo de la pregunta 11 del formulario real de solicitud de
+/// laboratorios: el motivo bifurca el resto del formulario. Motivos 1 y 2
+/// abren el `EspacioReservaSheet` de siempre (ya denso: recursos+zonas+
+/// ensayos+acompañantes+disponibilidad+descripción) con `tipoSolicitud`
+/// prefijado -- no vale la pena convertirlo en un formulario de 4 ramas.
+/// Motivos 3 y 4 (orden de salida, mano de obra) quedan deshabilitados
+/// hasta la Fase C: no encajan en el modelo de "franja horaria de un día"
+/// de `Reserva` (una es un rango de días, la otra no usa ningún recurso).
+void _mostrarMotivoSolicitud(BuildContext context, Espacio espacio) {
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => _MotivoSolicitudDialog(espacio: espacio),
+  );
+}
+
+class _MotivoSolicitudDialog extends StatelessWidget {
+  const _MotivoSolicitudDialog({required this.espacio});
+
+  final Espacio espacio;
+
+  void _elegir(BuildContext context, TipoSolicitud tipoSolicitud) {
+    Navigator.pop(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => EspacioReservaSheet(espacio: espacio, tipoSolicitud: tipoSolicitud),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SimpleDialog(
+      title: const Text('Motivo de la solicitud'),
+      children: [
+        ListTile(
+          leading: const Icon(LucideIcons.building2),
+          title: Text(tipoSolicitudLabel(TipoSolicitud.reservaEnLaboratorio)),
+          onTap: () => _elegir(context, TipoSolicitud.reservaEnLaboratorio),
+        ),
+        ListTile(
+          leading: const Icon(LucideIcons.mapPin),
+          title: Text(tipoSolicitudLabel(TipoSolicitud.reservaFueraLaboratorio)),
+          onTap: () => _elegir(context, TipoSolicitud.reservaFueraLaboratorio),
+        ),
+        ListTile(
+          enabled: false,
+          leading: Icon(LucideIcons.truck, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+          title: const Text('Orden de salida (equipos fuera de la sede)'),
+          subtitle: const Text('Próximamente'),
+        ),
+        ListTile(
+          enabled: false,
+          leading: Icon(LucideIcons.hardHat, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
+          title: const Text('Mano de obra'),
+          subtitle: const Text('Próximamente'),
+        ),
+      ],
     );
   }
 }

@@ -248,8 +248,19 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
                 ),
                 _InfoChip(icon: LucideIcons.users, text: '${reserva.asistentes} asistentes'),
                 if (reserva.tipo != null) _InfoChip(icon: LucideIcons.tag, text: tipoReservaLabel(reserva.tipo!)),
+                if (reserva.tipoSolicitud != TipoSolicitud.reservaEnLaboratorio)
+                  _InfoChip(icon: LucideIcons.mapPin, text: tipoSolicitudLabel(reserva.tipoSolicitud)),
+                if (reserva.requiereApoyoAuxiliar)
+                  const _InfoChip(icon: LucideIcons.userCog, text: 'Requiere auxiliar'),
               ],
             ),
+            if (reserva.ubicacionUso != null && reserva.ubicacionUso!.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Uso: ${reserva.ubicacionUso}',
+                style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
             if (reserva.descripcion != null && reserva.descripcion!.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(

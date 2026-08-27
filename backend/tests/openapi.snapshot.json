@@ -1442,6 +1442,11 @@
             "title": "Recurso Ids",
             "type": "array"
           },
+          "requiere_apoyo_auxiliar": {
+            "default": false,
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
           "tipo": {
             "anyOf": [
               {
@@ -1451,6 +1456,22 @@
                 "type": "null"
               }
             ]
+          },
+          "tipo_solicitud": {
+            "$ref": "#/components/schemas/TipoSolicitud",
+            "default": "reserva_en_laboratorio"
+          },
+          "ubicacion_uso": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ubicacion Uso"
           },
           "zona_ids": {
             "items": {
@@ -1607,6 +1628,10 @@
             "title": "Recursos",
             "type": "array"
           },
+          "requiere_apoyo_auxiliar": {
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
           "tipo": {
             "anyOf": [
               {
@@ -1616,6 +1641,20 @@
                 "type": "null"
               }
             ]
+          },
+          "tipo_solicitud": {
+            "$ref": "#/components/schemas/TipoSolicitud"
+          },
+          "ubicacion_uso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ubicacion Uso"
           },
           "updated_at": {
             "format": "date-time",
@@ -1653,6 +1692,8 @@
           "hora_fin",
           "estado",
           "asistentes",
+          "tipo_solicitud",
+          "requiere_apoyo_auxiliar",
           "created_at",
           "updated_at",
           "usuario",
@@ -1765,6 +1806,11 @@
             ],
             "title": "Recurso Ids"
           },
+          "requiere_apoyo_auxiliar": {
+            "default": false,
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
           "tipo": {
             "anyOf": [
               {
@@ -1774,6 +1820,22 @@
                 "type": "null"
               }
             ]
+          },
+          "tipo_solicitud": {
+            "$ref": "#/components/schemas/TipoSolicitud",
+            "default": "reserva_en_laboratorio"
+          },
+          "ubicacion_uso": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ubicacion Uso"
           },
           "zona_ids": {
             "anyOf": [
@@ -1936,6 +1998,16 @@
           "servicio_de_ensayo"
         ],
         "title": "TipoReserva",
+        "type": "string"
+      },
+      "TipoSolicitud": {
+        "description": "Motivo de la solicitud (Fase B), del formulario real de solicitud de\nlaboratorios del ITM. Nombre del campo en `Reserva`: `tipo_solicitud`\n-- concepto DISTINTO de `tipo` (académico: trabajo_investigacion/\ntrabajo_grado/servicio_de_ensayo, `TipoReserva` arriba) y de\n`modalidad_reserva` de `Espacio` (`ModalidadEspacio`): los tres tienen\nnombres parecidos pero responden preguntas distintas.\n\nEl formulario real tiene 4 motivos; solo los 2 primeros viven acá.\nRESERVA_EN_LABORATORIO (dentro del laboratorio, el modelo de siempre) y\nRESERVA_FUERA_LABORATORIO (equipo usado fuera del laboratorio pero\ndentro de la sede) comparten la misma forma -- franja horaria de un\ndía -- así que ambos son ejes de `Reserva`. ORDEN_SALIDA (equipo fuera\nde la sede, rango de días) se agrega acá desde ya para no reabrir este\n`CheckConstraint` en la Fase C, pero solo existirá como fila real en\n`reservas` cuando `services/solicitudes.py` (Fase C) la materialice\ndía por día para lograr el bloqueo automático del calendario -- nunca\nllega directamente desde `ReservaCreate`. El cuarto motivo, MANO_OBRA,\nno usa ningún recurso ni bloquea nada: vive exclusivamente en la tabla\n`solicitudes_especiales` de la Fase C, nunca en `Reserva`.",
+        "enum": [
+          "reserva_en_laboratorio",
+          "reserva_fuera_laboratorio",
+          "orden_salida"
+        ],
+        "title": "TipoSolicitud",
         "type": "string"
       },
       "UsuarioEspacioResponse": {

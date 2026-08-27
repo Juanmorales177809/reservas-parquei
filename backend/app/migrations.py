@@ -491,6 +491,34 @@ def migrate_resource_reservations() -> None:
             END IF;
         END $$;
         """,
+        # Fase B: motivo de la solicitud (TipoSolicitud) -- NOT NULL con
+        # backfill, mismo molde que `modalidad_reserva` de Espacio: ADD con
+        # DEFAULT inline (cubre filas nuevas) -> UPDATE explícito (cubre
+        # filas viejas, insertadas antes de que la columna existiera, que
+        # quedan NULL pese al DEFAULT) -> SET DEFAULT -> SET NOT NULL.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS tipo_solicitud VARCHAR(30) DEFAULT 'reserva_en_laboratorio'",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS ubicacion_uso VARCHAR(200)",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS requiere_apoyo_auxiliar BOOLEAN DEFAULT false",
+        "UPDATE reservas SET tipo_solicitud = 'reserva_en_laboratorio' WHERE tipo_solicitud IS NULL",
+        "UPDATE reservas SET requiere_apoyo_auxiliar = false WHERE requiere_apoyo_auxiliar IS NULL",
+        "ALTER TABLE reservas ALTER COLUMN tipo_solicitud SET DEFAULT 'reserva_en_laboratorio'",
+        "ALTER TABLE reservas ALTER COLUMN tipo_solicitud SET NOT NULL",
+        "ALTER TABLE reservas ALTER COLUMN requiere_apoyo_auxiliar SET DEFAULT false",
+        "ALTER TABLE reservas ALTER COLUMN requiere_apoyo_auxiliar SET NOT NULL",
+        # Acotado a los 2 valores que de verdad llegan por ReservaCreate hoy
+        # -- 'orden_salida' se agrega recién en la Fase C, cuando exista el
+        # código que lo materializa. Es la garantía estructural de que un
+        # bug de ruteo en esa fase futura no pueda colar una fila de ese
+        # tipo en `reservas` sin que la base de datos la rechace.
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_reservas_tipo_solicitud') THEN
+                ALTER TABLE reservas ADD CONSTRAINT ck_reservas_tipo_solicitud
+                CHECK (tipo_solicitud IN ('reserva_en_laboratorio', 'reserva_fuera_laboratorio'));
+            END IF;
+        END $$;
+        """,
     )
 
     with engine.begin() as connection:

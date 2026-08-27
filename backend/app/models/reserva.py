@@ -40,6 +40,19 @@ class Reserva(Base):
     # actividad ("Actividad a realizar" del formulario real de solicitud
     # de laboratorios) -- sin CheckConstraint, es puramente descriptivo.
     descripcion = Column(Text, nullable=True)
+    # Fase B: motivo de la solicitud (TipoSolicitud) -- NOT NULL con
+    # default, a diferencia de `tipo` (académico, nullable): toda reserva
+    # SÍ tiene un motivo, aunque no lo declare explícitamente al crearla
+    # (las reservas de antes de la Fase B quedan en el default vía
+    # backfill de la migración). Distinto de `tipo`/`modalidad_reserva` de
+    # `Espacio` -- ver el docstring de `TipoSolicitud`.
+    tipo_solicitud = Column(String(30), nullable=False, default="reserva_en_laboratorio")
+    # Fase B: solo tiene sentido cuando tipo_solicitud == reserva_fuera_laboratorio
+    # (validado en el servicio, no acá) -- el resto de las ramas lo dejan null.
+    ubicacion_uso = Column(String(200), nullable=True)
+    # Fase B: pregunta 18 del formulario real, aplica a las dos ramas que
+    # viven en esta tabla.
+    requiere_apoyo_auxiliar = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -99,6 +112,17 @@ class Reserva(Base):
         CheckConstraint(
             "tipo IN ('trabajo_investigacion', 'trabajo_grado', 'servicio_de_ensayo')",
             name="ck_reservas_tipo",
+        ),
+        # Fase B: solo los 2 valores que de verdad llegan por ReservaCreate.
+        # ORDEN_SALIDA está en el enum TipoSolicitud pero NO en este CHECK
+        # todavía -- se agrega en la Fase C, cuando el servicio empiece a
+        # materializar filas reales con ese valor. Sin esto, un bug de
+        # ruteo en la Fase C que intentara crear una reserva normal con
+        # tipo_solicitud='orden_salida' fallaría en silencio en vez de
+        # romper la base de datos.
+        CheckConstraint(
+            "tipo_solicitud IN ('reserva_en_laboratorio', 'reserva_fuera_laboratorio')",
+            name="ck_reservas_tipo_solicitud",
         ),
         Index("ix_reservas_recurso_fecha_estado", "recurso_id", "fecha", "estado"),
     )

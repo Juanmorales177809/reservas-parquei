@@ -32,8 +32,12 @@ class ReservasRepository {
     List<int> ensayoIds = const [],
     List<Map<String, String>> acompanantes = const [],
     String? descripcion,
+    TipoSolicitud? tipoSolicitud,
+    String? ubicacionUso,
+    bool? requiereApoyoAuxiliar,
   }) async {
     final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
+    final tipoSolicitudJson = tipoSolicitud == null ? null : tipoSolicitudToJson(tipoSolicitud);
     final response = await _dio.post<Map<String, dynamic>>(
       '/reservas',
       data: {
@@ -47,6 +51,9 @@ class ReservasRepository {
         'asistentes': asistentes,
         'tipo': ?tipoJson,
         'descripcion': ?descripcion,
+        'tipo_solicitud': ?tipoSolicitudJson,
+        'ubicacion_uso': ?ubicacionUso,
+        'requiere_apoyo_auxiliar': ?requiereApoyoAuxiliar,
       },
     );
     return Reserva.fromJson(response.data!);
@@ -107,6 +114,9 @@ class ReservasRepository {
     String? horaFin,
     int? asistentes,
     String? descripcion,
+    TipoSolicitud? tipoSolicitud,
+    String? ubicacionUso,
+    bool? requiereApoyoAuxiliar,
   }) async {
     final data = <String, dynamic>{};
     if (fecha != null) data['fecha'] = _formatoFecha.format(fecha);
@@ -114,6 +124,9 @@ class ReservasRepository {
     if (horaFin != null) data['hora_fin'] = horaFin;
     if (asistentes != null) data['asistentes'] = asistentes;
     if (descripcion != null) data['descripcion'] = descripcion;
+    if (tipoSolicitud != null) data['tipo_solicitud'] = tipoSolicitudToJson(tipoSolicitud);
+    if (ubicacionUso != null) data['ubicacion_uso'] = ubicacionUso;
+    if (requiereApoyoAuxiliar != null) data['requiere_apoyo_auxiliar'] = requiereApoyoAuxiliar;
     final response = await _dio.patch<Map<String, dynamic>>('/reservas/$reservaId', data: data);
     return Reserva.fromJson(response.data!);
   }

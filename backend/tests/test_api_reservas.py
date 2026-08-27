@@ -493,6 +493,158 @@ class TestTransiciones:
         assert len(respuesta.json()) == 1
 
 
+class TestMotivoSolicitud:
+    """Fase B: `tipo_solicitud`/`ubicacion_uso`/`requiere_apoyo_auxiliar`
+    (ramas 1 y 2 del formulario real -- reserva dentro/fuera del
+    laboratorio). Las ramas 3 y 4 (orden de salida, mano de obra) no
+    existen todavía -- ver TestOrdenSalidaRechazada."""
+
+    def _payload(self, recurso_id, fecha, **extra):
+        payload = payload_reserva(recurso_id, fecha)
+        payload.update(extra)
+        return payload
+
+    def test_post_sin_tipo_solicitud_usa_el_default(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo 0")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        assert resp.json()["tipo_solicitud"] == "reserva_en_laboratorio"
+        assert resp.json()["requiere_apoyo_auxiliar"] is False
+        assert resp.json()["ubicacion_uso"] is None
+
+    def test_post_reserva_fuera_del_laboratorio_con_ubicacion(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo 1")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(
+                recurso.id,
+                fecha_habilitada(),
+                tipo_solicitud="reserva_fuera_laboratorio",
+                ubicacion_uso="Auditorio del bloque 5",
+                requiere_apoyo_auxiliar=True,
+            ),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 201
+        cuerpo = resp.json()
+        assert cuerpo["tipo_solicitud"] == "reserva_fuera_laboratorio"
+        assert cuerpo["ubicacion_uso"] == "Auditorio del bloque 5"
+        assert cuerpo["requiere_apoyo_auxiliar"] is True
+
+    def test_post_ubicacion_uso_sin_reserva_fuera_del_laboratorio_da_422(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo 2")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), ubicacion_uso="No debería aceptarse"),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+    def test_post_tipo_solicitud_orden_salida_da_422(self, client, db):
+        """El endpoint público jamás acepta orden_salida -- solo lo
+        materializará internamente la Fase C, nunca ReservaCreate."""
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo 3")
+        resp = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada(), tipo_solicitud="orden_salida"),
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+    def test_patch_cambia_tipo_solicitud_y_ubicacion_juntos(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo Patch")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"tipo_solicitud": "reserva_fuera_laboratorio", "ubicacion_uso": "Cancha techada"},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tipo_solicitud"] == "reserva_fuera_laboratorio"
+        assert resp.json()["ubicacion_uso"] == "Cancha techada"
+
+    def test_patch_ubicacion_uso_sola_sin_cambiar_tipo_da_400(self, client, db):
+        """La reserva sigue siendo reserva_en_laboratorio (default) -- mandar
+        solo ubicacion_uso sin también mover el tipo es la combinación
+        inválida, detectada en el servicio (no en el schema, que no ve el
+        estado actual de la reserva)."""
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo Patch 400")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"ubicacion_uso": "Cancha techada"},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 400
+
+    def test_patch_sin_tipo_solicitud_lo_conserva(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo Conserva")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(
+                recurso.id, fecha_habilitada(), tipo_solicitud="reserva_fuera_laboratorio", ubicacion_uso="X"
+            ),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"asistentes": 1},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tipo_solicitud"] == "reserva_fuera_laboratorio"
+        assert resp.json()["ubicacion_uso"] == "X"
+
+    def test_patch_tipo_solicitud_con_null_explicito_da_422(self, client, db):
+        """A diferencia de `descripcion`/`ubicacion_uso` (columnas nullable,
+        donde `null` limpia), `tipo_solicitud` es NOT NULL -- mandarlo en
+        `null` debe ser un error de validación, no un intento silencioso de
+        romper la constraint de base de datos."""
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo Null")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"tipo_solicitud": None},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+    def test_patch_tipo_solicitud_orden_salida_da_422(self, client, db):
+        usuario, _, recurso = _setup(db, nombre_espacio="Sala Motivo Patch Orden")
+        creada = client.post(
+            "/reservas",
+            json=self._payload(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+
+        resp = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"tipo_solicitud": "orden_salida"},
+            headers=cookies_para(usuario),
+        )
+        assert resp.status_code == 422
+
+
 class TestDescripcion:
     """Fase A3: texto libre opcional ('Actividad a realizar' del formulario
     real de solicitud de laboratorios) -- eje simple, mismo criterio que

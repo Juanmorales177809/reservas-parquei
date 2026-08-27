@@ -21,6 +21,7 @@ from app.domain.enums import (
     Rol,
     TipoNotificacion,
     TipoReserva,
+    TipoSolicitud,
 )
 from app.domain.protocols import Reloj
 from app.models import (
@@ -595,6 +596,9 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         asistentes=data.asistentes,
         tipo=data.tipo,
         descripcion=data.descripcion,
+        tipo_solicitud=data.tipo_solicitud,
+        ubicacion_uso=data.ubicacion_uso,
+        requiere_apoyo_auxiliar=data.requiere_apoyo_auxiliar,
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
@@ -870,6 +874,16 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     reserva.asistentes = asistentes
     reserva.tipo = cambios.get("tipo", reserva.tipo)
     reserva.descripcion = cambios.get("descripcion", reserva.descripcion)
+    nuevo_tipo_solicitud = cambios.get("tipo_solicitud", reserva.tipo_solicitud)
+    nueva_ubicacion_uso = cambios.get("ubicacion_uso", reserva.ubicacion_uso)
+    if nueva_ubicacion_uso is not None and nuevo_tipo_solicitud != TipoSolicitud.RESERVA_FUERA_LABORATORIO.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ubicacion_uso solo aplica cuando tipo_solicitud es reserva_fuera_laboratorio",
+        )
+    reserva.tipo_solicitud = nuevo_tipo_solicitud
+    reserva.ubicacion_uso = nueva_ubicacion_uso
+    reserva.requiere_apoyo_auxiliar = cambios.get("requiere_apoyo_auxiliar", reserva.requiere_apoyo_auxiliar)
     reserva.recurso_id = _recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos)
     _reescribir_asociaciones(db, reserva, objetivo)
     if "ensayo_ids" in cambios:

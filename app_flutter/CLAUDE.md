@@ -324,6 +324,17 @@ Primera fase de un plan más grande (formulario real de solicitud de laboratorio
 - **A3 — `Reserva.descripcion`**: texto libre opcional ("Actividad a realizar" del formulario real). Campo nuevo en `EspacioReservaSheet` (antes del bloque de disponibilidad), se muestra en `MisReservasScreen`/`GestionReservasScreen` si no es null. `ReservasRepository.crear`/`actualizar` lo pasan tal cual.
 - **Tests**: `gestion_zonas_screen_test.dart` (grupo "recursos de una zona" — precarga, guardado, sin recursos, error del backend) y `mi_perfil_screen_test.dart` (nuevo — precarga, guardado, error del backend). `EspacioReservaSheet` sigue sin test dedicado (ya lo estaba antes de esta fase, complejidad documentada).
 
+## Fase B — motivo de la solicitud (2026-08-27)
+
+Segunda fase del mismo plan: agrega las 2 ramas del formulario real que sí encajan en el modelo actual de `Reserva` (franja horaria de un día). Las otras 2 (orden de salida, mano de obra) quedan visibles pero deshabilitadas hasta la Fase C.
+
+- **`TipoSolicitud`** (`core/domain/enums.dart`), espejo del enum del backend: `reservaEnLaboratorio` (default), `reservaFueraLaboratorio`, `ordenSalida` (existe en el enum pero nunca se manda — el backend lo rechaza con 422 si llegara).
+- **El botón "Reservar" de `EspacioDetalleScreen` pasa a "Nueva solicitud"** y abre primero `_MotivoSolicitudDialog` (texto de la pregunta 11 del formulario real): 2 opciones habilitadas (reserva dentro/fuera del laboratorio) + 2 deshabilitadas con rótulo "Próximamente" (orden de salida, mano de obra). Elegir un motivo cierra el diálogo y abre el `EspacioReservaSheet` de siempre, con `tipoSolicitud` prefijado por parámetro — **no se convirtió el sheet en un formulario de 4 ramas** (ya es denso: recursos+zonas+ensayos+acompañantes+disponibilidad+descripción).
+- **`EspacioReservaSheet` gana 2 elementos condicionales al motivo**: si es `reservaFueraLaboratorio`, un `TextField` "¿Dónde se va a usar el equipo?" (`ubicacion_uso`, validado como requerido del lado cliente antes de enviar — si está vacío, el sheet muestra un error y no llama al repositorio). El `SwitchListTile` "¿Requiere apoyo del auxiliar del laboratorio?" aparece para ambos motivos habilitados.
+- **`Reserva`/`ReservasRepository`**: `tipoSolicitud` (default `reservaEnLaboratorio`), `ubicacionUso`, `requiereApoyoAuxiliar` — `crear`/`actualizar` los pasan tal cual, mismo patrón que `descripcion` en A3.
+- **`GestionReservasScreen`/`MisReservasScreen`** muestran el motivo (chip o línea, según el layout de cada tarjeta) solo cuando no es el default, más `ubicacion_uso` si tiene valor y un chip "Requiere auxiliar" cuando aplica.
+- **Sin test dedicado nuevo**: ni `_MotivoSolicitudDialog` (widget privado, solo alcanzable desde `EspacioDetalleScreen`, que depende de varios providers pesados para montar) ni `EspacioReservaSheet` (ya sin test desde antes de esta fase) — mismo criterio ya documentado en A3, verificado con `flutter analyze`/`flutter test` global más revisión manual del flujo.
+
 ## Sesión: cookie HttpOnly, nunca un token en el cliente
 
 El backend solo acepta la cookie `access_token` (`HttpOnly`, `SameSite=Lax`), fijada por `POST /auth/supabase/sesion` con el JWT de Supabase tal cual. **Nunca** leer/decodificar el JWT en Dart ni guardar sesión en `shared_preferences`/`localStorage` — sería una fuente de verdad paralela a la cookie (misma regla que ya rige para `frontend/`). Manejo de cookie condicional por plataforma en `lib/core/network/cookie_interceptor*.dart` (conditional import `dart.library.io`):
