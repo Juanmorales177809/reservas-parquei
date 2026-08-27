@@ -57,6 +57,58 @@ def invitar_usuario(email: str) -> uuid.UUID:
     return uuid.UUID(user_id)
 
 
+def eliminar_usuario(supabase_id: uuid.UUID) -> None:
+    """Borra la identidad de Supabase de un usuario.
+
+    SIEMPRE se llama antes de borrar la fila local
+    (`api/usuarios.py::delete_usuario_endpoint`) -- en el orden inverso,
+    un fallo a mitad de camino deja una identidad huérfana en Supabase
+    (con el email todavía "registrado" ahí) que bloquea reinvitar ese
+    mismo email más adelante. Encontrado en producción el 2026-08-27:
+    borrar un usuario solo tocaba `reservas_db`, nunca Supabase, y
+    reinvitar el mismo email fallaba con 422 `email_exists` contra una
+    cuenta que ya no existía en nuestro lado.
+
+    Un 404 se trata como éxito, no como error: la identidad ya no existe,
+    que es exactamente el estado buscado -- idempotente, por si alguien
+    la borró antes a mano desde el dashboard de Supabase.
+    """
+    url = f"{settings.supabase_url}/auth/v1/admin/users/{supabase_id}"
+    try:
+        resp = httpx.delete(url, headers=_headers(), timeout=10)
+    except httpx.HTTPError as exc:
+        raise SupabaseAdminError(f"No se pudo contactar a Supabase: {exc}") from exc
+    if resp.status_code >= 400 and resp.status_code != 404:
+        raise SupabaseAdminError(f"Supabase rechazó el borrado ({resp.status_code}): {resp.text}")
+
+
+def generar_link_invitacion(email: str) -> str:
+    """Genera un link de invitación fresco para un usuario que YA existe en
+    Supabase (a diferencia de [invitar_usuario], que crea uno nuevo y
+    falla con 422 `email_exists` si el email ya está registrado -- probado
+    contra el proyecto real el 2026-08-27, `/auth/v1/invite` rechaza
+    reinvitar aunque la invitación original nunca se haya confirmado).
+
+    A diferencia de `invitar_usuario`, este endpoint de Supabase **no manda
+    ningún correo por su cuenta** -- solo genera y devuelve el link
+    (`action_link`); entregarlo es responsabilidad de quien llama (ver
+    `reenviar_invitacion_endpoint` en `app/api/usuarios.py`, que lo encola
+    en el outbox propio, `app/services/email.py`).
+    """
+    url = f"{settings.supabase_url}/auth/v1/admin/generate_link"
+    try:
+        resp = httpx.post(url, headers=_headers(), json={"type": "invite", "email": email}, timeout=10)
+    except httpx.HTTPError as exc:
+        raise SupabaseAdminError(f"No se pudo contactar a Supabase: {exc}") from exc
+    if resp.status_code >= 400:
+        raise SupabaseAdminError(f"Supabase rechazó la generación del link ({resp.status_code}): {resp.text}")
+    data = resp.json()
+    link = data.get("action_link")
+    if not link:
+        raise SupabaseAdminError(f"Respuesta de Supabase sin action_link: {data}")
+    return link
+
+
 def crear_usuario_confirmado(email: str, password: str) -> uuid.UUID:
     """Crea el usuario con una contraseña YA puesta, sin enviar ningún
     correo. Solo la usa el bootstrap del primer admin

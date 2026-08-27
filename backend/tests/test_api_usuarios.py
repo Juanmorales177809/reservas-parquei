@@ -164,3 +164,113 @@ def test_actualizar_email_de_usuario(client, db):
     )
     assert respuesta.status_code == 200
     assert respuesta.json()["email"] == "objetivo_nuevo@example.com"
+
+
+def test_eliminar_usuario_borra_tambien_su_identidad_de_supabase(client, db, monkeypatch):
+    """Regresión de un bug real en producción (2026-08-27): borrar un
+    usuario solo tocaba reservas_db, nunca Supabase -- la identidad
+    quedaba huérfana ahí y reinvitar el mismo email fallaba con 422
+    email_exists contra una cuenta que ya no existía de nuestro lado."""
+    admin = _admin(db)
+    objetivo = crear_usuario(db, username="a_borrar", email="a_borrar@example.com")
+
+    llamadas = []
+    monkeypatch.setattr("app.api.usuarios.eliminar_usuario_supabase", lambda supabase_id: llamadas.append(supabase_id))
+
+    respuesta = client.delete(f"/usuarios/{objetivo.id}", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 204
+    assert llamadas == [objetivo.supabase_id]
+    assert db.query(Usuario).filter(Usuario.id == objetivo.id).first() is None
+
+
+def test_eliminar_usuario_si_supabase_falla_da_502_y_no_borra_la_fila_local(client, db, monkeypatch):
+    """Orden deliberado (Supabase primero, fila local después): si
+    Supabase falla, la fila local se conserva -- lo contrario dejaría al
+    admin creyendo que borró al usuario mientras su identidad de Supabase
+    sigue viva y funcional."""
+    admin = _admin(db)
+    objetivo = crear_usuario(db, username="no_se_borra", email="no_se_borra@example.com")
+
+    def _falla(supabase_id):
+        raise SupabaseAdminError("simulado: Supabase Cloud no responde")
+
+    monkeypatch.setattr("app.api.usuarios.eliminar_usuario_supabase", _falla)
+
+    respuesta = client.delete(f"/usuarios/{objetivo.id}", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 502
+    assert db.query(Usuario).filter(Usuario.id == objetivo.id).first() is not None
+
+
+def test_reenviar_invitacion_devuelve_el_link(client, db, monkeypatch):
+    """Regresión de un pedido real: el correo original puede no llegar
+    (spam) o el link vencer -- /auth/v1/invite no sirve para reenviar
+    (Supabase lo rechaza con email_exists para cualquier email ya
+    registrado, probado contra el proyecto real el 2026-08-27), así que el
+    endpoint usa generate_link en su lugar."""
+    admin = _admin(db)
+    objetivo = crear_usuario(db, username="a_reinvitar", email="a_reinvitar@example.com")
+
+    monkeypatch.setattr(
+        "app.api.usuarios.generar_link_invitacion",
+        lambda email: f"https://ijktwqnkknemjrokwcdn.supabase.co/auth/v1/verify?token=fake&type=invite&email={email}",
+    )
+
+    respuesta = client.post(f"/usuarios/{objetivo.id}/reenviar-invitacion", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 200
+    data = respuesta.json()
+    assert "a_reinvitar@example.com" in data["link"]
+    # EMAIL_ENABLED=false en tests (conftest.py no lo activa): el correo
+    # queda encolado pero no se intenta enviar de verdad.
+    assert data["correo_enviado"] is False
+
+
+def test_reenviar_invitacion_solo_admin(client, db, monkeypatch):
+    monkeypatch.setattr("app.api.usuarios.generar_link_invitacion", lambda email: "https://example.com/link")
+    usuario = crear_usuario(db, username="no_admin", email="no_admin@example.com")
+    objetivo = crear_usuario(db, username="objetivo_reenvio", email="objetivo_reenvio@example.com")
+
+    respuesta = client.post(f"/usuarios/{objetivo.id}/reenviar-invitacion", headers=cookies_para(usuario))
+
+    assert respuesta.status_code == 403
+
+
+def test_reenviar_invitacion_usuario_inexistente_da_404(client, db, monkeypatch):
+    monkeypatch.setattr("app.api.usuarios.generar_link_invitacion", lambda email: "https://example.com/link")
+    admin = _admin(db)
+
+    respuesta = client.post("/usuarios/999999/reenviar-invitacion", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 404
+
+
+def test_reenviar_invitacion_sin_supabase_id_da_409(client, db, monkeypatch):
+    """No debería poder pasar en la práctica (todo usuario se crea vía
+    invitar_usuario, que siempre guarda un supabase_id), pero si alguna
+    vez queda una fila así, reenviar debe fallar con un mensaje claro en
+    vez de mandarle `None` a Supabase."""
+    monkeypatch.setattr("app.api.usuarios.generar_link_invitacion", lambda email: "https://example.com/link")
+    admin = _admin(db)
+    objetivo = crear_usuario(db, username="sin_supabase_id", email="sin_supabase_id@example.com")
+    objetivo.supabase_id = None
+    db.commit()
+
+    respuesta = client.post(f"/usuarios/{objetivo.id}/reenviar-invitacion", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 409
+
+
+def test_reenviar_invitacion_si_supabase_falla_da_502(client, db, monkeypatch):
+    admin = _admin(db)
+    objetivo = crear_usuario(db, username="reenvio_falla", email="reenvio_falla@example.com")
+
+    def _falla(email):
+        raise SupabaseAdminError("simulado: Supabase Cloud no responde")
+
+    monkeypatch.setattr("app.api.usuarios.generar_link_invitacion", _falla)
+
+    respuesta = client.post(f"/usuarios/{objetivo.id}/reenviar-invitacion", headers=cookies_para(admin))
+
+    assert respuesta.status_code == 502

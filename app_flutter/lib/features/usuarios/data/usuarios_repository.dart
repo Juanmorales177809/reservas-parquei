@@ -59,6 +59,24 @@ class UsuariosRepository {
   Future<void> eliminar(int usuarioId) async {
     await _dio.delete<void>('/usuarios/$usuarioId');
   }
+
+  /// Genera un link de invitación fresco y lo encola por correo (cubre el
+  /// correo original perdido en spam, o un link vencido). `link` siempre
+  /// viene, aunque `correoEnviado` sea `false` (sin SMTP configurado
+  /// todavía) — la pantalla se lo muestra al admin para que lo entregue a
+  /// mano mientras tanto. Ver `POST /usuarios/{id}/reenviar-invitacion`.
+  Future<ReenvioInvitacion> reenviarInvitacion(int usuarioId) async {
+    final response = await _dio.post<Map<String, dynamic>>('/usuarios/$usuarioId/reenviar-invitacion');
+    final data = response.data!;
+    return ReenvioInvitacion(link: data['link'] as String, correoEnviado: data['correo_enviado'] as bool);
+  }
+}
+
+class ReenvioInvitacion {
+  const ReenvioInvitacion({required this.link, required this.correoEnviado});
+
+  final String link;
+  final bool correoEnviado;
 }
 
 final usuariosRepositoryProvider = Provider<UsuariosRepository>((ref) {

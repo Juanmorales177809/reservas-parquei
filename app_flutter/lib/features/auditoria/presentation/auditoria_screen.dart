@@ -115,7 +115,7 @@ String _formatearHora(String raw) {
 
 Color _colorAccion(String accion) => switch (accion) {
       'crear' => AppEstados.positivo.relleno,
-      'actualizar' || 'configurar' => AppColors.accion,
+      'actualizar' || 'configurar' || 'reenviar_invitacion' => AppColors.accion,
       'eliminar' || 'cancelar' => AppEstados.negativo.relleno,
       'cambiar estado' => AppEstados.pendiente.relleno,
       'marcar_asistencia' => AppEstados.positivo.borde,

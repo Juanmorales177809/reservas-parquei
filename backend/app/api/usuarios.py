@@ -7,9 +7,15 @@ from app.db import get_db
 from app.deps import get_current_user, require_admin
 from app.models.espacio import Espacio
 from app.models.usuario import Usuario
-from app.schemas.usuario import AdminUsuarioCreate, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import AdminUsuarioCreate, ReenviarInvitacionResponse, UsuarioResponse, UsuarioUpdate
 from app.services.auditoria import registrar_cambio
-from app.services.supabase_admin import SupabaseAdminError, invitar_usuario
+from app.services.email import encolar_correo, procesar_pendientes
+from app.services.supabase_admin import (
+    SupabaseAdminError,
+    eliminar_usuario as eliminar_usuario_supabase,
+    generar_link_invitacion,
+    invitar_usuario,
+)
 
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
@@ -101,6 +107,64 @@ def create_usuario_admin(
     return usuario
 
 
+@router.post("/{usuario_id}/reenviar-invitacion", response_model=ReenviarInvitacionResponse)
+def reenviar_invitacion_endpoint(
+    usuario_id: int,
+    current_user: Usuario = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Genera un link de invitación fresco y lo encola por correo.
+
+    Cubre dos escenarios reales: el correo original nunca llegó (spam,
+    problema de entrega), o el link venció (Supabase expira los links de
+    invitación). `/auth/v1/invite` no sirve para esto -- Supabase lo
+    rechaza con `email_exists` para cualquier email ya registrado, aunque
+    la invitación original nunca se haya confirmado (confirmado contra el
+    proyecto real, 2026-08-27) -- hace falta `generate_link`, que sí
+    funciona para un usuario existente pero no manda el correo por su
+    cuenta.
+
+    `correo_enviado` en la respuesta refleja si el envío SMTP realmente
+    tuvo éxito -- con `EMAIL_ENABLED=false` (todavía, mientras se gestiona
+    el SMTP del ITM) siempre da `false` y el link queda en la respuesta
+    para que el admin lo entregue a mano.
+    """
+    db_user = get_usuario(db, usuario_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if db_user.supabase_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este usuario no tiene una identidad de Supabase asociada",
+        )
+
+    try:
+        link = generar_link_invitacion(db_user.email)
+    except SupabaseAdminError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo generar el link de invitación en Supabase: {exc}",
+        ) from exc
+
+    correo = encolar_correo(
+        db,
+        destinatario=db_user.email,
+        asunto="Invitación a Reservas Parque i",
+        cuerpo=(
+            f"Hola {db_user.username},\n\n"
+            "Te reenviamos el link para completar tu cuenta en Reservas Parque i:\n\n"
+            f"{link}\n\n"
+            "Si no esperabas este correo, podés ignorarlo."
+        ),
+    )
+    registrar_cambio(db, current_user, "reenviar_invitacion", "usuario", db_user.id, f"Reenvió la invitación a {db_user.username}")
+    db.commit()
+    procesar_pendientes(db)
+    db.refresh(correo)
+
+    return ReenviarInvitacionResponse(link=link, correo_enviado=correo.estado == "enviado")
+
+
 @router.put("/{usuario_id}", response_model=UsuarioResponse)
 def update_usuario_endpoint(
     usuario_id: int,
@@ -145,7 +209,20 @@ def delete_usuario_endpoint(
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     proteger_administradores(db, db_user, current_user, eliminando=True)
-        
+
+    # Primero Supabase, recién después la fila local: en el orden inverso,
+    # un fallo a mitad de camino deja una identidad huérfana en Supabase
+    # que bloquea reinvitar el mismo email más adelante (ver el docstring
+    # de eliminar_usuario en supabase_admin.py).
+    if db_user.supabase_id is not None:
+        try:
+            eliminar_usuario_supabase(db_user.supabase_id)
+        except SupabaseAdminError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"No se pudo eliminar la cuenta en Supabase: {exc}",
+            ) from exc
+
     descripcion = f"Eliminó el usuario {db_user.username}"
     delete_usuario(db, db_user)
     registrar_cambio(db, current_user, "eliminar", "usuario", usuario_id, descripcion)

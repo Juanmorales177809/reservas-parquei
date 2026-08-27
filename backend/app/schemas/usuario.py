@@ -59,6 +59,20 @@ class UsuarioResponse(BaseModel):
     espacio: UsuarioEspacioResponse | None = None
 
 
+class ReenviarInvitacionResponse(BaseModel):
+    """Respuesta de `POST /usuarios/{id}/reenviar-invitacion`.
+
+    `link` siempre viene (Supabase lo genera aunque no haya SMTP
+    configurado); `correo_enviado` distingue si además se pudo entregar
+    por correo o si el admin tiene que pasarlo a mano mientras tanto (ver
+    `app/services/email.py` -- sin `EMAIL_ENABLED`, el outbox encola pero
+    no intenta enviar).
+    """
+
+    link: str
+    correo_enviado: bool
+
+
 class LoginResponse(BaseModel):
     """Respuesta de `POST /auth/supabase/sesion`.
 
@@ -74,9 +88,9 @@ class SupabaseSesionRequest(BaseModel):
 
     El cliente Flutter, tras `supabase.auth.signInWithPassword()`, obtiene
     un JWT cuyo `sub` es el UUID de `auth.users`. Este endpoint lo verifica
-    con `SUPABASE_JWT_SECRET` y busca el `Usuario` por `supabase_id` --
-    nunca crea ni vincula nada (ver el docstring de `supabase_sesion` en
-    `app/api/auth.py`).
+    (`deps.decode_token` -- ES256 vía JWKS o HS256 solo para tests, ver ese
+    módulo) y busca el `Usuario` por `supabase_id` -- nunca crea ni vincula
+    nada (ver el docstring de `supabase_sesion` en `app/api/auth.py`).
     """
 
     supabase_token: str = Field(min_length=10, max_length=4096)

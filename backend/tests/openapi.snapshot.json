@@ -1265,6 +1265,25 @@
         "title": "RecursoUpdate",
         "type": "object"
       },
+      "ReenviarInvitacionResponse": {
+        "description": "Respuesta de `POST /usuarios/{id}/reenviar-invitacion`.\n\n`link` siempre viene (Supabase lo genera aunque no haya SMTP\nconfigurado); `correo_enviado` distingue si además se pudo entregar\npor correo o si el admin tiene que pasarlo a mano mientras tanto (ver\n`app/services/email.py` -- sin `EMAIL_ENABLED`, el outbox encola pero\nno intenta enviar).",
+        "properties": {
+          "correo_enviado": {
+            "title": "Correo Enviado",
+            "type": "boolean"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "link",
+          "correo_enviado"
+        ],
+        "title": "ReenviarInvitacionResponse",
+        "type": "object"
+      },
       "ReservaAcompananteResponse": {
         "properties": {
           "correo": {
@@ -1756,7 +1775,7 @@
         "type": "string"
       },
       "SupabaseSesionRequest": {
-        "description": "Body de `POST /auth/supabase/sesion` (público).\n\nEl cliente Flutter, tras `supabase.auth.signInWithPassword()`, obtiene\nun JWT cuyo `sub` es el UUID de `auth.users`. Este endpoint lo verifica\ncon `SUPABASE_JWT_SECRET` y busca el `Usuario` por `supabase_id` --\nnunca crea ni vincula nada (ver el docstring de `supabase_sesion` en\n`app/api/auth.py`).",
+        "description": "Body de `POST /auth/supabase/sesion` (público).\n\nEl cliente Flutter, tras `supabase.auth.signInWithPassword()`, obtiene\nun JWT cuyo `sub` es el UUID de `auth.users`. Este endpoint lo verifica\n(`deps.decode_token` -- ES256 vía JWKS o HS256 solo para tests, ver ese\nmódulo) y busca el `Usuario` por `supabase_id` -- nunca crea ni vincula\nnada (ver el docstring de `supabase_sesion` en `app/api/auth.py`).",
         "properties": {
           "supabase_token": {
             "maxLength": 4096,
@@ -4139,6 +4158,54 @@
           }
         ],
         "summary": "Update Usuario Endpoint",
+        "tags": [
+          "usuarios"
+        ]
+      }
+    },
+    "/usuarios/{usuario_id}/reenviar-invitacion": {
+      "post": {
+        "description": "Genera un link de invitación fresco y lo encola por correo.\n\nCubre dos escenarios reales: el correo original nunca llegó (spam,\nproblema de entrega), o el link venció (Supabase expira los links de\ninvitación). `/auth/v1/invite` no sirve para esto -- Supabase lo\nrechaza con `email_exists` para cualquier email ya registrado, aunque\nla invitación original nunca se haya confirmado (confirmado contra el\nproyecto real, 2026-08-27) -- hace falta `generate_link`, que sí\nfunciona para un usuario existente pero no manda el correo por su\ncuenta.\n\n`correo_enviado` en la respuesta refleja si el envío SMTP realmente\ntuvo éxito -- con `EMAIL_ENABLED=false` (todavía, mientras se gestiona\nel SMTP del ITM) siempre da `false` y el link queda en la respuesta\npara que el admin lo entregue a mano.",
+        "operationId": "reenviar_invitacion_endpoint_usuarios__usuario_id__reenviar_invitacion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "title": "Usuario Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReenviarInvitacionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Reenviar Invitacion Endpoint",
         "tags": [
           "usuarios"
         ]

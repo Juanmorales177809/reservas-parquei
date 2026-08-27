@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -88,6 +89,53 @@ String _inicialesDe(String username) {
   }
   if (v.length == 1) return v.toUpperCase();
   return v.substring(0, 2).toUpperCase();
+}
+
+/// Muestra el link recién generado con un botón de copiar. Mientras el
+/// SMTP del ITM sigue pendiente (`EMAIL_ENABLED=false`), `correoEnviado`
+/// siempre da `false` y este diálogo es la única forma de entregar el
+/// link — el día que haya SMTP configurado, el mismo endpoint ya lo manda
+/// solo y este diálogo pasa a ser un respaldo, no el único camino.
+void _mostrarLinkInvitacion(BuildContext context, ReenvioInvitacion resultado) {
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Invitación reenviada'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            resultado.correoEnviado
+                ? 'Se generó un nuevo link y se envió por correo.'
+                : 'Se generó un nuevo link. Todavía no hay envío de correo configurado — copialo y '
+                    'entregáselo a la persona por otro medio.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.borde),
+            ),
+            child: SelectableText(resultado.link, style: const TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+        FilledButton.icon(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: resultado.link));
+            Navigator.pop(ctx);
+          },
+          icon: const Icon(LucideIcons.copy, size: 16),
+          label: const Text('Copiar link'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _UsuarioAvatar extends StatelessWidget {
@@ -188,6 +236,23 @@ class _FilaUsuario extends ConsumerStatefulWidget {
 
 class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
   bool _eliminando = false;
+  bool _reenviando = false;
+
+  Future<void> _reenviarInvitacion() async {
+    setState(() => _reenviando = true);
+    try {
+      final resultado = await ref.read(usuariosRepositoryProvider).reenviarInvitacion(widget.usuario.id);
+      if (mounted) _mostrarLinkInvitacion(context, resultado);
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo reenviar la invitación.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _reenviando = false);
+    }
+  }
 
   Future<void> _eliminar() async {
     final confirmar = await showDialog<bool>(
@@ -314,6 +379,13 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                IconButton(
+                  onPressed: _reenviando || _eliminando ? null : _reenviarInvitacion,
+                  tooltip: 'Reenviar invitación',
+                  icon: _reenviando
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(LucideIcons.mailPlus, size: 16),
+                ),
                 OutlinedButton.icon(
                   onPressed: _eliminando ? null : _editar,
                   icon: const Icon(LucideIcons.pencil, size: 14),
@@ -348,6 +420,23 @@ class _UsuarioCard extends ConsumerStatefulWidget {
 
 class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
   bool _eliminando = false;
+  bool _reenviando = false;
+
+  Future<void> _reenviarInvitacion() async {
+    setState(() => _reenviando = true);
+    try {
+      final resultado = await ref.read(usuariosRepositoryProvider).reenviarInvitacion(widget.usuario.id);
+      if (mounted) _mostrarLinkInvitacion(context, resultado);
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo reenviar la invitación.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _reenviando = false);
+    }
+  }
 
   Future<void> _eliminar() async {
     final confirmar = await showDialog<bool>(
@@ -453,6 +542,13 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                IconButton(
+                  onPressed: _reenviando || _eliminando ? null : _reenviarInvitacion,
+                  tooltip: 'Reenviar invitación',
+                  icon: _reenviando
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(LucideIcons.mailPlus, size: 16),
+                ),
                 OutlinedButton.icon(
                   onPressed: _eliminando ? null : _editar,
                   icon: const Icon(LucideIcons.pencil, size: 14),
