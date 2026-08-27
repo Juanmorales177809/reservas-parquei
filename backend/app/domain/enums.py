@@ -141,7 +141,7 @@ class TipoNotificacion(str, Enum):
     Origen verificado de los valores: el constraint `notificaciones_tipo_check`
     existe en base de datos — declarado en `app/models/notificacion.py`
     (`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +
-    ADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')`).
+    ADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Actualizada')`).
     Se conservan exactamente esos valores.
     """
 
@@ -149,6 +149,7 @@ class TipoNotificacion(str, Enum):
     APROBADA = "Aprobada"
     RECHAZADA = "Rechazada"
     CANCELADA = "Cancelada"
+    ACTUALIZADA = "Actualizada"
 
 
 class EstadoSlot(str, Enum):

@@ -6,6 +6,10 @@ import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../recursos/application/recursos_providers.dart';
+import '../../zonas/application/zonas_providers.dart';
+import '../../zonas/domain/zona.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
@@ -149,50 +153,14 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
   }
 
   Future<void> _editarReserva() async {
-    final formKey = GlobalKey<FormState>();
-    String fecha = widget.reserva.fecha;
-    String horaInicio = widget.reserva.horaInicio.substring(0, 5);
-    String horaFin = widget.reserva.horaFin.substring(0, 5);
-    int asistentes = widget.reserva.asistentes;
-    final fechaCtrl = TextEditingController(text: fecha);
-    final inicioCtrl = TextEditingController(text: horaInicio);
-    final finCtrl = TextEditingController(text: horaFin);
-    final asistCtrl = TextEditingController(text: '$asistentes');
-    final ok = await showDialog<bool>(
+    final actualizado = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Editar reserva'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextFormField(controller: fechaCtrl, decoration: const InputDecoration(labelText: 'Fecha (YYYY-MM-DD)'), readOnly: true, onTap: () async {
-                final ini = DateTime.tryParse(fechaCtrl.text) ?? DateTime.now();
-                final picked = await showDatePicker(context: ctx, initialDate: ini, firstDate: DateTime(2020), lastDate: DateTime(2030));
-                if (picked != null) fechaCtrl.text = '${picked.year.toString().padLeft(4,'0')}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}';
-              }, validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(controller: inicioCtrl, decoration: const InputDecoration(labelText: 'Hora inicio (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(controller: finCtrl, decoration: const InputDecoration(labelText: 'Hora fin (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(controller: asistCtrl, decoration: const InputDecoration(labelText: 'Asistentes'), keyboardType: TextInputType.number, validator: (v) { final n = int.tryParse(v ?? ''); if (n == null || n <=0) return '>0'; return null; }),
-            ]),
-          ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () { if (formKey.currentState!.validate()) Navigator.pop(ctx, true); }, child: const Text('Guardar'))],
-      ),
+      builder: (_) => _EditarReservaDialog(reserva: widget.reserva),
     );
-    if (ok != true) return;
-    setState(() => _enviando = true);
-    try {
-      final parsed = DateTime.parse(fechaCtrl.text);
-      await ref.read(reservasRepositoryProvider).actualizar(widget.reserva.id, fecha: parsed, horaInicio: inicioCtrl.text, horaFin: finCtrl.text, asistentes: int.parse(asistCtrl.text));
+    if (actualizado == true) {
       ref.invalidate(reservasGestionProvider);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reserva actualizada.')));
-    } on Object catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo actualizar la reserva.'))));
-    } finally { if (mounted) setState(() => _enviando = false); }
+    }
   }
 
   Future<void> _eliminarReserva() async {
@@ -390,6 +358,206 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditarReservaDialog extends ConsumerStatefulWidget {
+  const _EditarReservaDialog({required this.reserva});
+  final Reserva reserva;
+  @override
+  ConsumerState<_EditarReservaDialog> createState() => _EditarReservaDialogState();
+}
+
+class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
+  late final GlobalKey<FormState> _formKey;
+  late final TextEditingController _fechaCtrl;
+  late final TextEditingController _inicioCtrl;
+  late final TextEditingController _finCtrl;
+  late final TextEditingController _asistCtrl;
+  late Set<int> _recursoIds;
+  late Set<int> _zonaIds;
+  bool _guardando = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _formKey = GlobalKey<FormState>();
+    _fechaCtrl = TextEditingController(text: widget.reserva.fecha);
+    _inicioCtrl = TextEditingController(text: widget.reserva.horaInicio.substring(0, 5));
+    _finCtrl = TextEditingController(text: widget.reserva.horaFin.substring(0, 5));
+    _asistCtrl = TextEditingController(text: '${widget.reserva.asistentes}');
+    _recursoIds = widget.reserva.recursoIds.toSet();
+    _zonaIds = widget.reserva.zonaIds.toSet();
+  }
+
+  @override
+  void dispose() {
+    _fechaCtrl.dispose();
+    _inicioCtrl.dispose();
+    _finCtrl.dispose();
+    _asistCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_recursoIds.isEmpty && _zonaIds.isEmpty) {
+      setState(() => _error = 'Seleccioná al menos un recurso o una zona.');
+      return;
+    }
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      final parsed = DateTime.parse(_fechaCtrl.text);
+      await ref.read(reservasRepositoryProvider).actualizar(
+            widget.reserva.id,
+            fecha: parsed,
+            horaInicio: _inicioCtrl.text,
+            horaFin: _finCtrl.text,
+            asistentes: int.parse(_asistCtrl.text),
+            recursoIds: _recursoIds.toList(),
+            zonaIds: _zonaIds.toList(),
+          );
+      if (mounted) Navigator.pop(context, true);
+    } on Object catch (e) {
+      setState(() => _error = apiErrorMessage(e, fallback: 'No se pudo actualizar la reserva.'));
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final espacioId = widget.reserva.espacioId;
+    final recursos = ref.watch(recursosPorEspacioProvider(espacioId));
+    final zonasAsync = ref.watch(zonasGestionProvider);
+    final zonasDelEspacio = (zonasAsync.value ?? <Zona>[]).where((z) => z.espacioId == espacioId).toList();
+
+    final cubiertos = <int>{};
+    for (final z in zonasDelEspacio) {
+      if (_zonaIds.contains(z.id)) cubiertos.addAll(z.recursoIds);
+    }
+    final nombrePorId = <int, String>{for (final r in recursos) r.id: r.nombre};
+
+    return AlertDialog(
+      title: Text('Editar reserva #${widget.reserva.id}'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _fechaCtrl,
+                  decoration: const InputDecoration(labelText: 'Fecha (YYYY-MM-DD)'),
+                  readOnly: true,
+                  onTap: () async {
+                    final ini = DateTime.tryParse(_fechaCtrl.text) ?? DateTime.now();
+                    final picked = await showDatePicker(context: context, initialDate: ini, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                    if (picked != null) {
+                      setState(() => _fechaCtrl.text = '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}');
+                    }
+                  },
+                  validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(controller: _inicioCtrl, decoration: const InputDecoration(labelText: 'Hora inicio (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(controller: _finCtrl, decoration: const InputDecoration(labelText: 'Hora fin (HH:MM)'), validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(controller: _asistCtrl, decoration: const InputDecoration(labelText: 'Asistentes'), keyboardType: TextInputType.number, validator: (v) { final n = int.tryParse(v ?? ''); if (n == null || n <=0) return '>0'; return null; }),
+                const SizedBox(height: AppSpacing.lg),
+                if (zonasDelEspacio.isNotEmpty) ...[
+                  Row(children: [const Icon(LucideIcons.mapPinned, size: 14, color: AppColors.marca), const SizedBox(width: AppSpacing.xs), Text('ZONAS', style: AppText.overline(color: AppColors.marca))]),
+                  const SizedBox(height: AppSpacing.xs),
+                  ...zonasDelEspacio.map((z) {
+                    final ids = z.recursoIds;
+                    String subtitulo;
+                    if (ids.isEmpty) {
+                      final base = (z.descripcion != null && z.descripcion!.isNotEmpty) ? '${z.descripcion} · ' : '';
+                      subtitulo = '${base}Sin equipos asignados';
+                      if (z.capacidad != null) subtitulo = 'Cap. ${z.capacidad} · $subtitulo';
+                    } else {
+                      final nombres = ids.map((id) => nombrePorId[id] ?? 'Recurso $id').join(', ');
+                      final base = (z.descripcion != null && z.descripcion!.isNotEmpty) ? '${z.descripcion} · ' : '';
+                      subtitulo = z.capacidad != null ? 'Cap. ${z.capacidad} · $base Incluye: $nombres' : '$base Incluye: $nombres';
+                    }
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(z.nombre, style: Theme.of(context).textTheme.bodyMedium),
+                      subtitle: Text(subtitulo, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
+                      value: _zonaIds.contains(z.id),
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _zonaIds.add(z.id);
+                        } else {
+                          _zonaIds.remove(z.id);
+                        }
+                      }),
+                    );
+                  }),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                if (recursos.isNotEmpty) ...[
+                  Row(children: [const Icon(LucideIcons.boxes, size: 14, color: AppColors.marca), const SizedBox(width: AppSpacing.xs), Text(zonasDelEspacio.isNotEmpty ? 'EQUIPOS ADICIONALES' : 'EQUIPOS', style: AppText.overline(color: AppColors.marca))]),
+                  const SizedBox(height: AppSpacing.xs),
+                  ...recursos.map((r) {
+                    final cubierto = cubiertos.contains(r.id);
+                    if (cubierto) {
+                      final zonasQueCubren = zonasDelEspacio.where((z) => _zonaIds.contains(z.id) && z.recursoIds.contains(r.id)).map((z) => z.nombre).toList();
+                      final zonaTxt = zonasQueCubren.join(', ');
+                      return CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(r.nombre, style: const TextStyle(color: AppColors.textoTerciario)),
+                        subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${zonasQueCubren.length == 1 ? "zona" : "zonas"} $zonaTxt', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
+                        value: true,
+                        onChanged: null,
+                        activeColor: AppEstados.positivo.borde,
+                      );
+                    }
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(r.nombre),
+                      subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad}'),
+                      value: _recursoIds.contains(r.id),
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _recursoIds.add(r.id);
+                        } else {
+                          _recursoIds.remove(r.id);
+                        }
+                      }),
+                    );
+                  }),
+                  if (cubiertos.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(LucideIcons.info, size: 12, color: AppColors.textoTerciario), const SizedBox(width: AppSpacing.xs), Expanded(child: Text('Los equipos marcados como "Incluido" ya vienen con la zona seleccionada.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario, fontSize: 11)))]),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                if (_error != null) ...[
+                  Container(width: double.infinity, padding: const EdgeInsets.all(AppSpacing.sm), decoration: BoxDecoration(color: AppEstados.negativo.tinte, borderRadius: BorderRadius.circular(AppRadius.sm), border: Border.all(color: AppEstados.negativo.borde.withValues(alpha: 0.4))), child: Text(_error!, style: TextStyle(color: AppEstados.negativo.sobreTinte))),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _guardando ? null : () => Navigator.pop(context, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: _guardando ? null : _guardar, child: _guardando ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar')),
+      ],
     );
   }
 }

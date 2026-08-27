@@ -9,6 +9,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
@@ -163,6 +164,19 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
     final zonasVal = zonasAsync.value;
     if (zonasVal != null) zonasDelEspacio = zonasVal.where((z) => z.espacioId == espacio.id).toList();
 
+    // Feature A: recursos ya cubiertos por las zonas seleccionadas.
+    // Si una zona marcada incluye ciertos recursos, esos recursos ya vienen
+    // con la zona y no hace falta marcarlos de nuevo en "Equipos adicionales".
+    final recursosCubiertosPorZonas = <int>{};
+    for (final z in zonasDelEspacio) {
+      if (_zonaIds.contains(z.id as int)) {
+        recursosCubiertosPorZonas.addAll((z.recursoIds as List<int>));
+      }
+    }
+    final recursoNombrePorId = <int, String>{
+      for (final r in recursosAsync) r.id: r.nombre,
+    };
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, top: AppSpacing.sm, bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg),
@@ -179,32 +193,131 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(onPressed: _elegirFecha, icon: const Icon(LucideIcons.calendar, size: 18), label: Text('${_fecha.day}/${_fecha.month}/${_fecha.year}')),
               const SizedBox(height: AppSpacing.lg),
-              // Recursos
-              if (modalidad != ModalidadEspacio.zonas) ...[
-                Text('Recursos', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: AppSpacing.sm),
-                if (recursosAsync.isEmpty) const Text('No hay recursos activos.', style: TextStyle(fontSize: 12)),
-                ...recursosAsync.map((r) => CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(r.nombre),
-                      subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad}'),
-                      value: _recursoIds.contains(r.id),
-                      onChanged: (v) => setState(() { if (v == true) _recursoIds.add(r.id); else _recursoIds.remove(r.id); _seleccion = {}; }),
-                    )),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              // Zonas
+              // ── Feature A: Zonas (incluye sus equipos) ──
               if (modalidad != ModalidadEspacio.equipos) ...[
-                Text('Zonas', style: Theme.of(context).textTheme.titleSmall),
+                Row(
+                  children: [
+                    const Icon(LucideIcons.mapPinned, size: 16, color: AppColors.marca),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('ZONAS — INCLUYE SUS EQUIPOS', style: AppText.overline(color: AppColors.marca)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Elegí la zona donde vas a trabajar. Los equipos asignados a esa zona ya están incluidos en tu reserva.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 if (zonasDelEspacio.isEmpty) const Text('No hay zonas en este espacio.', style: TextStyle(fontSize: 12)),
-                ...zonasDelEspacio.map((z) => CheckboxListTile(
+                ...zonasDelEspacio.map((z) {
+                  final ids = (z.recursoIds as List<int>);
+                  final desc = z.descripcion as String?;
+                  String subtitulo;
+                  if (ids.isEmpty) {
+                    final base = (desc != null && desc.isNotEmpty) ? '$desc · ' : '';
+                    subtitulo = '${base}Sin equipos asignados';
+                    if (z.capacidad != null) subtitulo = 'Cap. ${z.capacidad} · $subtitulo';
+                  } else {
+                    final nombres = ids.map((id) => recursoNombrePorId[id] ?? 'Recurso $id').join(', ');
+                    final base = (desc != null && desc.isNotEmpty) ? '$desc · ' : '';
+                    final incluye = 'Incluye: $nombres';
+                    subtitulo = z.capacidad != null ? 'Cap. ${z.capacidad} · $base$incluye' : '$base$incluye';
+                  }
+                  return CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(z.nombre as String),
+                    subtitle: Text(subtitulo, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
+                    value: _zonaIds.contains(z.id as int),
+                    onChanged: (v) => setState(() {
+                      if (v == true) {
+                        _zonaIds.add(z.id as int);
+                      } else {
+                        _zonaIds.remove(z.id as int);
+                        _ensayoIds.removeWhere((eid) => false);
+                      }
+                      _seleccion = {};
+                    }),
+                  );
+                }),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              // ── Feature A: Equipos adicionales de este laboratorio ──
+              if (modalidad != ModalidadEspacio.zonas) ...[
+                Row(
+                  children: [
+                    const Icon(LucideIcons.boxes, size: 16, color: AppColors.marca),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        modalidad == ModalidadEspacio.mixto && zonasDelEspacio.isNotEmpty
+                            ? 'EQUIPOS ADICIONALES DE ESTE LABORATORIO'
+                            : 'EQUIPOS DE ESTE LABORATORIO',
+                        style: AppText.overline(color: AppColors.marca),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  _zonaIds.isNotEmpty
+                      ? '¿Necesitás algo más que lo que ya trae la zona seleccionada? Podés sumar equipos sueltos del mismo laboratorio.'
+                      : 'Seleccioná los equipos que necesitás para tu reserva. Podés combinarlos con zonas si el laboratorio lo permite.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                if (recursosAsync.isEmpty) const Text('No hay recursos activos.', style: TextStyle(fontSize: 12)),
+                ...recursosAsync.map((r) {
+                  final estaCubierto = recursosCubiertosPorZonas.contains(r.id);
+                  if (estaCubierto) {
+                    final zonasQueCubren = zonasDelEspacio
+                        .where((z) => _zonaIds.contains(z.id as int) && (z.recursoIds as List<int>).contains(r.id))
+                        .map((z) => z.nombre as String)
+                        .toList();
+                    final zonaTxt = zonasQueCubren.join(', ');
+                    return CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(z.nombre),
-                      subtitle: Text(z.descripcion ?? ''),
-                      value: _zonaIds.contains(z.id),
-                      onChanged: (v) => setState(() { if (v == true) _zonaIds.add(z.id); else { _zonaIds.remove(z.id); _ensayoIds.removeWhere((eid) => false); } _seleccion = {}; }),
-                    )),
+                      title: Text(r.nombre, style: const TextStyle(color: AppColors.textoTerciario)),
+                      subtitle: Text(
+                        '${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${zonasQueCubren.length == 1 ? "zona" : "zonas"} $zonaTxt',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
+                      ),
+                      value: true,
+                      onChanged: null,
+                      activeColor: AppEstados.positivo.borde,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }
+                  return CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(r.nombre),
+                    subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad}'),
+                    value: _recursoIds.contains(r.id),
+                    onChanged: (v) => setState(() {
+                      if (v == true) {
+                        _recursoIds.add(r.id);
+                      } else {
+                        _recursoIds.remove(r.id);
+                      }
+                      _seleccion = {};
+                    }),
+                  );
+                }),
+                if (recursosCubiertosPorZonas.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(LucideIcons.info, size: 14, color: AppColors.textoTerciario),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          'Los equipos marcados como "Incluido" ya vienen con la zona seleccionada, no hace falta agregarlos de nuevo.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
               ],
               // Ensayos (si hay zonas seleccionadas)

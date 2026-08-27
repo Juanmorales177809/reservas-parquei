@@ -833,6 +833,10 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     if not cambios:
         return reserva
 
+    # Capturar conjuntos previos para detectar agregados (Feature B).
+    viejos_recurso_ids = set(get_recurso_ids_reserva(db, reserva.id))
+    viejos_zona_ids = set(get_zona_ids_reserva(db, reserva.id))
+
     # Ejes de reemplazo completo (Fase 12C-6): un eje ausente se conserva;
     # un eje presente reemplaza el conjunto completo de ese eje.
     recurso_ids = cambios.get("recurso_ids", get_recurso_ids_reserva(db, reserva.id))
@@ -890,6 +894,47 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         _reescribir_ensayos(db, reserva, cambios["ensayo_ids"] or [])
     if "acompanantes" in cambios:
         _reescribir_acompanantes(db, reserva, cambios["acompanantes"] or [])
+    # Feature B: notificar al dueño si el gestor/admin agrega recursos o zonas.
+    nuevos_recurso_ids = set(recurso_ids)
+    nuevos_zona_ids = set(zona_ids)
+    agregados_recurso_ids = nuevos_recurso_ids - viejos_recurso_ids
+    agregados_zona_ids = nuevos_zona_ids - viejos_zona_ids
+    if (agregados_recurso_ids or agregados_zona_ids) and reserva.usuario_id != usuario.id and usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}:
+        db.add(
+            Notificacion(
+                usuario_id=reserva.usuario_id,
+                reserva_id=reserva.id,
+                tipo=TipoNotificacion.ACTUALIZADA.value,
+            )
+        )
+        propietario = db.query(Usuario).filter(Usuario.id == reserva.usuario_id).first()
+        if propietario is not None:
+            nombres_recursos: list[str] = []
+            if agregados_recurso_ids:
+                agregados_recursos = db.query(Recurso).filter(Recurso.id.in_(list(agregados_recurso_ids))).all()
+                nombres_recursos = [r.nombre for r in agregados_recursos]
+            nombres_zonas: list[str] = []
+            if agregados_zona_ids:
+                agregadas_zonas = db.query(Zona).filter(Zona.id.in_(list(agregados_zona_ids))).all()
+                nombres_zonas = [z.nombre for z in agregadas_zonas]
+            partes: list[str] = []
+            if nombres_recursos:
+                partes.append(f"recursos: {', '.join(nombres_recursos)}")
+            if nombres_zonas:
+                partes.append(f"zonas: {', '.join(nombres_zonas)}")
+            detalle = " y ".join(partes) if partes else "nuevos recursos"
+            encolar_correo(
+                db,
+                destinatario=propietario.email,
+                asunto="Tu reserva fue actualizada con nuevos recursos",
+                cuerpo=(
+                    f"Hola {propietario.username},\n\n"
+                    f"Tu reserva #{reserva.id} de {objetivo.espacio.nombre} fue actualizada.\n"
+                    f"Se agregaron {detalle}.\n"
+                    f"Fecha: {reserva.fecha} de {reserva.hora_inicio} a {reserva.hora_fin}.\n\n"
+                    "Ingresá al sistema de reservas para más detalles."
+                ),
+            )
     registrar_cambio(db, usuario, "actualizar", "reserva", reserva.id, f"Actualizó la reserva #{reserva.id}")
 
     confirmar_cambios_reserva(db)

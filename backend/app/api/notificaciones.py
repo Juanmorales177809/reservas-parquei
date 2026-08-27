@@ -42,6 +42,8 @@ def _mensaje(notificacion: Notificacion) -> str:
         if motivo:
             return f"{base}: {motivo}"
         return base
+    if notificacion.tipo == "Actualizada":
+        return f"Tu reserva de {etiqueta} fue actualizada con nuevos recursos"
     return f"Tu reserva de {etiqueta} fue cancelada"
 
 

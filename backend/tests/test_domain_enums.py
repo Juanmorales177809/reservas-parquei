@@ -45,6 +45,7 @@ class TestValoresJson:
             "Aprobada",
             "Rechazada",
             "Cancelada",
+            "Actualizada",
         }
 
     def test_estado_slot_conserva_valores_actuales(self):

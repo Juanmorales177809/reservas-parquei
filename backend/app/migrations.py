@@ -389,7 +389,7 @@ def migrate_resource_reservations() -> None:
         """
         ALTER TABLE notificaciones DROP CONSTRAINT IF EXISTS notificaciones_tipo_check;
         ALTER TABLE notificaciones ADD CONSTRAINT notificaciones_tipo_check
-        CHECK (tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada'));
+        CHECK (tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Actualizada'));
         """,
         """
         DO $$

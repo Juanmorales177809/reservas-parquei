@@ -844,3 +844,121 @@ class TestAcompanantes:
         admin = crear_usuario(db, username="admin_ac_get", email="admin_ac_get@example.com", rol="admin")
         resp2 = client.get("/reservas", headers=cookies_para(admin))
         assert any(r["id"] == creada["id"] for r in resp2.json())
+
+
+class TestNotificacionAlAgregarRecursos:
+    """Feature B (equipos adicionales durante una reserva ya aprobada): un
+    gestor/admin que agrega recurso_ids/zona_ids a una reserva aprobada
+    notifica al dueño (Notificacion tipo 'Actualizada' + correo en el
+    outbox). Ver services/reservas.py::actualizar_reserva."""
+
+    def test_gestor_agrega_recurso_a_reserva_aprobada_notifica_al_dueno(self, client, db):
+        from app.models import CorreoSaliente, Notificacion
+
+        usuario, espacio, recurso = _setup(db, nombre_espacio="Sala Notif Add")
+        gestor = crear_usuario(
+            db, username="gestor_notif_add", email="gestor_notif_add@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        recurso2 = crear_recurso(db, espacio=espacio, usuario=gestor, nombre="Recurso extra")
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        client.put(
+            f"/reservas/{creada['id']}/estado",
+            json={"nuevo_estado": "aprobada"},
+            headers=cookies_para(gestor),
+        )
+
+        respuesta = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"recurso_ids": [recurso.id, recurso2.id]},
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 200
+        assert respuesta.json()["estado"] == "aprobada"
+        assert set(respuesta.json()["recurso_ids"]) == {recurso.id, recurso2.id}
+
+        notificaciones = (
+            db.query(Notificacion)
+            .filter(Notificacion.usuario_id == usuario.id, Notificacion.tipo == "Actualizada")
+            .all()
+        )
+        assert len(notificaciones) == 1
+        assert notificaciones[0].reserva_id == creada["id"]
+
+        # La aprobación previa ya encoló un correo al dueño -- filtramos por
+        # asunto para aislar el que corresponde a este PATCH.
+        correos = (
+            db.query(CorreoSaliente)
+            .filter(CorreoSaliente.destinatario == usuario.email)
+            .filter(CorreoSaliente.asunto.ilike("%actualizada%"))
+            .all()
+        )
+        assert len(correos) == 1
+
+    def test_no_notifica_si_no_se_agrega_nada_nuevo(self, client, db):
+        from app.models import Notificacion
+
+        usuario, espacio, recurso = _setup(db, nombre_espacio="Sala Notif NoOp")
+        gestor = crear_usuario(
+            db, username="gestor_notif_noop", email="gestor_notif_noop@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        client.put(
+            f"/reservas/{creada['id']}/estado",
+            json={"nuevo_estado": "aprobada"},
+            headers=cookies_para(gestor),
+        )
+
+        respuesta = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"asistentes": 3},
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 200
+
+        notificaciones = (
+            db.query(Notificacion)
+            .filter(Notificacion.usuario_id == usuario.id, Notificacion.tipo == "Actualizada")
+            .all()
+        )
+        assert notificaciones == []
+
+    def test_gestor_editando_su_propia_reserva_no_se_autonotifica(self, client, db):
+        from app.models import Notificacion
+
+        espacio = crear_espacio(db, nombre="Sala Notif Self")
+        gestor = crear_usuario(
+            db, username="gestor_notif_self", email="gestor_notif_self@example.com",
+            rol="gestor", espacio_id=espacio.id,
+        )
+        recurso = crear_recurso(db, espacio=espacio, usuario=gestor)
+        recurso2 = crear_recurso(db, espacio=espacio, usuario=gestor, nombre="Recurso extra self")
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(gestor),
+        ).json()
+        assert creada["estado"] == "aprobada"
+
+        respuesta = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"recurso_ids": [recurso.id, recurso2.id]},
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 200
+
+        notificaciones = (
+            db.query(Notificacion)
+            .filter(Notificacion.usuario_id == gestor.id, Notificacion.tipo == "Actualizada")
+            .all()
+        )
+        assert notificaciones == []

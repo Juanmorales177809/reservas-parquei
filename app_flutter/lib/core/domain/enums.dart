@@ -173,4 +173,6 @@ enum TipoNotificacion {
   rechazada,
   @JsonValue('Cancelada')
   cancelada,
+  @JsonValue('Actualizada')
+  actualizada,
 }

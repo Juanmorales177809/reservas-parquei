@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
@@ -99,6 +100,7 @@ class _NotificacionTile extends ConsumerWidget {
       TipoNotificacion.aprobada => (LucideIcons.circleCheck, const Color(0xFF10B981)),
       TipoNotificacion.rechazada => (LucideIcons.circleX, const Color(0xFFDC2626)),
       TipoNotificacion.cancelada => (LucideIcons.ban, const Color(0xFF6B7280)),
+      TipoNotificacion.actualizada => (LucideIcons.boxes, AppColors.marca),
     };
 
     return InkWell(

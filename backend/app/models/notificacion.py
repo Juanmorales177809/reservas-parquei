@@ -19,7 +19,7 @@ class Notificacion(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')",
+            "tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Actualizada')",
             name="notificaciones_tipo_check",
         ),
     )

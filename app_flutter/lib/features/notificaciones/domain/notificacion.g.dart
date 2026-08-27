@@ -33,4 +33,5 @@ const _$TipoNotificacionEnumMap = {
   TipoNotificacion.aprobada: 'Aprobada',
   TipoNotificacion.rechazada: 'Rechazada',
   TipoNotificacion.cancelada: 'Cancelada',
+  TipoNotificacion.actualizada: 'Actualizada',
 };

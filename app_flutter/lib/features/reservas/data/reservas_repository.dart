@@ -107,6 +107,8 @@ class ReservasRepository {
   }
 
   /// `PATCH /reservas/{id}` — editar propia (usuario si esperando) o gestor/admin.
+  /// Feature B: ahora también acepta `recursoIds`/`zonaIds` para que el gestor
+  /// pueda agregar equipos a una reserva ya aprobada.
   Future<Reserva> actualizar(
     int reservaId, {
     DateTime? fecha,
@@ -117,6 +119,8 @@ class ReservasRepository {
     TipoSolicitud? tipoSolicitud,
     String? ubicacionUso,
     bool? requiereApoyoAuxiliar,
+    List<int>? recursoIds,
+    List<int>? zonaIds,
   }) async {
     final data = <String, dynamic>{};
     if (fecha != null) data['fecha'] = _formatoFecha.format(fecha);
@@ -127,6 +131,8 @@ class ReservasRepository {
     if (tipoSolicitud != null) data['tipo_solicitud'] = tipoSolicitudToJson(tipoSolicitud);
     if (ubicacionUso != null) data['ubicacion_uso'] = ubicacionUso;
     if (requiereApoyoAuxiliar != null) data['requiere_apoyo_auxiliar'] = requiereApoyoAuxiliar;
+    if (recursoIds != null) data['recurso_ids'] = recursoIds;
+    if (zonaIds != null) data['zona_ids'] = zonaIds;
     final response = await _dio.patch<Map<String, dynamic>>('/reservas/$reservaId', data: data);
     return Reserva.fromJson(response.data!);
   }

@@ -1963,12 +1963,13 @@
         "type": "object"
       },
       "TipoNotificacion": {
-        "description": "Tipos de notificación internos.\n\nOrigen verificado de los valores: el constraint `notificaciones_tipo_check`\nexiste en base de datos — declarado en `app/models/notificacion.py`\n(`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +\nADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada')`).\nSe conservan exactamente esos valores.",
+        "description": "Tipos de notificación internos.\n\nOrigen verificado de los valores: el constraint `notificaciones_tipo_check`\nexiste en base de datos — declarado en `app/models/notificacion.py`\n(`__table_args__`) y aplicado por `app/migrations.py` (DROP IF EXISTS +\nADD CHECK `tipo IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Actualizada')`).\nSe conservan exactamente esos valores.",
         "enum": [
           "Pendiente",
           "Aprobada",
           "Rechazada",
-          "Cancelada"
+          "Cancelada",
+          "Actualizada"
         ],
         "title": "TipoNotificacion",
         "type": "string"
