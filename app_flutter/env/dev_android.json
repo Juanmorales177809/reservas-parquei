@@ -1,4 +1,6 @@
 {
   "BASE_URL": "http://10.0.2.2:8000",
-  "ENVIRONMENT": "dev"
+  "ENVIRONMENT": "dev",
+  "SUPABASE_URL": "https://ijktwqnkknemjrokwcdn.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_LDxTrM4fhrYbk9TCZdmI6A_XIAQHldu"
 }

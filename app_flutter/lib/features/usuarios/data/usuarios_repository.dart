@@ -15,9 +15,11 @@ class UsuariosRepository {
     return response.data!.map((json) => AuthUser.fromJson(json as Map<String, dynamic>)).toList();
   }
 
-  /// Sin `password`: el backend siempre genera una contraseña temporal y la
-  /// entrega por correo (ver `AdminUsuarioCreate.password` en el backend,
-  /// `Optional[str]` ignorado siempre) — el admin ya no la elige.
+  /// Sin `password`: el backend invita a la persona por email vía la API de
+  /// administración de Supabase (ver `AdminUsuarioCreate` y
+  /// `app/services/supabase_admin.py` en el backend) — la contraseña la
+  /// elige la propia persona desde el link de invitación, el admin nunca la
+  /// ve ni la fija.
   Future<AuthUser> crear({
     required String username,
     required String email,
@@ -40,14 +42,12 @@ class UsuariosRepository {
     int usuarioId, {
     String? username,
     String? email,
-    String? password,
     String? rol,
     int? espacioId,
   }) async {
     final data = <String, dynamic>{};
     if (username != null) data['username'] = username;
     if (email != null) data['email'] = email;
-    if (password != null && password.isNotEmpty) data['password'] = password;
     if (rol != null) data['rol'] = rol;
     if (espacioId != null) data['espacio_id'] = espacioId;
     // Si rol es gestor y no se envía espacio_id, el backend lo exige; el caller debe asegurar.

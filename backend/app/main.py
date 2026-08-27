@@ -1,4 +1,5 @@
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +15,7 @@ from app import models  # noqa: F401
 from app.middleware.request_id import HEADER, RequestIdMiddleware, resolver_request_id
 from app.migrations import migrate_resource_reservations
 from app.services.email import procesar_pendientes
+from app.services.supabase_admin import crear_usuario_confirmado
 
 
 @asynccontextmanager
@@ -166,12 +168,20 @@ def seed_admin_user() -> None:
                 "No se pudo crear el administrador inicial: el usuario o email ya existe"
             )
 
+        # A diferencia del alta normal (create_usuario_admin), acá NO se
+        # invita por email: INITIAL_ADMIN_PASSWORD ya fija la contraseña
+        # real, así que se crea directo y confirmada en Supabase -- nadie
+        # tiene que revisar un correo para poder arrancar el sistema.
+        supabase_id = crear_usuario_confirmado(admin_email, admin_password)
         db.add(
             Usuario(
                 username=admin_username,
                 email=admin_email,
-                hashed_password=hash_password(admin_password),
+                # Vestigial, nunca se lee para autenticar -- ver el
+                # comentario en app/crud/usuarios.py::create_usuario.
+                hashed_password=hash_password(secrets.token_urlsafe(32)),
                 rol="admin",
+                supabase_id=supabase_id,
             )
         )
         db.commit()

@@ -8,4 +8,10 @@ passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 python-multipart==0.0.32
 python-dotenv==1.2.2
+# Única dependencia nueva de la migración a Supabase Auth: cliente HTTP
+# para las 2-3 llamadas a la API de administración de Supabase
+# (app/services/supabase_admin.py). Síncrono a propósito -- todo el resto
+# del backend lo es (mismo criterio que smtplib sobre aiosmtplib en
+# app/services/email.py); ya se usaba como dependencia de test.
+httpx==0.27.2
 tzdata==2025.2; sys_platform == "win32"

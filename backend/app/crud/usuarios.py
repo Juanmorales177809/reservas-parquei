@@ -1,3 +1,6 @@
+import secrets
+import uuid
+
 from sqlalchemy.orm import Session
 
 from app.models.usuario import Usuario
@@ -17,23 +20,28 @@ def get_usuario_by_email(db: Session, email: str) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.email == email).first()
 
 
+def get_usuario_by_supabase_id(db: Session, supabase_id: uuid.UUID) -> Usuario | None:
+    return db.query(Usuario).filter(Usuario.supabase_id == supabase_id).first()
+
+
 def get_usuarios(db: Session, skip: int = 0, limit: int = 100) -> list[Usuario]:
     return db.query(Usuario).order_by(Usuario.username.asc()).offset(skip).limit(limit).all()
 
 
-def create_usuario(db: Session, usuario: UsuarioCreate) -> Usuario:
+def create_usuario(db: Session, usuario: UsuarioCreate, supabase_id: uuid.UUID) -> Usuario:
     from app.auth.auth import hash_password
 
     db_usuario = Usuario(
         username=usuario.username,
         email=usuario.email,
-        hashed_password=hash_password(usuario.password),
+        # Vestigial: Supabase gestiona la contraseña real de esta cuenta
+        # (ver create_usuario_admin en app/api/usuarios.py); esta columna es
+        # NOT NULL en el esquema pero nunca se lee para autenticar. Se
+        # guarda un valor aleatorio inutilizable, no la contraseña real de
+        # nadie.
+        hashed_password=hash_password(secrets.token_urlsafe(32)),
         rol=getattr(usuario, "rol", "usuario"),
-        # Único llamador es create_usuario_admin (app/api/usuarios.py), que
-        # SIEMPRE genera la contraseña que llega en `usuario.password` --
-        # nunca es una elegida por la propia persona, así que se fuerza el
-        # cambio en el primer login.
-        debe_cambiar_password=True,
+        supabase_id=supabase_id,
     )
     db.add(db_usuario)
     db.flush()
@@ -43,15 +51,9 @@ def create_usuario(db: Session, usuario: UsuarioCreate) -> Usuario:
     db.refresh(db_usuario)
     return db_usuario
 
+
 def update_usuario(db: Session, db_usuario: Usuario, data: UsuarioUpdate) -> Usuario:
-    from app.auth.auth import hash_password
-    
     update_data = data.model_dump(exclude_unset=True)
-    if "password" in update_data and update_data["password"]:
-        update_data["hashed_password"] = hash_password(update_data.pop("password"))
-    else:
-        update_data.pop("password", None)
-        
     espacio_id = update_data.pop("espacio_id", None)
     for field, value in update_data.items():
         setattr(db_usuario, field, value)
@@ -69,11 +71,12 @@ def update_usuario(db: Session, db_usuario: Usuario, data: UsuarioUpdate) -> Usu
             db.add(UsuarioEspacio(usuario_id=db_usuario.id, espacio_id=espacio_id))
         else:
             asignacion.espacio_id = espacio_id
-        
+
     db.add(db_usuario)
     db.commit()
     db.refresh(db_usuario)
     return db_usuario
+
 
 def delete_usuario(db: Session, db_usuario: Usuario) -> None:
     db.delete(db_usuario)

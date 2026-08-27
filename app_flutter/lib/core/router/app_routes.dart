@@ -4,11 +4,6 @@
 abstract final class AppRoutes {
   static const login = '/login';
   static const terminos = '/terminos';
-  static const recuperar = '/recuperar';
-  static const restablecer = '/restablecer';
-  // Requiere sesión (no va en `publicas`): se llega acá solo forzado por el
-  // guard cuando `AuthUser.debeCambiarPassword` es true, ver app_router.dart.
-  static const cambiarPasswordTemporal = '/cambiar-password-temporal';
   // No hay `inicio`: tras autenticarse se aterriza en [admin], el
   // dashboard real. La antigua `/dashboard` servía una `InicioScreen`
   // placeholder y se eliminó el 2026-08-24.
@@ -32,5 +27,5 @@ abstract final class AppRoutes {
   /// "Rutas públicas y protegidas"), comparados contra `state.fullPath` de
   /// go_router (el template registrado, no la URL interpolada — así
   /// `/espacios/:id` cubre cualquier id sin enumerarlos).
-  static const publicas = {login, terminos, recuperar, restablecer, espacios, espacioDetalleTemplate};
+  static const publicas = {login, terminos, espacios, espacioDetalleTemplate};
 }

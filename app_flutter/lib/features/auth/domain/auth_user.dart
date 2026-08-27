@@ -35,10 +35,6 @@ abstract class AuthUser with _$AuthUser {
     required String email,
     required RolUsuario rol,
     EspacioResumen? espacio,
-    // True si la contraseña actual es una temporal generada por el backend
-    // (alta de usuario o recuperación) — el router fuerza el cambio antes
-    // de dejar navegar a cualquier otra pantalla, ver app_router.dart.
-    @Default(false) bool debeCambiarPassword,
   }) = _AuthUser;
 
   const AuthUser._();
@@ -52,7 +48,7 @@ abstract class AuthUser with _$AuthUser {
   bool get canManageResources => rol == RolUsuario.admin || rol == RolUsuario.gestor;
 }
 
-/// El body de `POST /auth/login` (`LoginResponse`, Fase 9G) solo trae
+/// El body de `POST /auth/supabase/sesion` (`LoginResponse`) solo trae
 /// `{user}` — nunca un token, la sesión vive en la cookie HttpOnly.
 @freezed
 abstract class LoginResponse with _$LoginResponse {

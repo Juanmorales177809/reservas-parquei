@@ -6,6 +6,7 @@ import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/config/supabase_config.dart';
 import 'core/network/dio_client.dart';
+import 'core/storage/supabase_secure_storage.dart';
 import 'features/auth/application/auth_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,15 +20,21 @@ Future<void> main() async {
 
   final config = AppConfig.fromEnvironment();
 
-  // Supabase Auth hybrid: solo si SUPABASE_ENABLED=true y con URL+key
-  // configurados (Cloud free tier). Con false no se toca nada y el flujo
-  // clásico sigue intacto. anonKey está deprecado → publishableKey.
-  if (SupabaseConfig.isConfigured) {
-    await Supabase.initialize(
-      url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.effectiveKey,
+  // Supabase Auth es el único mecanismo de autenticación (corte completo,
+  // ver CLAUDE.md raíz): sin esto no hay forma de iniciar sesión, así que
+  // se falla rápido y con un mensaje claro en vez de dejar que la app
+  // arranque y recién falle en el primer intento de login.
+  if (!SupabaseConfig.isConfigured) {
+    throw StateError(
+      'Falta configurar Supabase: SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY '
+      '(o SUPABASE_ANON_KEY) son obligatorias — ver env/*.json.',
     );
   }
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.effectiveKey,
+    authOptions: const FlutterAuthClientOptions(localStorage: SupabaseSecureStorage()),
+  );
 
   // `late final container`: buildDioClient necesita el callback de sesión
   // expirada antes de que exista el ProviderContainer, pero el callback

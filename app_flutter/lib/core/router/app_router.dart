@@ -5,10 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auditoria/presentation/auditoria_screen.dart';
 import '../../features/auth/application/auth_provider.dart';
-import '../../features/auth/presentation/cambiar_password_temporal_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
-import '../../features/auth/presentation/recuperar_password_screen.dart';
-import '../../features/auth/presentation/restablecer_password_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/ensayos/presentation/gestion_ensayos_screen.dart';
 import '../../features/espacios/presentation/configuracion_espacio_screen.dart';
@@ -95,16 +92,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (user == null && !esRutaPublica) return AppRoutes.login;
       if (user != null && state.matchedLocation == AppRoutes.login) return AppRoutes.admin;
 
-      // Contraseña temporal (alta de usuario o recuperación): fuerza el
-      // cambio antes de dejar navegar a cualquier otra pantalla. Prioridad
-      // sobre el guard de rol de abajo — nadie debe poder esquivar el
-      // cambio obligatorio visitando una ruta a la que sí tiene permiso.
-      if (user != null &&
-          user.debeCambiarPassword &&
-          state.matchedLocation != AppRoutes.cambiarPasswordTemporal) {
-        return AppRoutes.cambiarPasswordTemporal;
-      }
-
       final destinosDeLaRuta = kNavDestinations.where((d) => d.path == state.matchedLocation);
       final destino = destinosDeLaRuta.isEmpty ? null : destinosDeLaRuta.first;
       if (destino != null && destino.rolesPermitidos != null && !destino.visiblePara(user)) {
@@ -115,15 +102,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
       GoRoute(path: AppRoutes.terminos, builder: (context, state) => const TerminosScreen()),
-      GoRoute(path: AppRoutes.recuperar, builder: (context, state) => const RecuperarPasswordScreen()),
-      GoRoute(
-        path: AppRoutes.restablecer,
-        builder: (context, state) => RestablecerPasswordScreen(identificadorInicial: state.extra as String?),
-      ),
-      GoRoute(
-        path: AppRoutes.cambiarPasswordTemporal,
-        builder: (context, state) => const CambiarPasswordTemporalScreen(),
-      ),
       // Fuera del ShellRoute a propósito: es una pantalla "empujada" (con
       // su propia AppBar + botón atrás), no un destino de la barra de
       // navegación — anidarla dentro del shell duplicaría la AppBar.

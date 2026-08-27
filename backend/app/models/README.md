@@ -24,8 +24,10 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 | reserva.py | Modificado (Fase 12D-bis) | Nueva columna `asistio` (`Boolean`, nullable) — sin `CheckConstraint` |
 | migrations.py | Modificado (Fase 12D-bis) | Append: `ALTER TABLE reservas ADD COLUMN IF NOT EXISTS asistio BOOLEAN` (sin backfill ni constraint) |
 | correo_saliente.py | Nuevo (correo saliente) | Outbox de correo: `id`, `destinatario`, `asunto`, `cuerpo`, `estado` (`CheckConstraint` pendiente/enviado/fallido), `intentos`, `creado_en`, `enviado_en`. Sin FK a `usuarios` (el destinatario es un email de texto, no una relación) — tabla nueva creada por `Base.metadata.create_all()`, sin entrada en `migrations.py` |
-| usuario.py | Modificado (correo saliente) | Nueva columna `debe_cambiar_password` (`Boolean`, NOT NULL, default `false`) — true cuando la contraseña la generó el backend (alta o recuperación) en vez de elegirla la propia persona |
+| usuario.py | Modificado (correo saliente, luego vestigial) | Columna `debe_cambiar_password` (`Boolean`, NOT NULL, default `false`): existió para forzar el cambio de una contraseña temporal propia. Desde la migración completa a Supabase Auth ya no se lee ni se expone en la API — Supabase resuelve el primer cambio con su propio link de invitación. Se queda la columna (este proyecto nunca hace `DROP COLUMN`) |
+| usuario.py | Modificado (migración a Supabase Auth, corte total) | Nueva columna `supabase_id` (`UUID`, nullable, índice único) — puente hacia `auth.users` de Supabase, único mecanismo de identidad de autenticación desde el corte. Nullable en el esquema por compatibilidad, pero toda cuenta nueva lo trae desde el momento en que se crea (`app/services/supabase_admin.py::invitar_usuario`, llamado por `create_usuario_admin`) |
 | migrations.py | Modificado (correo saliente) | Append: `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false` |
+| migrations.py | Modificado (migración a Supabase Auth, corte total) | Append: `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS supabase_id UUID` + `CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_supabase_id ON usuarios (supabase_id)` |
 
 ## Reglas de negocio relacionadas
 

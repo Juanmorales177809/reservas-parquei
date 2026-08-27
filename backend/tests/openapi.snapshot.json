@@ -115,7 +115,7 @@
         "type": "object"
       },
       "AdminUsuarioCreate": {
-        "description": "Permite al admin asignar un rol al crear un usuario.\n\n`password` se acepta por compatibilidad con clientes que aún la envíen,\npero SIEMPRE se ignora: la contraseña real la genera el backend\n(`create_usuario_admin` en `app/api/usuarios.py`) y se entrega por\ncorreo, nunca la elige quien crea el usuario.",
+        "description": "Permite al admin asignar un rol al crear un usuario.",
         "properties": {
           "email": {
             "maxLength": 255,
@@ -133,19 +133,6 @@
             ],
             "title": "Espacio Id"
           },
-          "password": {
-            "anyOf": [
-              {
-                "maxLength": 72,
-                "minLength": 6,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Password"
-          },
           "rol": {
             "$ref": "#/components/schemas/Rol",
             "default": "usuario"
@@ -162,29 +149,6 @@
           "email"
         ],
         "title": "AdminUsuarioCreate",
-        "type": "object"
-      },
-      "CambiarPasswordRequest": {
-        "description": "Body de `POST /auth/cambiar-password` (usuario autenticado).\n\nExige la contraseña actual (aunque sea la temporal recién recibida por\ncorreo) como confirmación -- evita que una sesión ya autenticada pueda\ncambiar la contraseña sin que quien la use la conozca.",
-        "properties": {
-          "password_actual": {
-            "maxLength": 72,
-            "minLength": 1,
-            "title": "Password Actual",
-            "type": "string"
-          },
-          "password_nueva": {
-            "maxLength": 72,
-            "minLength": 6,
-            "title": "Password Nueva",
-            "type": "string"
-          }
-        },
-        "required": [
-          "password_actual",
-          "password_nueva"
-        ],
-        "title": "CambiarPasswordRequest",
         "type": "object"
       },
       "ConfiguracionEspacioResponse": {
@@ -881,7 +845,7 @@
         "type": "object"
       },
       "LoginResponse": {
-        "description": "Respuesta de `POST /auth/login` tras el corte 9G (cookie-only).\n\nLa sesión viaja en la cookie HttpOnly `access_token` que fija\n`app/api/auth.py`; el body ya no expone el JWT ni `token_type`.",
+        "description": "Respuesta de `POST /auth/supabase/sesion`.\n\nLa sesión viaja en la cookie HttpOnly `access_token` (el JWT de Supabase\ntal cual); el body ya no expone ningún token.",
         "properties": {
           "user": {
             "$ref": "#/components/schemas/UsuarioResponse"
@@ -1781,36 +1745,6 @@
         "title": "ReservasPorFecha",
         "type": "object"
       },
-      "RestablecerPasswordRequest": {
-        "description": "Body de `POST /auth/restablecer` (público).",
-        "properties": {
-          "codigo": {
-            "maxLength": 6,
-            "minLength": 6,
-            "title": "Codigo",
-            "type": "string"
-          },
-          "identificador": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Identificador",
-            "type": "string"
-          },
-          "password_nueva": {
-            "maxLength": 72,
-            "minLength": 6,
-            "title": "Password Nueva",
-            "type": "string"
-          }
-        },
-        "required": [
-          "identificador",
-          "codigo",
-          "password_nueva"
-        ],
-        "title": "RestablecerPasswordRequest",
-        "type": "object"
-      },
       "Rol": {
         "description": "Rol funcional de un usuario. Espejo del patrón\n`^(admin|gestor|usuario)$` de `app/schemas/usuario.py`.",
         "enum": [
@@ -1821,24 +1755,8 @@
         "title": "Rol",
         "type": "string"
       },
-      "SolicitarRecuperacionRequest": {
-        "description": "Body de `POST /auth/recuperar` (público). Acepta username o email\nindistintamente -- ver `get_usuario_by_username`/`get_usuario_by_email`.",
-        "properties": {
-          "identificador": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Identificador",
-            "type": "string"
-          }
-        },
-        "required": [
-          "identificador"
-        ],
-        "title": "SolicitarRecuperacionRequest",
-        "type": "object"
-      },
       "SupabaseSesionRequest": {
-        "description": "Body de `POST /auth/supabase/sesion` (hybrid, SUPABASE_ENABLED).\n\nEl cliente Flutter tras `supabase.auth.signIn()` obtiene un JWT cuyo\n`sub` es el UUID de `auth.users`. Este endpoint verifica ese JWT con\n`SUPABASE_JWT_SECRET`, vincula `usuarios.supabase_id` por email (auto-link\nen el primer login) y fija la cookie `access_token` con el MISMO token\nde Supabase -- así el resto de la API sigue leyendo solo la cookie.",
+        "description": "Body de `POST /auth/supabase/sesion` (público).\n\nEl cliente Flutter, tras `supabase.auth.signInWithPassword()`, obtiene\nun JWT cuyo `sub` es el UUID de `auth.users`. Este endpoint lo verifica\ncon `SUPABASE_JWT_SECRET` y busca el `Usuario` por `supabase_id` --\nnunca crea ni vincula nada (ver el docstring de `supabase_sesion` en\n`app/api/auth.py`).",
         "properties": {
           "supabase_token": {
             "maxLength": 4096,
@@ -1925,28 +1843,6 @@
         "title": "UsuarioEspacioResponse",
         "type": "object"
       },
-      "UsuarioLogin": {
-        "properties": {
-          "password": {
-            "maxLength": 72,
-            "minLength": 1,
-            "title": "Password",
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Username",
-            "type": "string"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ],
-        "title": "UsuarioLogin",
-        "type": "object"
-      },
       "UsuarioReservaResponse": {
         "properties": {
           "email": {
@@ -1976,11 +1872,6 @@
       },
       "UsuarioResponse": {
         "properties": {
-          "debe_cambiar_password": {
-            "default": false,
-            "title": "Debe Cambiar Password",
-            "type": "boolean"
-          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -2040,19 +1931,6 @@
               }
             ],
             "title": "Espacio Id"
-          },
-          "password": {
-            "anyOf": [
-              {
-                "maxLength": 72,
-                "minLength": 6,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Password"
           },
           "rol": {
             "anyOf": [
@@ -2540,90 +2418,9 @@
         ]
       }
     },
-    "/auth/cambiar-password": {
-      "post": {
-        "description": "Fija una contraseña definitiva. Cubre dos casos con el mismo\nendpoint: el cambio obligatorio tras recibir una temporal (alta de\nusuario o recuperación, `debe_cambiar_password=true`) y el autoservicio\nvoluntario de cualquier usuario -- que hoy tampoco existía.\n\nExige la contraseña ACTUAL como confirmación (aunque sea la temporal\nrecién recibida por correo): una sesión ya autenticada no debe poder\ncambiarla sin que quien la usa la conozca.",
-        "operationId": "cambiar_password_auth_cambiar_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CambiarPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Cambiar Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/auth/login": {
-      "post": {
-        "operationId": "login_auth_login_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UsuarioLogin"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Login",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/auth/logout": {
       "post": {
-        "description": "Cierra la sesión de cookie (Fase 9F-A).\n\nIdempotente: no falla si no existe una cookie previa. No exige\nautenticación — debe poder limpiar una cookie inválida o expirada sin\nrequerir que el cliente tenga un token válido.",
+        "description": "Cierra la sesión de cookie.\n\nIdempotente: no falla si no existe una cookie previa. No exige\nautenticación — debe poder limpiar una cookie inválida o expirada sin\nrequerir que el cliente tenga un token válido.",
         "operationId": "logout_auth_logout_post",
         "responses": {
           "204": {
@@ -2636,79 +2433,9 @@
         ]
       }
     },
-    "/auth/recuperar": {
-      "post": {
-        "description": "Solicita un código de recuperación por correo.\n\nLa respuesta es SIEMPRE 204 sin cuerpo, exista o no el identificador --\nmismo criterio anti-enumeración que ya prueba `TestNoFiltraExistenciaDeUsuario`\npara /auth/login. Cada pedido (exista o no el usuario) cuenta contra\n`limitador_recuperacion`: sin esto, alguien podría bombardear de correos\nde recuperación a un usuario real sin límite -- acá no hay \"éxito\" que\ndeba resetear el contador, a diferencia del login.",
-        "operationId": "solicitar_recuperacion_auth_recuperar_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SolicitarRecuperacionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Solicitar Recuperacion",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/auth/restablecer": {
-      "post": {
-        "description": "Aplica el código de recuperación. A diferencia de /auth/recuperar,\nacá sí hay un \"éxito\" real (código correcto) que reinicia el contador\nde intentos -- mismo patrón exacto que /auth/login.",
-        "operationId": "restablecer_password_auth_restablecer_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RestablecerPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Restablecer Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/auth/supabase/sesion": {
       "post": {
-        "description": "Intercambia un JWT de Supabase por sesión de cookie (hybrid).\n\nCon SUPABASE_ENABLED=false responde 404 para no exponer superficie\nnueva. Con true: verifica el JWT con SUPABASE_JWT_SECRET (aud sin\nverificar, ver deps._decode_token), extrae sub=UUID + email, busca\nUsuario por supabase_id o por email (auto-link), o crea uno nuevo con\nrol usuario si no existe -- institucional sin recursos: alta abierta\npero sin privilegios. El JWT de Supabase se fija tal cual como cookie\n`access_token`; el resto de la API lo verifica vía deps hybrid.",
+        "description": "Intercambia un JWT de Supabase (ya autenticado contra Supabase Cloud\npor el cliente) por la cookie de sesión `HttpOnly` de siempre.\n\nEste endpoint SOLO busca por `usuarios.supabase_id` ya existente —\nNUNCA crea un usuario nuevo ni vincula por email. La única forma de que\nuna cuenta exista acá es que un admin la haya invitado antes\n(`app/api/usuarios.py::create_usuario_admin`, vía\n`app/services/supabase_admin.py`). Esto es deliberado: una versión\nanterior de este mismo endpoint auto-vinculaba por email cualquier JWT\nválido a una cuenta existente (incluido un admin) sin ningún control —\nera una vía de apropiación de cuenta para cualquiera que pudiera\nregistrarse en el proyecto de Supabase con ese email. No reintroducir\nesa lógica.",
         "operationId": "supabase_sesion_auth_supabase_sesion_post",
         "requestBody": {
           "content": {

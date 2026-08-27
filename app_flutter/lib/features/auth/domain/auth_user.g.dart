@@ -28,7 +28,6 @@ _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
   espacio: json['espacio'] == null
       ? null
       : EspacioResumen.fromJson(json['espacio'] as Map<String, dynamic>),
-  debeCambiarPassword: json['debe_cambiar_password'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
@@ -37,7 +36,6 @@ Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
   'email': instance.email,
   'rol': _$RolUsuarioEnumMap[instance.rol]!,
   'espacio': instance.espacio,
-  'debe_cambiar_password': instance.debeCambiarPassword,
 };
 
 const _$RolUsuarioEnumMap = {

@@ -77,13 +77,12 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
-      # Supabase Auth hybrid (SUPABASE_ENABLED=false por defecto, sin proyecto).
-      # Cloud free tier recomendado (sin infra extra): solo estas 4 vars.
-      SUPABASE_ENABLED: ${SUPABASE_ENABLED:-false}
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      # Supabase Auth: único mecanismo de autenticación (corte total), las
+      # tres obligatorias -- config.py::validate() levanta RuntimeError al
+      # arrancar si falta alguna.
+      SUPABASE_URL: ${SUPABASE_URL:?La variable SUPABASE_URL es obligatoria}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?La variable SUPABASE_SERVICE_ROLE_KEY es obligatoria}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?La variable SUPABASE_JWT_SECRET es obligatoria}
     depends_on:
       db:
         condition: service_healthy

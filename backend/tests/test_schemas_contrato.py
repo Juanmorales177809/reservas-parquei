@@ -38,9 +38,7 @@ def _validacion_exc(modelo, **datos):
 
 class TestCamposTipadosConEnums:
     def test_admin_usuario_create_rol_es_enum(self):
-        modelo = AdminUsuarioCreate(
-            username="usuario1", email="usuario1@example.com", password="secret123"
-        )
+        modelo = AdminUsuarioCreate(username="usuario1", email="usuario1@example.com")
         assert isinstance(modelo.rol, Rol)
         assert modelo.rol == Rol.USUARIO
 
@@ -184,8 +182,7 @@ class TestContratoJsonConservado:
         )
         assert modelo.model_dump()["rol"] == "gestor"
         assert modelo.model_dump_json() == (
-            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null,'
-            '"debe_cambiar_password":false}'
+            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null}'
         )
 
     def test_estados_serializan_como_strings_actuales(self):
@@ -219,9 +216,7 @@ class TestContratoJsonConservado:
 
 class TestValoresRechazados:
     def test_rol_invalido_rechazado(self):
-        _validacion_exc(
-            AdminUsuarioCreate, username="u1", email="u1@example.com", password="secret123", rol="superadmin"
-        )
+        _validacion_exc(AdminUsuarioCreate, username="u1", email="u1@example.com", rol="superadmin")
         _validacion_exc(UsuarioUpdate, rol="superadmin")
 
     def test_estado_invalido_rechazado(self):

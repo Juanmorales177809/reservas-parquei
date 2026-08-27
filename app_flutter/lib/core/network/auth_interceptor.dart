@@ -4,17 +4,14 @@ import 'api_exception.dart';
 
 /// Rutas donde un 401 NO dispara la sesión-expirada global (equivalente a
 /// `RUTAS_SIN_REDIRECT_401` en `frontend/src/services/api.ts`):
-/// - `/auth/login`: un 401 aquí son credenciales inválidas, no una sesión
-///   expirada — debe llegar tal cual a la pantalla de login.
+/// - `/auth/supabase/sesion`: un 401 aquí es un JWT de Supabase inválido
+///   (típicamente un intento de login que está en curso, no una sesión
+///   nuestra que expiró) — debe llegar tal cual a la pantalla de login.
 /// - `/usuarios/me`: sondeo pasivo de sesión al arrancar la app; un 401 ahí
 ///   sin sesión previa es el resultado normal de "no hay sesión", no debe
 ///   forzar la navegación global a /login (el guard de go_router ya cubre
 ///   ese caso al entrar a una ruta protegida).
-/// - `/auth/cambiar-password`: un 401 aquí es "la contraseña ACTUAL que
-///   escribiste está mal", con sesión perfectamente válida — sin esto, un
-///   simple error de tipeo cerraría la sesión de quien recién la abrió con
-///   su temporal.
-const kRutasSinRedirect401 = {'/auth/login', '/usuarios/me', '/auth/cambiar-password'};
+const kRutasSinRedirect401 = {'/auth/supabase/sesion', '/usuarios/me'};
 
 /// Traduce cualquier error de dio a [ApiException] y notifica sesión
 /// expirada en el resto de rutas — equivalente al interceptor de 401 de

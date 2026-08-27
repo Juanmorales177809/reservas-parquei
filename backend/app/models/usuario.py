@@ -13,13 +13,18 @@ class Usuario(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     rol = Column(String(20), nullable=False, default="usuario")
-    # True cuando la contraseña la generó el backend (alta de usuario o
-    # recuperación) en vez de elegirla la propia persona -- fuerza el
-    # cambio en el primer login. Ver app/api/usuarios.py y
-    # app/api/auth.py::cambiar_password.
+    # Vestigial desde la migración completa a Supabase Auth: existía para
+    # forzar el cambio de una contraseña temporal propia, que ya no existe
+    # (Supabase resuelve el primer cambio con su propio link de invitación).
+    # La columna se queda (este proyecto nunca hace DROP COLUMN, ver
+    # backend/CLAUDE.md) pero ya no se lee ni se expone en la API.
     debe_cambiar_password = Column(Boolean, nullable=False, default=False)
-    # Puente Supabase Auth hybrid: UUID de auth.users (nullable para que
-    # SUPABASE_ENABLED=false no rompa el flujo clásico; único cuando no nulo).
+    # Puente hacia Supabase Auth: UUID de `auth.users`, único mecanismo de
+    # identidad de autenticación desde la migración completa (ver
+    # app/api/auth.py::supabase_sesion). Nullable en el esquema por
+    # compatibilidad con filas viejas, pero toda cuenta nueva lo trae desde
+    # el momento en que se crea (app/services/supabase_admin.py) -- nunca
+    # queda en null para una cuenta que pueda loguearse.
     supabase_id = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

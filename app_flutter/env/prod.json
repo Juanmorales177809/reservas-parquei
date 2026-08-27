@@ -1,4 +1,6 @@
 {
   "BASE_URL": "https://REEMPLAZAR-con-dominio-produccion",
-  "ENVIRONMENT": "prod"
+  "ENVIRONMENT": "prod",
+  "SUPABASE_URL": "https://ijktwqnkknemjrokwcdn.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_LDxTrM4fhrYbk9TCZdmI6A_XIAQHldu"
 }

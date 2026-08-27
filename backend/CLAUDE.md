@@ -59,11 +59,37 @@ Adaptador de auditoría en `app/services/auditoria.py` que implementa el protoco
 
 Definidas en `app/deps.py`:
 
-- `get_current_user`: decodifica el JWT de la cookie `access_token` (`sub`=user_id, Fase 9G cookie-only), 401 si no hay cookie, el token es inválido o el usuario no existe.
+- `get_current_user`: decodifica el JWT de Supabase de la cookie `access_token` (verificado contra `SUPABASE_JWT_SECRET`, `sub`=UUID de `auth.users`, resuelto al `Usuario` vía `supabase_id` — ver "Migración a Supabase Auth" más abajo), 401 si no hay cookie, el token es inválido o el usuario no existe.
 - `require_admin`: 403 si `rol != admin`.
 - `require_resource_manager`: 403 si `rol not in {admin, gestor}`.
 - `get_managed_space_id`: para gestores, resuelve su único espacio en `usuarios_espacios`; 403 si no tiene espacio asignado. Para admin devuelve `None` (sin restricción).
 - `get_current_user_optional`: lee la cookie `access_token` manualmente vía `Request` (sin `Depends(cookie_auth)`) para no exigir esquema de seguridad en endpoints públicos como `GET /espacios` (RN-005); un token inválido se trata como acceso anónimo, nunca como error. Fase 9G: ya no acepta `Authorization`.
+
+## Migración a Supabase Auth (corte total, 2026-08-26)
+
+El login clásico username/password propio (`SECRET_KEY`, `hashed_password`) **se retiró por completo** — Supabase Auth es el único mecanismo de autenticación. `POST /auth/login`, `/auth/cambiar-password`, `/auth/recuperar`, `/auth/restablecer` ya no existen; solo quedan `POST /auth/logout` (sin cambios) y `POST /auth/supabase/sesion`.
+
+- **Quién crea la identidad en Supabase, y cuándo**: el admin sigue siendo el único que crea usuarios (`POST /usuarios`, `require_admin`). El alta son 2 pasos, no 3 — no hay un paso separado de "enviar correo":
+
+  ```
+  Admin crea usuario (form: username, email, rol, espacio?)
+          │
+          ▼
+  POST /usuarios ──► invitar_usuario(email) ──► Supabase: crea auth.users
+                          │                       Y manda el correo de
+                          │                       invitación en la MISMA
+                          │                       llamada (/auth/v1/invite)
+                          ▼ (UUID devuelto)
+                 create_usuario(db, payload, supabase_id)
+                 -- crea la fila en `usuarios` con ese supabase_id
+  ```
+
+  Si `invitar_usuario` falla, no se crea nada en nuestra tabla (`502` al admin) — no hay usuario "a medias" sin `supabase_id`. El correo no lleva ninguna credencial: es un link de Supabase donde la persona elige su propia contraseña, nunca el admin. Login después: la app llama `signInWithPassword` **directo contra Supabase** (no contra este backend) y recién el JWT resultante se intercambia en `POST /auth/supabase/sesion`.
+- **`POST /auth/supabase/sesion`** verifica el JWT de Supabase con `SUPABASE_JWT_SECRET` y busca el `Usuario` **solo** por `supabase_id` ya existente — 403 si no hay fila con ese UUID. **Nunca crea ni vincula una cuenta por email.** Esto es deliberado: cierra un hueco de auto-apropiación de cuenta que tuvo una implementación previa (nunca llegó a este estado del código, revertida antes de mergear). No reintroducir esa lógica.
+- **Puente `usuarios.supabase_id`** (UUID, nullable, índice único en `usuarios`): evita migrar el PK entero de `Usuario` (y sus 8 relaciones de FK) a UUID. `hashed_password` y `debe_cambiar_password` quedan como columnas vestigiales (nunca se hace `DROP COLUMN` en este proyecto) — ya no se leen para autenticar.
+- **`SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`** son obligatorias (`config.py::validate()` levanta `RuntimeError` si falta alguna) — no hay flag de "hybrid", no hay camino que funcione sin Supabase configurado.
+- **`seed_admin_user`**: el admin inicial (`INITIAL_ADMIN_*`) también se crea en Supabase, vía `crear_usuario_confirmado` (con contraseña ya puesta, sin correo — a diferencia de `invitar_usuario`, es la única vía que fija una contraseña desde el backend, reservada al bootstrap).
+- **Recuperación de contraseña self-service queda fuera de este corte** (deep-linking de plataforma sin resolver, ver `app_flutter/CLAUDE.md`): si alguien pierde su contraseña, un admin le reenvía la invitación de Supabase a mano.
 
 ## Reglas de autorización
 

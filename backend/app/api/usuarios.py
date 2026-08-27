@@ -1,5 +1,3 @@
-import secrets
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -9,9 +7,9 @@ from app.db import get_db
 from app.deps import get_current_user, require_admin
 from app.models.espacio import Espacio
 from app.models.usuario import Usuario
-from app.schemas.usuario import AdminUsuarioCreate, UsuarioCreate, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import AdminUsuarioCreate, UsuarioResponse, UsuarioUpdate
 from app.services.auditoria import registrar_cambio
-from app.services.email import encolar_correo, procesar_pendientes
+from app.services.supabase_admin import SupabaseAdminError, invitar_usuario
 
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
@@ -83,27 +81,23 @@ def create_usuario_admin(
         if db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
             raise HTTPException(status_code=404, detail="Espacio no encontrado")
 
-    # La contraseña SIEMPRE la genera el backend (ver el docstring de
-    # AdminUsuarioCreate.password) -- lo que haya llegado en el payload se
-    # descarta sin usarse.
-    contrasena_temporal = secrets.token_urlsafe(9)
-    payload.password = contrasena_temporal
-    usuario = create_usuario(db, payload)
-    encolar_correo(
-        db,
-        destinatario=usuario.email,
-        asunto="Tu cuenta en el sistema de reservas",
-        cuerpo=(
-            f"Hola {usuario.username},\n\n"
-            "Se creó una cuenta para vos en el sistema de reservas.\n"
-            f"Usuario: {usuario.username}\n"
-            f"Contraseña temporal: {contrasena_temporal}\n\n"
-            "Por seguridad, vas a tener que cambiarla la primera vez que inicies sesión."
-        ),
-    )
+    # La identidad de autenticación la crea Supabase, no este backend: se
+    # invita por email y Supabase manda SU PROPIO correo con el link para
+    # que la persona fije su contraseña. `supabase_id` se guarda de una,
+    # en el mismo momento -- es la única forma en que puede llegar a
+    # existir (ver el docstring de supabase_sesion en app/api/auth.py:
+    # ese endpoint solo busca, nunca crea ni vincula).
+    try:
+        supabase_id = invitar_usuario(payload.email)
+    except SupabaseAdminError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo crear la cuenta en Supabase: {exc}",
+        ) from exc
+
+    usuario = create_usuario(db, payload, supabase_id)
     registrar_cambio(db, current_user, "crear", "usuario", usuario.id, f"Creó el usuario {usuario.username} con rol {usuario.rol}")
     db.commit()
-    procesar_pendientes(db)
     return usuario
 
 

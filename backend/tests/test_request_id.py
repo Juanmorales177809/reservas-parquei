@@ -23,7 +23,9 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from jose import jwt as jose_jwt
 
+from app.config import settings
 from app.main import app
 
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -43,11 +45,19 @@ def _indice_id_en_caplog(texto_log):
     return match.group(1)
 
 
-def _forzar_excepcion_en_login(monkeypatch, mensaje="detalle-interno-sensible"):
+def _token_supabase_valido() -> str:
+    return jose_jwt.encode(
+        {"sub": str(uuid.uuid4()), "email": "x@example.com", "aud": "authenticated"},
+        settings.supabase_jwt_secret,
+        algorithm=settings.algorithm,
+    )
+
+
+def _forzar_excepcion_en_sesion(monkeypatch, mensaje="detalle-interno-sensible"):
     def _boom(*args, **kwargs):
         raise RuntimeError(mensaje)
 
-    monkeypatch.setattr("app.api.auth.get_usuario_by_username", _boom)
+    monkeypatch.setattr("app.api.auth.get_usuario_by_supabase_id", _boom)
 
 
 class TestRespuestasNormalesYControladas:
@@ -124,7 +134,7 @@ class TestRespuestasNormalesYControladas:
 
 class TestErroresHTTPContienenXRequestID:
     def test_422_contiene_x_request_id(self, client):
-        response = client.post("/auth/login", json={"username": "solo-username"})
+        response = client.post("/auth/supabase/sesion", json={})
 
         assert response.status_code == 422
         assert HEADER in response.headers
@@ -132,42 +142,21 @@ class TestErroresHTTPContienenXRequestID:
 
     def test_401_contiene_x_request_id(self, client):
         response = client.post(
-            "/auth/login", json={"username": "usuario_inexistente_reqid", "password": "incorrecta"}
+            "/auth/supabase/sesion", json={"supabase_token": "token-invalido-reqid"}
         )
 
         assert response.status_code == 401
         assert HEADER in response.headers
         assert UUID_RE.match(response.headers[HEADER])
 
-    def test_429_contiene_x_request_id(self, client):
-        from app.services.rate_limit import limitador_login
-
-        username = f"reqid429_{uuid.uuid4().hex[:8]}"
-        for _ in range(5):
-            intento = client.post(
-                "/auth/login", json={"username": username, "password": "incorrecta"}
-            )
-            assert intento.status_code == 401
-
-        bloqueado = client.post(
-            "/auth/login", json={"username": username, "password": "incorrecta"}
-        )
-
-        try:
-            assert bloqueado.status_code == 429
-            assert HEADER in bloqueado.headers
-            assert UUID_RE.match(bloqueado.headers[HEADER])
-        finally:
-            limitador_login.reiniciar("testclient", username)
-
 
 class TestExcepcionNoControlada500:
     def test_500_contiene_x_request_id(self, client_sin_relanzar, monkeypatch, caplog):
-        _forzar_excepcion_en_login(monkeypatch)
+        _forzar_excepcion_en_sesion(monkeypatch)
 
         with caplog.at_level(logging.ERROR):
             response = client_sin_relanzar.post(
-                "/auth/login", json={"username": "cualquiera", "password": "x"}
+                "/auth/supabase/sesion", json={"supabase_token": _token_supabase_valido()}
             )
 
         assert response.status_code == 500
@@ -177,11 +166,11 @@ class TestExcepcionNoControlada500:
     def test_el_id_del_500_coincide_con_el_registrado_en_caplog(
         self, client_sin_relanzar, monkeypatch, caplog
     ):
-        _forzar_excepcion_en_login(monkeypatch)
+        _forzar_excepcion_en_sesion(monkeypatch)
 
         with caplog.at_level(logging.ERROR):
             response = client_sin_relanzar.post(
-                "/auth/login", json={"username": "cualquiera", "password": "x"}
+                "/auth/supabase/sesion", json={"supabase_token": _token_supabase_valido()}
             )
 
         assert response.status_code == 500
@@ -190,10 +179,10 @@ class TestExcepcionNoControlada500:
     def test_500_mantiene_body_generico_sin_detalles_internos(
         self, client_sin_relanzar, monkeypatch
     ):
-        _forzar_excepcion_en_login(monkeypatch, mensaje="detalle-interno-sensible-password=hunter2")
+        _forzar_excepcion_en_sesion(monkeypatch, mensaje="detalle-interno-sensible-password=hunter2")
 
         response = client_sin_relanzar.post(
-            "/auth/login", json={"username": "cualquiera", "password": "x"}
+            "/auth/supabase/sesion", json={"supabase_token": _token_supabase_valido()}
         )
 
         assert response.status_code == 500
@@ -209,13 +198,12 @@ class TestLogsNoRegistranSecretos:
     ):
         token_sentinel = "secreto-de-autorizacion-que-nunca-debe-aparecer"
         cookie_sentinel = "secreto-de-cookie-que-nunca-debe-aparecer"
-        password_sentinel = "password-del-formulario-123"
-        _forzar_excepcion_en_login(monkeypatch)
+        _forzar_excepcion_en_sesion(monkeypatch)
 
         with caplog.at_level(logging.ERROR):
             client_sin_relanzar.post(
-                "/auth/login",
-                json={"username": "cualquiera", "password": password_sentinel},
+                "/auth/supabase/sesion",
+                json={"supabase_token": _token_supabase_valido()},
                 headers={
                     "Authorization": f"Bearer {token_sentinel}",
                     "Cookie": f"access_token={cookie_sentinel}",
@@ -224,19 +212,18 @@ class TestLogsNoRegistranSecretos:
 
         assert token_sentinel not in caplog.text
         assert cookie_sentinel not in caplog.text
-        assert password_sentinel not in caplog.text
 
     def test_log_de_error_incluye_metodo_ruta_tipo_y_request_id(
         self, client_sin_relanzar, monkeypatch, caplog
     ):
-        _forzar_excepcion_en_login(monkeypatch)
+        _forzar_excepcion_en_sesion(monkeypatch)
 
         with caplog.at_level(logging.ERROR):
             client_sin_relanzar.post(
-                "/auth/login", json={"username": "cualquiera", "password": "x"}
+                "/auth/supabase/sesion", json={"supabase_token": _token_supabase_valido()}
             )
 
         assert "POST" in caplog.text
-        assert "/auth/login" in caplog.text
+        assert "/auth/supabase/sesion" in caplog.text
         assert "RuntimeError" in caplog.text
         assert _indice_id_en_caplog(caplog.text)  # existe el request_id

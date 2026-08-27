@@ -15,7 +15,7 @@ ORIGEN_NO_PERMITIDO = "http://evil.example"
 class TestPreflightPermitido:
     def test_metodo_y_headers_reales_del_frontend(self, client):
         response = client.options(
-            "/auth/login",
+            "/auth/supabase/sesion",
             headers={
                 "Origin": ORIGEN_PERMITIDO,
                 "Access-Control-Request-Method": "POST",
@@ -60,7 +60,7 @@ class TestPreflightPermitido:
         # La cookie viaja solo por el proxy same-origin de Next.js; el backend
         # no autoriza credenciales cross-origin de navegador.
         response = client.options(
-            "/auth/login",
+            "/auth/supabase/sesion",
             headers={
                 "Origin": ORIGEN_PERMITIDO,
                 "Access-Control-Request-Method": "POST",
@@ -124,14 +124,14 @@ class TestPeticionesReales:
         assert response.status_code == 200
         assert "access-control-allow-origin" not in response.headers
 
-    def test_login_sin_regresion_con_origen_cruzado(self, db, client):
-        from tests.conftest import crear_usuario
+    def test_supabase_sesion_sin_regresion_con_origen_cruzado(self, db, client):
+        from tests.conftest import crear_usuario, token_supabase_para
 
-        crear_usuario(db, username="cors_login", email="cors_login@example.com", password="password123")
+        usuario = crear_usuario(db, username="cors_login", email="cors_login@example.com")
 
         response = client.post(
-            "/auth/login",
-            json={"username": "cors_login", "password": "password123"},
+            "/auth/supabase/sesion",
+            json={"supabase_token": token_supabase_para(usuario)},
             headers={"Origin": ORIGEN_PERMITIDO},
         )
 

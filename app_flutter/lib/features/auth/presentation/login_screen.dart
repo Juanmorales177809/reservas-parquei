@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
-import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../application/auth_provider.dart';
 
@@ -18,14 +16,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _submitting = false;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -38,7 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
     try {
       await ref.read(authProvider.notifier).login(
-            username: _usernameController.text.trim(),
+            email: _emailController.text.trim(),
             password: _passwordController.text,
           );
       // La navegación a la ruta protegida la resuelve el `redirect` de
@@ -123,14 +121,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 TextFormField(
-                                  controller: _usernameController,
+                                  controller: _emailController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Usuario',
-                                    prefixIcon: Icon(LucideIcons.userCircle),
+                                    labelText: 'Email',
+                                    prefixIcon: Icon(LucideIcons.mail),
                                   ),
-                                  autofillHints: const [AutofillHints.username],
-                                  validator: (value) =>
-                                      (value == null || value.trim().isEmpty) ? 'Requerido' : null,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) return 'Requerido';
+                                    if (!value.contains('@') || !value.split('@').last.contains('.')) {
+                                      return 'Email inválido';
+                                    }
+                                    return null;
+                                  },
                                 ),
                                 const SizedBox(height: AppSpacing.md),
                                 TextFormField(
@@ -143,18 +147,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   autofillHints: const [AutofillHints.password],
                                   validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
                                   onFieldSubmitted: (_) => _submit(),
-                                ),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    // `push`, no `go`: es una ruta pública fuera del
-                                    // ShellRoute igual que /login, no hay guard que
-                                    // dependa de la ubicación acá (a diferencia del
-                                    // caso "a /login" documentado en
-                                    // app_flutter/CLAUDE.md).
-                                    onPressed: () => context.push(AppRoutes.recuperar),
-                                    child: const Text('¿Olvidaste tu contraseña?'),
-                                  ),
                                 ),
                                 if (_errorMessage != null) ...[
                                   const SizedBox(height: AppSpacing.md),

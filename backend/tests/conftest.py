@@ -26,15 +26,32 @@ os.environ["SECRET_KEY"] = os.environ.get(
     "TEST_SECRET_KEY",
     "clave-de-prueba-fase0-minimo-32-caracteres",
 )
+# Supabase Auth es obligatorio desde la migración (settings.validate() exige
+# las tres) -- valores ficticios, ningún test le pega a la red real de
+# Supabase: `cookies_para` firma tokens localmente con este mismo secreto, y
+# `SupabaseAdminError`/`invitar_usuario` se mockean donde hace falta (ver
+# test_api_usuarios.py) en vez de llamar a `httpx.post` de verdad.
+os.environ["SUPABASE_URL"] = os.environ.get(
+    "TEST_SUPABASE_URL", "https://proyecto-de-prueba.supabase.co"
+)
+os.environ["SUPABASE_JWT_SECRET"] = os.environ.get(
+    "TEST_SUPABASE_JWT_SECRET", "clave-jwt-de-prueba-fase0-minimo-32-caracteres"
+)
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = os.environ.get(
+    "TEST_SUPABASE_SERVICE_ROLE_KEY", "clave-service-role-de-prueba"
+)
 
+import uuid  # noqa: E402
 from datetime import date, timedelta  # noqa: E402
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from jose import jwt as jose_jwt  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from app.auth.auth import NOMBRE_COOKIE_ACCESO, create_access_token, hash_password  # noqa: E402
+from app.config import settings  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.migrations import migrate_resource_reservations  # noqa: E402
 from app.main import app  # noqa: E402
@@ -80,12 +97,20 @@ def client():
 # ---------------------------------------------------------------------------
 
 
-def crear_usuario(db, *, username, email, password="password123", rol="usuario", espacio_id=None):
+def crear_usuario(db, *, username, email, password="password123", rol="usuario", espacio_id=None, supabase_id=None):
+    """`password` se acepta por compatibilidad con los ~600 sitios de la
+    suite que ya lo pasan, pero es vestigial desde la migración a Supabase
+    Auth: `hashed_password` no se lee para autenticar (ver
+    app/crud/usuarios.py::create_usuario). Lo que SÍ autentica es
+    `supabase_id` -- se genera uno al azar si no se pasa explícitamente,
+    para que `cookies_para(usuario)` siempre tenga algo válido con qué
+    firmar."""
     usuario = Usuario(
         username=username,
         email=email,
         hashed_password=hash_password(password),
         rol=rol,
+        supabase_id=supabase_id or uuid.uuid4(),
     )
     db.add(usuario)
     db.flush()
@@ -160,24 +185,41 @@ def crear_recurso(
     return recurso
 
 
+def token_supabase_para(usuario) -> str:
+    """JWT con la MISMA forma que emite Supabase (`sub`=UUID, `email`),
+    firmado con `SUPABASE_JWT_SECRET` -- exactamente lo que
+    `app/deps.py::_decode_token` verifica desde la migración a Supabase
+    Auth. Nunca se le pega a la red real de Supabase para esto."""
+    if usuario.supabase_id is None:
+        raise ValueError(
+            f"El usuario de prueba {usuario.username!r} no tiene supabase_id "
+            "-- crear con crear_usuario(...), que le asigna uno por defecto."
+        )
+    return jose_jwt.encode(
+        {"sub": str(usuario.supabase_id), "email": usuario.email, "aud": "authenticated"},
+        settings.supabase_jwt_secret,
+        algorithm=settings.algorithm,
+    )
+
+
 def cookies_para(usuario):
-    """Header `Cookie` con el token de sesión (Fase 9G, cookie-only).
+    """Header `Cookie` con el token de sesión.
 
     La sesión viaja únicamente en la cookie `access_token` (la leen los
     dependientes de `app/deps.py` de `request.cookies`); el header
-    `Authorization` ya no se acepta. Cada request de tests llevaba el token
-    en `Authorization` vía `headers_para` antes de 9G; ahora se envía como
-    cookie en el mismo header para conservar la semántica de cada prueba.
+    `Authorization` ya no se acepta. Desde la migración a Supabase Auth, el
+    valor de la cookie es un JWT de Supabase (ver `token_supabase_para`),
+    no uno propio.
     """
-    token = create_access_token(
-        data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
-    )
-    return {"Cookie": f"{NOMBRE_COOKIE_ACCESO}={token}"}
+    return {"Cookie": f"{NOMBRE_COOKIE_ACCESO}={token_supabase_para(usuario)}"}
 
 
 def bearer_para(usuario):
     """Header `Authorization: Bearer` — SOLO para pruebas negativas que
-    confirman que el backend ya no lo acepta (Fase 9G)."""
+    confirman que el backend no lo acepta como mecanismo de sesión. No hace
+    falta que el token sea válido bajo el esquema vigente: estas pruebas
+    verifican que el header se ignora sea cual sea su contenido, así que se
+    mantiene el JWT propio (SECRET_KEY) de siempre."""
     token = create_access_token(
         data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol}
     )

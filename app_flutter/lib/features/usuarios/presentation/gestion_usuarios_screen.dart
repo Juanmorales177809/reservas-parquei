@@ -490,7 +490,6 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late String _username;
   late String _email;
-  String _password = '';
   late RolUsuario _rol;
   int? _espacioId;
   bool _guardando = false;
@@ -526,14 +525,12 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
           widget.usuario!.id,
           username: _username,
           email: _email,
-          password: _password.isEmpty ? null : _password,
           rol: _rol.name,
           espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
         );
       } else {
-        // Sin contraseña: el backend siempre genera una temporal y la
-        // entrega por correo (ver AdminUsuarioCreate.password en el
-        // backend) — el admin ya no la elige acá.
+        // Sin contraseña: el backend invita a la persona por email vía
+        // Supabase — el admin ya no la elige ni la ve.
         await repo.crear(
           username: _username,
           email: _email,
@@ -547,7 +544,9 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _esEdicion ? 'Usuario actualizado.' : 'Usuario creado. Se enviaron las credenciales por correo.',
+              _esEdicion
+                  ? 'Usuario actualizado.'
+                  : 'Usuario creado. Se le envió un correo de invitación para elegir su contraseña.',
             ),
           ),
         );
@@ -594,24 +593,6 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
                 },
                 onSaved: (v) => _email = v!.trim(),
               ),
-              // Solo en edición: al crear, la contraseña siempre la genera
-              // el backend y se entrega por correo (ver _guardar arriba) —
-              // el admin ya no la elige ni la ve.
-              if (_esEdicion) ...[
-                const SizedBox(height: AppSpacing.md),
-                TextFormField(
-                  initialValue: null,
-                  decoration: const InputDecoration(labelText: 'Nueva contraseña (opcional)', hintText: 'Mín. 6 caracteres'),
-                  obscureText: true,
-                  validator: (v) {
-                    if (v != null && v.isNotEmpty && v.length < 6) return 'Mín. 6 caracteres';
-                    if (v != null && v.length > 72) return 'Máx. 72 caracteres';
-                    return null;
-                  },
-                  onChanged: (v) => _password = v,
-                  onSaved: (v) => _password = v ?? '',
-                ),
-              ],
               const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<RolUsuario>(
                 initialValue: _rol,

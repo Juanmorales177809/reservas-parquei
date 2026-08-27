@@ -1,47 +1,35 @@
 # -*- coding: utf-8 -*-
-"""Autenticación por cookie HttpOnly (Fase 9G, cookie-only).
+"""Autenticación por cookie HttpOnly, ahora con el JWT de Supabase como
+único emisor (migración a Supabase Auth).
 
-Hasta la Fase 9F-A: `POST /auth/login` devolvía `TokenResponse` (con
-`access_token` en el body) y además fijaba una cookie HttpOnly; los endpoints
-protegidos aceptaban cookie o `Authorization: Bearer`, con precedencia del
-header cuando ambos estaban presentes.
-
-Fase 9G: se retira el body de login (`access_token`/`token_type`), el login
-solo devuelve `LoginResponse{user}`, y los dependientes de `app/deps.py`
-leen únicamente la cookie `access_token` de `request.cookies`. El header
-`Authorization: Bearer` ya no se acepta: si se envía y no hay cookie, la
-respuesta es 401 sin `WWW-Authenticate: Bearer`; si hay cookie y Bearer,
-solo decide la cookie. `POST /auth/logout` sigue borrando la cookie y es
-idempotente.
-
-El OpenAPI documenta el mecanismo real: security scheme `cookieAuth`
-(`apiKey` en cookie `access_token`) exigido en los endpoints protegidos.
-Frontend (`AuthContext`/`api.ts`), `localStorage` y E2E ya no dependían del
-body desde la Fase 9F-B; esta suite ejercita el backend directamente.
+`POST /auth/supabase/sesion` solo devuelve `LoginResponse{user}`; el header
+`Authorization: Bearer` no se acepta como mecanismo de sesión: si se envía
+y no hay cookie, la respuesta es 401 sin `WWW-Authenticate: Bearer`; si hay
+cookie y Bearer, solo decide la cookie. `POST /auth/logout` sigue borrando
+la cookie y es idempotente.
 """
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
+from jose import jwt as jose_jwt
 
-from app.auth.auth import create_access_token
 from app.config import settings
 from app.main import app
-from app.services.rate_limit import LimitadorIntentosLogin
-from tests.conftest import bearer_para, cookies_para, crear_usuario
+from tests.conftest import bearer_para, cookies_para, crear_usuario, token_supabase_para
 
 NOMBRE_COOKIE = "access_token"
 
 
-def _login(client, username="ana", password="secret123"):
-    return client.post("/auth/login", json={"username": username, "password": password})
+def _login(client, usuario):
+    return client.post("/auth/supabase/sesion", json={"supabase_token": token_supabase_para(usuario)})
 
 
-class TestLoginEmiteSoloCookieYLoginResponse:
-    def test_login_no_devuelve_access_token_ni_token_type(self, client, db):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        respuesta = _login(client)
+class TestSupabaseSesionEmiteSoloCookieYLoginResponse:
+    def test_no_devuelve_ningun_token_en_el_body(self, client, db):
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        respuesta = _login(client, usuario)
 
         assert respuesta.status_code == 200
         cuerpo = respuesta.json()
@@ -49,17 +37,17 @@ class TestLoginEmiteSoloCookieYLoginResponse:
         assert "token_type" not in cuerpo
         assert cuerpo["user"]["username"] == "ana"
 
-    def test_login_emite_set_cookie(self, client, db):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        respuesta = _login(client)
+    def test_emite_set_cookie(self, client, db):
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        respuesta = _login(client, usuario)
 
         assert NOMBRE_COOKIE in respuesta.cookies
         assert respuesta.cookies[NOMBRE_COOKIE]
 
     def test_cookie_incluye_atributos_esperados_en_desarrollo(self, client, db):
         assert settings.environment == "development"
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        respuesta = _login(client)
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        respuesta = _login(client, usuario)
 
         cabecera = respuesta.headers["set-cookie"]
         assert "HttpOnly" in cabecera
@@ -70,17 +58,17 @@ class TestLoginEmiteSoloCookieYLoginResponse:
 
     def test_cookie_incluye_secure_en_produccion(self, client, db, monkeypatch):
         monkeypatch.setattr(settings, "environment", "production")
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
 
-        respuesta = _login(client)
+        respuesta = _login(client, usuario)
 
         assert "Secure" in respuesta.headers["set-cookie"]
 
 
 class TestCookieAutenticaEndpointsProtegidos:
     def test_cookie_valida_autentica_sin_header(self, client, db):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        _login(client)  # la cookie queda en el jar del TestClient (igual que un navegador)
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        _login(client, usuario)  # la cookie queda en el jar del TestClient (igual que un navegador)
 
         respuesta = client.get("/usuarios/me")
 
@@ -100,16 +88,21 @@ class TestCookieAutenticaEndpointsProtegidos:
         assert respuesta.status_code == 401
 
     def test_cookie_con_jwt_expirado_da_401(self, client, db):
-        # Fase 9G (auditoría): a diferencia de los demás tests de "token
-        # inválido" de esta clase (cadenas malformadas), este construye un
-        # JWT estructuralmente válido y correctamente firmado, pero con
-        # `exp` en el pasado (expires_delta negativo) — ejercita la
-        # validación real de expiración de python-jose, no solo el manejo
-        # de tokens corruptos.
-        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        token_expirado = create_access_token(
-            data={"sub": str(usuario.id), "rol": usuario.rol, "role": usuario.rol},
-            expires_delta=timedelta(minutes=-1),
+        # A diferencia de los demás tests de "token inválido" de esta clase
+        # (cadenas malformadas), este construye un JWT con forma de
+        # Supabase estructuralmente válido y correctamente firmado, pero
+        # con `exp` en el pasado -- ejercita la validación real de
+        # expiración de python-jose, no solo el manejo de tokens corruptos.
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        token_expirado = jose_jwt.encode(
+            {
+                "sub": str(usuario.supabase_id),
+                "email": usuario.email,
+                "aud": "authenticated",
+                "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+            },
+            settings.supabase_jwt_secret,
+            algorithm=settings.algorithm,
         )
         client.cookies.set(NOMBRE_COOKIE, token_expirado)
 
@@ -121,7 +114,7 @@ class TestCookieAutenticaEndpointsProtegidos:
 
 class TestBearerRechazado:
     def test_bearer_sin_cookie_da_401(self, client, db):
-        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
 
         respuesta = client.get("/usuarios/me", headers=bearer_para(usuario))
 
@@ -135,7 +128,7 @@ class TestBearerRechazado:
         assert respuesta.status_code == 200  # público: el header es irrelevante
 
     def test_401_no_incluye_www_authenticate_bearer(self, client, db):
-        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
 
         respuesta = client.get("/usuarios/me", headers=bearer_para(usuario))
 
@@ -145,17 +138,17 @@ class TestBearerRechazado:
 
 class TestSoloLaCookieDecide:
     def test_cookie_autentica_y_ignora_bearer_de_otro_usuario(self, client, db):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        beto = crear_usuario(db, username="beto", email="beto@example.com", password="secret123")
+        ana = crear_usuario(db, username="ana", email="ana@example.com")
+        beto = crear_usuario(db, username="beto", email="beto@example.com")
 
-        _login(client, "ana", "secret123")  # cookie = ana
+        _login(client, ana)  # cookie = ana
         respuesta = client.get("/usuarios/me", headers=bearer_para(beto))  # Bearer = beto
 
         assert respuesta.status_code == 200
         assert respuesta.json()["username"] == "ana"
 
     def test_cookie_invalida_no_se_rescata_con_bearer_valido(self, client, db):
-        ana = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        ana = crear_usuario(db, username="ana", email="ana@example.com")
         client.cookies.set(NOMBRE_COOKIE, "token-corrupto")
 
         respuesta = client.get("/usuarios/me", headers=bearer_para(ana))
@@ -165,8 +158,8 @@ class TestSoloLaCookieDecide:
 
 class TestLogout:
     def test_logout_borra_la_cookie(self, client, db):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-        _login(client)
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
+        _login(client, usuario)
         assert client.get("/usuarios/me").status_code == 200
 
         respuesta_logout = client.post("/auth/logout")
@@ -180,7 +173,7 @@ class TestLogout:
         assert respuesta.status_code == 204
 
     def test_logout_con_cookie_valida_es_seguro(self, client, db):
-        usuario = crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
 
         respuesta = client.post("/auth/logout", headers=cookies_para(usuario))
 
@@ -208,45 +201,30 @@ class TestComportamientoExistenteSinCambios:
         assert "www-authenticate" not in respuesta.headers
 
     def test_403_por_rol_insuficiente_sin_cambios(self, client, db):
-        usuario = crear_usuario(
-            db, username="ana", email="ana@example.com", password="secret123", rol="usuario"
-        )
+        usuario = crear_usuario(db, username="ana", email="ana@example.com", rol="usuario")
 
         respuesta = client.post(
             "/usuarios",
-            json={"username": "x", "email": "x@example.com", "password": "secret123"},
+            json={"username": "x", "email": "x@example.com"},
             headers=cookies_para(usuario),
         )
 
         assert respuesta.status_code == 403
 
     def test_422_por_payload_invalido_sin_cambios(self, client):
-        respuesta = client.post("/auth/login", json={"username": "ana"})
+        respuesta = client.post("/auth/supabase/sesion", json={})
 
         assert respuesta.status_code == 422
-
-    def test_429_por_rate_limit_sin_cambios(self, client, db, monkeypatch):
-        import app.api.auth as auth_module
-
-        limitador = LimitadorIntentosLogin(limite=5, ventana=timedelta(minutes=15))
-        monkeypatch.setattr(auth_module, "limitador_login", limitador)
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
-
-        for _ in range(5):
-            _login(client, "ana", "incorrecta")
-        respuesta = _login(client, "ana", "secret123")
-
-        assert respuesta.status_code == 429
 
 
 class TestNoSeRegistranCredenciales:
     def test_valor_de_cookie_no_aparece_en_logs_ante_error_no_controlado(
         self, db, monkeypatch, caplog
     ):
-        crear_usuario(db, username="ana", email="ana@example.com", password="secret123")
+        usuario = crear_usuario(db, username="ana", email="ana@example.com")
         cliente_sin_relanzar = TestClient(app, raise_server_exceptions=False)
         login = cliente_sin_relanzar.post(
-            "/auth/login", json={"username": "ana", "password": "secret123"}
+            "/auth/supabase/sesion", json={"supabase_token": token_supabase_para(usuario)}
         )
         token_cookie = login.cookies[NOMBRE_COOKIE]
 
@@ -295,7 +273,7 @@ class TestOpenApiReflejaCookieOnly:
     def test_endpoint_publico_no_exige_security(self, client):
         esquema = client.get("/openapi.json").json()
 
-        login_security = esquema["paths"]["/auth/login"]["post"].get("security")
-        assert login_security in (None, [])
+        sesion_security = esquema["paths"]["/auth/supabase/sesion"]["post"].get("security")
+        assert sesion_security in (None, [])
         espacios_get = esquema["paths"]["/espacios"]["get"].get("security")
         assert espacios_get in (None, [])

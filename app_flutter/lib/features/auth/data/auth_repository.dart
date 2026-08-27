@@ -1,32 +1,45 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
 import '../../../core/network/dio_client.dart';
 import '../domain/auth_user.dart';
 
-/// Espejo de `frontend/src/services/auth.ts` + el uso de `GET /usuarios/me`
-/// en `AuthContext.tsx`. Sin estado propio: solo llama `dio` y devuelve/
-/// lanza modelos tipados (`ApiException`, ver `auth_interceptor.dart`).
+/// Único repositorio de autenticación: Supabase Auth (`signInWithPassword`)
+/// + intercambio con el backend para fijar la cookie de sesión de siempre.
+/// Reemplaza el viejo par `AuthRepository`/`SupabaseAuthRepository` (hybrid)
+/// — no hay heurística de "es un email, entonces Supabase": todo el login
+/// pasa por acá.
 class AuthRepository {
   AuthRepository(this._dio);
 
   final Dio _dio;
 
-  /// `POST /auth/login` — el backend fija la cookie `access_token` vía
-  /// `Set-Cookie`; el body de respuesta solo trae `{user}` (Fase 9G, sin
-  /// token). Un 401 aquí son credenciales inválidas (ver
-  /// `kRutasSinRedirect401`), no una sesión expirada.
-  Future<AuthUser> login({required String username, required String password}) async {
+  /// 1. `supabase.auth.signInWithPassword` contra Supabase Cloud.
+  /// 2. `POST /auth/supabase/sesion {supabase_token}` — el backend verifica
+  ///    ese JWT y busca el `Usuario` por `supabase_id` ya existente (nunca
+  ///    crea ni vincula nada, ver `backend/app/api/auth.py::supabase_sesion`),
+  ///    fija la cookie `HttpOnly` de siempre y devuelve `{user}`.
+  Future<AuthUser> login({required String email, required String password}) async {
+    final sesion = await Supabase.instance.client.auth.signInWithPassword(email: email, password: password);
+    final token = sesion.session?.accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('Supabase no devolvió una sesión válida');
+    }
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/login',
-      data: {'username': username, 'password': password},
+      '/auth/supabase/sesion',
+      data: {'supabase_token': token},
     );
     return LoginResponse.fromJson(response.data!).user;
   }
 
-  /// `POST /auth/logout` — borra la cookie en el backend. Público,
-  /// idempotente.
+  /// Cierra la sesión de Supabase y la cookie del backend. Un fallo al
+  /// cerrar la de Supabase se ignora a propósito — la cookie del backend es
+  /// la fuente de verdad real de la sesión de la app.
   Future<void> logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {}
     await _dio.post<void>('/auth/logout');
   }
 
@@ -35,36 +48,6 @@ class AuthRepository {
   Future<AuthUser> getProfile() async {
     final response = await _dio.get<Map<String, dynamic>>('/usuarios/me');
     return AuthUser.fromJson(response.data!);
-  }
-
-  /// `POST /auth/cambiar-password` — exige la contraseña actual (aunque sea
-  /// la temporal recién recibida por correo) como confirmación. Un 401 aquí
-  /// es "contraseña actual incorrecta", no una sesión expirada — ver
-  /// `kRutasSinRedirect401`.
-  Future<void> cambiarPassword({required String passwordActual, required String passwordNueva}) async {
-    await _dio.post<void>(
-      '/auth/cambiar-password',
-      data: {'password_actual': passwordActual, 'password_nueva': passwordNueva},
-    );
-  }
-
-  /// `POST /auth/recuperar` — público, siempre 204 exista o no el
-  /// identificador (anti-enumeración, ver backend/app/api/auth.py).
-  Future<void> solicitarRecuperacion({required String identificador}) async {
-    await _dio.post<void>('/auth/recuperar', data: {'identificador': identificador});
-  }
-
-  /// `POST /auth/restablecer` — público. 400 = código inválido o vencido,
-  /// 429 = demasiados intentos.
-  Future<void> restablecerPassword({
-    required String identificador,
-    required String codigo,
-    required String passwordNueva,
-  }) async {
-    await _dio.post<void>(
-      '/auth/restablecer',
-      data: {'identificador': identificador, 'codigo': codigo, 'password_nueva': passwordNueva},
-    );
   }
 }
 

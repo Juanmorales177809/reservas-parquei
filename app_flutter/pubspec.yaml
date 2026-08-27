@@ -52,9 +52,8 @@ dependencies:
   lucide_icons_flutter: ^3.1.15
   fl_chart: ^0.69.0
   flutter_animate: ^4.5.2
-  # Supabase Auth hybrid (institucional sin recursos extra): Cloud free tier
-  # recomendado, supabase_id UUID nullable en backend. Con
-  # SUPABASE_ENABLED=false (default) no se inicializa ni se usa.
+  # Supabase Auth: único mecanismo de autenticación (corte completo, ver
+  # CLAUDE.md raíz). Cloud free tier, supabase_id UUID puente en el backend.
   supabase_flutter: ^2.9.1
   flutter_secure_storage: ^9.2.4
 
