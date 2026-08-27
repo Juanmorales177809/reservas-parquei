@@ -3,7 +3,7 @@
 // --dart-define o env/*.json (mismo patrón que BASE_URL en app_config.dart).
 //
 // Ver backend/app/config.py (validate() exige estas mismas variables del
-// lado backend), backend/app/deps.py (_decode_token) y
+// lado backend), backend/app/deps.py (decode_token) y
 // backend/app/api/auth.py (POST /auth/supabase/sesion).
 abstract final class SupabaseConfig {
   static const url = String.fromEnvironment('SUPABASE_URL', defaultValue: '');

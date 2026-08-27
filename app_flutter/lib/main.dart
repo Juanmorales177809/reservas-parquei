@@ -6,6 +6,8 @@ import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/config/supabase_config.dart';
 import 'core/network/dio_client.dart';
+import 'core/router/app_router.dart';
+import 'core/router/app_routes.dart';
 import 'core/storage/supabase_secure_storage.dart';
 import 'features/auth/application/auth_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -53,6 +55,21 @@ Future<void> main() async {
       dioProvider.overrideWithValue(dio),
     ],
   );
+
+  // Un link de invitación (o de recuperación de contraseña) trae el token
+  // de sesión en la propia URL; `detectSessionInUri` (activo por defecto)
+  // lo detecta al arrancar y dispara este evento con una sesión temporal
+  // ya establecida -- Supabase trata invitación y recuperación igual del
+  // lado del cliente, ambas como `passwordRecovery`. Redirige a la
+  // pantalla donde la persona fija su contraseña real (ver
+  // CompletarCuentaScreen); sin este listener el link no lleva a ningún
+  // lado útil, aunque la URL de redirect esté bien configurada en
+  // Supabase.
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    if (data.event == AuthChangeEvent.passwordRecovery) {
+      container.read(goRouterProvider).go(AppRoutes.completarCuenta);
+    }
+  });
 
   runApp(UncontrolledProviderScope(container: container, child: const ReservasApp()));
 }

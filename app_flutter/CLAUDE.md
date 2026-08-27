@@ -10,7 +10,7 @@
 - **CI sigue sin ejecutar el E2E real** — el job `e2e` de `ci.yml` corre en `ubuntu-latest` sin Visual Studio; wiring pendiente, requeriría un runner Windows.
 - Zonas/ensayos: la UI de selección **si existe ya** (contradice lo que decía esta misma línea en versiones anteriores del documento) vía `EspacioReservaSheet` — la limitación de "solo modalidad equipos" quedó superada por el P2 de arriba.
 
-`flutter analyze`: "No issues found!". `flutter test`: 19/19. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
+`flutter analyze`: "No issues found!". `flutter test`: 22/22. Plan completo fuera del repo en `~/.claude/plans/` (histórico — ya no refleja el trabajo posterior a la Fase 5, que solo vive en este archivo y en los mensajes de commit).
 
 ### Cambios del 2026-08-24 (primer despliegue en servidor real)
 
@@ -296,7 +296,11 @@ Reemplaza por completo la sección anterior de este documento ("Correo saliente:
 - **Alta de usuario**: `gestion_usuarios_screen.dart` no pide contraseña ni al crear ni al editar (el campo "Nueva contraseña (opcional)" de edición también se retiró, ya que `UsuarioUpdate.password` no existe más en el backend) — Supabase invita por email, la persona elige su contraseña desde ese link.
 - **`kRutasSinRedirect401`** (`auth_interceptor.dart`) cambió `/auth/login` por `/auth/supabase/sesion` (mismo motivo: un 401 ahí es parte de un intento de login en curso, no una sesión que expiró) y se retiró la entrada de `/auth/cambiar-password` (endpoint retirado).
 - **`env/*.json`** ahora llevan `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` en los cuatro archivos (antes solo `web.json`, y solo brevemente) — son las claves públicas del proyecto Supabase Cloud (`ijktwqnkknemjrokwcdn.supabase.co`), seguras de commitear igual que cualquier `anonKey`/`publishableKey`. La `SUPABASE_SERVICE_ROLE_KEY` (secreta, backend-only) nunca va acá — vive solo en el `.env` del backend.
-- **Pendiente de verificación manual real** con una cuenta de Supabase de prueba (crear usuario desde el panel admin → confirmar correo de invitación → fijar contraseña → login → confirmar que una cuenta *no* invitada, sin `supabase_id`, no puede entrar aunque tenga un JWT válido de Supabase) — no se hizo todavía en esta sesión, solo `flutter analyze`/`flutter test`.
+- **Verificación manual real hecha el 2026-08-27** (crear usuario real en Supabase vía Admin API → login real → canjear el JWT en el backend → `GET /usuarios/me`), y encontró dos bugs reales que ni `flutter analyze` ni `pytest` atrapaban:
+  1. **El backend rechazaba TODO login real con 401.** Un proyecto de Supabase real firma sus JWT con ES256 (clave asimétrica), no HS256 (secreto compartido) — `deps.py`/`api/auth.py` solo sabían verificar HS256. Corregido con verificación vía JWKS público de Supabase (`backend/app/services/supabase_jwks.py`); ver `backend/CLAUDE.md`.
+  2. **El link de invitación no llevaba a ningún lado.** La migración implementó `login()` pero nunca la pantalla donde una persona invitada fija su contraseña — el correo de Supabase (`type=invite`) apuntaba a una URL sin ningún handler. Corregido: `CompletarCuentaScreen` (`features/auth/presentation/completar_cuenta_screen.dart`, ruta pública `/completar-cuenta`) + un listener de `Supabase.instance.client.auth.onAuthStateChange` en `main.dart` que redirige ahí apenas Supabase detecta el token de invitación en la URL (evento `passwordRecovery` — Supabase trata invitación y recuperación de contraseña igual del lado del cliente). `AuthRepository.completarCuenta` llama `updateUser` y reusa el mismo canje de sesión que `login`.
+
+  **Pendiente, fuera de este repo**: en el dashboard de Supabase, `Authentication → URL Configuration` seguía con `Site URL=http://localhost:3000` (el default del template) — hay que ponerlo en la URL real del servidor para que el link del correo redirija a un lugar que exista.
 
 ## Sesión: cookie HttpOnly, nunca un token en el cliente
 

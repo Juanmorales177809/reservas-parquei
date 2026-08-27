@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auditoria/presentation/auditoria_screen.dart';
 import '../../features/auth/application/auth_provider.dart';
+import '../../features/auth/presentation/completar_cuenta_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/ensayos/presentation/gestion_ensayos_screen.dart';
@@ -90,7 +91,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final esRutaPublica = AppRoutes.publicas.contains(state.fullPath);
 
       if (user == null && !esRutaPublica) return AppRoutes.login;
-      if (user != null && state.matchedLocation == AppRoutes.login) return AppRoutes.admin;
+      // `completarCuenta` entra acá también: una vez que se fija la
+      // contraseña y se canjea la sesión (ver AuthRepository.completarCuenta),
+      // el usuario ya está autenticado y no tiene sentido dejarlo en esa
+      // pantalla -- mismo criterio que salir de /login tras loguearse.
+      if (user != null && (state.matchedLocation == AppRoutes.login || state.matchedLocation == AppRoutes.completarCuenta)) {
+        return AppRoutes.admin;
+      }
 
       final destinosDeLaRuta = kNavDestinations.where((d) => d.path == state.matchedLocation);
       final destino = destinosDeLaRuta.isEmpty ? null : destinosDeLaRuta.first;
@@ -101,6 +108,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
+      GoRoute(path: AppRoutes.completarCuenta, builder: (context, state) => const CompletarCuentaScreen()),
       GoRoute(path: AppRoutes.terminos, builder: (context, state) => const TerminosScreen()),
       // Fuera del ShellRoute a propósito: es una pantalla "empujada" (con
       // su propia AppBar + botón atrás), no un destino de la barra de

@@ -26,9 +26,34 @@ class AuthRepository {
     if (token == null || token.isEmpty) {
       throw Exception('Supabase no devolvió una sesión válida');
     }
+    return _intercambiarSesion(token);
+  }
+
+  /// Completa una invitación (o una recuperación de contraseña): en ese
+  /// momento ya existe una sesión "temporal" de Supabase (la estableció el
+  /// link del correo, procesado por `detectSessionInUri` al arrancar la
+  /// app — ver `main.dart`), pero la persona todavía no tiene contraseña
+  /// propia. `updateUser` la fija y la sesión pasa a ser una normal, sin
+  /// pedir un login aparte -- se canjea directo con el mismo endpoint que
+  /// usa [login].
+  Future<AuthUser> completarCuenta({required String password}) async {
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw Exception(
+        'No hay una sesión de invitación activa. Volvé a abrir el link del correo.',
+      );
+    }
+    await Supabase.instance.client.auth.updateUser(UserAttributes(password: password));
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('Supabase no devolvió una sesión válida');
+    }
+    return _intercambiarSesion(token);
+  }
+
+  Future<AuthUser> _intercambiarSesion(String supabaseToken) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/supabase/sesion',
-      data: {'supabase_token': token},
+      data: {'supabase_token': supabaseToken},
     );
     return LoginResponse.fromJson(response.data!).user;
   }

@@ -31,6 +31,14 @@ class Auth extends _$Auth {
     state = AsyncData(user);
   }
 
+  /// Ver `AuthRepository.completarCuenta` — fija la contraseña de una
+  /// invitación/recuperación y deja la sesión lista, mismo criterio que
+  /// [login].
+  Future<void> completarCuenta({required String password}) async {
+    final user = await ref.read(authRepositoryProvider).completarCuenta(password: password);
+    state = AsyncData(user);
+  }
+
   /// Igual que `AuthContext.tsx`: siempre limpia el estado en `finally`
   /// aunque falle la red, porque quien llama (el botón de logout del
   /// shell) no espera la promesa.
