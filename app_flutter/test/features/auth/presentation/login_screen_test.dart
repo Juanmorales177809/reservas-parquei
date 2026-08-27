@@ -1,8 +1,29 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:app_flutter/core/network/api_exception.dart';
+import 'package:app_flutter/features/auth/data/auth_repository.dart';
 import 'package:app_flutter/features/auth/presentation/login_screen.dart';
+
+/// Fake por subclase (mismo patrón que `_AuthRepositoryFalso` usado antes
+/// en `password_flows_test.dart`, retirado junto a las pantallas de
+/// recuperación clásica): `solicitarRecuperacion` llama directo al SDK de
+/// Supabase, así que un test de widget necesita un doble que nunca lo
+/// toque.
+class _AuthRepositoryFalso extends AuthRepository {
+  _AuthRepositoryFalso() : super(Dio());
+
+  String? ultimoEmailSolicitado;
+  Object? errorParaLanzar;
+
+  @override
+  Future<void> solicitarRecuperacion({required String email}) async {
+    if (errorParaLanzar != null) throw errorParaLanzar!;
+    ultimoEmailSolicitado = email;
+  }
+}
 
 void main() {
   testWidgets('LoginScreen valida campos requeridos antes de llamar a la API', (tester) async {
@@ -29,5 +50,79 @@ void main() {
     // animación agendada — funciona porque ninguna es infinita
     // (`.repeat()` sin fin haría que `pumpAndSettle` nunca termine).
     await tester.pumpAndSettle();
+  });
+
+  group('Recuperar contraseña', () {
+    Widget montar(_AuthRepositoryFalso fake) {
+      return ProviderScope(
+        overrides: [authRepositoryProvider.overrideWithValue(fake)],
+        child: const MaterialApp(home: LoginScreen()),
+      );
+    }
+
+    testWidgets('el diálogo precarga el email ya escrito en el login', (tester) async {
+      await tester.pumpWidget(montar(_AuthRepositoryFalso()));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField).first, 'ana@example.com');
+      await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recuperar contraseña'), findsOneWidget);
+      // Dos campos "ana@example.com": el de login (detrás del diálogo) y
+      // el precargado en el diálogo.
+      expect(find.text('ana@example.com'), findsNWidgets(2));
+    });
+
+    testWidgets('exige un email con formato válido antes de enviar', (tester) async {
+      final fake = _AuthRepositoryFalso();
+      await tester.pumpWidget(montar(fake));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('recuperar_password_email')), 'no-es-un-email');
+      await tester.tap(find.text('Enviar'));
+      await tester.pump();
+
+      expect(find.text('Email inválido'), findsOneWidget);
+      expect(fake.ultimoEmailSolicitado, isNull);
+    });
+
+    testWidgets('envía la solicitud, cierra el diálogo y muestra el mensaje genérico', (tester) async {
+      final fake = _AuthRepositoryFalso();
+      await tester.pumpWidget(montar(fake));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('recuperar_password_email')), 'ana@example.com');
+      await tester.tap(find.text('Enviar'));
+      await tester.pumpAndSettle();
+
+      expect(fake.ultimoEmailSolicitado, 'ana@example.com');
+      expect(find.text('Recuperar contraseña'), findsNothing);
+      expect(
+        find.text('Si existe una cuenta con ese email, vas a recibir un correo con instrucciones.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('muestra el error del backend si falla el envío', (tester) async {
+      final fake = _AuthRepositoryFalso()..errorParaLanzar = const ApiException('Demasiados intentos.', statusCode: 429);
+      await tester.pumpWidget(montar(fake));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('recuperar_password_email')), 'ana@example.com');
+      await tester.tap(find.text('Enviar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Demasiados intentos.'), findsOneWidget);
+    });
   });
 }

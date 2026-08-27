@@ -148,6 +148,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
                                   onFieldSubmitted: (_) => _submit(),
                                 ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () => _mostrarRecuperarPassword(context, _emailController.text),
+                                    child: const Text('¿Olvidaste tu contraseña?'),
+                                  ),
+                                ),
                                 if (_errorMessage != null) ...[
                                   const SizedBox(height: AppSpacing.md),
                                   Text(_errorMessage!, style: TextStyle(color: scheme.error)),
@@ -196,6 +203,106 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             duration: 900.ms,
             curve: Curves.easeOut,
           ).fadeIn(duration: 700.ms),
+    );
+  }
+}
+
+void _mostrarRecuperarPassword(BuildContext context, String emailPrecargado) {
+  showDialog<void>(
+    context: context,
+    builder: (_) => _RecuperarPasswordDialog(emailInicial: emailPrecargado),
+  );
+}
+
+/// El mensaje de éxito es SIEMPRE el mismo, exista o no una cuenta con ese
+/// email -- `AuthRepository.solicitarRecuperacion` no distingue del lado
+/// del cliente (Supabase no expone esa información), así que mostrar algo
+/// distinto acá filtraría qué emails están registrados.
+class _RecuperarPasswordDialog extends ConsumerStatefulWidget {
+  const _RecuperarPasswordDialog({required this.emailInicial});
+
+  final String emailInicial;
+
+  @override
+  ConsumerState<_RecuperarPasswordDialog> createState() => _RecuperarPasswordDialogState();
+}
+
+class _RecuperarPasswordDialogState extends ConsumerState<_RecuperarPasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final _emailController = TextEditingController(text: widget.emailInicial);
+  bool _enviando = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _enviando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authProvider.notifier).solicitarRecuperacion(email: _emailController.text.trim());
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Si existe una cuenta con ese email, vas a recibir un correo con instrucciones.'),
+          ),
+        );
+      }
+    } on Object catch (e) {
+      setState(() => _error = apiErrorMessage(e, fallback: 'No se pudo enviar el correo. Intenta de nuevo.'));
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Recuperar contraseña'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ingresá tu email y te mandamos un link para elegir una contraseña nueva.'),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              key: const Key('recuperar_password_email'),
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return 'Requerido';
+                if (!value.contains('@') || !value.split('@').last.contains('.')) return 'Email inválido';
+                return null;
+              },
+              onFieldSubmitted: (_) => _enviar(),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _enviando ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: _enviando ? null : _enviar,
+          child: _enviando
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Enviar'),
+        ),
+      ],
     );
   }
 }

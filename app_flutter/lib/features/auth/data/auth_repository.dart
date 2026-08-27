@@ -50,6 +50,18 @@ class AuthRepository {
     return _intercambiarSesion(token);
   }
 
+  /// Dispara el correo de recuperación de Supabase. La respuesta es la
+  /// misma haya o no una cuenta con ese email (Supabase no distingue del
+  /// lado del cliente) -- la pantalla que llama esto debe mostrar siempre
+  /// el mismo mensaje, sin importar el resultado, para no revelar qué
+  /// emails existen. El link que llega por correo establece la misma
+  /// sesión temporal `passwordRecovery` que un link de invitación (ver
+  /// `main.dart`) y termina en [completarCuenta] -- mismo mecanismo,
+  /// dos formas de llegar ahí.
+  Future<void> solicitarRecuperacion({required String email}) async {
+    await Supabase.instance.client.auth.resetPasswordForEmail(email);
+  }
+
   Future<AuthUser> _intercambiarSesion(String supabaseToken) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/supabase/sesion',

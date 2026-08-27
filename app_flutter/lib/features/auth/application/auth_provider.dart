@@ -39,6 +39,12 @@ class Auth extends _$Auth {
     state = AsyncData(user);
   }
 
+  /// Ver `AuthRepository.solicitarRecuperacion` — no toca `state`: todavía
+  /// no hay ninguna sesión, solo se disparó un correo.
+  Future<void> solicitarRecuperacion({required String email}) {
+    return ref.read(authRepositoryProvider).solicitarRecuperacion(email: email);
+  }
+
   /// Igual que `AuthContext.tsx`: siempre limpia el estado en `finally`
   /// aunque falle la red, porque quien llama (el botón de logout del
   /// shell) no espera la promesa.
