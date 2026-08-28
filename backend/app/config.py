@@ -32,6 +32,16 @@ class Settings:
     smtp_starttls: bool = os.getenv("SMTP_STARTTLS", "true").lower() == "true"
     email_enabled: bool = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
 
+    # Puente temporal (app/services/email_graph.py): mientras Sistemas del
+    # ITM entrega el App Registration con Mail.Send de aplicación, el envío
+    # puede pasar por Graph con un token delegado cacheado en disco
+    # (login interactivo único vía scripts/graph_login.py). Reemplaza a
+    # SMTP solo cuando EMAIL_TRANSPORT=graph_delegado -- "smtp" (default)
+    # no cambia nada del comportamiento existente.
+    email_transport: str = os.getenv("EMAIL_TRANSPORT", "smtp")
+    graph_mail_sender: str = os.getenv("GRAPH_MAIL_SENDER", "")
+    graph_token_cache_path: str = os.getenv("GRAPH_TOKEN_CACHE_PATH", "/data/graph/token_cache.json")
+
     # Supabase Auth: único mecanismo de autenticación (corte completo, no
     # convive con un login propio). Por eso estas variables son
     # obligatorias, igual que SECRET_KEY arriba -- sin flag de
@@ -63,9 +73,19 @@ class Settings:
                 "INITIAL_ADMIN_PASSWORD debe tener al menos 12 caracteres"
             )
 
-        if self.email_enabled and not (self.smtp_host and self.smtp_from):
+        if self.email_transport not in ("smtp", "graph_delegado"):
             raise RuntimeError(
-                "EMAIL_ENABLED=true requiere SMTP_HOST y SMTP_FROM configurados"
+                "EMAIL_TRANSPORT debe ser 'smtp' o 'graph_delegado'"
+            )
+
+        if self.email_enabled and self.email_transport == "smtp" and not (self.smtp_host and self.smtp_from):
+            raise RuntimeError(
+                "EMAIL_ENABLED=true con EMAIL_TRANSPORT=smtp requiere SMTP_HOST y SMTP_FROM configurados"
+            )
+
+        if self.email_enabled and self.email_transport == "graph_delegado" and not self.graph_mail_sender:
+            raise RuntimeError(
+                "EMAIL_ENABLED=true con EMAIL_TRANSPORT=graph_delegado requiere GRAPH_MAIL_SENDER configurado"
             )
 
         if not (self.supabase_url and self.supabase_jwt_secret and self.supabase_service_role_key):

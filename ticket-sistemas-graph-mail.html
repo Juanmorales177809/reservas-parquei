@@ -1,0 +1,453 @@
+<title>Correo por Microsoft Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #f2f4f7;
+    --surface: #ffffff;
+    --border: #dde2e9;
+    --border-soft: #e8ebf0;
+    --ink: #121821;
+    --ink-soft: #4c5566;
+    --ink-faint: #8891a1;
+    --accent: #0e6e6a;
+    --accent-ink: #085552;
+    --accent-soft: #e3f2f0;
+    --mono-bg: #10161f;
+    --mono-text: #d7dee8;
+    --mono-dim: #8c99ad;
+    --warn-bg: #fbf1de;
+    --warn-border: #e6c266;
+    --warn-text: #71530f;
+    --ok-bg: #e9f5ec;
+    --ok-border: #8fcb9e;
+    --ok-text: #1f5c33;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0a0e14;
+      --surface: #121821;
+      --border: #232c39;
+      --border-soft: #1a212c;
+      --ink: #e7ebf0;
+      --ink-soft: #a4aebd;
+      --ink-faint: #6b7484;
+      --accent: #4fc7c0;
+      --accent-ink: #7fd9d3;
+      --accent-soft: #10262a;
+      --mono-bg: #060a10;
+      --mono-text: #cdd7e3;
+      --mono-dim: #6b7688;
+      --warn-bg: #251f0e;
+      --warn-border: #5c4a15;
+      --warn-text: #e0bb5c;
+      --ok-bg: #0e2318;
+      --ok-border: #2c6a44;
+      --ok-text: #7fd39a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0a0e14;
+    --surface: #121821;
+    --border: #232c39;
+    --border-soft: #1a212c;
+    --ink: #e7ebf0;
+    --ink-soft: #a4aebd;
+    --ink-faint: #6b7484;
+    --accent: #4fc7c0;
+    --accent-ink: #7fd9d3;
+    --accent-soft: #10262a;
+    --mono-bg: #060a10;
+    --mono-text: #cdd7e3;
+    --mono-dim: #6b7688;
+    --warn-bg: #251f0e;
+    --warn-border: #5c4a15;
+    --warn-text: #e0bb5c;
+    --ok-bg: #0e2318;
+    --ok-border: #2c6a44;
+    --ok-text: #7fd39a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 56px 24px 96px;
+  }
+
+  .doc {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .mono {
+    font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+  }
+
+  .masthead .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 14px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+
+  .meta dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-top: 2px;
+  }
+
+  .meta dd {
+    margin: 0;
+  }
+
+  /* ── Context strip ────────────────────────────────────── */
+
+  .context {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--ink-faint);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 28px 0 44px;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  .context .label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .context p { margin: 0 0 8px; }
+  .context p:last-child { margin-bottom: 0; }
+
+  /* ── Sections ─────────────────────────────────────────── */
+
+  section {
+    margin-bottom: 44px;
+  }
+
+  section > h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  section > h2 .idx {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent-ink);
+  }
+
+  section > p.lede {
+    margin: 14px 0 0;
+    color: var(--ink-soft);
+  }
+
+  /* ── Ordered steps ────────────────────────────────────── */
+
+  ol.steps {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    counter-reset: step;
+  }
+
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 14px 0 14px 40px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  ol.steps > li:first-child { border-top: none; padding-top: 4px; }
+  ol.steps > li:last-child { padding-bottom: 4px; }
+
+  ol.steps > li::before {
+    content: "[" counter(step) "]";
+    position: absolute;
+    left: 0;
+    top: 15px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+  }
+
+  ol.steps > li:first-child::before { top: 5px; }
+
+  ol.steps strong { color: var(--ink); font-weight: 600; }
+
+  /* ── Field list (what comes back) ─────────────────────── */
+
+  dl.fields {
+    margin: 18px 0 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  dl.fields > div {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4px 16px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border-soft);
+    align-items: start;
+  }
+
+  dl.fields > div:first-child { border-top: none; }
+
+  dl.fields dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+    padding-top: 1px;
+  }
+
+  dl.fields dd {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+
+  /* ── Code blocks ──────────────────────────────────────── */
+
+  .codeblock {
+    position: relative;
+    background: var(--mono-bg);
+    border-radius: 8px;
+    margin: 14px 0 0;
+    overflow-x: auto;
+  }
+
+  .codeblock .tag {
+    display: block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mono-dim);
+    padding: 10px 16px 0;
+  }
+
+  .codeblock pre {
+    margin: 0;
+    padding: 10px 16px 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--mono-text);
+    white-space: pre;
+  }
+
+  .codeblock .flag { color: #7fd9d3; }
+  .codeblock .str { color: #e0bb5c; }
+  .codeblock .comment { color: var(--mono-dim); font-style: italic; }
+
+  /* ── Callouts ─────────────────────────────────────────── */
+
+  .callout {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .callout .head {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .callout.warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-text);
+  }
+
+  .callout.ok {
+    background: var(--ok-bg);
+    border: 1px solid var(--ok-border);
+    color: var(--ok-text);
+  }
+
+  /* ── Footer ───────────────────────────────────────────── */
+
+  footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 560px) {
+    body { padding: 36px 16px 72px; }
+    h1 { font-size: 1.55rem; }
+    .meta { grid-template-columns: 1fr; }
+    .meta dt { padding-top: 8px; }
+    dl.fields > div { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="doc">
+
+  <div class="masthead">
+    <p class="eyebrow">Solicitud a Sistemas · ITM</p>
+    <h1>Habilitar envío de correo por Microsoft Graph para reservas-parquei</h1>
+    <dl class="meta">
+      <dt>De</dt><dd>Equipo reservas-parquei</dd>
+      <dt>Para</dt><dd>Sistemas / Administración M365</dd>
+      <dt>Cuenta</dt><dd class="mono">sgc-lia@itm.edu.co</dd>
+      <dt>Fecha</dt><dd>2026-08-28</dd>
+    </dl>
+  </div>
+
+  <div class="context">
+    <span class="label">Por qué pedimos esto</span>
+    <p>Ya probamos SMTP clásico contra <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">smtp.office365.com</code> y falla en dos formas distintas: primero <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">535 5.7.139 ... disabled for the Tenant</code> (SMTP AUTH apagado para todo M365 del ITM), y luego, con esta cuenta, un error de credenciales que probablemente sea Conditional Access bloqueando autenticación heredada.</p>
+    <p>En cambio, confirmamos que <strong>Microsoft Graph sí funciona</strong> contra este tenant (probado con un login interactivo). Por eso pedimos la vía de aplicación — sin que ningún usuario tenga que iniciar sesión — en lugar de seguir insistiendo con SMTP.</p>
+  </div>
+
+  <section>
+    <h2><span class="idx">01</span>Qué necesitamos</h2>
+    <p class="lede">Un <strong>App Registration en Entra ID</strong> que nuestro backend use para enviar correo por Graph de forma desatendida: el sistema corre solo, sin ningún humano presente, y manda el correo automáticamente cuando alguien crea o gestiona una reserva.</p>
+  </section>
+
+  <section>
+    <h2><span class="idx">02</span>Pasos</h2>
+    <ol class="steps">
+      <li><strong>Crear el App Registration</strong> en Entra ID — nombre sugerido <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">reservas-parquei-mail</code>.</li>
+      <li><strong>Agregar el permiso</strong> Microsoft Graph → API permissions → <em>Application permissions</em> → <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">Mail.Send</code>. De aplicación, no delegado.</li>
+      <li><strong>Dar consentimiento de administrador</strong> a ese permiso.</li>
+      <li><strong>Generar un client secret</strong> (o certificado, si prefieren esa vía) y anotar su fecha de vencimiento.</li>
+      <li><strong>Restringir el alcance</strong> con una <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">ApplicationAccessPolicy</code> de Exchange Online, para que esta app solo pueda enviar como <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">sgc-lia@itm.edu.co</code> — no como cualquier buzón del tenant.</li>
+    </ol>
+
+    <div class="codeblock">
+      <span class="tag">PowerShell · Exchange Online · paso 5</span>
+      <pre><span class="comment"># Una vez tengan el Application (client) ID del paso 1</span>
+New-ApplicationAccessPolicy `
+  -AppId <span class="str">"&lt;Application (client) ID&gt;"</span> `
+  -PolicyScopeGroupId <span class="str">"sgc-lia@itm.edu.co"</span> `
+  -AccessRight <span class="flag">RestrictAccess</span> `
+  -Description <span class="str">"reservas-parquei-mail solo envia como sgc-lia@itm.edu.co"</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">03</span>Qué necesitamos de vuelta</h2>
+    <p class="lede">Cuatro valores, el mismo formato que usa cualquier <code class="mono" style="background:var(--accent-soft);color:var(--accent-ink);padding:1px 6px;border-radius:4px;">.env</code> de este tipo de integración:</p>
+
+    <dl class="fields">
+      <div>
+        <dt>AZURE_TENANT_ID</dt>
+        <dd>Directory (tenant) ID del ITM en Entra ID.</dd>
+      </div>
+      <div>
+        <dt>AZURE_CLIENT_ID</dt>
+        <dd>Application (client) ID del App Registration del paso 1.</dd>
+      </div>
+      <div>
+        <dt>AZURE_CLIENT_SECRET</dt>
+        <dd>El valor del secret generado en el paso 4 — no el ID del secret, el valor mismo.</dd>
+      </div>
+      <div>
+        <dt>SECRET_EXPIRES</dt>
+        <dd>Fecha de vencimiento, para saber cuándo hay que renovarlo.</dd>
+      </div>
+    </dl>
+
+    <div class="callout warn">
+      <span class="head">Atención al entregarlo</span>
+      El client secret es una credencial sensible, igual que una contraseña. Pedimos que se entregue por un canal seguro — un gestor de contraseñas compartido o en persona — nunca en el cuerpo de un correo ni en un ticket visible para cualquiera con acceso al sistema.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">04</span>Si esto no es posible</h2>
+    <p class="lede">Alternativa de respaldo: la excepción puntual de SMTP AUTH sobre este mismo buzón.</p>
+
+    <div class="codeblock">
+      <span class="tag">PowerShell · Exchange Online · alternativa</span>
+      <pre>Set-CASMailbox -Identity <span class="str">"sgc-lia@itm.edu.co"</span> `
+  -SmtpClientAuthenticationDisabled <span class="flag">$false</span></pre>
+    </div>
+
+    <div class="callout ok">
+      <span class="head">Pero ojo</span>
+      Habría que confirmar también que ninguna política de Conditional Access esté bloqueando "Authenticated SMTP" para esta cuenta — ya lo probamos una vez y el error sugiere que hay algo más, además del toggle del buzón, bloqueando la conexión.
+    </div>
+  </section>
+
+  <footer>
+    <span>reservas-parquei</span>
+    <span>borrador de ticket · 2026-08-28</span>
+  </footer>
+
+</div>

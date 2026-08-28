@@ -15,3 +15,9 @@ python-dotenv==1.2.2
 # app/services/email.py); ya se usaba como dependencia de test.
 httpx==0.27.2
 tzdata==2025.2; sys_platform == "win32"
+# Puente temporal de correo saliente vía Microsoft Graph con token delegado
+# cacheado (app/services/email_graph.py) mientras se resuelve el permiso
+# Mail.Send de aplicación con Sistemas del ITM -- ver backend/CLAUDE.md,
+# sección "Correo por Microsoft Graph (puente temporal)". Reemplazar por
+# el flujo client_credentials apenas llegue el App Registration real.
+msal==1.38.0

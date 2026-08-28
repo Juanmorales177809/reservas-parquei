@@ -129,6 +129,28 @@ class TestOutbox:
         assert correo.estado == "fallido"
         assert correo.intentos == email_service.MAX_INTENTOS
 
+    def test_procesar_pendientes_usa_graph_si_transport_es_graph_delegado(self, db, monkeypatch):
+        """Puente temporal (app/services/email_graph.py): con
+        EMAIL_TRANSPORT=graph_delegado, procesar_pendientes NO debe tocar
+        SMTP en absoluto."""
+        monkeypatch.setattr(settings, "email_enabled", True)
+        monkeypatch.setattr(settings, "email_transport", "graph_delegado")
+        monkeypatch.setattr(settings, "graph_mail_sender", "sgc-lia@itm.edu.co")
+
+        llamadas_graph = []
+        llamadas_smtp = []
+        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c: llamadas_graph.append((d, a, c)))
+        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c: llamadas_smtp.append((d, a, c)))
+
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="B")
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        correo = db.query(CorreoSaliente).one()
+        assert correo.estado == "enviado"
+        assert llamadas_graph == [("x@example.com", "A", "B")]
+        assert llamadas_smtp == []
+
 
 class TestEnganchesDeReserva:
     """Integración vía API: cada evento de reserva que ya crea una

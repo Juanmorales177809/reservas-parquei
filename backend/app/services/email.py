@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.correo_saliente import CorreoSaliente
+from app.services.email_graph import enviar_graph
 
 logger = logging.getLogger("app.email")
 
@@ -68,13 +69,18 @@ def procesar_pendientes(db: Session) -> None:
     in-app siguen funcionando igual, el outbox solo se acumula sin
     intentar ningún envío real -- así se puede desplegar este código antes
     de tener credenciales SMTP reales.
+
+    `EMAIL_TRANSPORT` decide el transporte real: `smtp` (default, sin
+    cambios) o `graph_delegado` (puente temporal vía Microsoft Graph con
+    token delegado cacheado -- ver `app/services/email_graph.py`).
     """
     if not settings.email_enabled:
         return
+    enviar = enviar_graph if settings.email_transport == "graph_delegado" else _enviar_smtp
     pendientes = db.query(CorreoSaliente).filter(CorreoSaliente.estado == "pendiente").all()
     for correo in pendientes:
         try:
-            _enviar_smtp(correo.destinatario, correo.asunto, correo.cuerpo)
+            enviar(correo.destinatario, correo.asunto, correo.cuerpo)
         except Exception:
             logger.exception("Fallo enviando correo id=%s a %s", correo.id, correo.destinatario)
             correo.intentos += 1

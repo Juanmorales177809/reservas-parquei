@@ -83,6 +83,17 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:?La variable SUPABASE_URL es obligatoria}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?La variable SUPABASE_SERVICE_ROLE_KEY es obligatoria}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?La variable SUPABASE_JWT_SECRET es obligatoria}
+      # Puente temporal de correo por Graph (app/services/email_graph.py) --
+      # ver backend/CLAUDE.md. EMAIL_TRANSPORT=smtp (default) no cambia nada.
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-smtp}
+      GRAPH_MAIL_SENDER: ${GRAPH_MAIL_SENDER:-}
+      GRAPH_TOKEN_CACHE_PATH: ${GRAPH_TOKEN_CACHE_PATH:-/data/graph/token_cache.json}
+    volumes:
+      # El token delegado cacheado tiene que sobrevivir cada reconvergencia
+      # del agente de CD (deploy/README.md) -- si viviera solo en el
+      # filesystem del contenedor, cada redeploy borraría la sesión y
+      # obligaría a repetir el login interactivo (scripts/graph_login.py).
+      - graph_token_cache:/data/graph
     depends_on:
       db:
         condition: service_healthy
@@ -138,6 +149,8 @@ volumes:
     name: ${POSTGRES_VOLUME_NAME:-reservas_postgres_data}
   pgadmin_data:
     name: ${PGADMIN_VOLUME_NAME:-reservas_pgadmin_data}
+  graph_token_cache:
+    name: ${GRAPH_TOKEN_CACHE_VOLUME_NAME:-reservas_graph_token_cache}
 
 networks:
   application_network:
