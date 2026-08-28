@@ -24,11 +24,15 @@ from tests.conftest import crear_espacio, crear_usuario, cookies_para
 
 @pytest.fixture(autouse=True)
 def _supabase_invitar_mockeado(monkeypatch):
-    """`create_usuario_admin` invita por email vía Supabase en cada alta --
-    se reemplaza por un doble que nunca toca la red, devolviendo un UUID
-    nuevo por llamada (mismo criterio que el doble de SMTP en
-    test_correo_saliente.py)."""
-    monkeypatch.setattr("app.api.usuarios.invitar_usuario", lambda email: uuid.uuid4())
+    """`create_usuario_admin` crea la identidad en Supabase (vía
+    `generate_link`, sin que Supabase mande su propio correo) en cada
+    alta -- se reemplaza por un doble que nunca toca la red, devolviendo
+    un UUID + link nuevos por llamada (mismo criterio que el doble de SMTP
+    en test_correo_saliente.py)."""
+    monkeypatch.setattr(
+        "app.api.usuarios.crear_usuario_y_generar_link",
+        lambda email: (uuid.uuid4(), f"https://ejemplo.supabase.co/auth/v1/verify?token=fake&type=invite&email={email}"),
+    )
 
 
 def _admin(db):
@@ -59,13 +63,30 @@ def test_crear_usuario_guarda_el_supabase_id_de_la_invitacion(client, db):
     assert creado.supabase_id is not None
 
 
+def test_crear_usuario_encola_la_invitacion_por_nuestro_propio_outbox(client, db):
+    """2026-08-28: la invitación inicial ya no depende de que Supabase mande
+    su propio correo (con el SMTP que sea que tenga configurado) -- se
+    encola por nuestro outbox con la plantilla institucional, mismo camino
+    que ya usa reenviar_invitacion_endpoint."""
+    admin = _admin(db)
+    payload = {"username": "nuevo_outbox", "email": "nuevo_outbox@example.com", "rol": "usuario"}
+
+    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
+
+    assert respuesta.status_code == 201
+    correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == "nuevo_outbox@example.com").one()
+    assert correo.es_html is True
+    assert "nuevo_outbox" in correo.cuerpo
+    assert "Reservas Parque i" in correo.cuerpo
+
+
 def test_crear_usuario_si_supabase_falla_da_502_y_no_crea_nada(client, db, monkeypatch):
     admin = _admin(db)
 
     def _falla(email):
         raise SupabaseAdminError("simulado: Supabase Cloud no responde")
 
-    monkeypatch.setattr("app.api.usuarios.invitar_usuario", _falla)
+    monkeypatch.setattr("app.api.usuarios.crear_usuario_y_generar_link", _falla)
 
     payload = {"username": "fallido", "email": "fallido@example.com", "rol": "usuario"}
     respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))

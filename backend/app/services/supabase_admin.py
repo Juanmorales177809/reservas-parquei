@@ -109,6 +109,38 @@ def generar_link_invitacion(email: str) -> str:
     return link
 
 
+def crear_usuario_y_generar_link(email: str) -> tuple[uuid.UUID, str]:
+    """Crea la identidad en Supabase para un email NUEVO y devuelve el link
+    de invitación, sin que Supabase mande su propio correo -- a diferencia
+    de `invitar_usuario`, que crea la identidad Y manda el correo en un
+    solo paso (2026-08-28: se dejó de usar en `POST /usuarios` para que la
+    invitación salga por nuestro propio outbox/Graph en vez de depender de
+    un SMTP de terceros configurado en Supabase).
+
+    Usa el mismo endpoint que `generar_link_invitacion`
+    (`/auth/v1/admin/generate_link`, `type=invite`) -- documentado por
+    Supabase como el mismo mecanismo interno que `/auth/v1/invite` pero sin
+    el envío de correo, así que también crea el usuario si no existe. Si
+    la respuesta no trae `id` de usuario (o sea, si ese supuesto resultara
+    falso contra el proyecto real), esta función falla fuerte
+    (`SupabaseAdminError`) en vez de guardar una fila local sin
+    `supabase_id` -- el fallo es ruidoso, no silencioso.
+    """
+    url = f"{settings.supabase_url}/auth/v1/admin/generate_link"
+    try:
+        resp = httpx.post(url, headers=_headers(), json={"type": "invite", "email": email}, timeout=10)
+    except httpx.HTTPError as exc:
+        raise SupabaseAdminError(f"No se pudo contactar a Supabase: {exc}") from exc
+    if resp.status_code >= 400:
+        raise SupabaseAdminError(f"Supabase rechazó la generación del link ({resp.status_code}): {resp.text}")
+    data = resp.json()
+    link = data.get("action_link")
+    user_id = data.get("id") or data.get("user", {}).get("id")
+    if not link or not user_id:
+        raise SupabaseAdminError(f"Respuesta de Supabase sin action_link o id de usuario: {data}")
+    return uuid.UUID(user_id), link
+
+
 def crear_usuario_confirmado(email: str, password: str) -> uuid.UUID:
     """Crea el usuario con una contraseña YA puesta, sin enviar ningún
     correo. Solo la usa el bootstrap del primer admin

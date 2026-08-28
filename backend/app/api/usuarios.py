@@ -13,9 +13,9 @@ from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import plantilla_invitacion
 from app.services.supabase_admin import (
     SupabaseAdminError,
+    crear_usuario_y_generar_link,
     eliminar_usuario as eliminar_usuario_supabase,
     generar_link_invitacion,
-    invitar_usuario,
 )
 
 
@@ -88,14 +88,18 @@ def create_usuario_admin(
         if db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
             raise HTTPException(status_code=404, detail="Espacio no encontrado")
 
-    # La identidad de autenticación la crea Supabase, no este backend: se
-    # invita por email y Supabase manda SU PROPIO correo con el link para
-    # que la persona fije su contraseña. `supabase_id` se guarda de una,
-    # en el mismo momento -- es la única forma en que puede llegar a
-    # existir (ver el docstring de supabase_sesion en app/api/auth.py:
-    # ese endpoint solo busca, nunca crea ni vincula).
+    # La identidad de autenticación la crea Supabase, no este backend --
+    # `supabase_id` se guarda de una, en el mismo momento, es la única
+    # forma en que puede llegar a existir (ver el docstring de
+    # supabase_sesion en app/api/auth.py: ese endpoint solo busca, nunca
+    # crea ni vincula). 2026-08-28: el correo de invitación ya NO lo manda
+    # Supabase con su propia plantilla genérica -- se pide solo el link
+    # (sin que Supabase envíe nada) y se encola por nuestro propio outbox
+    # con la plantilla institucional, mismo camino que ya usa
+    # reenviar_invitacion_endpoint (Graph/SMTP según EMAIL_TRANSPORT, no
+    # depende de qué SMTP tenga configurado Supabase).
     try:
-        supabase_id = invitar_usuario(payload.email)
+        supabase_id, link = crear_usuario_y_generar_link(payload.email)
     except SupabaseAdminError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -103,8 +107,17 @@ def create_usuario_admin(
         ) from exc
 
     usuario = create_usuario(db, payload, supabase_id)
+    encolar_correo(
+        db,
+        destinatario=payload.email,
+        asunto="Invitación a Reservas Parque i",
+        cuerpo=plantilla_invitacion(link=link, nombre_saludo=payload.username),
+        es_html=True,
+    )
     registrar_cambio(db, current_user, "crear", "usuario", usuario.id, f"Creó el usuario {usuario.username} con rol {usuario.rol}")
     db.commit()
+    procesar_pendientes(db)
+    db.refresh(usuario)
     return usuario
 
 
