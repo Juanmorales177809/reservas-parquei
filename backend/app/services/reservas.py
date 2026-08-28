@@ -41,8 +41,10 @@ from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import (
     plantilla_reserva_actualizada,
+    plantilla_reserva_cancelada_por_usuario,
     plantilla_reserva_estado,
     plantilla_reserva_pendiente,
+    plantilla_reserva_recibida,
 )
 from app.services.horarios import horario_cubre_reserva
 from app.services.reloj import RelojLocal
@@ -644,6 +646,35 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
                 ),
                 es_html=True,
             )
+        encolar_correo(
+            db,
+            destinatario=usuario.email,
+            asunto="Recibimos tu solicitud de reserva",
+            cuerpo=plantilla_reserva_recibida(
+                nombre_saludo=usuario.username,
+                espacio=objetivo.espacio.nombre,
+                fecha=str(data.fecha),
+                hora_inicio=str(data.hora_inicio),
+                hora_fin=str(data.hora_fin),
+            ),
+            es_html=True,
+        )
+    else:
+        encolar_correo(
+            db,
+            destinatario=usuario.email,
+            asunto="Tu reserva fue aprobada",
+            cuerpo=plantilla_reserva_estado(
+                nombre_saludo=usuario.username,
+                reserva_id=reserva.id,
+                espacio=objetivo.espacio.nombre,
+                fecha=str(data.fecha),
+                hora_inicio=str(data.hora_inicio),
+                hora_fin=str(data.hora_fin),
+                estado="aprobada",
+            ),
+            es_html=True,
+        )
     registrar_cambio(
         db,
         usuario,
@@ -811,6 +842,37 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
         )
 
     reserva.estado = EstadoReserva.CANCELADA.value
+    gestores = (
+        db.query(Usuario.id, Usuario.username, Usuario.email)
+        .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Usuario.id)
+        .filter(
+            Usuario.rol == Rol.GESTOR.value,
+            UsuarioEspacio.espacio_id == reserva.espacio_id,
+        )
+        .all()
+    )
+    for gestor_id, gestor_username, gestor_email in gestores:
+        db.add(
+            Notificacion(
+                usuario_id=gestor_id,
+                reserva_id=reserva.id,
+                tipo=TipoNotificacion.CANCELADA.value,
+            )
+        )
+        encolar_correo(
+            db,
+            destinatario=gestor_email,
+            asunto="Se canceló una reserva aprobada",
+            cuerpo=plantilla_reserva_cancelada_por_usuario(
+                nombre_saludo=gestor_username,
+                reserva_id=reserva.id,
+                espacio=reserva.espacio.nombre,
+                fecha=str(reserva.fecha),
+                hora_inicio=str(reserva.hora_inicio),
+                hora_fin=str(reserva.hora_fin),
+            ),
+            es_html=True,
+        )
     registrar_cambio(
         db,
         usuario,
@@ -821,6 +883,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
     )
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 

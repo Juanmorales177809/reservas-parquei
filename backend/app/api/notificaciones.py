@@ -44,6 +44,15 @@ def _mensaje(notificacion: Notificacion) -> str:
         return base
     if notificacion.tipo == "Actualizada":
         return f"Tu reserva de {etiqueta} fue actualizada con nuevos recursos"
+    # Cancelada: dos remitentes posibles con el mismo tipo (ver
+    # services/reservas.py) -- el propio dueño de la reserva (gestor/admin
+    # la canceló, cambiar_estado) o un gestor del espacio (el dueño canceló
+    # su propia reserva ya aprobada, cancelar_reserva_usuario). Distinguir
+    # por destinatario evita el "Tu reserva..." engañoso cuando quien lee
+    # la notificación no es quien la hizo.
+    reserva = notificacion.reserva
+    if reserva is not None and notificacion.usuario_id != reserva.usuario_id:
+        return f"Se canceló la reserva de {etiqueta}"
     return f"Tu reserva de {etiqueta} fue cancelada"
 
 

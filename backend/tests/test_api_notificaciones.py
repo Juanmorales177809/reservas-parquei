@@ -98,6 +98,28 @@ def test_aprobacion_notifica_al_solicitante(client, db):
     assert items[0]["tipo"] == "Aprobada"
 
 
+def test_cancelacion_por_usuario_notifica_al_gestor_sin_decir_tu_reserva(client, db):
+    """Gap real: el gestor no es dueño de la reserva que el usuario canceló,
+    así que el mensaje no puede ser el mismo "Tu reserva..." que recibe el
+    solicitante cuando es el gestor quien cambia el estado."""
+    gestor, solicitante, creada = _reserva_pendiente(client, db)
+    reserva_id = creada.json()["id"]
+    client.put(
+        f"/reservas/{reserva_id}/estado",
+        json={"nuevo_estado": "aprobada"},
+        headers=cookies_para(gestor),
+    )
+    client.patch("/notificaciones/leer-todas", headers=cookies_para(gestor))
+
+    respuesta = client.put(f"/reservas/{reserva_id}/cancelar", headers=cookies_para(solicitante))
+    assert respuesta.status_code == 200
+
+    items = client.get("/notificaciones", headers=cookies_para(gestor)).json()
+    cancelada = next(item for item in items if item["tipo"] == "Cancelada")
+    assert cancelada["mensaje"].startswith("Se canceló la reserva")
+    assert "Tu reserva" not in cancelada["mensaje"]
+
+
 def test_reserva_de_zona_notifica_la_zona(client, db):
     """Fase 12C-6: una reserva por zona menciona la zona en el mensaje al
     gestor, no el recurso ancla."""

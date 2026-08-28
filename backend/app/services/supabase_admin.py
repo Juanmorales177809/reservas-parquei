@@ -141,6 +141,31 @@ def crear_usuario_y_generar_link(email: str) -> tuple[uuid.UUID, str]:
     return uuid.UUID(user_id), link
 
 
+def generar_link_recuperacion(email: str) -> str | None:
+    """Genera un link de recuperación de contraseña (`type=recovery`) para
+    un email que YA existe en Supabase -- sin mandar ningún correo por su
+    cuenta, igual que `generar_link_invitacion`.
+
+    A diferencia de `type=invite`, Supabase rechaza `type=recovery` para un
+    email que no tiene cuenta -- acá esa condición se traduce a `None`, NO
+    a una excepción: el endpoint que llama (`POST /auth/recuperar`, ver
+    `app/api/auth.py`) tiene que devolver siempre la misma respuesta
+    exista o no la cuenta, para no filtrar qué emails están registrados
+    (mismo invariante de privacidad que ya tenía el flujo 100%
+    client-side contra Supabase que este endpoint reemplaza -- ver
+    `backend/CLAUDE.md`, "Correo por Microsoft Graph").
+    """
+    url = f"{settings.supabase_url}/auth/v1/admin/generate_link"
+    try:
+        resp = httpx.post(url, headers=_headers(), json={"type": "recovery", "email": email}, timeout=10)
+    except httpx.HTTPError:
+        return None
+    if resp.status_code >= 400:
+        return None
+    data = resp.json()
+    return data.get("action_link")
+
+
 def crear_usuario_confirmado(email: str, password: str) -> uuid.UUID:
     """Crea el usuario con una contraseña YA puesta, sin enviar ningún
     correo. Solo la usa el bootstrap del primer admin

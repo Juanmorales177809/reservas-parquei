@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.auth import NOMBRE_COOKIE_ACCESO, atributos_cookie_acceso, max_age_cookie_acceso
-from app.crud.usuarios import get_usuario_by_supabase_id
+from app.crud.usuarios import get_usuario_by_email, get_usuario_by_supabase_id
 from app.db import get_db
 from app.deps import decode_token
-from app.schemas.usuario import LoginResponse, SupabaseSesionRequest, UsuarioResponse
+from app.schemas.usuario import LoginResponse, RecuperarPasswordRequest, SupabaseSesionRequest, UsuarioResponse
+from app.services.email import encolar_correo, procesar_pendientes
+from app.services.email_templates import plantilla_recuperacion_password
+from app.services.supabase_admin import generar_link_recuperacion
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -79,3 +82,40 @@ def supabase_sesion(
         **atributos_cookie_acceso(),
     )
     return LoginResponse(user=UsuarioResponse.model_validate(usuario))
+
+
+@router.post("/recuperar", status_code=status.HTTP_204_NO_CONTENT)
+def recuperar_password(payload: RecuperarPasswordRequest, db: Session = Depends(get_db)) -> None:
+    """Solicita el correo de recuperación de contraseña, encolado por
+    nuestro propio outbox (Graph/SMTP según `EMAIL_TRANSPORT`) en vez del
+    envío propio de Supabase -- reemplaza el `resetPasswordForEmail`
+    100% client-side que usaba `app_flutter` (ver
+    `AuthRepository.solicitarRecuperacion`).
+
+    Siempre responde 204, exista o no una cuenta con ese email: filtrar qué
+    emails están registrados por la respuesta (o por el tiempo que tarda)
+    sería una fuga de información sobre cuentas reales. `db.rollback()`
+    antes del `return` temprano es defensivo -- ninguna escritura ocurrió
+    todavía en ese punto, pero deja la sesión en un estado limpio conocido
+    en vez de depender del cierre implícito de `get_db`.
+    """
+    link = generar_link_recuperacion(payload.email)
+    if link is None:
+        db.rollback()
+        return None
+
+    usuario = get_usuario_by_email(db, payload.email)
+    if usuario is None:
+        db.rollback()
+        return None
+
+    encolar_correo(
+        db,
+        destinatario=payload.email,
+        asunto="Recuperación de contraseña — Reservas Parque i",
+        cuerpo=plantilla_recuperacion_password(link=link, nombre_saludo=usuario.username),
+        es_html=True,
+    )
+    db.commit()
+    procesar_pendientes(db)
+    return None

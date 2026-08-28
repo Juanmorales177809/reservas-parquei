@@ -1067,6 +1067,21 @@
         "title": "PeriodoDelta",
         "type": "object"
       },
+      "RecuperarPasswordRequest": {
+        "description": "Body de `POST /auth/recuperar` (público). Mismo validador de formato\nque `UsuarioCreate.email` -- no valida si la cuenta existe, eso lo\ndecide Supabase del lado del servidor (ver\n`app/services/supabase_admin.py::generar_link_recuperacion`).",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "RecuperarPasswordRequest",
+        "type": "object"
+      },
       "RecursoCreate": {
         "properties": {
           "capacidad": {
@@ -2761,6 +2776,41 @@
           }
         },
         "summary": "Logout",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/recuperar": {
+      "post": {
+        "description": "Solicita el correo de recuperación de contraseña, encolado por\nnuestro propio outbox (Graph/SMTP según `EMAIL_TRANSPORT`) en vez del\nenvío propio de Supabase -- reemplaza el `resetPasswordForEmail`\n100% client-side que usaba `app_flutter` (ver\n`AuthRepository.solicitarRecuperacion`).\n\nSiempre responde 204, exista o no una cuenta con ese email: filtrar qué\nemails están registrados por la respuesta (o por el tiempo que tarda)\nsería una fuga de información sobre cuentas reales. `db.rollback()`\nantes del `return` temprano es defensivo -- ninguna escritura ocurrió\ntodavía en ese punto, pero deja la sesión en un estado limpio conocido\nen vez de depender del cierre implícito de `get_db`.",
+        "operationId": "recuperar_password_auth_recuperar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecuperarPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recuperar Password",
         "tags": [
           "auth"
         ]

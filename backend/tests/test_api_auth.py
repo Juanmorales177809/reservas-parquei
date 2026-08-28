@@ -20,7 +20,7 @@ import uuid
 from jose import jwt as jose_jwt
 
 from app.config import settings
-from app.models import Usuario
+from app.models import CorreoSaliente, Usuario
 from tests.conftest import crear_usuario, token_supabase_para
 
 
@@ -77,3 +77,36 @@ def test_supabase_sesion_usuario_no_existente_da_403_no_crea_ni_vincula(client, 
     assert respuesta.status_code == 403
     # No se creó ninguna cuenta nueva a partir de este intento.
     assert db.query(Usuario).filter(Usuario.email == "quien-sea@example.com").first() is None
+
+
+def test_recuperar_password_cuenta_existente_encola_el_correo(client, db, monkeypatch):
+    crear_usuario(db, username="con_cuenta", email="con_cuenta@example.com")
+    monkeypatch.setattr(
+        "app.api.auth.generar_link_recuperacion",
+        lambda email: f"https://ejemplo.supabase.co/auth/v1/verify?token=fake&type=recovery&email={email}",
+    )
+
+    respuesta = client.post("/auth/recuperar", json={"email": "con_cuenta@example.com"})
+
+    assert respuesta.status_code == 204
+    correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == "con_cuenta@example.com").one()
+    assert correo.es_html is True
+    assert "con_cuenta" in correo.cuerpo
+
+
+def test_recuperar_password_cuenta_inexistente_responde_igual_sin_encolar(client, db, monkeypatch):
+    """El invariante central: la respuesta (204, sin body) es idéntica exista
+    o no la cuenta -- acá simulamos el `None` que devuelve
+    `generar_link_recuperacion` cuando Supabase rechaza `type=recovery` para
+    un email no registrado."""
+    monkeypatch.setattr("app.api.auth.generar_link_recuperacion", lambda email: None)
+
+    respuesta = client.post("/auth/recuperar", json={"email": "no-existe@example.com"})
+
+    assert respuesta.status_code == 204
+    assert db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == "no-existe@example.com").first() is None
+
+
+def test_recuperar_password_email_invalido_da_422(client):
+    respuesta = client.post("/auth/recuperar", json={"email": "no-es-un-email"})
+    assert respuesta.status_code == 422

@@ -187,13 +187,53 @@ class TestEnganchesDeReserva:
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"
 
-        correo = db.query(CorreoSaliente).one()
-        assert correo.destinatario == gestor.email
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).one()
         assert correo.estado == "enviado"
         assert "pendiente" in correo.asunto.lower()
         assert correo.es_html is True
         assert "<!DOCTYPE html>" in correo.cuerpo
         assert gestor.username in correo.cuerpo
+
+    def test_crear_reserva_esperando_tambien_confirma_al_solicitante(self, client, db, email_habilitado):
+        """Contraparte del correo al gestor: quien crea la reserva también
+        recibe confirmación de que la solicitud quedó registrada (pendiente
+        de aprobación), no solo el gestor que debe resolverla."""
+        usuario, _, _, recurso = _setup(db)
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).one()
+        assert correo.estado == "enviado"
+        assert "recibimos" in correo.asunto.lower()
+        assert correo.es_html is True
+        assert usuario.username in correo.cuerpo
+
+    def test_crear_reserva_con_aprobacion_automatica_confirma_directamente_aprobada(self, client, db, email_habilitado):
+        """Cuando el espacio aprueba automáticamente (o el gestor reserva su
+        propio espacio) no hay nada 'pendiente' que confirmar -- el
+        solicitante recibe directo el correo de aprobación."""
+        espacio = crear_espacio(db, nombre="Sala Auto")
+        espacio.aprobacion_automatica = True
+        db.commit()
+        usuario = crear_usuario(db, username="user_auto", email="user_auto@example.com")
+        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+        assert respuesta.json()["estado"] == "aprobada"
+
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).one()
+        assert correo.estado == "enviado"
+        assert "aprobada" in correo.asunto.lower()
+        assert correo.es_html is True
 
     def test_aprobar_reserva_notifica_al_propietario(self, client, db, email_habilitado):
         usuario, gestor, _, recurso = _setup(db)
@@ -244,6 +284,38 @@ class TestEnganchesDeReserva:
         assert "No hay disponibilidad" in correo.cuerpo
         assert correo.es_html is True
 
+    def test_cancelar_reserva_usuario_notifica_al_gestor(self, client, db, email_habilitado):
+        """Gap encontrado auditando los puntos de notificación existentes:
+        cuando el usuario cancela su propia reserva ya aprobada, el gestor
+        que la había aprobado tiene que enterarse -- antes no pasaba nada."""
+        from app.models import CorreoSaliente, Notificacion
+
+        usuario, gestor, _, recurso = _setup(db)
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        client.put(
+            f"/reservas/{creada['id']}/estado",
+            json={"nuevo_estado": "aprobada"},
+            headers=cookies_para(gestor),
+        )
+        db.query(CorreoSaliente).delete()
+        db.query(Notificacion).delete()
+        db.commit()
+
+        cancelada = client.put(f"/reservas/{creada['id']}/cancelar", headers=cookies_para(usuario))
+        assert cancelada.status_code == 200
+
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).one()
+        assert correo.estado == "enviado"
+        assert correo.es_html is True
+        assert "Tu reserva" not in correo.cuerpo
+
+        notificacion = db.query(Notificacion).filter(Notificacion.usuario_id == gestor.id).one()
+        assert notificacion.tipo == "Cancelada"
+
     def test_sin_email_enabled_no_se_intenta_enviar_pero_la_reserva_se_crea_igual(self, client, db):
         # Sin la fixture email_habilitado: EMAIL_ENABLED sigue en false. La
         # fila queda en el outbox sin enviarse, y la reserva/notificación
@@ -255,5 +327,6 @@ class TestEnganchesDeReserva:
             headers=cookies_para(usuario),
         )
         assert respuesta.status_code == 201
-        correo = db.query(CorreoSaliente).one()
-        assert correo.estado == "pendiente"
+        correos = db.query(CorreoSaliente).all()
+        assert len(correos) == 2  # gestor (pendiente de aprobación) + solicitante (confirmación)
+        assert all(correo.estado == "pendiente" for correo in correos)

@@ -3,18 +3,20 @@
 
 from app.services.email_templates import (
     plantilla_invitacion,
+    plantilla_recuperacion_password,
     plantilla_reserva_actualizada,
+    plantilla_reserva_cancelada_por_usuario,
     plantilla_reserva_estado,
     plantilla_reserva_pendiente,
+    plantilla_reserva_recibida,
 )
 
 
 class TestPlantillaInvitacion:
-    def test_incluye_el_link_en_el_boton_y_como_fallback_de_texto(self):
+    def test_el_boton_apunta_al_link(self):
         link = "https://ejemplo.supabase.co/auth/v1/verify?token=abc"
         html = plantilla_invitacion(link=link, nombre_saludo="ana")
         assert f'href="{link}"' in html
-        assert f">{link}<" in html
 
     def test_es_html_valido_basico(self):
         html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
@@ -27,22 +29,49 @@ class TestPlantillaInvitacion:
         assert "<script>alert(1)</script>" not in html
         assert "&lt;script&gt;" in html
 
-    def test_saludo_vacio_no_deja_espacio_colgado(self):
+    def test_saludo_vacio_no_deja_coma_colgada(self):
         html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="")
-        assert "Hola," in html
-        assert "Hola  ," not in html
+        assert "Hola</p>" in html
+        assert "Hola,</p>" not in html
+        assert "Hola ," not in html
+
+    def test_saludo_con_nombre_incluye_la_coma(self):
+        html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
+        assert "Hola, <strong" in html
 
     def test_menciona_itm_y_reservas_parque_i(self):
         html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
-        assert "Instituto Tecnologico Metropolitano" in html
+        assert "Institución Universitaria ITM" in html
         assert "Reservas Parque i" in html
 
-    def test_incluye_fallback_de_color_solido_para_outlook(self):
-        """Outlook de escritorio ignora `linear-gradient` -- el bloque con
-        gradiente debe tener también un `background-color` sólido."""
+    def test_incluye_bloque_mso_para_outlook_de_escritorio(self):
+        """Outlook de escritorio (motor Word) necesita el bloque condicional
+        `<!--[if mso]>` para la densidad de píxel -- sin él, el logo y las
+        tablas pueden verse desproporcionados en ese cliente."""
         html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
-        assert "background-image:linear-gradient" in html
-        assert "background-color:#1e3a8a" in html
+        assert "<!--[if mso]>" in html
+        assert 'role="presentation"' in html
+
+
+class TestPlantillaRecuperacionPassword:
+    def test_el_boton_apunta_al_link(self):
+        link = "https://ejemplo.supabase.co/auth/v1/verify?token=abc"
+        html = plantilla_recuperacion_password(link=link, nombre_saludo="ana")
+        assert f'href="{link}"' in html
+
+    def test_es_html_valido_basico(self):
+        html = plantilla_recuperacion_password(link="https://ejemplo.com/link")
+        assert html.strip().startswith("<!DOCTYPE html>")
+
+    def test_saludo_vacio_no_deja_coma_colgada(self):
+        html = plantilla_recuperacion_password(link="https://ejemplo.com/link", nombre_saludo="")
+        assert "Hola</p>" in html
+        assert "Hola,</p>" not in html
+
+    def test_escapa_el_nombre_de_saludo(self):
+        html = plantilla_recuperacion_password(link="https://ejemplo.com/link", nombre_saludo="<script>x</script>")
+        assert "<script>x</script>" not in html
+        assert "&lt;script&gt;" in html
 
 
 class TestPlantillaReservaPendiente:
@@ -59,6 +88,23 @@ class TestPlantillaReservaPendiente:
 
     def test_es_html_valido_basico(self):
         html = plantilla_reserva_pendiente(nombre_saludo="a", espacio="b", fecha="c", hora_inicio="d", hora_fin="e")
+        assert html.strip().startswith("<!DOCTYPE html>")
+
+
+class TestPlantillaReservaRecibida:
+    def test_incluye_espacio_y_horario(self):
+        html = plantilla_reserva_recibida(
+            nombre_saludo="ana", espacio="Sala A", fecha="2026-09-01", hora_inicio="08:00", hora_fin="10:00"
+        )
+        assert "ana" in html
+        assert "Sala A" in html
+        assert "2026-09-01" in html
+        assert "08:00" in html and "10:00" in html
+        # Mismo color de "pendiente" que plantilla_reserva_pendiente (aún esperando aprobación)
+        assert "#d97706" in html
+
+    def test_es_html_valido_basico(self):
+        html = plantilla_reserva_recibida(nombre_saludo="a", espacio="b", fecha="c", hora_inicio="d", hora_fin="e")
         assert html.strip().startswith("<!DOCTYPE html>")
 
 
@@ -96,6 +142,27 @@ class TestPlantillaReservaEstado:
         assert "#6b7280" in html
 
 
+class TestPlantillaReservaCanceladaPorUsuario:
+    def test_no_dice_tu_reserva_al_gestor(self):
+        """A diferencia de plantilla_reserva_estado (segunda persona, para
+        el propio dueño), esta plantilla va al gestor -- no debe hablarle
+        como si la reserva fuera suya."""
+        html = plantilla_reserva_cancelada_por_usuario(
+            nombre_saludo="gestor_ana", reserva_id=5, espacio="Sala A", fecha="2026-09-01", hora_inicio="08:00", hora_fin="10:00"
+        )
+        assert "Tu reserva" not in html
+        assert "gestor_ana" in html
+        assert "#5" in html
+        # Mismo color de "cancelada" que plantilla_reserva_estado
+        assert "#6b7280" in html
+
+    def test_es_html_valido_basico(self):
+        html = plantilla_reserva_cancelada_por_usuario(
+            nombre_saludo="a", reserva_id=1, espacio="b", fecha="c", hora_inicio="d", hora_fin="e"
+        )
+        assert html.strip().startswith("<!DOCTYPE html>")
+
+
 class TestPlantillaReservaActualizada:
     def test_incluye_detalle_de_lo_agregado(self):
         html = plantilla_reserva_actualizada(
@@ -104,5 +171,5 @@ class TestPlantillaReservaActualizada:
         )
         assert "recursos: Proyector, Micrófono" in html
         assert "#7" in html
-        # Color de "actualizada" (mismo hex que AppColors.marca / azul académico)
-        assert "#1e3a8a" in html
+        # Color de "actualizada" (mismo navy que el resto de la identidad de Ingeniería)
+        assert "#102d69" in html

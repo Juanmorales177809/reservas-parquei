@@ -128,3 +128,19 @@ class SupabaseSesionRequest(BaseModel):
     """
 
     supabase_token: str = Field(min_length=10, max_length=4096)
+
+
+class RecuperarPasswordRequest(BaseModel):
+    """Body de `POST /auth/recuperar` (público). Mismo validador de formato
+    que `UsuarioCreate.email` -- no valida si la cuenta existe, eso lo
+    decide Supabase del lado del servidor (ver
+    `app/services/supabase_admin.py::generar_link_recuperacion`)."""
+
+    email: str = Field(max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise ValueError("El email debe tener un formato válido")
+        return value
