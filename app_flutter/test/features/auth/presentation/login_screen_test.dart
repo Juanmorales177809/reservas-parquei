@@ -9,9 +9,9 @@ import 'package:app_flutter/features/auth/presentation/login_screen.dart';
 
 /// Fake por subclase (mismo patrón que `_AuthRepositoryFalso` usado antes
 /// en `password_flows_test.dart`, retirado junto a las pantallas de
-/// recuperación clásica): `solicitarRecuperacion` llama directo al SDK de
-/// Supabase, así que un test de widget necesita un doble que nunca lo
-/// toque.
+/// recuperación clásica): `solicitarRecuperacion` llama a `POST
+/// /auth/recuperar` por `Dio`, así que un test de widget necesita un doble
+/// que nunca dispare esa llamada de red real.
 class _AuthRepositoryFalso extends AuthRepository {
   _AuthRepositoryFalso() : super(Dio());
 
