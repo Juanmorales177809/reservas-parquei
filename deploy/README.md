@@ -77,6 +77,16 @@ sudo chown -R "$(id -un):$(id -gn)" ~/reservas-parquei/app_flutter/build
 
 El agente comprueba esto por adelantado y aborta con este mismo comando en el mensaje si detecta el problema, sin tocar el bundle que está sirviendo.
 
+### 3b. Dueño del volumen `graph_token_cache` (puente temporal de correo)
+
+Mismo problema que el punto 3, pero al revés: `graph_token_cache` (ver `backend/CLAUDE.md`, sección "Correo por Microsoft Graph") lo crea Docker vacío y de **root** la primera vez, y el contenedor `backend` corre como `appuser` (no root, `backend/Dockerfile`) — sin este paso, `scripts/graph_login.py` falla con `PermissionError: [Errno 13] Permission denied`. Corregir una sola vez, la primera vez que se cree el volumen (o si se recrea desde cero):
+
+```bash
+docker compose run --rm --user root backend sh -c "mkdir -p /data/graph && chgrp -R 0 /data/graph && chmod -R g+rwX /data/graph"
+```
+
+`appuser` pertenece al grupo `root` (GID 0, mismo patrón ya usado para `/app` en el Dockerfile) — por eso alcanza con dar permiso de grupo, no hace falta cambiar el dueño a `appuser` directamente.
+
 ### 4. Probarlo A MANO antes de activar el timer
 
 ```bash

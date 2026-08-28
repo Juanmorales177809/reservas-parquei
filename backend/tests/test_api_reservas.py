@@ -898,6 +898,8 @@ class TestNotificacionAlAgregarRecursos:
             .all()
         )
         assert len(correos) == 1
+        assert correos[0].es_html is True
+        assert "<!DOCTYPE html>" in correos[0].cuerpo
 
     def test_no_notifica_si_no_se_agrega_nada_nuevo(self, client, db):
         from app.models import Notificacion

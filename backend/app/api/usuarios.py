@@ -10,6 +10,7 @@ from app.models.usuario import Usuario
 from app.schemas.usuario import AdminUsuarioCreate, PerfilUpdate, ReenviarInvitacionResponse, UsuarioResponse, UsuarioUpdate
 from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
+from app.services.email_templates import plantilla_invitacion
 from app.services.supabase_admin import (
     SupabaseAdminError,
     eliminar_usuario as eliminar_usuario_supabase,
@@ -150,12 +151,8 @@ def reenviar_invitacion_endpoint(
         db,
         destinatario=db_user.email,
         asunto="Invitación a Reservas Parque i",
-        cuerpo=(
-            f"Hola {db_user.username},\n\n"
-            "Te reenviamos el link para completar tu cuenta en Reservas Parque i:\n\n"
-            f"{link}\n\n"
-            "Si no esperabas este correo, podés ignorarlo."
-        ),
+        cuerpo=plantilla_invitacion(link=link, nombre_saludo=db_user.username),
+        es_html=True,
     )
     registrar_cambio(db, current_user, "reenviar_invitacion", "usuario", db_user.id, f"Reenvió la invitación a {db_user.username}")
     db.commit()

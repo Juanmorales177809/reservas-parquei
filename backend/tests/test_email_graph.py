@@ -91,7 +91,24 @@ class TestEnviarGraph:
         mensaje = llamada["json"]["message"]
         assert mensaje["subject"] == "Asunto de prueba"
         assert mensaje["body"]["content"] == "Cuerpo de prueba"
+        assert mensaje["body"]["contentType"] == "Text"
         assert mensaje["toRecipients"][0]["emailAddress"]["address"] == "destino@example.com"
+
+    def test_es_html_true_manda_contenttype_html(self, config_graph, monkeypatch):
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+
+        llamadas = []
+
+        def _post_falso(url, headers=None, json=None, timeout=None):
+            llamadas.append(json)
+            return httpx.Response(202, request=httpx.Request("POST", url))
+
+        monkeypatch.setattr(email_graph.httpx, "post", _post_falso)
+
+        email_graph.enviar_graph("destino@example.com", "Asunto", "<p>Cuerpo</p>", es_html=True)
+
+        assert llamadas[0]["message"]["body"]["contentType"] == "HTML"
+        assert llamadas[0]["message"]["body"]["content"] == "<p>Cuerpo</p>"
 
     def test_error_http_lanza_runtimeerror_con_status_y_detalle(self, config_graph, monkeypatch):
         monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")

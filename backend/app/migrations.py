@@ -528,6 +528,12 @@ def migrate_resource_reservations() -> None:
         # para reintentar sin duplicar.
         "ALTER TABLE recursos ADD COLUMN IF NOT EXISTS placa VARCHAR(50)",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_recursos_placa ON recursos (placa)",
+        # Plantillas de correo institucional en HTML (invitación de usuario,
+        # app/services/email_templates.py) -- `correo_saliente` ya existe en
+        # bases reales (a diferencia de cuando se creó, no alcanza con
+        # `create_all`). Default false conserva texto plano para todas las
+        # filas existentes y para el resto de notificaciones del outbox.
+        "ALTER TABLE correo_saliente ADD COLUMN IF NOT EXISTS es_html BOOLEAN NOT NULL DEFAULT false",
     )
 
     with engine.begin() as connection:

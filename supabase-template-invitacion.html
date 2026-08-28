@@ -1,0 +1,72 @@
+<!--
+Plantilla para el dashboard de Supabase, NO para el backend.
+
+Esto resuelve, sin tocar ningún código, el hueco que quedó pendiente: la
+invitación INICIAL (POST /usuarios, alta de un usuario nuevo) sigue
+llamando a /auth/v1/invite -- el único camino ya probado contra el
+proyecto real para crear la identidad -- que manda SU PROPIO correo (la
+plantilla genérica de Supabase). Cambiar ESE código para que pase por
+nuestro outbox es justo lo que se decidió no arriesgar sin probarlo antes
+contra Supabase real (ver backend/CLAUDE.md, "Plantillas HTML
+institucionales en el outbox"). Pero el CONTENIDO de ese correo sí se
+puede personalizar sin tocar nada de eso: Supabase deja editar la
+plantilla desde el dashboard.
+
+  Dashboard de Supabase -> Authentication -> Email Templates -> "Invite user"
+  -> pegar este HTML completo en el campo "Message body" -> Save.
+
+Con esto, la invitación inicial Y el reenvío (que ya usa nuestra propia
+plantilla, app/services/email_templates.py::plantilla_invitacion) quedan
+visualmente idénticos, sin haber tocado el código de creación de cuentas.
+
+{{ .ConfirmationURL }} y {{ .Email }} son variables que resuelve Supabase
+en el momento de mandar el correo -- no tocarlas.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invitacion - Reservas Parque i</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:32px 16px;">
+<tr>
+<td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
+<tr>
+<td style="background-image:linear-gradient(135deg,#1e3a8a,#10b981);background-color:#1e3a8a;padding:28px 32px;">
+<span style="display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#dbeafe;font-weight:700;">Instituto Tecnologico Metropolitano</span>
+<span style="display:block;font-size:20px;font-weight:800;color:#ffffff;margin-top:4px;">Reservas Parque i</span>
+</td>
+</tr>
+<tr>
+<td style="padding:32px;">
+<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#0f172a;">Hola,</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#334155;">
+Te invitaron a crear tu cuenta (<strong>{{ .Email }}</strong>) en el <strong>Sistema de Reservas de Laboratorios</strong> del Parque i.
+Con ella vas a poder reservar espacios y equipos, y hacer seguimiento a tus solicitudes.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+<tr>
+<td style="border-radius:10px;background-color:#1e3a8a;">
+<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Crear mi cuenta</a>
+</td>
+</tr>
+</table>
+<p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#64748b;">Si el boton no funciona, copia y pega este link en tu navegador:</p>
+<p style="margin:0 0 24px;font-size:13px;line-height:1.5;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#1e3a8a;">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#94a3b8;">Si vos no solicitaste esta cuenta, podes ignorar este correo.</p>
+</td>
+</tr>
+<tr>
+<td style="padding:20px 32px;background-color:#f8fafc;border-top:1px solid #e2e8f0;">
+<p style="margin:0;font-size:12px;color:#94a3b8;">Este es un mensaje automatico del Sistema de Reservas de Laboratorios - Parque i, ITM. No respondas a este correo.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>

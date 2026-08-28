@@ -129,6 +129,27 @@ class TestOutbox:
         assert correo.estado == "fallido"
         assert correo.intentos == email_service.MAX_INTENTOS
 
+    def test_encolar_correo_html_se_manda_como_text_html(self, db, email_habilitado):
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="<p>Hola</p>", es_html=True)
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        correo = db.query(CorreoSaliente).one()
+        assert correo.es_html is True
+        assert correo.estado == "enviado"
+        mensaje_enviado = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje_enviado.get_content_type() == "text/html"
+
+    def test_encolar_correo_sin_es_html_sigue_texto_plano_por_default(self, db, email_habilitado):
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="Hola")
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        correo = db.query(CorreoSaliente).one()
+        assert correo.es_html is False
+        mensaje_enviado = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje_enviado.get_content_type() == "text/plain"
+
     def test_procesar_pendientes_usa_graph_si_transport_es_graph_delegado(self, db, monkeypatch):
         """Puente temporal (app/services/email_graph.py): con
         EMAIL_TRANSPORT=graph_delegado, procesar_pendientes NO debe tocar
@@ -139,8 +160,8 @@ class TestOutbox:
 
         llamadas_graph = []
         llamadas_smtp = []
-        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c: llamadas_graph.append((d, a, c)))
-        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c: llamadas_smtp.append((d, a, c)))
+        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c, h=False: llamadas_graph.append((d, a, c)))
+        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c, h=False: llamadas_smtp.append((d, a, c)))
 
         email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="B")
         db.commit()
@@ -170,6 +191,9 @@ class TestEnganchesDeReserva:
         assert correo.destinatario == gestor.email
         assert correo.estado == "enviado"
         assert "pendiente" in correo.asunto.lower()
+        assert correo.es_html is True
+        assert "<!DOCTYPE html>" in correo.cuerpo
+        assert gestor.username in correo.cuerpo
 
     def test_aprobar_reserva_notifica_al_propietario(self, client, db, email_habilitado):
         usuario, gestor, _, recurso = _setup(db)
@@ -194,6 +218,8 @@ class TestEnganchesDeReserva:
         assert correo.destinatario == usuario.email
         assert correo.estado == "enviado"
         assert "aprobada" in correo.asunto.lower()
+        assert correo.es_html is True
+        assert "<!DOCTYPE html>" in correo.cuerpo
 
     def test_rechazar_reserva_incluye_el_motivo_en_el_correo(self, client, db, email_habilitado):
         usuario, gestor, _, recurso = _setup(db)
@@ -216,6 +242,7 @@ class TestEnganchesDeReserva:
         assert correo.destinatario == usuario.email
         assert "rechazada" in correo.asunto.lower()
         assert "No hay disponibilidad" in correo.cuerpo
+        assert correo.es_html is True
 
     def test_sin_email_enabled_no_se_intenta_enviar_pero_la_reserva_se_crea_igual(self, client, db):
         # Sin la fixture email_habilitado: EMAIL_ENABLED sigue en false. La

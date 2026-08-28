@@ -39,6 +39,11 @@ from app.models import (
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
+from app.services.email_templates import (
+    plantilla_reserva_actualizada,
+    plantilla_reserva_estado,
+    plantilla_reserva_pendiente,
+)
 from app.services.horarios import horario_cubre_reserva
 from app.services.reloj import RelojLocal
 
@@ -630,12 +635,14 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
                 db,
                 destinatario=gestor_email,
                 asunto="Nueva reserva pendiente de aprobación",
-                cuerpo=(
-                    f"Hola {gestor_username},\n\n"
-                    f"Hay una nueva reserva pendiente de tu aprobación en {objetivo.espacio.nombre}.\n"
-                    f"Fecha: {data.fecha} de {data.hora_inicio} a {data.hora_fin}.\n\n"
-                    "Ingresá al sistema de reservas para aprobarla o rechazarla."
+                cuerpo=plantilla_reserva_pendiente(
+                    nombre_saludo=gestor_username,
+                    espacio=objetivo.espacio.nombre,
+                    fecha=str(data.fecha),
+                    hora_inicio=str(data.hora_inicio),
+                    hora_fin=str(data.hora_fin),
                 ),
+                es_html=True,
             )
     registrar_cambio(
         db,
@@ -721,15 +728,21 @@ def cambiar_estado(
             EstadoReserva.RECHAZADA: "rechazada",
             EstadoReserva.CANCELADA: "cancelada",
         }[nuevo]
-        cuerpo_correo = f"Hola {reserva.usuario.username},\n\nTu reserva #{reserva.id} fue {estado_legible}."
-        if nuevo == EstadoReserva.RECHAZADA and motivo:
-            cuerpo_correo += f"\nMotivo: {motivo}"
-        cuerpo_correo += "\n\nIngresá al sistema de reservas para más detalles."
         encolar_correo(
             db,
             destinatario=reserva.usuario.email,
             asunto=f"Tu reserva fue {estado_legible}",
-            cuerpo=cuerpo_correo,
+            cuerpo=plantilla_reserva_estado(
+                nombre_saludo=reserva.usuario.username,
+                reserva_id=reserva.id,
+                espacio=reserva.espacio.nombre,
+                fecha=str(reserva.fecha),
+                hora_inicio=str(reserva.hora_inicio),
+                hora_fin=str(reserva.hora_fin),
+                estado=estado_legible,
+                motivo=motivo,
+            ),
+            es_html=True,
         )
         mensaje_auditoria = f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}"
         if nuevo == EstadoReserva.RECHAZADA and motivo:
@@ -927,13 +940,16 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
                 db,
                 destinatario=propietario.email,
                 asunto="Tu reserva fue actualizada con nuevos recursos",
-                cuerpo=(
-                    f"Hola {propietario.username},\n\n"
-                    f"Tu reserva #{reserva.id} de {objetivo.espacio.nombre} fue actualizada.\n"
-                    f"Se agregaron {detalle}.\n"
-                    f"Fecha: {reserva.fecha} de {reserva.hora_inicio} a {reserva.hora_fin}.\n\n"
-                    "Ingresá al sistema de reservas para más detalles."
+                cuerpo=plantilla_reserva_actualizada(
+                    nombre_saludo=propietario.username,
+                    reserva_id=reserva.id,
+                    espacio=objetivo.espacio.nombre,
+                    fecha=str(reserva.fecha),
+                    hora_inicio=str(reserva.hora_inicio),
+                    hora_fin=str(reserva.hora_fin),
+                    detalle=detalle,
                 ),
+                es_html=True,
             )
     registrar_cambio(db, usuario, "actualizar", "reserva", reserva.id, f"Actualizó la reserva #{reserva.id}")
 

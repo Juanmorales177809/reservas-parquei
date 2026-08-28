@@ -17,7 +17,7 @@ import uuid
 
 import pytest
 
-from app.models import Usuario
+from app.models import CorreoSaliente, Usuario
 from app.services.supabase_admin import SupabaseAdminError
 from tests.conftest import crear_espacio, crear_usuario, cookies_para
 
@@ -225,6 +225,11 @@ def test_reenviar_invitacion_devuelve_el_link(client, db, monkeypatch):
     # EMAIL_ENABLED=false en tests (conftest.py no lo activa): el correo
     # queda encolado pero no se intenta enviar de verdad.
     assert data["correo_enviado"] is False
+
+    correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == "a_reinvitar@example.com").one()
+    assert correo.es_html is True
+    assert "a_reinvitar" in correo.cuerpo
+    assert "Reservas Parque i" in correo.cuerpo
 
 
 def test_reenviar_invitacion_solo_admin(client, db, monkeypatch):

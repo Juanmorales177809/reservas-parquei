@@ -112,13 +112,13 @@ def login_interactivo() -> None:
     print(f"OK -- sesión cacheada en {settings.graph_token_cache_path}")  # noqa: T201
 
 
-def enviar_graph(destinatario: str, asunto: str, cuerpo: str) -> None:
+def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False) -> None:
     token = _token_silencioso()
     url = _GRAPH_SEND_MAIL_URL_TEMPLATE.format(sender=settings.graph_mail_sender)
     payload = {
         "message": {
             "subject": asunto,
-            "body": {"contentType": "Text", "content": cuerpo},
+            "body": {"contentType": "HTML" if es_html else "Text", "content": cuerpo},
             "toRecipients": [{"emailAddress": {"address": destinatario}}],
         },
         "saveToSentItems": True,

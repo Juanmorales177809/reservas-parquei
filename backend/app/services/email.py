@@ -30,20 +30,26 @@ logger = logging.getLogger("app.email")
 MAX_INTENTOS = 5
 
 
-def encolar_correo(db: Session, *, destinatario: str, asunto: str, cuerpo: str) -> CorreoSaliente:
+def encolar_correo(
+    db: Session, *, destinatario: str, asunto: str, cuerpo: str, es_html: bool = False
+) -> CorreoSaliente:
     """Escribe una fila `pendiente` en el outbox.
 
     NO hace `commit`: debe viajar en la MISMA transacción que el cambio de
     negocio que la origina (reserva, alta de usuario, recuperación de
     contraseña) -- quien llama sigue siendo responsable de su propio commit.
+
+    `es_html=True` para plantillas institucionales (ver
+    `app/services/email_templates.py`) -- el resto de las notificaciones
+    sigue en texto plano por default, sin cambiar su comportamiento actual.
     """
-    correo = CorreoSaliente(destinatario=destinatario, asunto=asunto, cuerpo=cuerpo, estado="pendiente")
+    correo = CorreoSaliente(destinatario=destinatario, asunto=asunto, cuerpo=cuerpo, es_html=es_html, estado="pendiente")
     db.add(correo)
     return correo
 
 
-def _enviar_smtp(destinatario: str, asunto: str, cuerpo: str) -> None:
-    mensaje = MIMEText(cuerpo, "plain", "utf-8")
+def _enviar_smtp(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False) -> None:
+    mensaje = MIMEText(cuerpo, "html" if es_html else "plain", "utf-8")
     mensaje["Subject"] = asunto
     mensaje["From"] = settings.smtp_from
     mensaje["To"] = destinatario
@@ -80,7 +86,7 @@ def procesar_pendientes(db: Session) -> None:
     pendientes = db.query(CorreoSaliente).filter(CorreoSaliente.estado == "pendiente").all()
     for correo in pendientes:
         try:
-            enviar(correo.destinatario, correo.asunto, correo.cuerpo)
+            enviar(correo.destinatario, correo.asunto, correo.cuerpo, correo.es_html)
         except Exception:
             logger.exception("Fallo enviando correo id=%s a %s", correo.id, correo.destinatario)
             correo.intentos += 1

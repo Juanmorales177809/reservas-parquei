@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, Text, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, String, Text, func
 
 from app.db import Base
 
@@ -21,6 +21,11 @@ class CorreoSaliente(Base):
     destinatario = Column(String(255), nullable=False)
     asunto = Column(String(255), nullable=False)
     cuerpo = Column(Text, nullable=False)
+    # Plantillas institucionales (ej. invitación de usuario, app/services/
+    # email_templates.py) mandan HTML; el resto de las notificaciones
+    # (aprobada/rechazada/etc.) siguen en texto plano -- default false
+    # conserva ese comportamiento para todas las filas existentes.
+    es_html = Column(Boolean, nullable=False, default=False)
     estado = Column(String(20), nullable=False, default="pendiente")
     intentos = Column(Integer, nullable=False, default=0)
     creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
