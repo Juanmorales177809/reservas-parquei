@@ -100,6 +100,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.admin;
       }
 
+      // Perfil obligatorio: cualquier rol con el perfil incompleto (los 5
+      // campos de Fase A2 -- documento, teléfono, institución, vinculación,
+      // dependencia) queda atrapado en /perfil hasta completarlo, sin
+      // importar a qué ruta intente navegar. `MiPerfilScreen` tiene su
+      // propio botón de "Cerrar sesión" para quien no quiera completarlo
+      // ahora (ver mi_perfil_screen.dart) -- la única salida además de
+      // llenarlo.
+      if (user != null && !user.perfilCompleto && state.matchedLocation != AppRoutes.perfil) {
+        return AppRoutes.perfil;
+      }
+
       final destinosDeLaRuta = kNavDestinations.where((d) => d.path == state.matchedLocation);
       final destino = destinosDeLaRuta.isEmpty ? null : destinosDeLaRuta.first;
       if (destino != null && destino.rolesPermitidos != null && !destino.visiblePara(user)) {

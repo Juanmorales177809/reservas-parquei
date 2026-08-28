@@ -55,6 +55,19 @@ abstract class AuthUser with _$AuthUser {
   /// estas dos reglas, reutilizada por guards de navegación y widgets.
   bool get isAdmin => rol == RolUsuario.admin;
   bool get canManageResources => rol == RolUsuario.admin || rol == RolUsuario.gestor;
+
+  /// Perfil obligatorio (a pedido explícito, 2026-08-28): los 5 campos de
+  /// Fase A2 pasan de opcionales a requeridos para poder usar el resto de
+  /// la app -- ver el guard de `app_router.dart` que redirige a `/perfil`
+  /// mientras esto sea `false`, para cualquier rol.
+  bool get perfilCompleto =>
+      _noVacio(documentoIdentificacion) &&
+      _noVacio(telefono) &&
+      _noVacio(institucion) &&
+      vinculacion != null &&
+      _noVacio(dependencia);
+
+  static bool _noVacio(String? valor) => valor != null && valor.trim().isNotEmpty;
 }
 
 /// El body de `POST /auth/supabase/sesion` (`LoginResponse`) solo trae

@@ -92,13 +92,24 @@ void main() {
     expect(find.text('Estudiante'), findsOneWidget);
   });
 
+  Future<void> llenarCamposObligatorios(WidgetTester tester) async {
+    await tester.enterText(find.widgetWithText(TextFormField, 'Documento de identificación'), '123456');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono/celular'), '3000000000');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Institución a la que pertenece'), 'ITM');
+    await tester.tap(find.byType(DropdownButtonFormField<VinculacionUsuario>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Estudiante').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Dependencia / Facultad'), 'Ingeniería');
+  }
+
   testWidgets('guardar envía los campos actuales del formulario', (tester) async {
     final usuario = _usuario();
     final fake = _UsuariosRepositoryFalso(usuario);
     await tester.pumpWidget(montar(usuario, fake));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono/celular'), '3000000000');
+    await llenarCamposObligatorios(tester);
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -113,9 +124,39 @@ void main() {
     await tester.pumpWidget(montar(usuario, fake));
     await tester.pumpAndSettle();
 
+    await llenarCamposObligatorios(tester);
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
     expect(find.text('No se pudo actualizar.'), findsOneWidget);
+  });
+
+  testWidgets('con campos vacíos, Guardar no envía nada (los 5 son obligatorios)', (tester) async {
+    final usuario = _usuario();
+    final fake = _UsuariosRepositoryFalso(usuario);
+    await tester.pumpWidget(montar(usuario, fake));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(fake.ultimoEnvio, isNull);
+    expect(find.text('Requerido'), findsWidgets);
+  });
+
+  testWidgets('perfil incompleto muestra el texto de "antes de continuar"', (tester) async {
+    final usuario = _usuario();
+    await tester.pumpWidget(montar(usuario, _UsuariosRepositoryFalso(usuario)));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Antes de continuar'), findsOneWidget);
+  });
+
+  testWidgets('tiene un botón de Cerrar sesión como salida', (tester) async {
+    final usuario = _usuario();
+    await tester.pumpWidget(montar(usuario, _UsuariosRepositoryFalso(usuario)));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Cerrar sesión'), findsOneWidget);
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
@@ -13,6 +14,15 @@ import '../data/usuarios_repository.dart';
 /// solicitud de laboratorios del ITM (documento, teléfono, institución,
 /// vinculación, dependencia) y se completan acá una sola vez, no en cada
 /// reserva -- ver `EspacioReservaSheet`, que ya no vuelve a pedirlos.
+///
+/// Obligatorio para cualquier rol (2026-08-28): el guard de
+/// `app_router.dart` redirige acá mientras `AuthUser.perfilCompleto` sea
+/// `false`, sin importar a qué ruta se intente navegar -- por eso los 5
+/// campos llevan `validator` (antes eran todos opcionales) y el `AppBar`
+/// tiene su propio botón de "Cerrar sesión": si esta pantalla se llegó a
+/// mostrar por el guard forzado (recién invitado, sin nada en el stack de
+/// navegación para volver atrás), sin ese botón la única salida sería
+/// completar el formulario ahí mismo.
 class MiPerfilScreen extends ConsumerStatefulWidget {
   const MiPerfilScreen({super.key});
 
@@ -82,9 +92,20 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _precargarSiHaceFalta(ref.watch(authProvider).value);
+    final usuario = ref.watch(authProvider).value;
+    _precargarSiHaceFalta(usuario);
+    final obligatorio = usuario != null && !usuario.perfilCompleto;
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil')),
+      appBar: AppBar(
+        title: const Text('Mi perfil'),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.logOut),
+            tooltip: 'Cerrar sesión',
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: ConstrainedBox(
@@ -95,24 +116,29 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Estos datos se completan una sola vez y se reutilizan al hacer una solicitud.',
+                  obligatorio
+                      ? 'Antes de continuar, completá estos datos -- se guardan una sola vez y se reutilizan al hacer una solicitud.'
+                      : 'Estos datos se completan una sola vez y se reutilizan al hacer una solicitud.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 TextFormField(
                   controller: _documentoController,
                   decoration: const InputDecoration(labelText: 'Documento de identificación'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _telefonoController,
                   decoration: const InputDecoration(labelText: 'Teléfono/celular'),
                   keyboardType: TextInputType.phone,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _institucionController,
                   decoration: const InputDecoration(labelText: 'Institución a la que pertenece'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<VinculacionUsuario>(
@@ -122,11 +148,13 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
                       .map((v) => DropdownMenuItem(value: v, child: Text(vinculacionUsuarioLabel(v))))
                       .toList(),
                   onChanged: (v) => setState(() => _vinculacion = v),
+                  validator: (v) => v == null ? 'Requerido' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _dependenciaController,
                   decoration: const InputDecoration(labelText: 'Dependencia / Facultad'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: AppSpacing.md),
