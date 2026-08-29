@@ -230,8 +230,37 @@ class ReservaAcompananteResponse(BaseModel):
     correo: str
 
 
+class _ReservaConActorNormalizado:
+    """Proxy de solo lectura sobre un `Reserva` ORM: expone `usuario_id`/
+    `usuario` resueltos desde `Reserva.actor` (puede ser `Personal` o
+    `Usuario`, ver `~/.claude/plans/dazzling-wobbling-zebra.md`) y delega
+    cualquier otro atributo al objeto real. Existe para que
+    `ReservaResponse` (contrato sin cambios: sigue exponiendo `usuario_id`/
+    `usuario` como antes de la separación en dos tablas) no necesite saber
+    de qué tabla vino el actor -- una reserva de un gestor que reservó su
+    propio espacio se sirve exactamente igual que una de un `usuario`."""
+
+    __slots__ = ("_reserva",)
+
+    def __init__(self, reserva) -> None:
+        object.__setattr__(self, "_reserva", reserva)
+
+    def __getattr__(self, name: str):
+        if name in ("usuario_id", "usuario"):
+            actor = self._reserva.actor
+            return actor.id if name == "usuario_id" else actor
+        return getattr(self._reserva, name)
+
+
 class ReservaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalizar_actor(cls, data):
+        if hasattr(data, "actor"):
+            return _ReservaConActorNormalizado(data)
+        return data
 
     id: int
     usuario_id: int

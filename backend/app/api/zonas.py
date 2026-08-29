@@ -5,7 +5,7 @@ from app.crud.zonas import create_zona, get_zona, reemplazar_recursos_de_zona, u
 from app.db import get_db
 from app.deps import get_current_user_optional, get_managed_space_id, require_resource_manager
 from app.domain.enums import Rol
-from app.models import Espacio, Recurso, Usuario
+from app.models import Espacio, Personal, Recurso, Usuario
 from app.models.zona import Zona
 from app.models.zona_recurso import ZonaRecurso
 from app.schemas.zona import (
@@ -39,7 +39,7 @@ def listar_zonas(
 @router.post("", response_model=ZonaResponse, status_code=status.HTTP_201_CREATED)
 def crear_zona(
     payload: ZonaCreate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     espacio_gestionado = get_managed_space_id(db, current_user)
@@ -54,7 +54,7 @@ def crear_zona(
 def actualizar_zona(
     zona_id: int,
     payload: ZonaUpdate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     zona = get_zona(db, zona_id)
@@ -80,7 +80,7 @@ def actualizar_zona(
 def actualizar_recursos_de_zona(
     zona_id: int,
     payload: ZonaRecursosUpdate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     """Reemplazo completo de la asociación Zona<->Recurso (Fase 12C-3):
@@ -130,7 +130,7 @@ def actualizar_recursos_de_zona(
 @router.delete("/{zona_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_zona(
     zona_id: int,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     zona = get_zona(db, zona_id)

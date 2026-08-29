@@ -1,5 +1,4 @@
 import logging
-import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -7,8 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, notificaciones, recursos, reservas, usuarios, zonas
-from app.auth.auth import hash_password
+from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, notificaciones, personal, recursos, reservas, usuarios, zonas
 from app.config import settings
 from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
@@ -139,13 +137,16 @@ def health_check():
 def seed_admin_user() -> None:
     db: Session = SessionLocal()
     try:
-        from app.models.usuario import Usuario
+        from app.models.personal import Personal
         from app.initial_data.espacios import init_espacios
 
         # Poblar espacios iniciales
         init_espacios(db)
 
-        admin = db.query(Usuario).filter(Usuario.rol == "admin").first()
+        # El admin inicial vive en `personal` desde la separación
+        # personal/usuarios (2026-08-28, ver
+        # ~/.claude/plans/dazzling-wobbling-zebra.md) -- ya no en `usuarios`.
+        admin = db.query(Personal).filter(Personal.rol == "admin").first()
         admin_username = settings.initial_admin_username
         admin_email = settings.initial_admin_email
         admin_password = settings.initial_admin_password
@@ -156,10 +157,10 @@ def seed_admin_user() -> None:
         assert admin_password is not None
 
         existing_identity = (
-            db.query(Usuario)
+            db.query(Personal)
             .filter(
-                (Usuario.username == admin_username)
-                | (Usuario.email == admin_email)
+                (Personal.username == admin_username)
+                | (Personal.email == admin_email)
             )
             .first()
         )
@@ -168,18 +169,15 @@ def seed_admin_user() -> None:
                 "No se pudo crear el administrador inicial: el usuario o email ya existe"
             )
 
-        # A diferencia del alta normal (create_usuario_admin), acá NO se
+        # A diferencia del alta normal (create_personal_admin), acá NO se
         # invita por email: INITIAL_ADMIN_PASSWORD ya fija la contraseña
         # real, así que se crea directo y confirmada en Supabase -- nadie
         # tiene que revisar un correo para poder arrancar el sistema.
         supabase_id = crear_usuario_confirmado(admin_email, admin_password)
         db.add(
-            Usuario(
+            Personal(
                 username=admin_username,
                 email=admin_email,
-                # Vestigial, nunca se lee para autenticar -- ver el
-                # comentario en app/crud/usuarios.py::create_usuario.
-                hashed_password=hash_password(secrets.token_urlsafe(32)),
                 rol="admin",
                 supabase_id=supabase_id,
             )
@@ -195,6 +193,7 @@ app.include_router(admin_dashboard.router)
 app.include_router(admin_dashboard.gestion_router)
 app.include_router(control_cambios.router)
 app.include_router(usuarios.router)
+app.include_router(personal.router)
 app.include_router(espacios.router)
 app.include_router(recursos.router)
 app.include_router(zonas.router)

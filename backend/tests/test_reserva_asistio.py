@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from app.models.control_cambio import ControlCambio
 from app.models.reserva import Reserva
 from app.schemas.reserva import ReservaAsistioUpdate, ReservaResponse
+from app.services.actores import columnas_actor
 from tests.conftest import (
     cookies_para,
     crear_espacio,
@@ -27,7 +28,7 @@ from tests.conftest import (
 
 def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),

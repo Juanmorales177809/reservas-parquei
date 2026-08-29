@@ -10,6 +10,7 @@ Reglas cubiertas:
 from app.domain.protocols import RegistroAuditoria
 from app.models import ControlCambio
 from app.services.auditoria import AuditoriaSesion, registrar_cambio
+from app.services.actores import columnas_actor
 from tests.conftest import crear_usuario
 
 
@@ -20,7 +21,7 @@ def test_auditoria_sesion_implementa_protocolo(db):
 def test_auditoria_sesion_persiste_con_primitivas(db):
     usuario = crear_usuario(db, username="aud_dominio", email="aud_dominio@example.com")
     AuditoriaSesion(db).registrar(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         accion="crear",
         entidad="reserva",
         entidad_id=10,

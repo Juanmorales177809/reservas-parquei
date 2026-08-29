@@ -216,6 +216,143 @@ _ROLLBACK_RESERVA_LEGACY = """
 """
 
 
+# Separación personal/usuarios (2026-08-28, ver
+# ~/.claude/plans/dazzling-wobbling-zebra.md): `personal` (admin/gestor) ya
+# existe como tabla nueva (creada por Base.metadata.create_all() antes de
+# esta función, mismo criterio que reserva_recursos/correo_saliente) --
+# acá solo se migran los DATOS y se repuntan las FK. Preservar el mismo
+# `id` al copiar (ON CONFLICT DO NOTHING + setval) es lo que permite NO
+# tener que reescribir ningún valor de FK existente, solo su constraint.
+_COPIAR_ADMIN_GESTOR_A_PERSONAL = """
+    INSERT INTO personal (
+        id, username, email, supabase_id, rol,
+        documento_identificacion, telefono, institucion, vinculacion, dependencia,
+        created_at, updated_at
+    )
+    SELECT
+        id, username, email, supabase_id, rol,
+        documento_identificacion, telefono, institucion, vinculacion, dependencia,
+        created_at, updated_at
+    FROM usuarios WHERE rol IN ('admin', 'gestor')
+    ON CONFLICT (id) DO NOTHING;
+    SELECT setval(pg_get_serial_sequence('personal', 'id'), COALESCE((SELECT MAX(id) FROM personal), 1));
+"""
+
+# Repuntar las FK "de personal" (usuarios(id) -> personal(id)) -- válido
+# recién DESPUÉS de _COPIAR_ADMIN_GESTOR_A_PERSONAL, porque el ADD
+# CONSTRAINT valida los valores ya existentes en cada columna contra la
+# nueva tabla referenciada. Patrón drop+add sin guarda de existencia
+# (mismo que notificaciones_tipo_check más arriba): idempotente porque
+# DROP CONSTRAINT IF EXISTS nunca falla y el ADD que sigue siempre puede
+# recrearla.
+_REPUNTAR_FK_DE_PERSONAL = """
+    ALTER TABLE usuarios_espacios DROP CONSTRAINT IF EXISTS usuarios_espacios_usuario_id_fkey;
+    ALTER TABLE usuarios_espacios ADD CONSTRAINT usuarios_espacios_usuario_id_fkey
+        FOREIGN KEY (usuario_id) REFERENCES personal(id);
+
+    ALTER TABLE recursos DROP CONSTRAINT IF EXISTS recursos_created_by_fkey;
+    ALTER TABLE recursos ADD CONSTRAINT recursos_created_by_fkey
+        FOREIGN KEY (created_by) REFERENCES personal(id);
+    ALTER TABLE recursos DROP CONSTRAINT IF EXISTS recursos_update_by_fkey;
+    ALTER TABLE recursos ADD CONSTRAINT recursos_update_by_fkey
+        FOREIGN KEY (update_by) REFERENCES personal(id);
+
+    ALTER TABLE zonas DROP CONSTRAINT IF EXISTS zonas_created_by_fkey;
+    ALTER TABLE zonas ADD CONSTRAINT zonas_created_by_fkey
+        FOREIGN KEY (created_by) REFERENCES personal(id);
+    ALTER TABLE zonas DROP CONSTRAINT IF EXISTS zonas_updated_by_fkey;
+    ALTER TABLE zonas ADD CONSTRAINT zonas_updated_by_fkey
+        FOREIGN KEY (updated_by) REFERENCES personal(id);
+
+    ALTER TABLE ensayos DROP CONSTRAINT IF EXISTS ensayos_created_by_fkey;
+    ALTER TABLE ensayos ADD CONSTRAINT ensayos_created_by_fkey
+        FOREIGN KEY (created_by) REFERENCES personal(id);
+    ALTER TABLE ensayos DROP CONSTRAINT IF EXISTS ensayos_updated_by_fkey;
+    ALTER TABLE ensayos ADD CONSTRAINT ensayos_updated_by_fkey
+        FOREIGN KEY (updated_by) REFERENCES personal(id);
+
+    ALTER TABLE espacios DROP CONSTRAINT IF EXISTS espacios_created_by_fkey;
+    ALTER TABLE espacios ADD CONSTRAINT espacios_created_by_fkey
+        FOREIGN KEY (created_by) REFERENCES personal(id);
+    ALTER TABLE espacios DROP CONSTRAINT IF EXISTS espacios_updated_by_fkey;
+    ALTER TABLE espacios ADD CONSTRAINT espacios_updated_by_fkey
+        FOREIGN KEY (updated_by) REFERENCES personal(id);
+"""
+
+# reservas/notificaciones/control_cambios son polimórficas (el actor puede
+# ser rol `usuario` o `personal`, ver el docstring de Reserva.actor) --
+# ganan `personal_id` nullable, `usuario_id` pasa a nullable (ya lo era en
+# control_cambios), backfill de las filas que en realidad eran de
+# personal, y un CHECK de "a lo sumo/exactamente una llena" según la tabla
+# (control_cambios ya admitía las dos en NULL por su `ondelete=SET NULL`
+# previo a esta separación).
+_POLIMORFISMO_ACTOR_RESERVAS_NOTIFICACIONES = """
+    ALTER TABLE reservas ALTER COLUMN usuario_id DROP NOT NULL;
+    ALTER TABLE reservas ADD COLUMN IF NOT EXISTS personal_id INTEGER;
+    ALTER TABLE notificaciones ALTER COLUMN usuario_id DROP NOT NULL;
+    ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS personal_id INTEGER;
+    ALTER TABLE control_cambios ADD COLUMN IF NOT EXISTS personal_id INTEGER;
+"""
+
+_FK_PERSONAL_ID_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS = """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'reservas_personal_id_fkey') THEN
+            ALTER TABLE reservas ADD CONSTRAINT reservas_personal_id_fkey
+            FOREIGN KEY (personal_id) REFERENCES personal(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notificaciones_personal_id_fkey') THEN
+            ALTER TABLE notificaciones ADD CONSTRAINT notificaciones_personal_id_fkey
+            FOREIGN KEY (personal_id) REFERENCES personal(id) ON DELETE CASCADE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'control_cambios_personal_id_fkey') THEN
+            ALTER TABLE control_cambios ADD CONSTRAINT control_cambios_personal_id_fkey
+            FOREIGN KEY (personal_id) REFERENCES personal(id) ON DELETE SET NULL;
+        END IF;
+    END $$;
+"""
+
+# Backfill: cualquier fila que hoy apunta con `usuario_id` a alguien que en
+# realidad ya está en `personal` (porque _COPIAR_ADMIN_GESTOR_A_PERSONAL
+# preservó el mismo id) mueve ese valor a `personal_id`. Siempre
+# re-ejecutable sin efecto tras la primera vez: en la segunda corrida no
+# queda ningún `usuario_id` apuntando a un id de `personal` (ya se movió).
+_BACKFILL_ACTOR_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS = """
+    UPDATE reservas SET personal_id = usuario_id, usuario_id = NULL
+    WHERE usuario_id IN (SELECT id FROM personal);
+    UPDATE notificaciones SET personal_id = usuario_id, usuario_id = NULL
+    WHERE usuario_id IN (SELECT id FROM personal);
+    UPDATE control_cambios SET personal_id = usuario_id, usuario_id = NULL
+    WHERE usuario_id IN (SELECT id FROM personal);
+"""
+
+_CHECK_ACTOR_UNICO_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS = """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_reservas_actor_unico') THEN
+            ALTER TABLE reservas ADD CONSTRAINT ck_reservas_actor_unico
+            CHECK ((usuario_id IS NOT NULL) != (personal_id IS NOT NULL));
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_notificaciones_actor_unico') THEN
+            ALTER TABLE notificaciones ADD CONSTRAINT ck_notificaciones_actor_unico
+            CHECK ((usuario_id IS NOT NULL) != (personal_id IS NOT NULL));
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_control_cambios_actor_unico') THEN
+            ALTER TABLE control_cambios ADD CONSTRAINT ck_control_cambios_actor_unico
+            CHECK (usuario_id IS NULL OR personal_id IS NULL);
+        END IF;
+    END $$;
+"""
+
+# Último paso: ya con todo repuntado y respaldado en `personal`, las filas
+# admin/gestor sobran en `usuarios`. DELETE simple -- no dispara ningún
+# ON DELETE CASCADE relevante (sus reservas/notificaciones/control_cambios
+# ya se movieron a personal_id en el paso de backfill, sus
+# usuarios_espacios/recursos/zonas/ensayos/espacios ya referencian
+# personal(id) desde _REPUNTAR_FK_DE_PERSONAL).
+_BORRAR_ADMIN_GESTOR_DE_USUARIOS = "DELETE FROM usuarios WHERE rol IN ('admin', 'gestor')"
+
+
 def migrate_resource_reservations() -> None:
     """Bring older installations to the resource-based reservation model.
 
@@ -534,6 +671,18 @@ def migrate_resource_reservations() -> None:
         # `create_all`). Default false conserva texto plano para todas las
         # filas existentes y para el resto de notificaciones del outbox.
         "ALTER TABLE correo_saliente ADD COLUMN IF NOT EXISTS es_html BOOLEAN NOT NULL DEFAULT false",
+        # Separación personal/usuarios (2026-08-28) -- orden estricto: copiar
+        # antes de repuntar FK (la constraint valida contra personal(id)),
+        # habilitar el polimorfismo antes de backfillear, backfillear antes
+        # del CHECK (que exige exactamente una llena), y borrar de usuarios
+        # solo al final, con todo lo demás ya migrado.
+        _COPIAR_ADMIN_GESTOR_A_PERSONAL,
+        _REPUNTAR_FK_DE_PERSONAL,
+        _POLIMORFISMO_ACTOR_RESERVAS_NOTIFICACIONES,
+        _FK_PERSONAL_ID_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,
+        _BACKFILL_ACTOR_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,
+        _CHECK_ACTOR_UNICO_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,
+        _BORRAR_ADMIN_GESTOR_DE_USUARIOS,
     )
 
     with engine.begin() as connection:

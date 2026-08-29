@@ -34,6 +34,7 @@ from app.services.reservas import (
     cancelar_reserva_usuario,
     crear_reserva,
 )
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
 
 
@@ -383,7 +384,7 @@ class TestReservaHistoricaBackfilled:
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         fecha = fecha_habilitada()
         reserva = Reserva(
-            usuario_id=admin.id,
+            **columnas_actor(admin),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha,

@@ -2,13 +2,16 @@ from datetime import date, time
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.personal import Personal
 from app.models.recurso import Recurso
 from app.models.reserva import ESTADOS_BLOQUEANTES, Reserva
 from app.models.reserva_recurso import ReservaRecurso
 from app.models.reserva_zona import ReservaZona
+from app.models.usuario import Usuario
 
 _OPTIONS_CARGA = (
     joinedload(Reserva.usuario),
+    joinedload(Reserva.personal),
     joinedload(Reserva.espacio),
     joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.espacio),
     joinedload(Reserva.zonas_asociadas),
@@ -66,11 +69,16 @@ def get_reservas_gestion(
     )
 
 
-def get_mis_reservas(db: Session, usuario_id: int) -> list[Reserva]:
+def get_mis_reservas(db: Session, actor: Personal | Usuario) -> list[Reserva]:
+    """Polimórfico (ver `services/actores.py`): filtra por `personal_id`
+    o `usuario_id` según de qué tabla venga `actor` -- sin esto, un
+    gestor que llamara este endpoint vería (o peor, colisionaría con) las
+    reservas de un `Usuario` con el mismo id numérico."""
+    columna = Reserva.personal_id if isinstance(actor, Personal) else Reserva.usuario_id
     return _enriquecer_con_asociaciones(
         db.query(Reserva)
         .options(*_OPTIONS_CARGA)
-        .filter(Reserva.usuario_id == usuario_id)
+        .filter(columna == actor.id)
         .order_by(Reserva.fecha.desc(), Reserva.hora_inicio.desc())
         .all()
     )

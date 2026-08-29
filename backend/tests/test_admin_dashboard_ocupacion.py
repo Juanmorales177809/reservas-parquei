@@ -16,6 +16,7 @@ actual ya no permitiría.
 from datetime import date, time
 
 from app.models import Reserva
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario, cookies_para
 
 LUNES = date(2026, 8, 17)  # weekday 0
@@ -30,7 +31,7 @@ def _admin_y_headers(db):
 def _reserva_directa(db, usuario, espacio, recurso, fecha, inicio, fin, estado="aprobada"):
     db.add(
         Reserva(
-            usuario_id=usuario.id,
+            **columnas_actor(usuario),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha,

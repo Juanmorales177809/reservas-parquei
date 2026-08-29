@@ -15,16 +15,16 @@ class Zona(Base):
     estado = Column(String(20), nullable=False, default="activo")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    created_by = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    updated_by = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("personal.id"), nullable=False)
+    updated_by = Column(Integer, ForeignKey("personal.id"), nullable=False)
 
     # Relación unidireccional a propósito: esta subfase (12C-1) no modifica
     # app/models/espacio.py, así que no hay `back_populates` del lado de
     # Espacio todavía. La integración con Reserva queda para subfases
     # posteriores (12C-4).
     espacio = relationship("Espacio")
-    creador = relationship("Usuario", foreign_keys=[created_by])
-    actualizador = relationship("Usuario", foreign_keys=[updated_by])
+    creador = relationship("Personal", foreign_keys=[created_by])
+    actualizador = relationship("Personal", foreign_keys=[updated_by])
 
     # viewonly: la escritura de la asociación sigue pasando exclusivamente
     # por `reemplazar_recursos_de_zona` (PUT /zonas/{id}/recursos), esto es

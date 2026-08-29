@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import get_managed_space_id, require_admin, require_resource_manager
 from app.domain.valor import HorarioAtencion
-from app.models import Espacio, Recurso, Reserva, ReservaRecurso, Usuario
+from app.models import Espacio, Personal, Recurso, Reserva, ReservaRecurso, Usuario
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
 from app.services.horarios import horas_atencion_dia
@@ -261,7 +261,7 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
 
 @router.get("/summary", response_model=AdminDashboardSummary)
 def obtener_resumen_dashboard_admin(
-    _: Usuario = Depends(require_admin),
+    _: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
     periodo_dias: int | None = Query(default=None, ge=1, le=365, description="Ventana para delta vs período previo"),
 ):
@@ -271,7 +271,7 @@ def obtener_resumen_dashboard_admin(
 
 @gestion_router.get("/summary", response_model=AdminDashboardSummary)
 def obtener_resumen_dashboard_gestor(
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
     periodo_dias: int | None = Query(default=None, ge=1, le=365, description="Ventana para delta vs período previo"),
 ):

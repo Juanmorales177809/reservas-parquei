@@ -28,7 +28,8 @@ from app.schemas.reserva import (
     ReservaUpdate,
     ZonaReservaResponse,
 )
-from app.schemas.usuario import AdminUsuarioCreate, UsuarioResponse, UsuarioUpdate
+from app.schemas.personal import PersonalCreate, PersonalUpdate
+from app.schemas.usuario import UsuarioResponse
 
 
 def _validacion_exc(modelo, **datos):
@@ -37,13 +38,13 @@ def _validacion_exc(modelo, **datos):
 
 
 class TestCamposTipadosConEnums:
-    def test_admin_usuario_create_rol_es_enum(self):
-        modelo = AdminUsuarioCreate(username="usuario1", email="usuario1@example.com")
+    def test_personal_create_rol_es_enum(self):
+        modelo = PersonalCreate(username="gestor1", email="gestor1@example.com", rol="gestor", espacio_id=1)
         assert isinstance(modelo.rol, Rol)
-        assert modelo.rol == Rol.USUARIO
+        assert modelo.rol == Rol.GESTOR
 
-    def test_usuario_update_rol_es_enum(self):
-        modelo = UsuarioUpdate(rol="gestor")
+    def test_personal_update_rol_es_enum(self):
+        modelo = PersonalUpdate(rol="gestor")
         assert isinstance(modelo.rol, Rol)
 
     def test_usuario_response_rol_es_enum(self):
@@ -224,8 +225,13 @@ class TestContratoJsonConservado:
 
 class TestValoresRechazados:
     def test_rol_invalido_rechazado(self):
-        _validacion_exc(AdminUsuarioCreate, username="u1", email="u1@example.com", rol="superadmin")
-        _validacion_exc(UsuarioUpdate, rol="superadmin")
+        _validacion_exc(PersonalCreate, username="u1", email="u1@example.com", rol="superadmin")
+        _validacion_exc(PersonalUpdate, rol="superadmin")
+
+    def test_personal_create_rechaza_rol_usuario(self):
+        """`POST /personal` solo crea admin/gestor -- `rol=usuario` se
+        rechaza con 422 (usa `POST /usuarios` para eso)."""
+        _validacion_exc(PersonalCreate, username="u1", email="u1@example.com", rol="usuario")
 
     def test_estado_invalido_rechazado(self):
         _validacion_exc(EspacioCreate, nombre="S", capacidad=1, estado="roto")

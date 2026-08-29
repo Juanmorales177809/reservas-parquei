@@ -27,6 +27,7 @@ from app.domain.protocols import Reloj
 from app.models import (
     Espacio,
     Notificacion,
+    Personal,
     Recurso,
     Reserva,
     ReservaRecurso,
@@ -37,6 +38,7 @@ from app.models import (
     ZonaRecurso,
 )
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
+from app.services.actores import columnas_actor, es_actor
 from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import (
@@ -140,7 +142,7 @@ def _resolver_objetivo(
     *,
     recurso_ids: list[int],
     zona_ids: list[int],
-    usuario: Usuario,
+    usuario: Personal | Usuario,
     espacio_id_fijo: int | None = None,
     tipo: TipoReserva | None = None,
 ) -> _ObjetivoReserva:
@@ -522,7 +524,7 @@ def validar_capacidad(asistentes: int, recurso_capacidad: int) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La cantidad de asistentes supera la capacidad del recurso")
 
 
-def validar_acceso_ps(recurso: Recurso, usuario: Usuario, tipo: TipoReserva | None = None) -> None:
+def validar_acceso_ps(recurso: Recurso, usuario: Personal | Usuario, tipo: TipoReserva | None = None) -> None:
     """RN-009 (Fase 12B) + Fase 12D: un recurso de prestación de servicios
     (PS) no puede reservarse por el rol `usuario` (investigador) — el gate
     de rol, que se evalúa primero y sin cambios. `gestor` (laboratorista) y
@@ -572,7 +574,7 @@ def _validar_objetivo(
     )
 
 
-def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva:
+def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
         recurso_ids=data.recurso_ids,
@@ -594,7 +596,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
     aprobacion_automatica = objetivo.espacio.aprobacion_automatica or espacio_gestionado == objetivo.espacio.id
 
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=objetivo.espacio.id,
         recurso_id=_recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos),
         fecha=data.fecha,
@@ -617,10 +619,10 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
     _reescribir_acompanantes(db, reserva, data.acompanantes)
     if not aprobacion_automatica:
         gestores = (
-            db.query(Usuario.id, Usuario.username, Usuario.email)
-            .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Usuario.id)
+            db.query(Personal.id, Personal.username, Personal.email)
+            .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Personal.id)
             .filter(
-                Usuario.rol == Rol.GESTOR.value,
+                Personal.rol == Rol.GESTOR.value,
                 UsuarioEspacio.espacio_id == objetivo.espacio.id,
             )
             .all()
@@ -628,7 +630,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
         for gestor_id, gestor_username, gestor_email in gestores:
             db.add(
                 Notificacion(
-                    usuario_id=gestor_id,
+                    personal_id=gestor_id,
                     reserva_id=reserva.id,
                     tipo=TipoNotificacion.PENDIENTE.value,
                 )
@@ -690,7 +692,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Usuario) -> Reserva
 
 
 def cambiar_estado(
-    db: Session, reserva_id: int, nuevo_estado: str, admin_user: Usuario, motivo: str | None = None
+    db: Session, reserva_id: int, nuevo_estado: str, admin_user: Personal, motivo: str | None = None
 ) -> Reserva:
     if admin_user.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para cambiar el estado de una reserva")
@@ -749,7 +751,7 @@ def cambiar_estado(
         }[nuevo].value
         db.add(
             Notificacion(
-                usuario_id=reserva.usuario_id,
+                **columnas_actor(reserva.actor),
                 reserva_id=reserva.id,
                 tipo=tipo_notificacion,
             )
@@ -761,10 +763,10 @@ def cambiar_estado(
         }[nuevo]
         encolar_correo(
             db,
-            destinatario=reserva.usuario.email,
+            destinatario=reserva.actor.email,
             asunto=f"Tu reserva fue {estado_legible}",
             cuerpo=plantilla_reserva_estado(
-                nombre_saludo=reserva.usuario.username,
+                nombre_saludo=reserva.actor.username,
                 reserva_id=reserva.id,
                 espacio=reserva.espacio.nombre,
                 fecha=str(reserva.fecha),
@@ -793,7 +795,7 @@ def cambiar_estado(
     return get_reserva(db, reserva.id) or reserva
 
 
-def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: Usuario) -> Reserva:
+def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: Personal) -> Reserva:
     """Fase 12D-bis: marca la asistencia real de una reserva.
 
     Copia el molde de `cambiar_estado` pero sin máquina de estados: solo
@@ -829,11 +831,11 @@ def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: U
     return get_reserva(db, reserva.id) or reserva
 
 
-def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> Reserva:
+def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | Usuario) -> Reserva:
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
-    if reserva.usuario_id != usuario.id:
+    if not es_actor(reserva, usuario):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes cancelar tus propias reservas")
     if reserva.estado != EstadoReserva.APROBADA.value:
         raise HTTPException(
@@ -843,10 +845,10 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
 
     reserva.estado = EstadoReserva.CANCELADA.value
     gestores = (
-        db.query(Usuario.id, Usuario.username, Usuario.email)
-        .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Usuario.id)
+        db.query(Personal.id, Personal.username, Personal.email)
+        .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Personal.id)
         .filter(
-            Usuario.rol == Rol.GESTOR.value,
+            Personal.rol == Rol.GESTOR.value,
             UsuarioEspacio.espacio_id == reserva.espacio_id,
         )
         .all()
@@ -854,7 +856,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
     for gestor_id, gestor_username, gestor_email in gestores:
         db.add(
             Notificacion(
-                usuario_id=gestor_id,
+                personal_id=gestor_id,
                 reserva_id=reserva.id,
                 tipo=TipoNotificacion.CANCELADA.value,
             )
@@ -888,11 +890,11 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Usuario) -> 
     return get_reserva(db, reserva.id) or reserva
 
 
-def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuario: Usuario) -> Reserva:
+def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuario: Personal | Usuario) -> Reserva:
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
-    es_propietario = reserva.usuario_id == usuario.id
+    es_propietario = es_actor(reserva, usuario)
     es_gestor = usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}
     if not es_propietario and not es_gestor:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes editar tus propias reservas")
@@ -975,15 +977,15 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     nuevos_zona_ids = set(zona_ids)
     agregados_recurso_ids = nuevos_recurso_ids - viejos_recurso_ids
     agregados_zona_ids = nuevos_zona_ids - viejos_zona_ids
-    if (agregados_recurso_ids or agregados_zona_ids) and reserva.usuario_id != usuario.id and usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}:
+    if (agregados_recurso_ids or agregados_zona_ids) and not es_actor(reserva, usuario) and usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}:
         db.add(
             Notificacion(
-                usuario_id=reserva.usuario_id,
+                **columnas_actor(reserva.actor),
                 reserva_id=reserva.id,
                 tipo=TipoNotificacion.ACTUALIZADA.value,
             )
         )
-        propietario = db.query(Usuario).filter(Usuario.id == reserva.usuario_id).first()
+        propietario = reserva.actor
         if propietario is not None:
             nombres_recursos: list[str] = []
             if agregados_recurso_ids:
@@ -1021,11 +1023,11 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     return get_reserva(db, reserva.id) or reserva
 
 
-def eliminar_reserva(db: Session, reserva_id: int, usuario: Usuario) -> None:
+def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) -> None:
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
-    es_propietario = reserva.usuario_id == usuario.id
+    es_propietario = es_actor(reserva, usuario)
     es_gestor = usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}
     if not es_propietario and not es_gestor:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes eliminar tus propias reservas")

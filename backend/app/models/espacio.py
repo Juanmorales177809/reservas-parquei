@@ -28,8 +28,8 @@ class Espacio(Base):
     correo = Column(String(255), nullable=True)
     create_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
-    created_by = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
-    updated_by = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
+    updated_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
 
     reservas = relationship("Reserva", back_populates="espacio", cascade="all, delete-orphan")
     recursos = relationship("Recurso", back_populates="espacio", cascade="all, delete-orphan")

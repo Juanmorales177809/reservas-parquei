@@ -18,12 +18,13 @@ from sqlalchemy.exc import IntegrityError
 
 from app.domain.enums import TipoSolicitud
 from app.models.reserva import Reserva
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
 
 
 def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),
@@ -45,7 +46,7 @@ class TestModelo:
         usuario = crear_usuario(db, username="ts_default", email="ts_default@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         reserva = Reserva(
-            usuario_id=usuario.id,
+            **columnas_actor(usuario),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
@@ -79,7 +80,7 @@ class TestModelo:
         usuario = crear_usuario(db, username="ts_orden_salida", email="ts_orden_salida@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         reserva = Reserva(
-            usuario_id=usuario.id,
+            **columnas_actor(usuario),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
@@ -98,7 +99,7 @@ class TestModelo:
         usuario = crear_usuario(db, username="ts_inv", email="ts_inv@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         reserva = Reserva(
-            usuario_id=usuario.id,
+            **columnas_actor(usuario),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),

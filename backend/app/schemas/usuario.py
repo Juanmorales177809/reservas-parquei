@@ -28,18 +28,14 @@ class UsuarioCreate(BaseModel):
         return value
 
 
-class AdminUsuarioCreate(UsuarioCreate):
-    """Permite al admin asignar un rol al crear un usuario."""
-
-    rol: Rol = Rol.USUARIO
-    espacio_id: int | None = None
-
-
 class UsuarioUpdate(BaseModel):
+    """Body de `PUT /usuarios/{id}` (admin, rol `usuario` únicamente desde
+    la separación en `personal`/`usuarios` -- sin `rol`/`espacio_id`, que
+    ya no aplican acá; ver `schemas/personal.py::PersonalCreate/Update`
+    para admin/gestor)."""
+
     username: str | None = Field(default=None, min_length=3, max_length=80)
     email: str | None = Field(default=None, max_length=255)
-    rol: Rol | None = None
-    espacio_id: int | None = None
     # Fase A2 (perfil de usuario): el admin también puede editar estos
     # campos desde la gestión de usuarios, además del self-service de
     # PerfilUpdate más abajo.
@@ -128,6 +124,32 @@ class SupabaseSesionRequest(BaseModel):
     """
 
     supabase_token: str = Field(min_length=10, max_length=4096)
+
+
+class RegistroRequest(BaseModel):
+    """Body de `POST /auth/registro` (público, sin autenticación).
+
+    Autoregistro abierto (2026-08-28, decisión explícita del usuario del
+    proyecto): cualquiera crea su propia cuenta con rol `usuario`, sin
+    aprobación de un admin -- excepción deliberada al diseño previo de
+    "solo un admin invita" (ver el docstring de `supabase_sesion` en
+    `app/api/auth.py`, que sigue vigente para el resto de los casos: este
+    endpoint nunca busca ni vincula una cuenta existente por email, solo
+    crea una nueva). A diferencia de `UsuarioCreate` (sin `password`
+    porque la identidad la crea un admin vía invitación), acá la persona
+    elige su propia contraseña en el mismo formulario.
+    """
+
+    username: str = Field(min_length=3, max_length=80)
+    email: str = Field(max_length=255)
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise ValueError("El email debe tener un formato válido")
+        return value
 
 
 class RecuperarPasswordRequest(BaseModel):

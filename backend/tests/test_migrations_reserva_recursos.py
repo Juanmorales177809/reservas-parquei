@@ -39,6 +39,7 @@ from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
 from app.models.reserva_zona import ReservaZona
 from app.models.zona import Zona
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario
 
 
@@ -52,7 +53,7 @@ def _crear_zona(db: Session, *, espacio, usuario, nombre="Zona de pruebas"):
 
 def _crear_reserva(db: Session, *, usuario, espacio, recurso, fecha=None, estado="esperando"):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=fecha or date(2026, 9, 1),

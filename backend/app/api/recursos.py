@@ -8,7 +8,7 @@ from app.crud.reservas import get_reservas_bloqueantes
 from app.db import get_db
 from app.deps import get_current_user_optional, get_managed_space_id, require_resource_manager
 from app.domain.enums import Rol
-from app.models import Espacio, Recurso, TipoRecurso, Usuario
+from app.models import Espacio, Personal, Recurso, TipoRecurso, Usuario
 from app.models.reserva_recurso import ReservaRecurso
 from app.schemas.disponibilidad import DisponibilidadSlot
 from app.schemas.recurso import RecursoCreate, RecursoResponse, RecursoUpdate, TipoRecursoResponse
@@ -55,7 +55,7 @@ def listar_tipos_recursos(db: Session = Depends(get_db)):
 
 @router.get("/gestion", response_model=list[RecursoResponse])
 def listar_recursos_gestion(
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     espacio_id = get_managed_space_id(db, current_user)
@@ -104,7 +104,7 @@ def obtener_disponibilidad_recurso(
 @router.post("", response_model=RecursoResponse, status_code=status.HTTP_201_CREATED)
 def crear_recurso(
     payload: RecursoCreate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     espacio_gestionado = get_managed_space_id(db, current_user)
@@ -152,7 +152,7 @@ def _recurso_tiene_reservas(db: Session, recurso_id: int) -> bool:
 def actualizar_recurso(
     recurso_id: int,
     payload: RecursoUpdate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     recurso = db.query(Recurso).filter(Recurso.id == recurso_id).first()
@@ -187,7 +187,7 @@ def actualizar_recurso(
 @router.delete("/{recurso_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_recurso(
     recurso_id: int,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     recurso = db.query(Recurso).filter(Recurso.id == recurso_id).first()

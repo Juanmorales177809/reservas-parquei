@@ -9,12 +9,13 @@ from sqlalchemy.exc import IntegrityError
 from app.db import Base, engine
 from app.models.reserva import Reserva
 from app.models.reserva_acompanante import ReservaAcompanante
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario
 
 
 def _crear_reserva(db, *, usuario, espacio, recurso):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=date(2026, 9, 1),
@@ -58,7 +59,7 @@ class TestReservaAcompananteCreacion:
         recurso = crear_recurso(db, espacio=espacio, usuario=admin)
         r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
         r2 = Reserva(
-            usuario_id=admin.id, espacio_id=espacio.id, recurso_id=recurso.id,
+            **columnas_actor(admin), espacio_id=espacio.id, recurso_id=recurso.id,
             fecha=date(2026, 9, 2), hora_inicio=time(8, 0), hora_fin=time(9, 0),
             estado="esperando", asistentes=1,
         )

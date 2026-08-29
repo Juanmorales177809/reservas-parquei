@@ -19,7 +19,7 @@ import pytest
 
 from app.models import CorreoSaliente, Usuario
 from app.services.supabase_admin import SupabaseAdminError
-from tests.conftest import crear_espacio, crear_usuario, cookies_para
+from tests.conftest import crear_usuario, cookies_para
 
 
 @pytest.fixture(autouse=True)
@@ -133,46 +133,17 @@ def test_email_duplicado_da_409(client, db):
     assert respuesta.status_code == 409
 
 
-def test_gestor_sin_espacio_da_400(client, db):
-    admin = _admin(db)
-    payload = {
-        "username": "gestor_solo",
-        "email": "gestor_solo@example.com",
-        "password": "secret123",
-        "rol": "gestor",
-    }
-    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
-    assert respuesta.status_code == 400
-
-
-def test_gestor_con_espacio(client, db):
-    admin = _admin(db)
-    espacio = crear_espacio(db, nombre="Sala Gestores")
-    payload = {
-        "username": "gestor_ok",
-        "email": "gestor_ok@example.com",
-        "password": "secret123",
-        "rol": "gestor",
-        "espacio_id": espacio.id,
-    }
-    respuesta = client.post("/usuarios", json=payload, headers=cookies_para(admin))
-    assert respuesta.status_code == 201
-    assert respuesta.json()["espacio"]["nombre"] == "Sala Gestores"
-
-
-def test_admin_no_puede_eliminarse_a_si_mismo(client, db):
-    admin = _admin(db)
-    respuesta = client.delete(f"/usuarios/{admin.id}", headers=cookies_para(admin))
-    assert respuesta.status_code == 409
-
-
 def test_listar_usuarios_solo_admin(client, db):
+    """Desde la separación `personal`/`usuarios` (ver
+    `~/.claude/plans/dazzling-wobbling-zebra.md`), `GET /usuarios` solo
+    lista rol `usuario` -- el admin autenticado ya no aparece en su propio
+    listado (vive en `personal`, ver `test_api_personal.py`)."""
     usuario = crear_usuario(db, username="user_list", email="user_list@example.com")
     admin = _admin(db)
     assert client.get("/usuarios", headers=cookies_para(usuario)).status_code == 403
     respuesta = client.get("/usuarios", headers=cookies_para(admin))
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) == 2
+    assert len(respuesta.json()) == 1
 
 
 def test_actualizar_email_de_usuario(client, db):

@@ -5,7 +5,7 @@ from app.crud.ensayos import create_ensayo, get_ensayo, update_ensayo
 from app.db import get_db
 from app.deps import get_current_user_optional, get_managed_space_id, require_resource_manager
 from app.domain.enums import Rol
-from app.models import Espacio, Usuario
+from app.models import Espacio, Personal, Usuario
 from app.models.ensayo import Ensayo
 from app.models.reserva_ensayo import ReservaEnsayo
 from app.models.zona import Zona
@@ -34,7 +34,7 @@ def listar_ensayos(
 @router.post("", response_model=EnsayoResponse, status_code=status.HTTP_201_CREATED)
 def crear_ensayo_endpoint(
     payload: EnsayoCreate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     zona = db.query(Zona).filter(Zona.id == payload.zona_id).first()
@@ -50,7 +50,7 @@ def crear_ensayo_endpoint(
 def actualizar_ensayo_endpoint(
     ensayo_id: int,
     payload: EnsayoUpdate,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     ensayo = get_ensayo(db, ensayo_id)
@@ -82,7 +82,7 @@ def actualizar_ensayo_endpoint(
 @router.delete("/{ensayo_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_ensayo_endpoint(
     ensayo_id: int,
-    current_user: Usuario = Depends(require_resource_manager),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
     ensayo = get_ensayo(db, ensayo_id)

@@ -55,7 +55,7 @@ from app.config import settings  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.migrations import migrate_resource_reservations  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Espacio, Recurso, TipoRecurso, Usuario, UsuarioEspacio, Zona, ZonaRecurso  # noqa: E402
+from app.models import Espacio, Personal, Recurso, TipoRecurso, Usuario, UsuarioEspacio, Zona, ZonaRecurso  # noqa: E402
 
 TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -100,25 +100,49 @@ def client():
 def crear_usuario(db, *, username, email, password="password123", rol="usuario", espacio_id=None, supabase_id=None):
     """`password` se acepta por compatibilidad con los ~600 sitios de la
     suite que ya lo pasan, pero es vestigial desde la migración a Supabase
-    Auth: `hashed_password` no se lee para autenticar (ver
-    app/crud/usuarios.py::create_usuario). Lo que SÍ autentica es
-    `supabase_id` -- se genera uno al azar si no se pasa explícitamente,
+    Auth: `hashed_password` no se lee para autenticar. Lo que SÍ autentica
+    es `supabase_id` -- se genera uno al azar si no se pasa explícitamente,
     para que `cookies_para(usuario)` siempre tenga algo válido con qué
-    firmar."""
-    usuario = Usuario(
-        username=username,
-        email=email,
-        hashed_password=hash_password(password),
-        rol=rol,
-        supabase_id=supabase_id or uuid.uuid4(),
-    )
-    db.add(usuario)
-    db.flush()
-    if espacio_id is not None:
-        db.add(UsuarioEspacio(usuario_id=usuario.id, espacio_id=espacio_id))
+    firmar.
+
+    Desde la separación `personal`/`usuarios` (2026-08-28, ver
+    `~/.claude/plans/dazzling-wobbling-zebra.md`): `rol="admin"` o
+    `"gestor"` crea la fila en `Personal`, cualquier otro valor
+    (`"usuario"`, el default) la crea en `Usuario` -- misma firma que
+    antes, así que los ~330 sitios que ya llaman a este helper no
+    necesitan tocarse, solo usan atributos (`.id`, `.username`, `.email`,
+    `.supabase_id`, `.rol`) que ambas clases exponen igual."""
+    if rol in ("admin", "gestor"):
+        entidad = Personal(
+            username=username,
+            email=email,
+            rol=rol,
+            supabase_id=supabase_id or uuid.uuid4(),
+        )
+        db.add(entidad)
+        db.flush()
+        if espacio_id is not None:
+            db.add(UsuarioEspacio(usuario_id=entidad.id, espacio_id=espacio_id))
+    else:
+        entidad = Usuario(
+            username=username,
+            email=email,
+            hashed_password=hash_password(password),
+            rol=rol,
+            supabase_id=supabase_id or uuid.uuid4(),
+        )
+        db.add(entidad)
+        db.flush()
     db.commit()
-    db.refresh(usuario)
-    return usuario
+    db.refresh(entidad)
+    return entidad
+
+
+def crear_personal(db, *, username, email, rol="gestor", espacio_id=None, supabase_id=None):
+    """Alias explícito de `crear_usuario(..., rol="gestor"|"admin")` para
+    tests nuevos que prefieran dejarlo claro en el nombre -- mismo
+    comportamiento, no es obligatorio migrar los sitios existentes."""
+    return crear_usuario(db, username=username, email=email, rol=rol, espacio_id=espacio_id, supabase_id=supabase_id)
 
 
 def crear_espacio(
@@ -152,6 +176,32 @@ def crear_espacio(
     return espacio
 
 
+_USERNAME_PERSONAL_AUTOCREADO = "_personal_autocreado_para_fk"
+
+
+def _personal_para_fk(db, usuario):
+    """`created_by`/`update_by`/`updated_by` de recursos/zonas/ensayos/
+    espacios ahora exigen un id de `Personal` (ver
+    `~/.claude/plans/dazzling-wobbling-zebra.md`) -- muchos tests pasan
+    cómodamente el mismo `usuario` (rol `usuario`) que usan como dueño de
+    la reserva a `crear_recurso`/`crear_zona`, algo que antes de la
+    separación no importaba porque era la misma tabla. Si `usuario` ya es
+    `Personal`, se usa tal cual; si no, se crea (o reusa, dentro del mismo
+    test) un admin de pruebas dedicado, para no obligar a tocar los ~150
+    sitios que ya llaman a estos helpers así."""
+    if isinstance(usuario, Personal):
+        return usuario
+    existente = db.query(Personal).filter(Personal.username == _USERNAME_PERSONAL_AUTOCREADO).first()
+    if existente is not None:
+        return existente
+    return crear_usuario(
+        db,
+        username=_USERNAME_PERSONAL_AUTOCREADO,
+        email=f"{_USERNAME_PERSONAL_AUTOCREADO}@example.com",
+        rol="admin",
+    )
+
+
 def crear_recurso(
     db,
     *,
@@ -168,6 +218,7 @@ def crear_recurso(
         db.add(tipo)
         db.commit()
         db.refresh(tipo)
+    creador = _personal_para_fk(db, usuario)
     recurso = Recurso(
         nombre=nombre,
         espacio_id=espacio.id,
@@ -175,8 +226,8 @@ def crear_recurso(
         descripcion="",
         capacidad=capacidad,
         estado=estado,
-        created_by=usuario.id,
-        update_by=usuario.id,
+        created_by=creador.id,
+        update_by=creador.id,
         es_prestacion_servicio=es_prestacion_servicio,
     )
     db.add(recurso)
@@ -281,14 +332,15 @@ def crear_zona(
     capacidad=None,
     estado="activo",
 ):
+    creador = _personal_para_fk(db, usuario)
     zona = Zona(
         nombre=nombre,
         espacio_id=espacio.id,
         descripcion="",
         capacidad=capacidad,
         estado=estado,
-        created_by=usuario.id,
-        updated_by=usuario.id,
+        created_by=creador.id,
+        updated_by=creador.id,
     )
     db.add(zona)
     db.commit()

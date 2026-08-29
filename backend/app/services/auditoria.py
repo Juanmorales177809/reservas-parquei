@@ -13,7 +13,8 @@ que ya lo importan (`api/usuarios.py`, `api/espacios.py`, `api/recursos.py`,
 
 from sqlalchemy.orm import Session
 
-from app.models import ControlCambio, Usuario
+from app.models import ControlCambio, Personal, Usuario
+from app.services.actores import columnas_actor
 
 
 class AuditoriaSesion:
@@ -25,7 +26,8 @@ class AuditoriaSesion:
     def registrar(
         self,
         *,
-        usuario_id: int,
+        usuario_id: int | None,
+        personal_id: int | None,
         accion: str,
         entidad: str,
         entidad_id: int | None,
@@ -34,6 +36,7 @@ class AuditoriaSesion:
         self._db.add(
             ControlCambio(
                 usuario_id=usuario_id,
+                personal_id=personal_id,
                 accion=accion,
                 entidad=entidad,
                 entidad_id=entidad_id,
@@ -44,15 +47,17 @@ class AuditoriaSesion:
 
 def registrar_cambio(
     db: Session,
-    usuario: Usuario,
+    actor: Personal | Usuario,
     accion: str,
     entidad: str,
     entidad_id: int | None,
     descripcion: str,
 ) -> None:
-    """Wrapper compatible: delega en AuditoriaSesion."""
+    """Wrapper compatible: delega en AuditoriaSesion. `actor` puede ser
+    `Personal` o `Usuario` -- el actor de un cambio de auditoría es
+    polimórfico (ver `columnas_actor`)."""
     AuditoriaSesion(db).registrar(
-        usuario_id=usuario.id,
+        **columnas_actor(actor),
         accion=accion,
         entidad=entidad,
         entidad_id=entidad_id,

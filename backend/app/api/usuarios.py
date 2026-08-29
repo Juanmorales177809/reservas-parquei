@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.crud.usuarios import actualizar_perfil, create_usuario, get_usuario_by_email, get_usuario_by_username, get_usuarios, get_usuario, update_usuario, delete_usuario
+from app.crud.identidad import actualizar_perfil, buscar_por_email, buscar_por_username
+from app.crud.usuarios import create_usuario, delete_usuario, get_usuario, get_usuarios, update_usuario
 from app.db import get_db
 from app.deps import get_current_user, require_admin
-from app.models.espacio import Espacio
+from app.models.personal import Personal
 from app.models.usuario import Usuario
-from app.schemas.usuario import AdminUsuarioCreate, PerfilUpdate, ReenviarInvitacionResponse, UsuarioResponse, UsuarioUpdate
+from app.schemas.usuario import PerfilUpdate, ReenviarInvitacionResponse, UsuarioCreate, UsuarioResponse, UsuarioUpdate
 from app.services.auditoria import registrar_cambio
 from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import plantilla_invitacion
@@ -20,84 +20,57 @@ from app.services.supabase_admin import (
 
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
-ADMIN_LOCK_ID = 728_341
-
-
-def proteger_administradores(
-    db: Session,
-    usuario_objetivo: Usuario,
-    current_user: Usuario,
-    rol_final: str | None = None,
-    eliminando: bool = False,
-) -> None:
-    if usuario_objetivo.rol != "admin":
-        return
-    if not eliminando and rol_final == "admin":
-        return
-    if usuario_objetivo.id == current_user.id:
-        accion = "eliminar" if eliminando else "cambiar el rol de"
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"No puedes {accion} tu propia cuenta administrativa",
-        )
-
-    # Serializa cambios de rol y eliminaciones para que dos solicitudes
-    # concurrentes no puedan dejar el sistema sin administradores.
-    db.execute(text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": ADMIN_LOCK_ID})
-    administradores = db.query(Usuario).filter(Usuario.rol == "admin").count()
-    if administradores <= 1:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Debe permanecer al menos un administrador en el sistema",
-        )
 
 
 @router.get("/me", response_model=UsuarioResponse)
-def get_me(current_user: Usuario = Depends(get_current_user)):
+def get_me(current_user: Personal | Usuario = Depends(get_current_user)):
     return current_user
+
+
+@router.put("/me", response_model=UsuarioResponse)
+def actualizar_mi_perfil(
+    payload: PerfilUpdate,
+    current_user: Personal | Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Self-service: cualquier identidad autenticada (`Personal` o
+    `Usuario`) edita su propio perfil. Registrada ANTES de
+    `PUT /usuarios/{usuario_id}` a propósito -- si quedara después,
+    FastAPI intentaría parsear "me" como el `int` de esa ruta."""
+    return actualizar_perfil(db, current_user, payload)
 
 
 @router.get("", response_model=list[UsuarioResponse])
 def list_usuarios(
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Rol `usuario` únicamente desde la separación en `personal`/
+    `usuarios` -- ver `GET /personal` para admin/gestor."""
     return get_usuarios(db)
 
 
 @router.post("", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def create_usuario_admin(
-    payload: AdminUsuarioCreate,
-    current_user: Usuario = Depends(require_admin),
+    payload: UsuarioCreate,
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    if get_usuario_by_username(db, payload.username) is not None:
+    """Alta de una cuenta rol `usuario` por un admin -- distinta del
+    autoregistro abierto (`POST /auth/registro`): acá la identidad de
+    Supabase se crea vía invitación (la persona nunca elige su propia
+    contraseña en este flujo)."""
+    if buscar_por_username(db, payload.username) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El nombre de usuario ya está registrado",
         )
-    if get_usuario_by_email(db, payload.email) is not None:
+    if buscar_por_email(db, payload.email) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El email ya está registrado",
         )
 
-    if payload.rol == "gestor":
-        if payload.espacio_id is None:
-            raise HTTPException(status_code=400, detail="Debes asignar un espacio al gestor")
-        if db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
-            raise HTTPException(status_code=404, detail="Espacio no encontrado")
-
-    # La identidad de autenticación la crea Supabase, no este backend --
-    # `supabase_id` se guarda de una, en el mismo momento, es la única
-    # forma en que puede llegar a existir (ver el docstring de
-    # supabase_sesion en app/api/auth.py: ese endpoint solo busca, nunca
-    # crea ni vincula). 2026-08-28: el correo de invitación ya NO lo manda
-    # Supabase con su propia plantilla genérica -- se pide solo el link
-    # (sin que Supabase envíe nada) y se encola por nuestro propio outbox
-    # con la plantilla institucional, mismo camino que ya usa
-    # reenviar_invitacion_endpoint (Graph/SMTP según EMAIL_TRANSPORT, no
-    # depende de qué SMTP tenga configurado Supabase).
     try:
         supabase_id, link = crear_usuario_y_generar_link(payload.email)
     except SupabaseAdminError as exc:
@@ -114,7 +87,7 @@ def create_usuario_admin(
         cuerpo=plantilla_invitacion(link=link, nombre_saludo=payload.username),
         es_html=True,
     )
-    registrar_cambio(db, current_user, "crear", "usuario", usuario.id, f"Creó el usuario {usuario.username} con rol {usuario.rol}")
+    registrar_cambio(db, current_user, "crear", "usuario", usuario.id, f"Creó el usuario {usuario.username}")
     db.commit()
     procesar_pendientes(db)
     db.refresh(usuario)
@@ -124,25 +97,9 @@ def create_usuario_admin(
 @router.post("/{usuario_id}/reenviar-invitacion", response_model=ReenviarInvitacionResponse)
 def reenviar_invitacion_endpoint(
     usuario_id: int,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Genera un link de invitación fresco y lo encola por correo.
-
-    Cubre dos escenarios reales: el correo original nunca llegó (spam,
-    problema de entrega), o el link venció (Supabase expira los links de
-    invitación). `/auth/v1/invite` no sirve para esto -- Supabase lo
-    rechaza con `email_exists` para cualquier email ya registrado, aunque
-    la invitación original nunca se haya confirmado (confirmado contra el
-    proyecto real, 2026-08-27) -- hace falta `generate_link`, que sí
-    funciona para un usuario existente pero no manda el correo por su
-    cuenta.
-
-    `correo_enviado` en la respuesta refleja si el envío SMTP realmente
-    tuvo éxito -- con `EMAIL_ENABLED=false` (todavía, mientras se gestiona
-    el SMTP del ITM) siempre da `false` y el link queda en la respuesta
-    para que el admin lo entregue a mano.
-    """
     db_user = get_usuario(db, usuario_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -175,49 +132,24 @@ def reenviar_invitacion_endpoint(
     return ReenviarInvitacionResponse(link=link, correo_enviado=correo.estado == "enviado")
 
 
-@router.put("/me", response_model=UsuarioResponse)
-def actualizar_mi_perfil(
-    payload: PerfilUpdate,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Self-service: cualquier usuario autenticado edita su propio perfil
-    (documento/teléfono/institución/vinculación/dependencia). Registrada
-    ANTES de `PUT /usuarios/{usuario_id}` a propósito -- si quedara
-    después, FastAPI intentaría parsear "me" como el `int` de esa ruta y
-    respondería 422 en vez de llegar acá (mismo orden que ya sigue
-    `GET /me` respecto de `GET ""`)."""
-    return actualizar_perfil(db, current_user, payload)
-
-
 @router.put("/{usuario_id}", response_model=UsuarioResponse)
 def update_usuario_endpoint(
     usuario_id: int,
     payload: UsuarioUpdate,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     db_user = get_usuario(db, usuario_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
+
     if payload.username and payload.username != db_user.username:
-        if get_usuario_by_username(db, payload.username):
+        if buscar_por_username(db, payload.username):
             raise HTTPException(status_code=409, detail="Nombre de usuario ya está en uso")
-            
     if payload.email and payload.email != db_user.email:
-        if get_usuario_by_email(db, payload.email):
+        if buscar_por_email(db, payload.email):
             raise HTTPException(status_code=409, detail="Email ya está en uso")
 
-    rol_final = payload.rol or db_user.rol
-    proteger_administradores(db, db_user, current_user, rol_final=rol_final)
-    if rol_final == "gestor":
-        espacio_actual = db_user.espacio.id if db_user.espacio else None
-        if payload.espacio_id is None and espacio_actual is None:
-            raise HTTPException(status_code=400, detail="Debes asignar un espacio al gestor")
-        if payload.espacio_id is not None and db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
-            raise HTTPException(status_code=404, detail="Espacio no encontrado")
-            
     usuario = update_usuario(db, db_user, payload)
     registrar_cambio(db, current_user, "actualizar", "usuario", usuario.id, f"Actualizó el usuario {usuario.username}")
     db.commit()
@@ -227,18 +159,13 @@ def update_usuario_endpoint(
 @router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_usuario_endpoint(
     usuario_id: int,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     db_user = get_usuario(db, usuario_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    proteger_administradores(db, db_user, current_user, eliminando=True)
 
-    # Primero Supabase, recién después la fila local: en el orden inverso,
-    # un fallo a mitad de camino deja una identidad huérfana en Supabase
-    # que bloquea reinvitar el mismo email más adelante (ver el docstring
-    # de eliminar_usuario en supabase_admin.py).
     if db_user.supabase_id is not None:
         try:
             eliminar_usuario_supabase(db_user.supabase_id)

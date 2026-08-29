@@ -15,7 +15,13 @@ class Reserva(Base):
     __tablename__ = "reservas"
 
     id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    # Polimórfico a propósito: quien crea una reserva puede ser rol
+    # `usuario` O `personal` (un gestor reserva su propio espacio) --
+    # exactamente una de las dos debe estar llena, nunca las dos ni
+    # ninguna (`ck_reservas_actor_unico`). Ver `actor` más abajo y
+    # `app/services/actores.py::columnas_actor`.
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
+    personal_id = Column(Integer, ForeignKey("personal.id"), nullable=True, index=True)
     espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
     recurso_id = Column(Integer, ForeignKey("recursos.id"), nullable=False, index=True)
     fecha = Column(Date, nullable=False, index=True)
@@ -57,6 +63,7 @@ class Reserva(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     usuario = relationship("Usuario", back_populates="reservas")
+    personal = relationship("Personal", back_populates="reservas")
     espacio = relationship("Espacio", back_populates="reservas")
     recurso = relationship("Recurso", back_populates="reservas")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
@@ -125,4 +132,14 @@ class Reserva(Base):
             name="ck_reservas_tipo_solicitud",
         ),
         Index("ix_reservas_recurso_fecha_estado", "recurso_id", "fecha", "estado"),
+        CheckConstraint(
+            "(usuario_id IS NOT NULL) != (personal_id IS NOT NULL)",
+            name="ck_reservas_actor_unico",
+        ),
     )
+
+    @property
+    def actor(self):
+        """El responsable de la reserva, sea `Usuario` o `Personal` --
+        exactamente uno de los dos existe (`ck_reservas_actor_unico`)."""
+        return self.usuario or self.personal

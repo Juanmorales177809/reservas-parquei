@@ -313,7 +313,7 @@ class TestEnganchesDeReserva:
         assert correo.es_html is True
         assert "Tu reserva" not in correo.cuerpo
 
-        notificacion = db.query(Notificacion).filter(Notificacion.usuario_id == gestor.id).one()
+        notificacion = db.query(Notificacion).filter(Notificacion.personal_id == gestor.id).one()
         assert notificacion.tipo == "Cancelada"
 
     def test_sin_email_enabled_no_se_intenta_enviar_pero_la_reserva_se_crea_igual(self, client, db):

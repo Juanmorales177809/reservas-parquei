@@ -57,7 +57,7 @@ def _forzar_excepcion_en_sesion(monkeypatch, mensaje="detalle-interno-sensible")
     def _boom(*args, **kwargs):
         raise RuntimeError(mensaje)
 
-    monkeypatch.setattr("app.api.auth.get_usuario_by_supabase_id", _boom)
+    monkeypatch.setattr("app.api.auth.buscar_por_supabase_id", _boom)
 
 
 class TestRespuestasNormalesYControladas:

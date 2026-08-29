@@ -20,6 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from app.domain.enums import TipoReserva
 from app.models.reserva import Reserva
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
+from app.services.actores import columnas_actor
 from tests.conftest import (
     cookies_para,
     crear_espacio,
@@ -32,7 +33,7 @@ from tests.conftest import (
 
 def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),
@@ -76,7 +77,7 @@ class TestModelo:
         usuario = crear_usuario(db, username="tipo_inv", email="tipo_inv@example.com")
         recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
         reserva = Reserva(
-            usuario_id=usuario.id,
+            **columnas_actor(usuario),
             espacio_id=espacio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),

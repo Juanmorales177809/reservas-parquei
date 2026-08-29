@@ -49,7 +49,7 @@ def _forzar_excepcion_en_sesion(monkeypatch, mensaje=MENSAJE_INTERNO_SENSIBLE):
     def _boom(*args, **kwargs):
         raise RuntimeError(mensaje)
 
-    monkeypatch.setattr("app.api.auth.get_usuario_by_supabase_id", _boom)
+    monkeypatch.setattr("app.api.auth.buscar_por_supabase_id", _boom)
 
 
 class TestRespuesta500Sanitizada:
@@ -107,7 +107,7 @@ class TestRespuesta500Sanitizada:
         def _boom_valueerror(*args, **kwargs):
             raise ValueError("segundo error, tipo distinto")
 
-        monkeypatch.setattr("app.api.auth.get_usuario_by_supabase_id", _boom_valueerror)
+        monkeypatch.setattr("app.api.auth.buscar_por_supabase_id", _boom_valueerror)
         segunda = client_sin_relanzar.post(
             "/auth/supabase/sesion", json={"supabase_token": _token_supabase_valido()}
         )

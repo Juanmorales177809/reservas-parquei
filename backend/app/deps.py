@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.auth.auth import NOMBRE_COOKIE_ACCESO
 from app.config import settings
-from app.crud.usuarios import get_usuario_by_supabase_id
+from app.crud.identidad import buscar_por_supabase_id
 from app.db import get_db
-from app.models import Usuario, UsuarioEspacio
+from app.models import Personal, Usuario, UsuarioEspacio
 from app.services.supabase_jwks import obtener_clave as obtener_clave_jwks
 
 
@@ -78,13 +78,19 @@ def decode_token(token: str) -> dict:
         ) from exc
 
 
-def _usuario_por_sub(db: Session, sub: str) -> Usuario | None:
-    """El `sub` de un JWT de Supabase siempre es el UUID de `auth.users`."""
+def _usuario_por_sub(db: Session, sub: str) -> Personal | Usuario | None:
+    """El `sub` de un JWT de Supabase siempre es el UUID de `auth.users`.
+
+    Desde la separación `personal`/`usuarios` (ver
+    `~/.claude/plans/dazzling-wobbling-zebra.md`), una identidad de
+    Supabase resuelve a UNA de las dos tablas, nunca a ambas --
+    `buscar_por_supabase_id` (`crud/identidad.py`) prueba `personal`
+    primero."""
     try:
         supabase_id = uuid.UUID(str(sub))
     except (TypeError, ValueError):
         return None
-    return get_usuario_by_supabase_id(db, supabase_id)
+    return buscar_por_supabase_id(db, supabase_id)
 
 
 def _credenciales_invalidas() -> HTTPException:
@@ -97,7 +103,7 @@ def _credenciales_invalidas() -> HTTPException:
 def get_current_user(
     token: str | None = Depends(cookie_auth),
     db: Session = Depends(get_db),
-) -> Usuario:
+) -> Personal | Usuario:
     credentials_exception = _credenciales_invalidas()
     if not token:
         raise credentials_exception
@@ -120,7 +126,7 @@ def get_current_user(
 def require_admin_dashboard(
     token: str | None = Depends(cookie_auth),
     db: Session = Depends(get_db),
-) -> Usuario:
+) -> Personal | Usuario:
     credentials_exception = _credenciales_invalidas()
     if not token:
         raise credentials_exception
@@ -139,13 +145,13 @@ def require_admin_dashboard(
     return usuario
 
 
-def require_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
+def require_admin(current_user: Personal | Usuario = Depends(get_current_user)) -> Personal:
     if current_user.rol != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo un administrador puede realizar esta acción")
     return current_user
 
 
-def require_resource_manager(current_user: Usuario = Depends(get_current_user)) -> Usuario:
+def require_resource_manager(current_user: Personal | Usuario = Depends(get_current_user)) -> Personal:
     if current_user.rol not in {"admin", "gestor"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -154,7 +160,7 @@ def require_resource_manager(current_user: Usuario = Depends(get_current_user)) 
     return current_user
 
 
-def get_managed_space_id(db: Session, usuario: Usuario) -> int | None:
+def get_managed_space_id(db: Session, usuario: Personal) -> int | None:
     if usuario.rol == "admin":
         return None
     asignacion = (
@@ -173,7 +179,7 @@ def get_managed_space_id(db: Session, usuario: Usuario) -> int | None:
 def get_current_user_optional(
     request: Request,
     db: Session = Depends(get_db),
-) -> Usuario | None:
+) -> Personal | Usuario | None:
     """Usuario autenticado por cookie, o None si no hay cookie o es inválida.
 
     Sin `Depends(cookie_auth)` a propósito, para NO añadir el esquema de

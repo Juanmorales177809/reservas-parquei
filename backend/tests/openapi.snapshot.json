@@ -114,43 +114,6 @@
         "title": "AdminDashboardSummary",
         "type": "object"
       },
-      "AdminUsuarioCreate": {
-        "description": "Permite al admin asignar un rol al crear un usuario.",
-        "properties": {
-          "email": {
-            "maxLength": 255,
-            "title": "Email",
-            "type": "string"
-          },
-          "espacio_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Espacio Id"
-          },
-          "rol": {
-            "$ref": "#/components/schemas/Rol",
-            "default": "usuario"
-          },
-          "username": {
-            "maxLength": 80,
-            "minLength": 3,
-            "title": "Username",
-            "type": "string"
-          }
-        },
-        "required": [
-          "username",
-          "email"
-        ],
-        "title": "AdminUsuarioCreate",
-        "type": "object"
-      },
       "ConfiguracionEspacioResponse": {
         "properties": {
           "aprobacion_automatica": {
@@ -1067,6 +1030,154 @@
         "title": "PeriodoDelta",
         "type": "object"
       },
+      "PersonalCreate": {
+        "description": "Body de `POST /personal` (admin-only): crea una cuenta de personal\ninstitucional (`admin`/`gestor`) -- separada de `UsuarioCreate` desde\nla división en dos tablas (ver\n`~/.claude/plans/dazzling-wobbling-zebra.md`). Sin `password`, mismo\nmotivo que `UsuarioCreate`: la identidad la crea Supabase vía\ninvitación.",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "rol": {
+            "$ref": "#/components/schemas/Rol",
+            "default": "gestor"
+          },
+          "username": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email"
+        ],
+        "title": "PersonalCreate",
+        "type": "object"
+      },
+      "PersonalUpdate": {
+        "description": "Body de `PUT /personal/{id}` (admin-only).\n\n`rol` SÍ acepta `usuario` acá (a diferencia de `PersonalCreate`): es\nla señal para degradar esta cuenta a `usuarios` -- `api/personal.py`\nintercepta ese caso ANTES de llamar a\n`crud/personal.py::actualizar_personal` (que nunca ve `rol=usuario`,\nver su docstring) y lo resuelve con\n`services/migrar_actor.py::degradar_a_usuario`.",
+        "properties": {
+          "dependencia": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependencia"
+          },
+          "documento_identificacion": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento Identificacion"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "espacio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Espacio Id"
+          },
+          "institucion": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institucion"
+          },
+          "rol": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rol"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "vinculacion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VinculacionUsuario"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PersonalUpdate",
+        "type": "object"
+      },
       "RecuperarPasswordRequest": {
         "description": "Body de `POST /auth/recuperar` (público). Mismo validador de formato\nque `UsuarioCreate.email` -- no valida si la cuenta existe, eso lo\ndecide Supabase del lado del servidor (ver\n`app/services/supabase_admin.py::generar_link_recuperacion`).",
         "properties": {
@@ -1374,6 +1485,35 @@
           "correo_enviado"
         ],
         "title": "ReenviarInvitacionResponse",
+        "type": "object"
+      },
+      "RegistroRequest": {
+        "description": "Body de `POST /auth/registro` (público, sin autenticación).\n\nAutoregistro abierto (2026-08-28, decisión explícita del usuario del\nproyecto): cualquiera crea su propia cuenta con rol `usuario`, sin\naprobación de un admin -- excepción deliberada al diseño previo de\n\"solo un admin invita\" (ver el docstring de `supabase_sesion` en\n`app/api/auth.py`, que sigue vigente para el resto de los casos: este\nendpoint nunca busca ni vincula una cuenta existente por email, solo\ncrea una nueva). A diferencia de `UsuarioCreate` (sin `password`\nporque la identidad la crea un admin vía invitación), acá la persona\nelige su propia contraseña en el mismo formulario.",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 72,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "title": "RegistroRequest",
         "type": "object"
       },
       "ReservaAcompananteResponse": {
@@ -2037,6 +2177,28 @@
         "title": "TipoSolicitud",
         "type": "string"
       },
+      "UsuarioCreate": {
+        "description": "Sin `password`: la identidad de autenticación la crea Supabase (ver\n`create_usuario_admin` en `app/api/usuarios.py`, vía\n`app/services/supabase_admin.py`) -- nadie, ni quien crea la cuenta,\nelige una contraseña acá.",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email"
+        ],
+        "title": "UsuarioCreate",
+        "type": "object"
+      },
       "UsuarioEspacioResponse": {
         "properties": {
           "id": {
@@ -2179,6 +2341,7 @@
         "type": "object"
       },
       "UsuarioUpdate": {
+        "description": "Body de `PUT /usuarios/{id}` (admin, rol `usuario` únicamente desde\nla separación en `personal`/`usuarios` -- sin `rol`/`espacio_id`, que\nya no aplican acá; ver `schemas/personal.py::PersonalCreate/Update`\npara admin/gestor).",
         "properties": {
           "dependencia": {
             "anyOf": [
@@ -2216,17 +2379,6 @@
             ],
             "title": "Email"
           },
-          "espacio_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Espacio Id"
-          },
           "institucion": {
             "anyOf": [
               {
@@ -2238,16 +2390,6 @@
               }
             ],
             "title": "Institucion"
-          },
-          "rol": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Rol"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "telefono": {
             "anyOf": [
@@ -2811,6 +2953,48 @@
           }
         },
         "summary": "Recuperar Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/registro": {
+      "post": {
+        "description": "Autoregistro abierto: cualquiera crea su propia cuenta con rol\n`usuario`, sin aprobación de un admin (ver el docstring de\n`RegistroRequest`). La cuenta queda lista de inmediato con la\ncontraseña que la persona eligió -- `crear_usuario_confirmado` usa el\nmismo mecanismo que ya usaba el bootstrap del admin inicial\n(`app/main.py::seed_admin_user`): identidad de Supabase ya confirmada,\nsin correo de invitación ni paso de confirmación de por medio.\n\nEl perfil (documento/teléfono/institución/vinculación/dependencia)\nsigue siendo obligatorio antes de poder usar el resto de la app --\neso lo exige el guard ya existente en `app_router.dart` (Flutter),\nno este endpoint.",
+        "operationId": "registro_auth_registro_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistroRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Registro",
         "tags": [
           "auth"
         ]
@@ -3627,6 +3811,280 @@
         ]
       }
     },
+    "/personal": {
+      "get": {
+        "operationId": "list_personal_personal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioResponse"
+                  },
+                  "title": "Response List Personal Personal Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "List Personal",
+        "tags": [
+          "personal"
+        ]
+      },
+      "post": {
+        "operationId": "create_personal_admin_personal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Create Personal Admin",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/personal/promover/{usuario_id}": {
+      "post": {
+        "description": "Asciende una cuenta existente de `usuarios` (rol `usuario`) a\n`personal` (`admin`/`gestor`) -- distinto de `create_personal_admin`,\nque crea una identidad nueva desde cero. Mueve la misma fila (mismo\n`id`, mismo `supabase_id`) y repunta cualquier reserva/notificación/\nauditoría existente -- ver `services/migrar_actor.py`.",
+        "operationId": "promover_usuario_a_personal_personal_promover__usuario_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "title": "Usuario Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Promover Usuario A Personal",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/personal/{personal_id}": {
+      "delete": {
+        "operationId": "delete_personal_endpoint_personal__personal_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "personal_id",
+            "required": true,
+            "schema": {
+              "title": "Personal Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Delete Personal Endpoint",
+        "tags": [
+          "personal"
+        ]
+      },
+      "put": {
+        "operationId": "update_personal_endpoint_personal__personal_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "personal_id",
+            "required": true,
+            "schema": {
+              "title": "Personal Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Update Personal Endpoint",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/personal/{personal_id}/reenviar-invitacion": {
+      "post": {
+        "operationId": "reenviar_invitacion_endpoint_personal__personal_id__reenviar_invitacion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "personal_id",
+            "required": true,
+            "schema": {
+              "title": "Personal Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReenviarInvitacionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Reenviar Invitacion Endpoint",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
     "/recursos": {
       "get": {
         "operationId": "listar_recursos_recursos_get",
@@ -4334,6 +4792,7 @@
     },
     "/usuarios": {
       "get": {
+        "description": "Rol `usuario` únicamente desde la separación en `personal`/\n`usuarios` -- ver `GET /personal` para admin/gestor.",
         "operationId": "list_usuarios_usuarios_get",
         "responses": {
           "200": {
@@ -4362,12 +4821,13 @@
         ]
       },
       "post": {
+        "description": "Alta de una cuenta rol `usuario` por un admin -- distinta del\nautoregistro abierto (`POST /auth/registro`): acá la identidad de\nSupabase se crea vía invitación (la persona nunca elige su propia\ncontraseña en este flujo).",
         "operationId": "create_usuario_admin_usuarios_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdminUsuarioCreate"
+                "$ref": "#/components/schemas/UsuarioCreate"
               }
             }
           },
@@ -4432,7 +4892,7 @@
         ]
       },
       "put": {
-        "description": "Self-service: cualquier usuario autenticado edita su propio perfil\n(documento/teléfono/institución/vinculación/dependencia). Registrada\nANTES de `PUT /usuarios/{usuario_id}` a propósito -- si quedara\ndespués, FastAPI intentaría parsear \"me\" como el `int` de esa ruta y\nrespondería 422 en vez de llegar acá (mismo orden que ya sigue\n`GET /me` respecto de `GET \"\"`).",
+        "description": "Self-service: cualquier identidad autenticada (`Personal` o\n`Usuario`) edita su propio perfil. Registrada ANTES de\n`PUT /usuarios/{usuario_id}` a propósito -- si quedara después,\nFastAPI intentaría parsear \"me\" como el `int` de esa ruta.",
         "operationId": "actualizar_mi_perfil_usuarios_me_put",
         "requestBody": {
           "content": {
@@ -4574,7 +5034,6 @@
     },
     "/usuarios/{usuario_id}/reenviar-invitacion": {
       "post": {
-        "description": "Genera un link de invitación fresco y lo encola por correo.\n\nCubre dos escenarios reales: el correo original nunca llegó (spam,\nproblema de entrega), o el link venció (Supabase expira los links de\ninvitación). `/auth/v1/invite` no sirve para esto -- Supabase lo\nrechaza con `email_exists` para cualquier email ya registrado, aunque\nla invitación original nunca se haya confirmado (confirmado contra el\nproyecto real, 2026-08-27) -- hace falta `generate_link`, que sí\nfunciona para un usuario existente pero no manda el correo por su\ncuenta.\n\n`correo_enviado` en la respuesta refleja si el envío SMTP realmente\ntuvo éxito -- con `EMAIL_ENABLED=false` (todavía, mientras se gestiona\nel SMTP del ITM) siempre da `false` y el link queda en la respuesta\npara que el admin lo entregue a mano.",
         "operationId": "reenviar_invitacion_endpoint_usuarios__usuario_id__reenviar_invitacion_post",
         "parameters": [
           {

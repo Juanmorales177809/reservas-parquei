@@ -4,13 +4,21 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.auth import NOMBRE_COOKIE_ACCESO, atributos_cookie_acceso, max_age_cookie_acceso
-from app.crud.usuarios import get_usuario_by_email, get_usuario_by_supabase_id
+from app.crud.identidad import buscar_por_email, buscar_por_supabase_id, buscar_por_username
+from app.crud.usuarios import create_usuario
 from app.db import get_db
 from app.deps import decode_token
-from app.schemas.usuario import LoginResponse, RecuperarPasswordRequest, SupabaseSesionRequest, UsuarioResponse
+from app.schemas.usuario import (
+    LoginResponse,
+    RecuperarPasswordRequest,
+    RegistroRequest,
+    SupabaseSesionRequest,
+    UsuarioCreate,
+    UsuarioResponse,
+)
 from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import plantilla_recuperacion_password
-from app.services.supabase_admin import generar_link_recuperacion
+from app.services.supabase_admin import SupabaseAdminError, crear_usuario_confirmado, generar_link_recuperacion
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -68,7 +76,7 @@ def supabase_sesion(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de Supabase inválido") from exc
 
-    usuario = get_usuario_by_supabase_id(db, supabase_id)
+    usuario = buscar_por_supabase_id(db, supabase_id)
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -82,6 +90,37 @@ def supabase_sesion(
         **atributos_cookie_acceso(),
     )
     return LoginResponse(user=UsuarioResponse.model_validate(usuario))
+
+
+@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
+def registro(payload: RegistroRequest, db: Session = Depends(get_db)) -> UsuarioResponse:
+    """Autoregistro abierto: cualquiera crea su propia cuenta con rol
+    `usuario`, sin aprobación de un admin (ver el docstring de
+    `RegistroRequest`). La cuenta queda lista de inmediato con la
+    contraseña que la persona eligió -- `crear_usuario_confirmado` usa el
+    mismo mecanismo que ya usaba el bootstrap del admin inicial
+    (`app/main.py::seed_admin_user`): identidad de Supabase ya confirmada,
+    sin correo de invitación ni paso de confirmación de por medio.
+
+    El perfil (documento/teléfono/institución/vinculación/dependencia)
+    sigue siendo obligatorio antes de poder usar el resto de la app --
+    eso lo exige el guard ya existente en `app_router.dart` (Flutter),
+    no este endpoint.
+    """
+    if buscar_por_username(db, payload.username) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario ya está registrado")
+    if buscar_por_email(db, payload.email) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado")
+
+    try:
+        supabase_id = crear_usuario_confirmado(payload.email, payload.password)
+    except SupabaseAdminError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo crear la cuenta en Supabase: {exc}",
+        ) from exc
+
+    return create_usuario(db, UsuarioCreate(username=payload.username, email=payload.email), supabase_id)
 
 
 @router.post("/recuperar", status_code=status.HTTP_204_NO_CONTENT)
@@ -104,7 +143,7 @@ def recuperar_password(payload: RecuperarPasswordRequest, db: Session = Depends(
         db.rollback()
         return None
 
-    usuario = get_usuario_by_email(db, payload.email)
+    usuario = buscar_por_email(db, payload.email)
     if usuario is None:
         db.rollback()
         return None

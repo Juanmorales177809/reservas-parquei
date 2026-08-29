@@ -7,7 +7,7 @@ from app.crud.espacios import create_espacio, get_espacio_by_nombre, update_espa
 from app.db import get_db
 from app.deps import get_current_user, get_current_user_optional, get_managed_space_id, require_admin
 from app.domain.enums import EstadoEntidad, Rol
-from app.models import Espacio, Recurso, Reserva, UsuarioEspacio
+from app.models import Espacio, Personal, Recurso, Reserva, UsuarioEspacio
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.models.usuario import Usuario
 from app.schemas.disponibilidad import DisponibilidadSlot
@@ -169,7 +169,7 @@ def obtener_disponibilidad(
 @router.post("", response_model=EspacioResponse, status_code=status.HTTP_201_CREATED)
 def crear_espacio(
     payload: EspacioCreate,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Crear un espacio. Solo admin."""
@@ -188,7 +188,7 @@ def crear_espacio(
 def actualizar_espacio(
     espacio_id: int,
     payload: EspacioUpdate,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Actualizar un espacio. Solo admin."""
@@ -206,7 +206,7 @@ def actualizar_espacio(
 @router.delete("/{espacio_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_espacio(
     espacio_id: int,
-    current_user: Usuario = Depends(require_admin),
+    current_user: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Eliminar un espacio. Solo admin."""

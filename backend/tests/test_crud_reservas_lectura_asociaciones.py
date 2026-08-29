@@ -33,6 +33,7 @@ from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.reservas import actualizar_reserva, cambiar_estado, crear_reserva
+from app.services.actores import columnas_actor
 from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
 
 
@@ -45,7 +46,7 @@ def _setup(db):
 
 def _crear_reserva_raw(db, *, usuario, espacio, recurso, fecha, estado="esperando"):
     reserva = Reserva(
-        usuario_id=usuario.id,
+        **columnas_actor(usuario),
         espacio_id=espacio.id,
         recurso_id=recurso.id,
         fecha=fecha,
@@ -241,7 +242,7 @@ class TestCompatibilidadListados:
         assert [r.id for r in gestionadas] == [reserva.id]
         assert gestionadas[0].recurso.id == recurso.id
 
-        misas = get_mis_reservas(db, usuario.id)
+        misas = get_mis_reservas(db, usuario)
         assert [r.id for r in misas] == [reserva.id]
         assert misas[0].recurso.id == recurso.id
 

@@ -2,6 +2,7 @@ from app.models.control_cambio import ControlCambio
 from app.models.correo_saliente import CorreoSaliente
 from app.models.espacio import Espacio
 from app.models.notificacion import Notificacion
+from app.models.personal import Personal
 from app.models.recurso import Recurso, TipoRecurso
 from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
@@ -20,6 +21,7 @@ __all__ = [
     "Ensayo",
     "Espacio",
     "Notificacion",
+    "Personal",
     "Recurso",
     "Reserva",
     "ReservaAcompanante",

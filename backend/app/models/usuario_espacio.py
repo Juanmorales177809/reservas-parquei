@@ -5,13 +5,19 @@ from app.db import Base
 
 
 class UsuarioEspacio(Base):
+    """Asigna un espacio a un gestor -- pese al nombre (no se renombra la
+    tabla/columna para no ampliar más la superficie de la separación
+    personal/usuarios, ver `~/.claude/plans/dazzling-wobbling-zebra.md`),
+    `usuario_id` apunta a `personal.id`: solo `Personal` (rol `gestor`)
+    tiene un espacio asignado, nunca `Usuario`."""
+
     __tablename__ = "usuarios_espacios"
 
     id = Column(Integer, primary_key=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("personal.id"), nullable=False)
     espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False)
 
-    usuario = relationship("Usuario", back_populates="espacios_asignados")
+    personal = relationship("Personal", back_populates="espacios_asignados")
     espacio = relationship("Espacio", back_populates="gestores")
 
     __table_args__ = (
