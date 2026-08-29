@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Zona {
 
- int get id; String get nombre; int get espacioId; String? get descripcion; int? get capacidad; EstadoEntidad get estado; String get createdAt; String get updatedAt; int get createdBy; int get updatedBy; List<int> get recursoIds;
+ int get id; String get nombre; int get espacioId; String? get descripcion; int? get capacidad; EstadoEntidad get estado; String get createdAt; String get updatedAt; int? get createdBy; int? get updatedBy; List<int> get recursoIds;
 /// Create a copy of Zona
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $ZonaCopyWith<$Res>  {
   factory $ZonaCopyWith(Zona value, $Res Function(Zona) _then) = _$ZonaCopyWithImpl;
 @useResult
 $Res call({
- int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado, String createdAt, String updatedAt, int createdBy, int updatedBy, List<int> recursoIds
+ int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado, String createdAt, String updatedAt, int? createdBy, int? updatedBy, List<int> recursoIds
 });
 
 
@@ -66,7 +66,7 @@ class _$ZonaCopyWithImpl<$Res>
 
 /// Create a copy of Zona
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? updatedBy = null,Object? recursoIds = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = freezed,Object? updatedBy = freezed,Object? recursoIds = null,}) {
   return _then(Zona(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -76,9 +76,9 @@ as String?,capacidad: freezed == capacidad ? _self.capacidad : capacidad // igno
 as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoEntidad,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as int,updatedBy: null == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
-as int,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as int?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
+as int?,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,
   ));
 }
@@ -164,7 +164,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy,  List<int> recursoIds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy,  List<int> recursoIds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Zona() when $default != null:
 return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy,_that.recursoIds);case _:
@@ -185,7 +185,7 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy,  List<int> recursoIds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy,  List<int> recursoIds)  $default,) {final _that = this;
 switch (_that) {
 case _Zona():
 return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy,_that.recursoIds);case _:
@@ -205,7 +205,7 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy,  List<int> recursoIds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy,  List<int> recursoIds)?  $default,) {final _that = this;
 switch (_that) {
 case _Zona() when $default != null:
 return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy,_that.recursoIds);case _:
@@ -220,7 +220,7 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.ca
 @JsonSerializable()
 
 class _Zona implements Zona {
-  const _Zona({required this.id, required this.nombre, required this.espacioId, this.descripcion, this.capacidad, required this.estado, required this.createdAt, required this.updatedAt, required this.createdBy, required this.updatedBy,  List<int> recursoIds = const []}): _recursoIds = recursoIds;
+  const _Zona({required this.id, required this.nombre, required this.espacioId, this.descripcion, this.capacidad, required this.estado, required this.createdAt, required this.updatedAt, this.createdBy, this.updatedBy,  List<int> recursoIds = const []}): _recursoIds = recursoIds;
   factory _Zona.fromJson(Map<String, dynamic> json) => _$ZonaFromJson(json);
 
 @override final  int id;
@@ -231,8 +231,8 @@ class _Zona implements Zona {
 @override final  EstadoEntidad estado;
 @override final  String createdAt;
 @override final  String updatedAt;
-@override final  int createdBy;
-@override final  int updatedBy;
+@override final  int? createdBy;
+@override final  int? updatedBy;
  final  List<int> _recursoIds;
 @override@JsonKey() List<int> get recursoIds {
   if (_recursoIds is EqualUnmodifiableListView) return _recursoIds;
@@ -274,7 +274,7 @@ abstract mixin class _$ZonaCopyWith<$Res> implements $ZonaCopyWith<$Res> {
   factory _$ZonaCopyWith(_Zona value, $Res Function(_Zona) _then) = __$ZonaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado, String createdAt, String updatedAt, int createdBy, int updatedBy, List<int> recursoIds
+ int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado, String createdAt, String updatedAt, int? createdBy, int? updatedBy, List<int> recursoIds
 });
 
 
@@ -291,7 +291,7 @@ class __$ZonaCopyWithImpl<$Res>
 
 /// Create a copy of Zona
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? updatedBy = null,Object? recursoIds = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = freezed,Object? updatedBy = freezed,Object? recursoIds = null,}) {
   return _then(_Zona(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -301,9 +301,9 @@ as String?,capacidad: freezed == capacidad ? _self.capacidad : capacidad // igno
 as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoEntidad,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as int,updatedBy: null == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
-as int,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as int?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
+as int?,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,
   ));
 }

@@ -238,6 +238,43 @@ _COPIAR_ADMIN_GESTOR_A_PERSONAL = """
     SELECT setval(pg_get_serial_sequence('personal', 'id'), COALESCE((SELECT MAX(id) FROM personal), 1));
 """
 
+# Bug real encontrado en el primer despliegue real contra producción
+# (2026-08-29): `recursos_created_by_fkey` violado --
+# `Key (created_by)=(2) is not present in table "personal"`. Causa: antes
+# de esta separación, `PUT /usuarios/{id}` permitía bajar a alguien de
+# gestor a usuario con un UPDATE directo (sin el `degradar_a_usuario` de
+# `services/migrar_actor.py`, que no existía todavía) -- dejando
+# `created_by`/`updated_by` de `recursos`/`zonas`/`ensayos`/`espacios`
+# apuntando a un `usuarios.id` cuyo `rol` actual ya es 'usuario'.
+#
+# Se descartó copiar a esos usuarios "legacy" a `personal` (como una
+# primera versión de esta corrección hacía): habría dejado a esa persona
+# con el mismo id en las dos tablas, y el backfill de más abajo
+# (`_BACKFILL_ACTOR_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS`, que decide
+# "¿esta fila es de personal?" solo mirando si `usuario_id` existe en
+# `personal`) habría movido también sus reservas hechas DESPUÉS de la
+# degradación -- corrompiendo en silencio a quién pertenecen. Estas 4
+# columnas son de auditoría pura (nunca se leen para autorización, eso lo
+# decide `require_resource_manager`/`require_admin` en el momento), así
+# que perder la referencia es un costo real pero acotado y honesto: se
+# limpia a NULL antes de repuntar la FK, en vez de inventar una identidad.
+_LIMPIAR_CREATED_BY_HUERFANOS = """
+    UPDATE recursos SET created_by = NULL WHERE created_by IS NOT NULL AND created_by NOT IN (SELECT id FROM personal);
+    UPDATE recursos SET update_by = NULL WHERE update_by IS NOT NULL AND update_by NOT IN (SELECT id FROM personal);
+    UPDATE zonas SET created_by = NULL WHERE created_by IS NOT NULL AND created_by NOT IN (SELECT id FROM personal);
+    UPDATE zonas SET updated_by = NULL WHERE updated_by IS NOT NULL AND updated_by NOT IN (SELECT id FROM personal);
+    UPDATE ensayos SET created_by = NULL WHERE created_by IS NOT NULL AND created_by NOT IN (SELECT id FROM personal);
+    UPDATE ensayos SET updated_by = NULL WHERE updated_by IS NOT NULL AND updated_by NOT IN (SELECT id FROM personal);
+    UPDATE espacios SET created_by = NULL WHERE created_by IS NOT NULL AND created_by NOT IN (SELECT id FROM personal);
+    UPDATE espacios SET updated_by = NULL WHERE updated_by IS NOT NULL AND updated_by NOT IN (SELECT id FROM personal);
+    -- usuarios_espacios.usuario_id NO es auditoría, es la asignación real
+    -- de qué gestor administra qué espacio -- si el usuario_id ya no es
+    -- personal, la asignación en sí quedó inválida (no tiene sentido que
+    -- alguien sin rol gestor "administre" un espacio); se borra la fila
+    -- en vez de dejarla con un usuario_id NULL sin sentido.
+    DELETE FROM usuarios_espacios WHERE usuario_id IS NOT NULL AND usuario_id NOT IN (SELECT id FROM personal);
+"""
+
 # Repuntar las FK "de personal" (usuarios(id) -> personal(id)) -- válido
 # recién DESPUÉS de _COPIAR_ADMIN_GESTOR_A_PERSONAL, porque el ADD
 # CONSTRAINT valida los valores ya existentes en cada columna contra la
@@ -677,6 +714,18 @@ def migrate_resource_reservations() -> None:
         # del CHECK (que exige exactamente una llena), y borrar de usuarios
         # solo al final, con todo lo demás ya migrado.
         _COPIAR_ADMIN_GESTOR_A_PERSONAL,
+        # Bug real de producción (2026-08-29, ver _LIMPIAR_CREATED_BY_HUERFANOS
+        # más arriba): estas 4 columnas eran NOT NULL, pero un created_by/
+        # updated_by huérfano (usuario degradado antes de esta separación)
+        # necesita poder quedar en NULL -- mismo criterio que espacios.created_by/
+        # updated_by, que ya eran nullable desde su creación.
+        "ALTER TABLE recursos ALTER COLUMN created_by DROP NOT NULL",
+        "ALTER TABLE recursos ALTER COLUMN update_by DROP NOT NULL",
+        "ALTER TABLE zonas ALTER COLUMN created_by DROP NOT NULL",
+        "ALTER TABLE zonas ALTER COLUMN updated_by DROP NOT NULL",
+        "ALTER TABLE ensayos ALTER COLUMN created_by DROP NOT NULL",
+        "ALTER TABLE ensayos ALTER COLUMN updated_by DROP NOT NULL",
+        _LIMPIAR_CREATED_BY_HUERFANOS,
         _REPUNTAR_FK_DE_PERSONAL,
         _POLIMORFISMO_ACTOR_RESERVAS_NOTIFICACIONES,
         _FK_PERSONAL_ID_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,

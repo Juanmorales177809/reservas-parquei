@@ -35,8 +35,12 @@ class Recurso(Base):
     placa = Column(String(50), nullable=True)
     create_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     update_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    created_by = Column(Integer, ForeignKey("personal.id"), nullable=False)
-    update_by = Column(Integer, ForeignKey("personal.id"), nullable=False)
+    # Nullable desde 2026-08-29 (bug real de producción, ver
+    # backend/CLAUDE.md): un created_by/update_by huérfano (usuario
+    # degradado de gestor a usuario antes de la separación personal/
+    # usuarios) se limpia a NULL en vez de romper la migración.
+    created_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
+    update_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
 
     espacio = relationship("Espacio", back_populates="recursos")
     tipo = relationship("TipoRecurso", back_populates="recursos")

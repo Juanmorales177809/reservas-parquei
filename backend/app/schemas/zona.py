@@ -32,8 +32,11 @@ class ZonaResponse(BaseModel):
     estado: EstadoEntidad
     created_at: datetime
     updated_at: datetime
-    created_by: int
-    updated_by: int
+    # Nullable desde 2026-08-29 (bug real de producción, ver
+    # backend/CLAUDE.md): un created_by/updated_by huérfano se limpia a
+    # NULL en la migración en vez de romperla.
+    created_by: int | None
+    updated_by: int | None
     # Fase A1 (recursos por zona): qué recursos tiene asociados hoy la
     # zona -- sin esto, la UI que deja editar la asociación (reemplazo
     # completo vía PUT /zonas/{id}/recursos) no puede mostrar la selección

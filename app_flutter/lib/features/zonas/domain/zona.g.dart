@@ -15,8 +15,8 @@ _Zona _$ZonaFromJson(Map<String, dynamic> json) => _Zona(
   estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
   createdAt: json['created_at'] as String,
   updatedAt: json['updated_at'] as String,
-  createdBy: (json['created_by'] as num).toInt(),
-  updatedBy: (json['updated_by'] as num).toInt(),
+  createdBy: (json['created_by'] as num?)?.toInt(),
+  updatedBy: (json['updated_by'] as num?)?.toInt(),
   recursoIds:
       (json['recurso_ids'] as List<dynamic>?)
           ?.map((e) => (e as num).toInt())

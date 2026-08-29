@@ -26,5 +26,8 @@ class EnsayoResponse(BaseModel):
     estado: EstadoEntidad
     created_at: datetime
     updated_at: datetime
-    created_by: int
-    updated_by: int
+    # Nullable desde 2026-08-29 (bug real de producción, ver
+    # backend/CLAUDE.md): un created_by/updated_by huérfano se limpia a
+    # NULL en la migración en vez de romperla.
+    created_by: int | None
+    updated_by: int | None

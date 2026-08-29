@@ -19,8 +19,12 @@ abstract class Zona with _$Zona {
     required EstadoEntidad estado,
     required String createdAt,
     required String updatedAt,
-    required int createdBy,
-    required int updatedBy,
+    // Nullable desde 2026-08-29 (bug real de producción, ver
+    // backend/CLAUDE.md): un created_by/updated_by huérfano (usuario
+    // degradado antes de la separación personal/usuarios) se limpia a
+    // NULL en la migración.
+    int? createdBy,
+    int? updatedBy,
     @Default([]) List<int> recursoIds,
   }) = _Zona;
 

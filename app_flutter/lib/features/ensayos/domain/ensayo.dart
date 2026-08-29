@@ -15,8 +15,11 @@ abstract class Ensayo with _$Ensayo {
     required EstadoEntidad estado,
     required String createdAt,
     required String updatedAt,
-    required int createdBy,
-    required int updatedBy,
+    // Nullable desde 2026-08-29 (bug real de producción, ver
+    // backend/CLAUDE.md): un created_by/updated_by huérfano se limpia a
+    // NULL en la migración.
+    int? createdBy,
+    int? updatedBy,
   }) = _Ensayo;
 
   factory Ensayo.fromJson(Map<String, dynamic> json) => _$EnsayoFromJson(json);

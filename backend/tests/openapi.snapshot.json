@@ -448,8 +448,15 @@
             "type": "string"
           },
           "created_by": {
-            "title": "Created By",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
           },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
@@ -468,8 +475,15 @@
             "type": "string"
           },
           "updated_by": {
-            "title": "Updated By",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
           },
           "zona_id": {
             "title": "Zona Id",
@@ -2841,8 +2855,15 @@
             "type": "string"
           },
           "created_by": {
-            "title": "Created By",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
           },
           "descripcion": {
             "anyOf": [
@@ -2883,8 +2904,15 @@
             "type": "string"
           },
           "updated_by": {
-            "title": "Updated By",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
           }
         },
         "required": [

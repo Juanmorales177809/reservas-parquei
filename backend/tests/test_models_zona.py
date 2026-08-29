@@ -56,21 +56,28 @@ class TestZonaCamposObligatorios:
         with pytest.raises(IntegrityError):
             db.commit()
 
-    def test_created_by_obligatorio(self, db):
+    def test_created_by_nullable_desde_2026_08_29(self, db):
+        """Nullable a propósito desde el bug real de producción (ver
+        backend/CLAUDE.md, "Nullable created_by/updated_by..."): un
+        created_by huérfano (usuario degradado antes de la separación
+        personal/usuarios) se limpia a NULL en la migración en vez de
+        romperla -- ya no es NOT NULL como antes."""
         espacio = crear_espacio(db)
         usuario = crear_usuario(db, username="admin_zona4", email="admin_zona4@example.com", rol="admin")
         zona = Zona(nombre="Zona sin creador", espacio_id=espacio.id, updated_by=usuario.id)
         db.add(zona)
-        with pytest.raises(IntegrityError):
-            db.commit()
+        db.commit()
+        db.refresh(zona)
+        assert zona.created_by is None
 
-    def test_updated_by_obligatorio(self, db):
+    def test_updated_by_nullable_desde_2026_08_29(self, db):
         espacio = crear_espacio(db)
         usuario = crear_usuario(db, username="admin_zona5", email="admin_zona5@example.com", rol="admin")
         zona = Zona(nombre="Zona sin actualizador", espacio_id=espacio.id, created_by=usuario.id)
         db.add(zona)
-        with pytest.raises(IntegrityError):
-            db.commit()
+        db.commit()
+        db.refresh(zona)
+        assert zona.updated_by is None
 
 
 class TestZonaEstadoConstraint:

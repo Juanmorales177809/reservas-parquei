@@ -13,8 +13,8 @@ _Ensayo _$EnsayoFromJson(Map<String, dynamic> json) => _Ensayo(
   estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
   createdAt: json['created_at'] as String,
   updatedAt: json['updated_at'] as String,
-  createdBy: (json['created_by'] as num).toInt(),
-  updatedBy: (json['updated_by'] as num).toInt(),
+  createdBy: (json['created_by'] as num?)?.toInt(),
+  updatedBy: (json['updated_by'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$EnsayoToJson(_Ensayo instance) => <String, dynamic>{

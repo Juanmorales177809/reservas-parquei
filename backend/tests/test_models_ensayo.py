@@ -53,23 +53,28 @@ class TestEnsayoCamposObligatorios:
         with pytest.raises(IntegrityError):
             db.commit()
 
-    def test_created_by_obligatorio(self, db):
+    def test_created_by_nullable_desde_2026_08_29(self, db):
+        """Nullable a propósito desde el bug real de producción (ver
+        backend/CLAUDE.md, "Nullable created_by/updated_by..."): ya no es
+        NOT NULL como antes."""
         espacio = crear_espacio(db)
         admin = crear_usuario(db, username="admin_ens4", email="admin_ens4@example.com", rol="admin")
         zona = crear_zona(db, espacio=espacio, usuario=admin)
         ensayo = Ensayo(nombre="Sin creador", zona_id=zona.id, updated_by=admin.id)
         db.add(ensayo)
-        with pytest.raises(IntegrityError):
-            db.commit()
+        db.commit()
+        db.refresh(ensayo)
+        assert ensayo.created_by is None
 
-    def test_updated_by_obligatorio(self, db):
+    def test_updated_by_nullable_desde_2026_08_29(self, db):
         espacio = crear_espacio(db)
         admin = crear_usuario(db, username="admin_ens5", email="admin_ens5@example.com", rol="admin")
         zona = crear_zona(db, espacio=espacio, usuario=admin)
         ensayo = Ensayo(nombre="Sin actualizador", zona_id=zona.id, created_by=admin.id)
         db.add(ensayo)
-        with pytest.raises(IntegrityError):
-            db.commit()
+        db.commit()
+        db.refresh(ensayo)
+        assert ensayo.updated_by is None
 
 
 class TestEnsayoEstadoConstraint:

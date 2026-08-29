@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Ensayo {
 
- int get id; String get nombre; int get zonaId; EstadoEntidad get estado; String get createdAt; String get updatedAt; int get createdBy; int get updatedBy;
+ int get id; String get nombre; int get zonaId; EstadoEntidad get estado; String get createdAt; String get updatedAt; int? get createdBy; int? get updatedBy;
 /// Create a copy of Ensayo
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $EnsayoCopyWith<$Res>  {
   factory $EnsayoCopyWith(Ensayo value, $Res Function(Ensayo) _then) = _$EnsayoCopyWithImpl;
 @useResult
 $Res call({
- int id, String nombre, int zonaId, EstadoEntidad estado, String createdAt, String updatedAt, int createdBy, int updatedBy
+ int id, String nombre, int zonaId, EstadoEntidad estado, String createdAt, String updatedAt, int? createdBy, int? updatedBy
 });
 
 
@@ -66,7 +66,7 @@ class _$EnsayoCopyWithImpl<$Res>
 
 /// Create a copy of Ensayo
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? updatedBy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = freezed,Object? updatedBy = freezed,}) {
   return _then(Ensayo(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -74,9 +74,9 @@ as String,zonaId: null == zonaId ? _self.zonaId : zonaId // ignore: cast_nullabl
 as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoEntidad,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as int,updatedBy: null == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
-as int,
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as int?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -161,7 +161,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Ensayo() when $default != null:
 return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy);case _:
@@ -182,7 +182,7 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy)  $default,) {final _that = this;
 switch (_that) {
 case _Ensayo():
 return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy);case _:
@@ -202,7 +202,7 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int createdBy,  int updatedBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado,  String createdAt,  String updatedAt,  int? createdBy,  int? updatedBy)?  $default,) {final _that = this;
 switch (_that) {
 case _Ensayo() when $default != null:
 return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,_that.updatedAt,_that.createdBy,_that.updatedBy);case _:
@@ -217,7 +217,7 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado,_that.createdAt,
 @JsonSerializable()
 
 class _Ensayo implements Ensayo {
-  const _Ensayo({required this.id, required this.nombre, required this.zonaId, required this.estado, required this.createdAt, required this.updatedAt, required this.createdBy, required this.updatedBy});
+  const _Ensayo({required this.id, required this.nombre, required this.zonaId, required this.estado, required this.createdAt, required this.updatedAt, this.createdBy, this.updatedBy});
   factory _Ensayo.fromJson(Map<String, dynamic> json) => _$EnsayoFromJson(json);
 
 @override final  int id;
@@ -226,8 +226,8 @@ class _Ensayo implements Ensayo {
 @override final  EstadoEntidad estado;
 @override final  String createdAt;
 @override final  String updatedAt;
-@override final  int createdBy;
-@override final  int updatedBy;
+@override final  int? createdBy;
+@override final  int? updatedBy;
 
 /// Create a copy of Ensayo
 /// with the given fields replaced by the non-null parameter values.
@@ -262,7 +262,7 @@ abstract mixin class _$EnsayoCopyWith<$Res> implements $EnsayoCopyWith<$Res> {
   factory _$EnsayoCopyWith(_Ensayo value, $Res Function(_Ensayo) _then) = __$EnsayoCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String nombre, int zonaId, EstadoEntidad estado, String createdAt, String updatedAt, int createdBy, int updatedBy
+ int id, String nombre, int zonaId, EstadoEntidad estado, String createdAt, String updatedAt, int? createdBy, int? updatedBy
 });
 
 
@@ -279,7 +279,7 @@ class __$EnsayoCopyWithImpl<$Res>
 
 /// Create a copy of Ensayo
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = null,Object? updatedBy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,Object? createdAt = null,Object? updatedAt = null,Object? createdBy = freezed,Object? updatedBy = freezed,}) {
   return _then(_Ensayo(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -287,9 +287,9 @@ as String,zonaId: null == zonaId ? _self.zonaId : zonaId // ignore: cast_nullabl
 as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoEntidad,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as int,updatedBy: null == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
-as int,
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as int?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
