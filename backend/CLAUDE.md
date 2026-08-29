@@ -211,6 +211,18 @@ A pedido explícito ("necesito que todo se envíe por Graph"): el único correo 
 - **`supabase-template-recuperacion-password.html` (raíz del repo) queda obsoleto** -- Supabase ya no manda ningún correo de recuperación por su cuenta, así que esa plantilla (pensada para pegarse en su dashboard) no tiene ningún efecto. Se deja en el repo sin borrar, mismo criterio que `supabase-template-invitacion.html`.
 - Tests: `tests/test_api_auth.py` (cuenta existente encola con `es_html=True`; cuenta inexistente responde 204 igual sin encolar nada; email con formato inválido da 422), `tests/test_email_templates.py::TestPlantillaRecuperacionPassword`.
 
+## Adjunto `.ics` en la confirmación de reserva aprobada (2026-08-29, ronda 2)
+
+Cuarta y última de las 4 features de la segunda ronda -- primer adjunto de correo de todo el proyecto.
+
+- **`app/services/ics.py::construir_ics`** (nuevo): texto `.ics` (RFC 5545) armado a mano con la stdlib -- sin depender del paquete `icalendar`, mismo criterio que el CSV del export. `DTSTART`/`DTEND` en hora "flotante" (sin `Z`/`TZID`): mismo criterio que el resto del dominio de reservas, que trata `fecha`+`hora_inicio`/`hora_fin` como hora local naive de Bogotá en todos lados.
+- **`CorreoSaliente` gana 3 columnas nullable** (`adjunto_nombre`, `adjunto_content_type`, `adjunto_contenido` -- este último `TEXT` en base64, mismo criterio que `cuerpo`) y **`services/email.py` gana `Adjunto`** (dataclass simple, un único adjunto por correo -- no hay caso de uso hoy para más de uno). `encolar_correo` gana el parámetro opcional `adjunto`.
+- **`_enviar_smtp`** arma `MIMEMultipart("mixed")` solo cuando hay adjunto (`MIMEApplication` con `Content-Disposition: attachment`); sin adjunto, exactamente el mismo `MIMEText` de siempre. **`enviar_graph`** agrega `message.attachments` (`#microsoft.graph.fileAttachment`, `contentBytes` en base64) al payload solo cuando hay adjunto.
+- **`services/reservas.py::_adjunto_ics_reserva`**: se adjunta SOLO cuando una reserva queda `aprobada` de una -- la rama de auto-aprobación en `crear_reserva` y el branch `aprobada` de `cambiar_estado`. Nunca en `esperando`/`rechazada`/`cancelada`: un `.ics` para una reserva todavía no confirmada sería prematuro (la fecha/horario puede cambiar o rechazarse).
+- **100% interno, sin cambio de contrato**: ningún endpoint ni schema cambió -- `openapi.snapshot.json` no se tocó con esta feature (verificado, igual que "recordatorios" y "reintento en lista de espera").
+
+Tests: `tests/test_ics.py` (formato válido, escapado de caracteres especiales), `tests/test_ics_confirmacion_reserva.py` (auto-aprobación adjunta, `esperando` no adjunta, `cambiar_estado` a `aprobada` adjunta, a `rechazada` no). `tests/test_correo_saliente.py` -- 2 mocks de `enviar_graph`/`_enviar_smtp` con aridad fija (4 params) necesitaron un 5to parámetro opcional para no romper con el nuevo argumento `adjunto` que pasa `procesar_pendientes`; el resto de la suite (incluido `_falla`, que ya tenía una aridad distinta a la real desde antes de esta feature) siguió pasando sin tocar. 762/762 en verde.
+
 ## Confirmación por correo al crear una reserva (2026-08-28)
 
 Gap real encontrado auditando los puntos de notificación existentes (`grep -rn "Notificacion(\|encolar_correo(" app/`): `crear_reserva` ya avisaba al gestor cuando una reserva quedaba pendiente (`plantilla_reserva_pendiente`), pero nunca le confirmaba nada a quien la creó -- ni en el caso pendiente ni en el de aprobación automática.
@@ -226,6 +238,16 @@ Gap real encontrado auditando los puntos de notificación existentes (`grep -rn 
 - **No se reutilizó `TipoNotificacion.CANCELADA` a ciegas**: ese tipo ya existía para el sentido opuesto (gestor cancela → avisa al usuario dueño, `cambiar_estado`), y el mensaje in-app (`api/notificaciones.py::_mensaje`) estaba hardcodeado en segunda persona ("Tu reserva de X fue cancelada") -- mandárselo tal cual a un gestor que no es dueño de la reserva habría sido un mensaje engañoso. Se corrigió `_mensaje` para distinguir por destinatario (`notificacion.usuario_id != reserva.usuario_id` → "Se canceló la reserva de X", sin el "Tu"), reutilizando el mismo valor de enum -- no hizo falta un `TipoNotificacion` nuevo ni tocar el `CHECK` de la base.
 - **Correo con plantilla propia**, `plantilla_reserva_cancelada_por_usuario` -- no se reutilizó `plantilla_reserva_estado` (misma razón: esa está redactada en segunda persona para el propio solicitante).
 - Tests: `tests/test_correo_saliente.py::test_cancelar_reserva_usuario_notifica_al_gestor` (in-app + correo, mensaje sin "Tu"), `tests/test_api_notificaciones.py` para el caso de `_mensaje` con destinatario ≠ dueño.
+
+## Exportar "mis reservas" y auditoría a CSV/Excel (2026-08-29, ronda 2)
+
+Primera de 4 features de una segunda ronda de recomendaciones (commit `c363031` en adelante -- ver `~/.claude/plans/dazzling-wobbling-zebra.md`, reescrito para esta ronda). Reusa el mecanismo de export construido para el dashboard sin ningún cambio de esquema.
+
+- **`app/services/exportar_archivo.py`** (nuevo): `respuesta_streaming(contenido, formato, nombre_base)` -- extraído de `admin_dashboard.py::_respuesta_exportacion` (que ahora lo llama) para no repetirlo una tercera y cuarta vez.
+- **`app/services/exportar_reservas.py`** (nuevo): `construir_csv_mis_reservas`/`construir_xlsx_mis_reservas` (columnas: fecha, horas, espacio, recursos, estado, asistentes) y `construir_csv_control_cambios`/`construir_xlsx_control_cambios` (fecha, actor, acción, entidad, id, descripción) -- mismo patrón exacto que `exportar_dashboard.py`.
+- **`GET /reservas/mis-reservas/export`** (cualquier actor autenticado, reusa `get_mis_reservas` tal cual) y **`GET /admin/control-cambios/export`** (`require_admin`, reusa la query de `listar_control_cambios` -- se factorizó a `_listar(db, limit)` para no duplicarla).
+
+Tests: `tests/test_export_mis_reservas.py` (incluye que NO se filtran reservas ajenas), `tests/test_export_control_cambios.py`. `openapi.snapshot.json` regenerado (puramente aditivo, 2 endpoints). 744/744 en verde.
 
 ## Export del dashboard admin/gestor a CSV/Excel (2026-08-29)
 
@@ -249,6 +271,17 @@ Tercera de las 4 features del mismo plan (ver "Export del dashboard admin/gestor
 
 Tests: `tests/test_recordatorios.py` (unit del servicio: dentro/fuera de ventana, ya pasó la hora, reserva no aprobada, idempotencia, `horas_antes` personalizado, gestor dueño de su propia reserva). `tests/test_lifespan_arranque.py` gana 2 casos: el scheduler NO arranca con `EMAIL_ENABLED=False` (default de tests), SÍ arranca y para limpio con `EMAIL_ENABLED=True` (monkeypatch). 732/732 en verde.
 
+## Gestión de la serie completa de una reserva recurrente (2026-08-29, ronda 2)
+
+Segunda de 4 features de la segunda ronda -- continuación directa de "Reservas recurrentes" (más abajo): antes `Reserva.serie_id` vinculaba las ocurrencias pero no había forma de verlas ni cancelarlas juntas.
+
+- **`ReservaResponse` expone `serie_id` por primera vez** (`uuid.UUID | None`) -- único cambio de contrato de esta feature; antes deliberadamente oculto. `null` para cualquier reserva no recurrente (la inmensa mayoría).
+- **`crud/reservas.py::get_reservas_de_serie(db, serie_id, actor)`**: mismo criterio de propiedad que `get_mis_reservas` -- nadie ve la serie de otra persona.
+- **`services/reservas.py::cancelar_serie`**: mismo molde exacto que `crear_reserva_serie` (recorre las ocurrencias propias, cada una por `cancelar_reserva_usuario` dentro de su propio `try/except HTTPException` -- "mejor esfuerzo", una que no se puede cancelar -- ya cancelada, no aprobada -- no aborta las demás).
+- **`GET /reservas/serie/{serie_id}`** y **`PUT /reservas/serie/{serie_id}/cancelar`** (`ReservaSerieCancelResponse { canceladas, omitidas }`, mismo patrón que `ReservaSerieResponse` de la creación).
+
+Tests: `tests/test_reservas_serie.py` -- `serie_id` null en reserva no recurrente, ocurrencias de una serie comparten `serie_id`, listar solo las propias, cancelar todas las cancelables reportando las que no se pudieron. `openapi.snapshot.json` regenerado (puramente aditivo: 2 endpoints + el campo `serie_id`, cero deleciones). 750/750 en verde.
+
 ## Reservas recurrentes -- "mejor esfuerzo" (2026-08-29)
 
 Última de las 4 features del mismo plan (ver "Export del dashboard admin/gestor a CSV/Excel" arriba) -- la de mayor riesgo de contrato, por eso se dejó para el final (toca `POST /reservas`, el endpoint más usado y testeado del sistema).
@@ -259,6 +292,21 @@ Tests: `tests/test_recordatorios.py` (unit del servicio: dentro/fuera de ventana
 - **`POST /reservas` declara `response_model=ReservaResponse | ReservaSerieResponse`** (unión de Pydantic v2, resuelta por "smart mode": intenta cada miembro en orden y usa el primero que valida) -- sin `repetir_semanas`, el endpoint devuelve `ReservaResponse` exactamente como siempre; con `repetir_semanas`, devuelve `ReservaSerieResponse { creadas: list[ReservaResponse], omitidas: list[OcurrenciaOmitida] }` (cada omitida con `fecha` + `motivo`, el `detail` del `HTTPException` que la descartó). Confirmado en el diff del snapshot: el único cambio a un endpoint ya existente es ese `$ref` único que pasa a `anyOf` -- ningún campo, ruta ni schema de otro endpoint se tocó.
 
 Tests: `tests/test_reservas_recurrentes.py` -- sin `repetir_semanas` devuelve la forma de siempre (no `creadas`), crea todas las ocurrencias sin conflicto (incluida auto-aprobación por ocurrencia para un gestor en su propio espacio), mejor esfuerzo con una ocurrencia intermedia en conflicto (se reporta, las demás sí se crean), 422 si se manda uno de los dos campos sin el otro, 422 fuera de rango. `openapi.snapshot.json` regenerado y revisado a mano (374 líneas nuevas, 1 sola línea removida -- el `$ref` de `POST /reservas` que pasó a `anyOf`, sin ningún otro cambio). 737/737 en verde.
+
+## Reintento en la lista de espera (2026-08-29, ronda 2)
+
+Tercera de 4 features de la segunda ronda -- cierra el gap explícito que dejó la lista de espera original (más abajo): antes solo se notificaba a la primera persona en la cola, y si no reservaba a tiempo, nadie más se enteraba nunca.
+
+- **`ListaEspera` gana `notificada_en`** (nullable, migración additiva -- a diferencia de `lista_espera` misma cuando se creó, esta tabla ya existe en cualquier instalación que corrió la feature anterior, así que sí hace falta migración explícita) **y el estado `'expirada'`** se agrega al `CHECK` (mismo patrón drop+add sin guarda que ya se usó una vez para `notificaciones_tipo_check`).
+- **`notificar_primero_en_espera` recupera el parámetro `reloj`** (se había quitado por no usarse cuando la feature original no tenía nada time-based que decidir; ahora sí) y setea `notificada_en` al notificar.
+- **`services/lista_espera.py::vencer_y_reencolar(db, *, horas_expiracion=2, reloj=None)`** (nuevo, función pura de servicio, mismo patrón que `services/recordatorios.py::enviar_recordatorios_pendientes`): busca entradas `notificada` con `notificada_en` más viejo que `horas_expiracion`, las marca `expirada`, y si el recurso/horario sigue libre (`get_reservas_bloqueantes`, ya existente) llama de nuevo a `notificar_primero_en_espera` para ese mismo recurso/horario -- que naturalmente recae en la siguiente `activa` de la cola, sin tocar esa función. Si ya no está libre (alguien lo tomó por fuera de la lista de espera), solo expira sin renotificar a nadie.
+- **Segundo `add_job` en el mismo `BackgroundScheduler`** de `app/main.py` (ya wireado para recordatorios) -- mismo intervalo, mismo gate `EMAIL_ENABLED`, sesión propia por job (`_job_vencer_lista_espera`).
+- **`listar_mias` oculta `expirada`** igual que `cancelada` -- ya le pasó el turno a la siguiente persona, no aporta dejarla visible.
+- **100% interno, sin cambio de contrato**: `openapi.snapshot.json` no cambió con esta feature (verificado -- primera de las 8 features de ambas rondas que no tocó el snapshot, junto con "recordatorios").
+
+**Bug real encontrado y corregido en el desarrollo de esta misma feature (no en producción, en el test que la cubre)**: el primer intento de `test_expira_sin_renotificar_si_el_recurso_ya_no_esta_libre` insertaba una `Reserva` "ocupante" solo con la columna legacy `recurso_id`, sin la fila de asociación `reserva_recursos` correspondiente -- `get_reservas_bloqueantes` (la función real que usa `vencer_y_reencolar` para decidir "¿sigue libre?") hace JOIN contra `reserva_recursos`, no contra esa columna, así que el test daba falso-libre. Corregido insertando también la fila de `ReservaRecurso`, igual que hace `crear_reserva` en producción (que siempre hace la doble escritura) -- el código de `vencer_y_reencolar` en sí estaba bien desde el principio, el bug era enteramente del setup del test.
+
+Tests: `tests/test_lista_espera_reintento.py` (expira y notifica al siguiente si sigue libre, expira sin notificar si no hay nadie más, expira sin renotificar si el recurso ya no está libre, no expira antes de tiempo, `notificar_primero_en_espera` setea `notificada_en`). `tests/test_api_lista_espera.py` gana el caso "oculta expiradas". `tests/test_lifespan_arranque.py` verifica 2 jobs registrados en el scheduler. 756/756 en verde.
 
 ## Lista de espera para recurso/horario ocupado (2026-08-29)
 

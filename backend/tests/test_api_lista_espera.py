@@ -6,6 +6,8 @@ CRUD de `app/api/lista_espera.py` -- la notificación al liberarse un cupo
 `test_lista_espera_notificacion.py`.
 """
 
+from app.models import ListaEspera
+
 from tests.conftest import cookies_para, crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
 
 
@@ -61,6 +63,22 @@ def test_listar_mias_oculta_canceladas(client, db):
     ).json()
 
     client.delete(f"/lista-espera/{creada['id']}", headers=cookies_para(usuario))
+
+    respuesta = client.get("/lista-espera/mias", headers=cookies_para(usuario))
+    assert respuesta.json() == []
+
+
+def test_listar_mias_oculta_expiradas(client, db):
+    """`expirada` (ronda 2, reintento) se oculta igual que `cancelada` --
+    ver `services/lista_espera.py::vencer_y_reencolar`."""
+    usuario, recurso = _usuario_y_recurso(db, username="lista_espera_expirada")
+    fecha = fecha_habilitada()
+    creada = client.post(
+        "/lista-espera", json=_payload(recurso.id, fecha), headers=cookies_para(usuario)
+    ).json()
+    entrada = db.query(ListaEspera).filter(ListaEspera.id == creada["id"]).first()
+    entrada.estado = "expirada"
+    db.commit()
 
     respuesta = client.get("/lista-espera/mias", headers=cookies_para(usuario))
     assert respuesta.json() == []

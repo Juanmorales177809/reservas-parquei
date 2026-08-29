@@ -12,6 +12,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../../core/widgets/export_button.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../espacios/domain/espacio.dart' show formatearHora;
@@ -116,6 +117,16 @@ class _MisReservasTab extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ExportButton(
+                    nombreArchivo: 'mis_reservas',
+                    mensajeExito: 'Reservas exportadas.',
+                    onExportar: (formato) => ref.read(reservasRepositoryProvider).exportarMisReservas(formato),
+                  ),
+                ),
+              ),
               for (final grupo in gruposConDatos)
                 SliverMainAxisGroup(
                   slivers: [
@@ -390,6 +401,75 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
     }
   }
 
+  /// "Parte de una serie · Ver todas" (2026-08-29, gestión de serie
+  /// completa): lista las demás ocurrencias y ofrece cancelarlas todas de
+  /// una, mismo criterio "mejor esfuerzo" que al crearlas.
+  Future<void> _verSerie(String serieId) async {
+    List<Reserva> ocurrencias;
+    try {
+      ocurrencias = await ref.read(reservasRepositoryProvider).listarSerie(serieId);
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo cargar la serie.'))),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final cancelarTodas = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reserva recurrente'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final o in ocurrencias)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('${_formatearFecha(o.fecha)} · ${formatearHora(o.horaInicio)}–${formatearHora(o.horaFin)}')),
+                      EstadoReservaBadge(estado: o.estado),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cerrar')),
+          FilledButton.tonal(onPressed: () => Navigator.of(context).pop(true), child: const Text('Cancelar toda la serie')),
+        ],
+      ),
+    );
+    if (cancelarTodas != true || !mounted) return;
+    try {
+      final resultado = await ref.read(reservasRepositoryProvider).cancelarSerie(serieId);
+      ref.invalidate(misReservasProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              resultado.omitidas.isEmpty
+                  ? 'Se cancelaron ${resultado.canceladas.length} reservas de la serie.'
+                  : 'Se cancelaron ${resultado.canceladas.length}; ${resultado.omitidas.length} ya no se podían cancelar.',
+            ),
+          ),
+        );
+      }
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo cancelar la serie.'))),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reserva = widget.reserva;
@@ -506,6 +586,17 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                       ? const SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(LucideIcons.x, size: 16),
                   label: const Text('Cancelar'),
+                ),
+              ),
+            ],
+            if (reserva.serieId != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _verSerie(reserva.serieId!),
+                  icon: const Icon(LucideIcons.repeat, size: 16),
+                  label: const Text('Parte de una serie · Ver todas'),
                 ),
               ),
             ],

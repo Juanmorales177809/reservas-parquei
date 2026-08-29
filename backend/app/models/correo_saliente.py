@@ -30,6 +30,14 @@ class CorreoSaliente(Base):
     intentos = Column(Integer, nullable=False, default=0)
     creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     enviado_en = Column(DateTime(timezone=True), nullable=True)
+    # Fase 2026-08-29 (ronda 2): primer adjunto del outbox -- confirmación
+    # de reserva aprobada con un `.ics` (`app/services/ics.py`). Los 3
+    # nullable juntos: sin adjunto (la inmensa mayoría de las filas), los
+    # tres quedan NULL. `adjunto_contenido` en base64 (TEXT, mismo criterio
+    # que `cuerpo` -- contenido chico, no hace falta un tipo binario).
+    adjunto_nombre = Column(String(255), nullable=True)
+    adjunto_content_type = Column(String(100), nullable=True)
+    adjunto_contenido = Column(Text, nullable=True)
 
     __table_args__ = (
         CheckConstraint(

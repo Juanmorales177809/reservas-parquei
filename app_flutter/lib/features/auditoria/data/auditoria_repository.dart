@@ -18,6 +18,16 @@ class AuditoriaRepository {
     );
     return response.data!.map((json) => ControlCambio.fromJson(json as Map<String, dynamic>)).toList();
   }
+
+  /// `GET /admin/control-cambios/export` (2026-08-29).
+  Future<List<int>> exportar(String formato, {int limit = 200}) async {
+    final response = await _dio.get<List<int>>(
+      '/admin/control-cambios/export',
+      queryParameters: {'formato': formato, 'limit': limit},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data!;
+  }
 }
 
 final auditoriaRepositoryProvider = Provider<AuditoriaRepository>((ref) {

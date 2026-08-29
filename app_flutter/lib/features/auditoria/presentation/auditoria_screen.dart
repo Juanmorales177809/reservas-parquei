@@ -8,8 +8,10 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../../core/widgets/export_button.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../application/auditoria_providers.dart';
+import '../data/auditoria_repository.dart';
 import '../domain/control_cambio.dart';
 
 /// Historial de operaciones administrativas (`require_admin`, solo lectura).
@@ -28,7 +30,16 @@ class AuditoriaScreen extends ConsumerWidget {
     final cambiosAsync = ref.watch(controlCambiosListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Auditoría')),
+      appBar: AppBar(
+        title: const Text('Auditoría'),
+        actions: [
+          ExportButton(
+            nombreArchivo: 'auditoria',
+            mensajeExito: 'Auditoría exportada.',
+            onExportar: (formato) => ref.read(auditoriaRepositoryProvider).exportar(formato),
+          ),
+        ],
+      ),
       body: cambiosAsync.when(
         loading: () => const LoadingSpinner(),
         error: (error, _) => ErrorView(

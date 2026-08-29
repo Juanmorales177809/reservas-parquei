@@ -121,6 +121,9 @@ abstract class Reserva with _$Reserva {
     required String updatedAt,
     required UsuarioReserva usuario,
     required EspacioReserva espacio,
+    // Fase 2026-08-29 (gestión de serie completa): `null` para cualquier
+    // reserva no recurrente.
+    String? serieId,
     @Default([]) List<int> recursoIds,
     @Default([]) List<RecursoReserva> recursos,
     @Default([]) List<int> zonaIds,
@@ -167,4 +170,28 @@ abstract class ReservaSerieResultado with _$ReservaSerieResultado {
   }) = _ReservaSerieResultado;
 
   factory ReservaSerieResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieResultadoFromJson(json);
+}
+
+/// Espejo de `OcurrenciaCancelOmitida` -- una ocurrencia de la serie que no
+/// se pudo cancelar (2026-08-29, gestión de serie completa).
+@freezed
+abstract class OcurrenciaCancelOmitida with _$OcurrenciaCancelOmitida {
+  const factory OcurrenciaCancelOmitida({
+    required int reservaId,
+    required String motivo,
+  }) = _OcurrenciaCancelOmitida;
+
+  factory OcurrenciaCancelOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaCancelOmitidaFromJson(json);
+}
+
+/// Espejo de `ReservaSerieCancelResponse` -- respuesta de
+/// `PUT /reservas/serie/{serieId}/cancelar`.
+@freezed
+abstract class ReservaSerieCancelResultado with _$ReservaSerieCancelResultado {
+  const factory ReservaSerieCancelResultado({
+    required List<Reserva> canceladas,
+    required List<OcurrenciaCancelOmitida> omitidas,
+  }) = _ReservaSerieCancelResultado;
+
+  factory ReservaSerieCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieCancelResultadoFromJson(json);
 }

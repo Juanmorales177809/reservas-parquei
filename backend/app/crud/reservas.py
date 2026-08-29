@@ -84,6 +84,20 @@ def get_mis_reservas(db: Session, actor: Personal | Usuario) -> list[Reserva]:
     )
 
 
+def get_reservas_de_serie(db: Session, serie_id, actor: Personal | Usuario) -> list[Reserva]:
+    """Las ocurrencias de una reserva recurrente (`Reserva.serie_id`,
+    2026-08-29) que pertenecen a `actor` -- mismo criterio de propiedad que
+    `get_mis_reservas`, nadie ve la serie de otra persona."""
+    columna = Reserva.personal_id if isinstance(actor, Personal) else Reserva.usuario_id
+    return _enriquecer_con_asociaciones(
+        db.query(Reserva)
+        .options(*_OPTIONS_CARGA)
+        .filter(Reserva.serie_id == serie_id, columna == actor.id)
+        .order_by(Reserva.fecha.asc())
+        .all()
+    )
+
+
 def get_reserva(db: Session, reserva_id: int) -> Reserva | None:
     reserva = (
         db.query(Reserva)

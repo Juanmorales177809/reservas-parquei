@@ -24,6 +24,12 @@ class ListaEspera(Base):
     hora_inicio = Column(Time, nullable=False)
     hora_fin = Column(Time, nullable=False)
     estado = Column(String(20), nullable=False, default="activa")
+    # Fase 2026-08-29 (ronda 2, reintento): cuándo se le avisó a esta
+    # entrada -- nullable, solo tiene valor una vez que `estado` pasó por
+    # `notificada`. Marca de referencia para `vencer_y_reencolar` (si pasó
+    # `horas_expiracion` sin que reservara, se marca `expirada` y se
+    # renotifica a la siguiente en la cola).
+    notificada_en = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     usuario = relationship("Usuario")
@@ -31,7 +37,7 @@ class ListaEspera(Base):
     recurso = relationship("Recurso")
 
     __table_args__ = (
-        CheckConstraint("estado IN ('activa', 'notificada', 'cancelada')", name="ck_lista_espera_estado"),
+        CheckConstraint("estado IN ('activa', 'notificada', 'cancelada', 'expirada')", name="ck_lista_espera_estado"),
         CheckConstraint("hora_inicio < hora_fin", name="ck_lista_espera_horario_valido"),
         CheckConstraint(
             "(usuario_id IS NOT NULL) != (personal_id IS NOT NULL)",

@@ -14,6 +14,7 @@ from app import models  # noqa: F401
 from app.middleware.request_id import HEADER, RequestIdMiddleware, resolver_request_id
 from app.migrations import migrate_resource_reservations
 from app.services.email import procesar_pendientes
+from app.services.lista_espera import vencer_y_reencolar
 from app.services.recordatorios import INTERVALO_MINUTOS, enviar_recordatorios_pendientes
 from app.services.supabase_admin import crear_usuario_confirmado
 
@@ -25,6 +26,15 @@ def _job_recordatorios() -> None:
     db = SessionLocal()
     try:
         enviar_recordatorios_pendientes(db)
+    finally:
+        db.close()
+
+
+def _job_vencer_lista_espera() -> None:
+    """Mismo patrón que `_job_recordatorios` -- sesión propia por job."""
+    db = SessionLocal()
+    try:
+        vencer_y_reencolar(db)
     finally:
         db.close()
 
@@ -53,6 +63,10 @@ async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler() if settings.email_enabled else None
     if scheduler is not None:
         scheduler.add_job(_job_recordatorios, "interval", minutes=INTERVALO_MINUTOS)
+        # Reintento de lista de espera (ronda 2) -- mismo scheduler, mismo
+        # intervalo; `vencer_y_reencolar` decide internamente si ya pasaron
+        # las `horas_expiracion` de cada entrada `notificada`.
+        scheduler.add_job(_job_vencer_lista_espera, "interval", minutes=INTERVALO_MINUTOS)
         scheduler.start()
     # Expuesto en app.state solo para que test_lifespan_arranque.py pueda
     # verificar que arrancó/paró -- no lo consume ningún endpoint.

@@ -139,6 +139,28 @@ class ReservasRepository {
     return response.data!.map((json) => Reserva.fromJson(json as Map<String, dynamic>)).toList();
   }
 
+  /// `GET /reservas/mis-reservas/export` (2026-08-29).
+  Future<List<int>> exportarMisReservas(String formato) async {
+    final response = await _dio.get<List<int>>(
+      '/reservas/mis-reservas/export',
+      queryParameters: {'formato': formato},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data!;
+  }
+
+  /// `GET /reservas/serie/{serieId}` (2026-08-29, gestión de serie completa).
+  Future<List<Reserva>> listarSerie(String serieId) async {
+    final response = await _dio.get<List<dynamic>>('/reservas/serie/$serieId');
+    return response.data!.map((json) => Reserva.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
+  /// `PUT /reservas/serie/{serieId}/cancelar`.
+  Future<ReservaSerieCancelResultado> cancelarSerie(String serieId) async {
+    final response = await _dio.put<Map<String, dynamic>>('/reservas/serie/$serieId/cancelar');
+    return ReservaSerieCancelResultado.fromJson(response.data!);
+  }
+
   /// `PUT /reservas/{id}/cancelar` — solo el propietario, y solo si la
   /// reserva está `aprobada` (`Reserva.puedeCancelarse`).
   Future<Reserva> cancelar(int reservaId) async {

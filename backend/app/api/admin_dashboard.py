@@ -14,22 +14,14 @@ from app.domain.valor import HorarioAtencion
 from app.models import Espacio, Personal, Recurso, Reserva, ReservaRecurso, Usuario
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
+from app.services.exportar_archivo import respuesta_streaming
 from app.services.exportar_dashboard import construir_csv, construir_xlsx
 from app.services.horarios import horas_atencion_dia
-
-_MEDIA_TYPES = {
-    "csv": "text/csv",
-    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-}
 
 
 def _respuesta_exportacion(resumen: AdminDashboardSummary, formato: Literal["csv", "xlsx"]) -> StreamingResponse:
     contenido = construir_csv(resumen) if formato == "csv" else construir_xlsx(resumen)
-    return StreamingResponse(
-        iter([contenido]),
-        media_type=_MEDIA_TYPES[formato],
-        headers={"Content-Disposition": f"attachment; filename=dashboard_{date.today().isoformat()}.{formato}"},
-    )
+    return respuesta_streaming(contenido, formato, "dashboard")
 
 
 router = APIRouter(prefix="/admin/dashboard", tags=["admin-dashboard"])

@@ -64,4 +64,7 @@ def test_scheduler_de_recordatorios_arranca_y_para_con_email_enabled(monkeypatch
     with TestClient(app):
         assert app.state.scheduler is not None
         assert app.state.scheduler.running is True
+        # 2 jobs: recordatorios de reserva próxima + reintento de lista de
+        # espera (ronda 2, ambos en el mismo BackgroundScheduler).
+        assert len(app.state.scheduler.get_jobs()) == 2
     assert app.state.scheduler.running is False

@@ -11,6 +11,7 @@ from app.crud.reservas import (
     get_recurso_ids_reserva,
     get_reserva,
     get_reservas_bloqueantes,
+    get_reservas_de_serie,
     get_zona_ids_reserva,
     get_zonas_bloqueantes,
 )
@@ -42,7 +43,8 @@ from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.actores import columnas_actor, es_actor
 from app.services.auditoria import registrar_cambio
-from app.services.email import encolar_correo, procesar_pendientes
+from app.services.email import Adjunto, encolar_correo, procesar_pendientes
+from app.services.ics import construir_ics
 from app.services.email_templates import (
     plantilla_reserva_actualizada,
     plantilla_reserva_cancelada_por_usuario,
@@ -69,6 +71,23 @@ def _notificar_lista_espera_liberados(db: Session, reserva: Reserva) -> None:
             hora_inicio=reserva.hora_inicio,
             hora_fin=reserva.hora_fin,
         )
+
+
+def _adjunto_ics_reserva(*, reserva_id: int, espacio: str, fecha, hora_inicio, hora_fin) -> Adjunto:
+    """`.ics` de confirmación (Fase 2026-08-29, ronda 2) -- solo se adjunta
+    cuando una reserva queda `aprobada` de una (auto-aprobación en
+    `crear_reserva`, o el branch `aprobada` de `cambiar_estado`): un `.ics`
+    para una reserva `esperando` sería prematuro, la fecha/horario todavía
+    puede cambiar o rechazarse."""
+    contenido = construir_ics(
+        uid=f"reserva-{reserva_id}@reservas-parquei",
+        resumen=espacio,
+        descripcion=f"Reserva #{reserva_id} confirmada en {espacio}.",
+        ubicacion=espacio,
+        inicio=datetime.combine(fecha, hora_inicio),
+        fin=datetime.combine(fecha, hora_fin),
+    )
+    return Adjunto(nombre=f"reserva-{reserva_id}.ics", contenido=contenido, content_type="text/calendar")
 
 
 SOLAPAMIENTO_CONSTRAINT = "reservas_sin_solapamiento"
@@ -698,6 +717,13 @@ def crear_reserva(
                 estado="aprobada",
             ),
             es_html=True,
+            adjunto=_adjunto_ics_reserva(
+                reserva_id=reserva.id,
+                espacio=objetivo.espacio.nombre,
+                fecha=data.fecha,
+                hora_inicio=data.hora_inicio,
+                hora_fin=data.hora_fin,
+            ),
         )
     registrar_cambio(
         db,
@@ -828,6 +854,17 @@ def cambiar_estado(
                 motivo=motivo,
             ),
             es_html=True,
+            adjunto=(
+                _adjunto_ics_reserva(
+                    reserva_id=reserva.id,
+                    espacio=reserva.espacio.nombre,
+                    fecha=reserva.fecha,
+                    hora_inicio=reserva.hora_inicio,
+                    hora_fin=reserva.hora_fin,
+                )
+                if nuevo == EstadoReserva.APROBADA
+                else None
+            ),
         )
         if nuevo in {EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA} and estado_anterior in ESTADOS_BLOQUEANTES:
             _notificar_lista_espera_liberados(db, reserva)
@@ -943,6 +980,23 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
     procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
+
+
+def cancelar_serie(db: Session, serie_id: uuid.UUID, usuario: Personal | Usuario) -> tuple[list[Reserva], list[dict]]:
+    """Cancela todas las ocurrencias propias de una reserva recurrente que
+    se puedan cancelar -- "mejor esfuerzo", mismo molde que
+    `crear_reserva_serie`: cada ocurrencia pasa por `cancelar_reserva_usuario`
+    (mismas reglas -- solo `aprobada`, solo la propia dueña) dentro de su
+    propio `try/except`, una que falla no aborta las demás."""
+    reservas = get_reservas_de_serie(db, serie_id, usuario)
+    canceladas: list[Reserva] = []
+    omitidas: list[dict] = []
+    for reserva in reservas:
+        try:
+            canceladas.append(cancelar_reserva_usuario(db, reserva.id, usuario))
+        except HTTPException as exc:
+            omitidas.append({"reserva_id": reserva.id, "motivo": str(exc.detail)})
+    return canceladas, omitidas
 
 
 def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuario: Personal | Usuario) -> Reserva:

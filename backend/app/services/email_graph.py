@@ -35,13 +35,18 @@ llega el permiso" sin otro ticket de por medio.
 
 from __future__ import annotations
 
+import base64
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import httpx
 from msal import PublicClientApplication, SerializableTokenCache
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from app.services.email import Adjunto
 
 logger = logging.getLogger("app.email_graph")
 
@@ -112,7 +117,7 @@ def login_interactivo() -> None:
     print(f"OK -- sesión cacheada en {settings.graph_token_cache_path}")  # noqa: T201
 
 
-def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False) -> None:
+def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False, adjunto: "Adjunto | None" = None) -> None:
     token = _token_silencioso()
     url = _GRAPH_SEND_MAIL_URL_TEMPLATE.format(sender=settings.graph_mail_sender)
     payload = {
@@ -123,6 +128,15 @@ def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = Fa
         },
         "saveToSentItems": True,
     }
+    if adjunto is not None:
+        payload["message"]["attachments"] = [
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": adjunto.nombre,
+                "contentType": adjunto.content_type,
+                "contentBytes": base64.b64encode(adjunto.contenido).decode("ascii"),
+            }
+        ]
     respuesta = httpx.post(
         url,
         headers={"Authorization": f"Bearer {token}"},

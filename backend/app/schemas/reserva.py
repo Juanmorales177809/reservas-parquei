@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime, time
 from typing import Literal
 
@@ -296,6 +297,12 @@ class ReservaResponse(BaseModel):
     tipo_solicitud: TipoSolicitud
     ubicacion_uso: str | None = None
     requiere_apoyo_auxiliar: bool
+    # Fase 2026-08-29 (gestión de serie completa): `null` para cualquier
+    # reserva no recurrente -- la inmensa mayoría. Antes deliberadamente
+    # oculto del contrato (ver "Reservas recurrentes" en backend/CLAUDE.md);
+    # se expone ahora porque hace falta para que el cliente pueda ofrecer
+    # "ver/cancelar la serie completa".
+    serie_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse
@@ -331,3 +338,19 @@ class ReservaSerieResponse(BaseModel):
 
     creadas: list[ReservaResponse]
     omitidas: list[OcurrenciaOmitida]
+
+
+class OcurrenciaCancelOmitida(BaseModel):
+    """Una ocurrencia de la serie que no se pudo cancelar (Fase 2026-08-29,
+    gestión de serie completa -- "mejor esfuerzo": ya estaba cancelada, no
+    era propia, o no estaba `aprobada`)."""
+
+    reserva_id: int
+    motivo: str
+
+
+class ReservaSerieCancelResponse(BaseModel):
+    """Respuesta de `PUT /reservas/serie/{serie_id}/cancelar`."""
+
+    canceladas: list[ReservaResponse]
+    omitidas: list[OcurrenciaCancelOmitida]

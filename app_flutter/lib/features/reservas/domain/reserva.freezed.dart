@@ -1672,7 +1672,7 @@ as String,
 /// @nodoc
 mixin _$Reserva {
 
- int get id; int get usuarioId; int get espacioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; bool? get asistio; String? get motivoRechazo; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; EspacioReserva get espacio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get zonaIds; List<ZonaReserva> get zonas; List<int> get ensayoIds; List<EnsayoReserva> get ensayos; List<ReservaAcompanante> get acompanantes;
+ int get id; int get usuarioId; int get espacioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; bool? get asistio; String? get motivoRechazo; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; EspacioReserva get espacio; String? get serieId; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get zonaIds; List<ZonaReserva> get zonas; List<int> get ensayoIds; List<EnsayoReserva> get ensayos; List<ReservaAcompanante> get acompanantes;
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1685,16 +1685,16 @@ $ReservaCopyWith<Reserva> get copyWith => _$ReservaCopyWithImpl<Reserva>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.zonaIds, zonaIds)&&const DeepCollectionEquality().equals(other.zonas, zonas)&&const DeepCollectionEquality().equals(other.ensayoIds, ensayoIds)&&const DeepCollectionEquality().equals(other.ensayos, ensayos)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.serieId, serieId) || other.serieId == serieId)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.zonaIds, zonaIds)&&const DeepCollectionEquality().equals(other.zonas, zonas)&&const DeepCollectionEquality().equals(other.ensayoIds, ensayoIds)&&const DeepCollectionEquality().equals(other.ensayos, ensayos)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(zonaIds),const DeepCollectionEquality().hash(zonas),const DeepCollectionEquality().hash(ensayoIds),const DeepCollectionEquality().hash(ensayos),const DeepCollectionEquality().hash(acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,serieId,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(zonaIds),const DeepCollectionEquality().hash(zonas),const DeepCollectionEquality().hash(ensayoIds),const DeepCollectionEquality().hash(ensayos),const DeepCollectionEquality().hash(acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, serieId: $serieId, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
 }
 
 
@@ -1705,7 +1705,7 @@ abstract mixin class $ReservaCopyWith<$Res>  {
   factory $ReservaCopyWith(Reserva value, $Res Function(Reserva) _then) = _$ReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, String? serieId, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
 });
 
 
@@ -1722,7 +1722,7 @@ class _$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? serieId = freezed,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
   return _then(Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -1743,7 +1743,8 @@ as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: ca
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable
 as UsuarioReserva,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as EspacioReserva,serieId: freezed == serieId ? _self.serieId : serieId // ignore: cast_nullable_to_non_nullable
+as String?,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,recursos: null == recursos ? _self.recursos : recursos // ignore: cast_nullable_to_non_nullable
 as List<RecursoReserva>,zonaIds: null == zonaIds ? _self.zonaIds : zonaIds // ignore: cast_nullable_to_non_nullable
 as List<int>,zonas: null == zonas ? _self.zonas : zonas // ignore: cast_nullable_to_non_nullable
@@ -1853,10 +1854,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   return orElse();
 
 }
@@ -1874,10 +1875,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
 switch (_that) {
 case _Reserva():
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1894,10 +1895,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
   return null;
 
 }
@@ -1909,7 +1910,7 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 @JsonSerializable()
 
 class _Reserva extends Reserva {
-  const _Reserva({required this.id, required this.usuarioId, required this.espacioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.asistio, this.motivoRechazo, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.espacio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> zonaIds = const [],  List<ZonaReserva> zonas = const [],  List<int> ensayoIds = const [],  List<EnsayoReserva> ensayos = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_zonaIds = zonaIds,_zonas = zonas,_ensayoIds = ensayoIds,_ensayos = ensayos,_acompanantes = acompanantes,super._();
+  const _Reserva({required this.id, required this.usuarioId, required this.espacioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.asistio, this.motivoRechazo, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.espacio, this.serieId,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> zonaIds = const [],  List<ZonaReserva> zonas = const [],  List<int> ensayoIds = const [],  List<EnsayoReserva> ensayos = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_zonaIds = zonaIds,_zonas = zonas,_ensayoIds = ensayoIds,_ensayos = ensayos,_acompanantes = acompanantes,super._();
   factory _Reserva.fromJson(Map<String, dynamic> json) => _$ReservaFromJson(json);
 
 @override final  int id;
@@ -1931,6 +1932,7 @@ class _Reserva extends Reserva {
 @override final  String updatedAt;
 @override final  UsuarioReserva usuario;
 @override final  EspacioReserva espacio;
+@override final  String? serieId;
  final  List<int> _recursoIds;
 @override@JsonKey() List<int> get recursoIds {
   if (_recursoIds is EqualUnmodifiableListView) return _recursoIds;
@@ -1994,16 +1996,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._zonaIds, _zonaIds)&&const DeepCollectionEquality().equals(other._zonas, _zonas)&&const DeepCollectionEquality().equals(other._ensayoIds, _ensayoIds)&&const DeepCollectionEquality().equals(other._ensayos, _ensayos)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.serieId, serieId) || other.serieId == serieId)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._zonaIds, _zonaIds)&&const DeepCollectionEquality().equals(other._zonas, _zonas)&&const DeepCollectionEquality().equals(other._ensayoIds, _ensayoIds)&&const DeepCollectionEquality().equals(other._ensayos, _ensayos)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_zonaIds),const DeepCollectionEquality().hash(_zonas),const DeepCollectionEquality().hash(_ensayoIds),const DeepCollectionEquality().hash(_ensayos),const DeepCollectionEquality().hash(_acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,serieId,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_zonaIds),const DeepCollectionEquality().hash(_zonas),const DeepCollectionEquality().hash(_ensayoIds),const DeepCollectionEquality().hash(_ensayos),const DeepCollectionEquality().hash(_acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, serieId: $serieId, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
 }
 
 
@@ -2014,7 +2016,7 @@ abstract mixin class _$ReservaCopyWith<$Res> implements $ReservaCopyWith<$Res> {
   factory _$ReservaCopyWith(_Reserva value, $Res Function(_Reserva) _then) = __$ReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, String? serieId, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
 });
 
 
@@ -2031,7 +2033,7 @@ class __$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? serieId = freezed,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
   return _then(_Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -2052,7 +2054,8 @@ as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: ca
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable
 as UsuarioReserva,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as EspacioReserva,serieId: freezed == serieId ? _self.serieId : serieId // ignore: cast_nullable_to_non_nullable
+as String?,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,recursos: null == recursos ? _self._recursos : recursos // ignore: cast_nullable_to_non_nullable
 as List<RecursoReserva>,zonaIds: null == zonaIds ? _self._zonaIds : zonaIds // ignore: cast_nullable_to_non_nullable
 as List<int>,zonas: null == zonas ? _self._zonas : zonas // ignore: cast_nullable_to_non_nullable
@@ -2622,6 +2625,550 @@ class __$ReservaSerieResultadoCopyWithImpl<$Res>
 creadas: null == creadas ? _self._creadas : creadas // ignore: cast_nullable_to_non_nullable
 as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
 as List<OcurrenciaOmitida>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$OcurrenciaCancelOmitida {
+
+ int get reservaId; String get motivo;
+/// Create a copy of OcurrenciaCancelOmitida
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OcurrenciaCancelOmitidaCopyWith<OcurrenciaCancelOmitida> get copyWith => _$OcurrenciaCancelOmitidaCopyWithImpl<OcurrenciaCancelOmitida>(this as OcurrenciaCancelOmitida, _$identity);
+
+  /// Serializes this OcurrenciaCancelOmitida to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaCancelOmitida&&(identical(other.reservaId, reservaId) || other.reservaId == reservaId)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,reservaId,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaCancelOmitida(reservaId: $reservaId, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OcurrenciaCancelOmitidaCopyWith<$Res>  {
+  factory $OcurrenciaCancelOmitidaCopyWith(OcurrenciaCancelOmitida value, $Res Function(OcurrenciaCancelOmitida) _then) = _$OcurrenciaCancelOmitidaCopyWithImpl;
+@useResult
+$Res call({
+ int reservaId, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class _$OcurrenciaCancelOmitidaCopyWithImpl<$Res>
+    implements $OcurrenciaCancelOmitidaCopyWith<$Res> {
+  _$OcurrenciaCancelOmitidaCopyWithImpl(this._self, this._then);
+
+  final OcurrenciaCancelOmitida _self;
+  final $Res Function(OcurrenciaCancelOmitida) _then;
+
+/// Create a copy of OcurrenciaCancelOmitida
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? reservaId = null,Object? motivo = null,}) {
+  return _then(OcurrenciaCancelOmitida(
+reservaId: null == reservaId ? _self.reservaId : reservaId // ignore: cast_nullable_to_non_nullable
+as int,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OcurrenciaCancelOmitida].
+extension OcurrenciaCancelOmitidaPatterns on OcurrenciaCancelOmitida {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaCancelOmitida value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaCancelOmitida value)  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaCancelOmitida value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int reservaId,  String motivo)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida() when $default != null:
+return $default(_that.reservaId,_that.motivo);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int reservaId,  String motivo)  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida():
+return $default(_that.reservaId,_that.motivo);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int reservaId,  String motivo)?  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaCancelOmitida() when $default != null:
+return $default(_that.reservaId,_that.motivo);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OcurrenciaCancelOmitida implements OcurrenciaCancelOmitida {
+  const _OcurrenciaCancelOmitida({required this.reservaId, required this.motivo});
+  factory _OcurrenciaCancelOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaCancelOmitidaFromJson(json);
+
+@override final  int reservaId;
+@override final  String motivo;
+
+/// Create a copy of OcurrenciaCancelOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OcurrenciaCancelOmitidaCopyWith<_OcurrenciaCancelOmitida> get copyWith => __$OcurrenciaCancelOmitidaCopyWithImpl<_OcurrenciaCancelOmitida>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OcurrenciaCancelOmitidaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaCancelOmitida&&(identical(other.reservaId, reservaId) || other.reservaId == reservaId)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,reservaId,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaCancelOmitida(reservaId: $reservaId, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OcurrenciaCancelOmitidaCopyWith<$Res> implements $OcurrenciaCancelOmitidaCopyWith<$Res> {
+  factory _$OcurrenciaCancelOmitidaCopyWith(_OcurrenciaCancelOmitida value, $Res Function(_OcurrenciaCancelOmitida) _then) = __$OcurrenciaCancelOmitidaCopyWithImpl;
+@override @useResult
+$Res call({
+ int reservaId, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class __$OcurrenciaCancelOmitidaCopyWithImpl<$Res>
+    implements _$OcurrenciaCancelOmitidaCopyWith<$Res> {
+  __$OcurrenciaCancelOmitidaCopyWithImpl(this._self, this._then);
+
+  final _OcurrenciaCancelOmitida _self;
+  final $Res Function(_OcurrenciaCancelOmitida) _then;
+
+/// Create a copy of OcurrenciaCancelOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? reservaId = null,Object? motivo = null,}) {
+  return _then(_OcurrenciaCancelOmitida(
+reservaId: null == reservaId ? _self.reservaId : reservaId // ignore: cast_nullable_to_non_nullable
+as int,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ReservaSerieCancelResultado {
+
+ List<Reserva> get canceladas; List<OcurrenciaCancelOmitida> get omitidas;
+/// Create a copy of ReservaSerieCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ReservaSerieCancelResultadoCopyWith<ReservaSerieCancelResultado> get copyWith => _$ReservaSerieCancelResultadoCopyWithImpl<ReservaSerieCancelResultado>(this as ReservaSerieCancelResultado, _$identity);
+
+  /// Serializes this ReservaSerieCancelResultado to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaSerieCancelResultado&&const DeepCollectionEquality().equals(other.canceladas, canceladas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(canceladas),const DeepCollectionEquality().hash(omitidas));
+
+@override
+String toString() {
+  return 'ReservaSerieCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ReservaSerieCancelResultadoCopyWith<$Res>  {
+  factory $ReservaSerieCancelResultadoCopyWith(ReservaSerieCancelResultado value, $Res Function(ReservaSerieCancelResultado) _then) = _$ReservaSerieCancelResultadoCopyWithImpl;
+@useResult
+$Res call({
+ List<Reserva> canceladas, List<OcurrenciaCancelOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class _$ReservaSerieCancelResultadoCopyWithImpl<$Res>
+    implements $ReservaSerieCancelResultadoCopyWith<$Res> {
+  _$ReservaSerieCancelResultadoCopyWithImpl(this._self, this._then);
+
+  final ReservaSerieCancelResultado _self;
+  final $Res Function(ReservaSerieCancelResultado) _then;
+
+/// Create a copy of ReservaSerieCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? canceladas = null,Object? omitidas = null,}) {
+  return _then(ReservaSerieCancelResultado(
+canceladas: null == canceladas ? _self.canceladas : canceladas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaCancelOmitida>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ReservaSerieCancelResultado].
+extension ReservaSerieCancelResultadoPatterns on ReservaSerieCancelResultado {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaSerieCancelResultado value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaSerieCancelResultado value)  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaSerieCancelResultado value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado() when $default != null:
+return $default(_that.canceladas,_that.omitidas);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)  $default,) {final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado():
+return $default(_that.canceladas,_that.omitidas);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)?  $default,) {final _that = this;
+switch (_that) {
+case _ReservaSerieCancelResultado() when $default != null:
+return $default(_that.canceladas,_that.omitidas);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ReservaSerieCancelResultado implements ReservaSerieCancelResultado {
+  const _ReservaSerieCancelResultado({required  List<Reserva> canceladas, required  List<OcurrenciaCancelOmitida> omitidas}): _canceladas = canceladas,_omitidas = omitidas;
+  factory _ReservaSerieCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieCancelResultadoFromJson(json);
+
+ final  List<Reserva> _canceladas;
+@override List<Reserva> get canceladas {
+  if (_canceladas is EqualUnmodifiableListView) return _canceladas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_canceladas);
+}
+
+ final  List<OcurrenciaCancelOmitida> _omitidas;
+@override List<OcurrenciaCancelOmitida> get omitidas {
+  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_omitidas);
+}
+
+
+/// Create a copy of ReservaSerieCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ReservaSerieCancelResultadoCopyWith<_ReservaSerieCancelResultado> get copyWith => __$ReservaSerieCancelResultadoCopyWithImpl<_ReservaSerieCancelResultado>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ReservaSerieCancelResultadoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaSerieCancelResultado&&const DeepCollectionEquality().equals(other._canceladas, _canceladas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_canceladas),const DeepCollectionEquality().hash(_omitidas));
+
+@override
+String toString() {
+  return 'ReservaSerieCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ReservaSerieCancelResultadoCopyWith<$Res> implements $ReservaSerieCancelResultadoCopyWith<$Res> {
+  factory _$ReservaSerieCancelResultadoCopyWith(_ReservaSerieCancelResultado value, $Res Function(_ReservaSerieCancelResultado) _then) = __$ReservaSerieCancelResultadoCopyWithImpl;
+@override @useResult
+$Res call({
+ List<Reserva> canceladas, List<OcurrenciaCancelOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class __$ReservaSerieCancelResultadoCopyWithImpl<$Res>
+    implements _$ReservaSerieCancelResultadoCopyWith<$Res> {
+  __$ReservaSerieCancelResultadoCopyWithImpl(this._self, this._then);
+
+  final _ReservaSerieCancelResultado _self;
+  final $Res Function(_ReservaSerieCancelResultado) _then;
+
+/// Create a copy of ReservaSerieCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? canceladas = null,Object? omitidas = null,}) {
+  return _then(_ReservaSerieCancelResultado(
+canceladas: null == canceladas ? _self._canceladas : canceladas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaCancelOmitida>,
   ));
 }
 

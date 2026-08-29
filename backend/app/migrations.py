@@ -693,6 +693,21 @@ def migrate_resource_reservations() -> None:
         # sin backfill (NULL = no recurrente, la inmensa mayoría).
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS serie_id UUID",
         "CREATE INDEX IF NOT EXISTS ix_reservas_serie_id ON reservas (serie_id)",
+        # Fase 2026-08-29 (ronda 2, reintento de lista de espera): marca de
+        # cuándo se notificó una entrada + estado 'expirada' -- mismo
+        # patrón drop+add sin guarda de existencia que notificaciones_tipo_check.
+        "ALTER TABLE lista_espera ADD COLUMN IF NOT EXISTS notificada_en TIMESTAMPTZ",
+        """
+        ALTER TABLE lista_espera DROP CONSTRAINT IF EXISTS ck_lista_espera_estado;
+        ALTER TABLE lista_espera ADD CONSTRAINT ck_lista_espera_estado
+        CHECK (estado IN ('activa', 'notificada', 'cancelada', 'expirada'));
+        """,
+        # Fase 2026-08-29 (ronda 2): primer adjunto del outbox de correo
+        # (`.ics` de confirmación de reserva, ver app/services/ics.py) --
+        # nullable, sin backfill (NULL = sin adjunto, la inmensa mayoría).
+        "ALTER TABLE correo_saliente ADD COLUMN IF NOT EXISTS adjunto_nombre VARCHAR(255)",
+        "ALTER TABLE correo_saliente ADD COLUMN IF NOT EXISTS adjunto_content_type VARCHAR(100)",
+        "ALTER TABLE correo_saliente ADD COLUMN IF NOT EXISTS adjunto_contenido TEXT",
     )
 
     with engine.begin() as connection:

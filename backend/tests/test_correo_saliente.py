@@ -160,8 +160,8 @@ class TestOutbox:
 
         llamadas_graph = []
         llamadas_smtp = []
-        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c, h=False: llamadas_graph.append((d, a, c)))
-        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c, h=False: llamadas_smtp.append((d, a, c)))
+        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c, h=False, adj=None: llamadas_graph.append((d, a, c)))
+        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c, h=False, adj=None: llamadas_smtp.append((d, a, c)))
 
         email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="B")
         db.commit()

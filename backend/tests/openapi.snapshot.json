@@ -1022,6 +1022,25 @@
         "title": "OcupacionGlobal",
         "type": "object"
       },
+      "OcurrenciaCancelOmitida": {
+        "description": "Una ocurrencia de la serie que no se pudo cancelar (Fase 2026-08-29,\ngestión de serie completa -- \"mejor esfuerzo\": ya estaba cancelada, no\nera propia, o no estaba `aprobada`).",
+        "properties": {
+          "motivo": {
+            "title": "Motivo",
+            "type": "string"
+          },
+          "reserva_id": {
+            "title": "Reserva Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reserva_id",
+          "motivo"
+        ],
+        "title": "OcurrenciaCancelOmitida",
+        "type": "object"
+      },
       "OcurrenciaOmitida": {
         "description": "Una fecha de la serie que no se pudo crear (Fase 2026-08-29, reservas\nrecurrentes -- \"mejor esfuerzo\").",
         "properties": {
@@ -1922,6 +1941,18 @@
             "title": "Requiere Apoyo Auxiliar",
             "type": "boolean"
           },
+          "serie_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serie Id"
+          },
           "tipo": {
             "anyOf": [
               {
@@ -1990,6 +2021,31 @@
           "espacio"
         ],
         "title": "ReservaResponse",
+        "type": "object"
+      },
+      "ReservaSerieCancelResponse": {
+        "description": "Respuesta de `PUT /reservas/serie/{serie_id}/cancelar`.",
+        "properties": {
+          "canceladas": {
+            "items": {
+              "$ref": "#/components/schemas/ReservaResponse"
+            },
+            "title": "Canceladas",
+            "type": "array"
+          },
+          "omitidas": {
+            "items": {
+              "$ref": "#/components/schemas/OcurrenciaCancelOmitida"
+            },
+            "title": "Omitidas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canceladas",
+          "omitidas"
+        ],
+        "title": "ReservaSerieCancelResponse",
         "type": "object"
       },
       "ReservaSerieResponse": {
@@ -2993,6 +3049,67 @@
           }
         ],
         "summary": "Listar Control Cambios",
+        "tags": [
+          "control-cambios"
+        ]
+      }
+    },
+    "/admin/control-cambios/export": {
+      "get": {
+        "operationId": "exportar_control_cambios_endpoint_admin_control_cambios_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "formato",
+            "required": true,
+            "schema": {
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "title": "Formato",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Exportar Control Cambios Endpoint",
         "tags": [
           "control-cambios"
         ]
@@ -4922,6 +5039,155 @@
           }
         ],
         "summary": "Listar Mis Reservas Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/mis-reservas/export": {
+      "get": {
+        "operationId": "exportar_mis_reservas_endpoint_reservas_mis_reservas_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "formato",
+            "required": true,
+            "schema": {
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "title": "Formato",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Exportar Mis Reservas Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/serie/{serie_id}": {
+      "get": {
+        "operationId": "listar_serie_endpoint_reservas_serie__serie_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serie_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Serie Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReservaResponse"
+                  },
+                  "title": "Response Listar Serie Endpoint Reservas Serie  Serie Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Listar Serie Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/serie/{serie_id}/cancelar": {
+      "put": {
+        "operationId": "cancelar_serie_endpoint_reservas_serie__serie_id__cancelar_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serie_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Serie Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaSerieCancelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Cancelar Serie Endpoint",
         "tags": [
           "reservas"
         ]

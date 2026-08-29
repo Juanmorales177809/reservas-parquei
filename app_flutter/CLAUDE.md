@@ -362,6 +362,14 @@ A pedido explícito del usuario ("necesitamos crear la parte de registro... y ad
 - **Bug real corregido: completar el perfil obligatorio dejaba a la persona clavada en `/perfil`.** El guard de `app_router.dart` (ver "Perfil obligatorio para cualquier rol" más abajo) solo sabía *traer* a alguien con `!perfilCompleto` hasta `/perfil` — no había ninguna regla, ni en el guard ni en `MiPerfilScreen`, que sacara de ahí a alguien que acababa de completarlo. `MiPerfilScreen._guardar()` solo mostraba un `SnackBar` y se quedaba en la misma pantalla; como `/perfil` no es un destino de `kNavDestinations`, el guard tampoco tenía ninguna otra regla que aplicara ahí, así que nada redirigía. Poner la regla en el guard del router (en vez de en la pantalla) se descartó a propósito: alguien que entra a `/perfil` **voluntariamente** desde `SessionMenu` con el perfil ya completo (para editarlo) rebotaría de inmediato al montar la ruta, antes de poder ver el formulario. La corrección vive en `_guardar()`: captura `completabaAhora = !perfilCompleto` **antes** de guardar (después de guardar siempre da `true`, sea cual sea el caso) y, si era `true`, hace `context.go(AppRoutes.admin)` en vez de mostrar el snackbar; si el perfil ya estaba completo (edición voluntaria), sigue mostrando el snackbar y no navega.
 - Tests: `registro_screen_test.dart` (nuevo, mismo alcance que `login_screen_test.dart` — solo valida el formulario del lado del cliente, no un envío exitoso real, porque `AuthRepository.registrarse`/`login` llaman a `Supabase.instance.client.auth.signInWithPassword` directo, no inyectable en este nivel). `mi_perfil_screen_test.dart` reescrito con un `GoRouter` real de 2 rutas (`montarConRouter`) para el caso obligatorio (verifica que navega a `/admin`) y un test nuevo para el caso voluntario (edita con el perfil ya completo → snackbar, sin navegar).
 
+## Exportar "mis reservas" y auditoría (2026-08-29, ronda 2)
+
+Primera de 4 features de una segunda ronda -- backend en `backend/CLAUDE.md` "Exportar 'mis reservas' y auditoría a CSV/Excel".
+
+- **`core/widgets/export_button.dart`** (nuevo): `ExportButton` genérico (`nombreArchivo`, `onExportar(formato) -> Future<List<int>>`, `mensajeExito`) -- extraído de `_ExportarDashboardButton` (`dashboard_screen.dart`), que ahora lo usa, para no reescribir el mismo botón+`FileSaver`+manejo de error una tercera y cuarta vez.
+- **`ReservasRepository.exportarMisReservas`**: botón en `MisReservasScreen` (pestaña "Reservas", arriba de la lista agrupada).
+- **`AuditoriaRepository.exportar`**: botón en el `AppBar` de `AuditoriaScreen`.
+
 ## Export del dashboard a CSV/Excel (2026-08-29)
 
 Primera de 4 features nuevas de una auditoría de funcionalidad a pedido del usuario (plan completo en `~/.claude/plans/dazzling-wobbling-zebra.md`, fuera del repo) -- backend en `backend/CLAUDE.md` "Export del dashboard admin/gestor a CSV/Excel".
@@ -369,6 +377,13 @@ Primera de 4 features nuevas de una auditoría de funcionalidad a pedido del usu
 - **`DashboardRepository.exportarAdmin`/`exportarGestion`** (nuevo): `GET /admin|gestion/dashboard/export?formato=csv|xlsx` con `responseType: ResponseType.bytes` (Dio) -- devuelve el archivo crudo, no un JSON.
 - **`DashboardScreen`**: botón "Exportar" en el `AppBar` (`_ExportarDashboardButton`, oculto para el rol `usuario` -- esa pantalla ni siquiera es la misma, es `_UsuarioDashboard`), menú CSV/Excel. Al elegir un formato, pide los bytes al repositorio y los guarda en el dispositivo con `file_saver` (nueva dependencia en `pubspec.yaml` -- primer y único punto del repo hoy que guarda un archivo local: descarga directa en Web, carpeta de Descargas en Windows/macOS/Linux, carpeta de documentos de la app en iOS/Android). Estado de carga simple (spinner reemplaza el ícono mientras exporta) y `SnackBar` de éxito/error (`apiErrorMessage`).
 - Sin test de widget nuevo para el botón de exportar: el guardado real pasa por un canal de plataforma (`file_saver`) que no está mockeado en el entorno de test, así que solo `flutter analyze` + la suite existente cubren esta pasada -- si se necesita cobertura del flujo completo, requeriría stubear el `MethodChannel` de `file_saver` a mano.
+
+## Gestión de la serie completa de una reserva recurrente (2026-08-29, ronda 2)
+
+Segunda de 4 features de la segunda ronda -- backend en `backend/CLAUDE.md` "Gestión de la serie completa de una reserva recurrente".
+
+- **`Reserva`** gana `serieId` (nullable) y `domain/reserva.dart` gana `OcurrenciaCancelOmitida`/`ReservaSerieCancelResultado`. **`ReservasRepository`** gana `listarSerie(serieId)`/`cancelarSerie(serieId)`.
+- **`MisReservasScreen`**: una `_ReservaCard` con `serieId != null` muestra "Parte de una serie · Ver todas" -- abre un diálogo con las demás ocurrencias (fecha/hora/estado) y un botón "Cancelar toda la serie" que llama a `cancelarSerie` y resume el resultado ("mejor esfuerzo": cuántas se cancelaron, cuántas ya no se podían).
 
 ## Reservas recurrentes -- "mejor esfuerzo" (2026-08-29)
 

@@ -10,9 +10,13 @@ proyecto por esto. Cero dependencia nueva en `requirements.txt`.
 
 from __future__ import annotations
 
+import base64
 import logging
 import smtplib
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
@@ -30,8 +34,19 @@ logger = logging.getLogger("app.email")
 MAX_INTENTOS = 5
 
 
+@dataclass(frozen=True)
+class Adjunto:
+    """Un único adjunto (2026-08-29, ronda 2 -- primer adjunto del outbox:
+    `.ics` de confirmación de reserva, ver `app/services/ics.py`). Sin
+    soporte para más de uno por correo -- no hay caso de uso hoy."""
+
+    nombre: str
+    contenido: bytes
+    content_type: str
+
+
 def encolar_correo(
-    db: Session, *, destinatario: str, asunto: str, cuerpo: str, es_html: bool = False
+    db: Session, *, destinatario: str, asunto: str, cuerpo: str, es_html: bool = False, adjunto: Adjunto | None = None
 ) -> CorreoSaliente:
     """Escribe una fila `pendiente` en el outbox.
 
@@ -44,12 +59,23 @@ def encolar_correo(
     sigue en texto plano por default, sin cambiar su comportamiento actual.
     """
     correo = CorreoSaliente(destinatario=destinatario, asunto=asunto, cuerpo=cuerpo, es_html=es_html, estado="pendiente")
+    if adjunto is not None:
+        correo.adjunto_nombre = adjunto.nombre
+        correo.adjunto_content_type = adjunto.content_type
+        correo.adjunto_contenido = base64.b64encode(adjunto.contenido).decode("ascii")
     db.add(correo)
     return correo
 
 
-def _enviar_smtp(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False) -> None:
-    mensaje = MIMEText(cuerpo, "html" if es_html else "plain", "utf-8")
+def _enviar_smtp(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False, adjunto: Adjunto | None = None) -> None:
+    if adjunto is None:
+        mensaje = MIMEText(cuerpo, "html" if es_html else "plain", "utf-8")
+    else:
+        mensaje = MIMEMultipart("mixed")
+        mensaje.attach(MIMEText(cuerpo, "html" if es_html else "plain", "utf-8"))
+        parte_adjunto = MIMEApplication(adjunto.contenido, _subtype=adjunto.content_type.split("/")[-1])
+        parte_adjunto.add_header("Content-Disposition", "attachment", filename=adjunto.nombre)
+        mensaje.attach(parte_adjunto)
     mensaje["Subject"] = asunto
     mensaje["From"] = settings.smtp_from
     mensaje["To"] = destinatario
@@ -85,8 +111,17 @@ def procesar_pendientes(db: Session) -> None:
     enviar = enviar_graph if settings.email_transport == "graph_delegado" else _enviar_smtp
     pendientes = db.query(CorreoSaliente).filter(CorreoSaliente.estado == "pendiente").all()
     for correo in pendientes:
+        adjunto = (
+            Adjunto(
+                nombre=correo.adjunto_nombre,
+                contenido=base64.b64decode(correo.adjunto_contenido),
+                content_type=correo.adjunto_content_type,
+            )
+            if correo.adjunto_contenido is not None
+            else None
+        )
         try:
-            enviar(correo.destinatario, correo.asunto, correo.cuerpo, correo.es_html)
+            enviar(correo.destinatario, correo.asunto, correo.cuerpo, correo.es_html, adjunto)
         except Exception:
             logger.exception("Fallo enviando correo id=%s a %s", correo.id, correo.destinatario)
             correo.intentos += 1
