@@ -7,6 +7,7 @@ import '../../features/auditoria/presentation/auditoria_screen.dart';
 import '../../features/auth/application/auth_provider.dart';
 import '../../features/auth/presentation/completar_cuenta_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/registro_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/ensayos/presentation/gestion_ensayos_screen.dart';
 import '../../features/espacios/presentation/configuracion_espacio_screen.dart';
@@ -96,7 +97,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // contraseña y se canjea la sesión (ver AuthRepository.completarCuenta),
       // el usuario ya está autenticado y no tiene sentido dejarlo en esa
       // pantalla -- mismo criterio que salir de /login tras loguearse.
-      if (user != null && (state.matchedLocation == AppRoutes.login || state.matchedLocation == AppRoutes.completarCuenta)) {
+      if (user != null &&
+          (state.matchedLocation == AppRoutes.login ||
+              state.matchedLocation == AppRoutes.registro ||
+              state.matchedLocation == AppRoutes.completarCuenta)) {
         return AppRoutes.admin;
       }
 
@@ -120,6 +124,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
+      GoRoute(path: AppRoutes.registro, builder: (context, state) => const RegistroScreen()),
       GoRoute(path: AppRoutes.completarCuenta, builder: (context, state) => const CompletarCuentaScreen()),
       GoRoute(path: AppRoutes.terminos, builder: (context, state) => const TerminosScreen()),
       // Fuera del ShellRoute a propósito: es una pantalla "empujada" (con

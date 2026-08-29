@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/auth_user.dart';
@@ -67,6 +69,12 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
+    // Se captura ANTES de mutar el perfil: es lo único que distingue "vine
+    // acá a la fuerza porque el perfil estaba incompleto" de "entré por mi
+    // cuenta desde el menú de sesión a editar un perfil que ya estaba
+    // completo" -- después de guardar, `perfilCompleto` siempre da `true`
+    // en ambos casos.
+    final completabaAhora = !(ref.read(authProvider).value?.perfilCompleto ?? true);
     setState(() {
       _guardando = true;
       _error = null;
@@ -80,7 +88,14 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
             dependencia: _dependenciaController.text.trim(),
           );
       ref.read(authProvider.notifier).actualizarPerfilLocal(user);
-      if (mounted) {
+      if (!mounted) return;
+      if (completabaAhora) {
+        // El guard de `app_router.dart` trajo a la fuerza hasta acá (sin
+        // nada en el stack para volver atrás); quedarse mostrando solo un
+        // snackbar dejaba a la persona clavada en /perfil sin ningún
+        // camino de vuelta al resto de la app -- bug real reportado.
+        context.go(AppRoutes.admin);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
       }
     } on Object catch (e) {

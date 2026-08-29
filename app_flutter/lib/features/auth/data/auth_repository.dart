@@ -50,6 +50,23 @@ class AuthRepository {
     return _intercambiarSesion(token);
   }
 
+  /// `POST /auth/registro` (autoregistro abierto, sin aprobación de un
+  /// admin -- ver `backend/CLAUDE.md`): crea la cuenta con rol `usuario` y
+  /// la contraseña ya elegida, y de una vez inicia sesión con las mismas
+  /// credenciales reusando [login] -- no hay ningún paso de invitación ni
+  /// confirmación de por medio, la cuenta ya queda lista para usar.
+  Future<AuthUser> registrarse({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/auth/registro',
+      data: {'username': username, 'email': email, 'password': password},
+    );
+    return login(email: email, password: password);
+  }
+
   /// `POST /auth/recuperar` -- el backend genera el link de recuperación
   /// (`generar_link_recuperacion`, vía Supabase Admin API) y lo encola por
   /// nuestro propio outbox (Graph/SMTP según `EMAIL_TRANSPORT`), en vez del

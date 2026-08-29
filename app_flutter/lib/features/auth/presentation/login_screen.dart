@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../application/auth_provider.dart';
 
@@ -169,6 +171,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                         )
                                       : const Text('Entrar'),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                TextButton(
+                                  onPressed: () => context.go(AppRoutes.registro),
+                                  child: const Text('¿No tenés cuenta? Creá una'),
                                 ),
                               ],
                             ),

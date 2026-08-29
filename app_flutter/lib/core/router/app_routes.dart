@@ -3,6 +3,7 @@
 /// consumida por `app_router.dart` y `nav_destinations.dart`.
 abstract final class AppRoutes {
   static const login = '/login';
+  static const registro = '/registro';
   static const completarCuenta = '/completar-cuenta';
   static const terminos = '/terminos';
   // No hay `inicio`: tras autenticarse se aterriza en [admin], el
@@ -28,5 +29,5 @@ abstract final class AppRoutes {
   /// "Rutas públicas y protegidas"), comparados contra `state.fullPath` de
   /// go_router (el template registrado, no la URL interpolada — así
   /// `/espacios/:id` cubre cualquier id sin enumerarlos).
-  static const publicas = {login, completarCuenta, terminos, espacios, espacioDetalleTemplate};
+  static const publicas = {login, registro, completarCuenta, terminos, espacios, espacioDetalleTemplate};
 }

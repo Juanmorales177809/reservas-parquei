@@ -31,6 +31,13 @@ class Auth extends _$Auth {
     state = AsyncData(user);
   }
 
+  /// Ver `AuthRepository.registrarse` — autoregistro abierto, deja la
+  /// sesión lista igual que [login] (misma llamada por dentro).
+  Future<void> registrarse({required String username, required String email, required String password}) async {
+    final user = await ref.read(authRepositoryProvider).registrarse(username: username, email: email, password: password);
+    state = AsyncData(user);
+  }
+
   /// Ver `AuthRepository.completarCuenta` — fija la contraseña de una
   /// invitación/recuperación y deja la sesión lista, mismo criterio que
   /// [login].

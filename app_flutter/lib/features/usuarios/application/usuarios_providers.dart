@@ -9,3 +9,11 @@ part 'usuarios_providers.g.dart';
 Future<List<AuthUser>> usuariosList(Ref ref) {
   return ref.read(usuariosRepositoryProvider).listar();
 }
+
+/// Personal institucional (admin/gestor) -- tabla separada de `usuarios`
+/// desde 2026-08-28, ver `backend/CLAUDE.md` y
+/// `usuarios_repository.dart::listarPersonal`.
+@riverpod
+Future<List<AuthUser>> personalList(Ref ref) {
+  return ref.read(usuariosRepositoryProvider).listarPersonal();
+}

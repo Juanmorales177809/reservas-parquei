@@ -18,50 +18,90 @@ import '../../espacios/application/espacios_providers.dart';
 import '../application/usuarios_providers.dart';
 import '../data/usuarios_repository.dart';
 
-class GestionUsuariosScreen extends ConsumerWidget {
+/// Dos secciones desde la separación `personal`/`usuarios` (2026-08-28, ver
+/// `backend/CLAUDE.md`) -- "Personal" (admin/gestor, `/personal`) y
+/// "Usuarios" (rol usuario, `/usuarios`), cada una con su propio espacio de
+/// IDs en el backend. `esPersonal` se hila hacia abajo por todos los
+/// widgets de esta pantalla para decidir qué provider/endpoint usar y qué
+/// campos mostrar en el formulario (rol/espacio solo aplican a personal).
+class GestionUsuariosScreen extends ConsumerStatefulWidget {
   const GestionUsuariosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usuariosAsync = ref.watch(usuariosListProvider);
+  ConsumerState<GestionUsuariosScreen> createState() => _GestionUsuariosScreenState();
+}
+
+class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
+  bool _esPersonal = true;
+
+  AsyncValue<List<AuthUser>> get _listaActual =>
+      _esPersonal ? ref.watch(personalListProvider) : ref.watch(usuariosListProvider);
+
+  void _invalidarListaActual() {
+    ref.invalidate(_esPersonal ? personalListProvider : usuariosListProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final listaAsync = _listaActual;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Usuarios')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _mostrarCrear(context, ref),
-        icon: const Icon(LucideIcons.userPlus, size: 18),
-        label: const Text('Nuevo'),
+      appBar: AppBar(
+        title: const Text('Usuarios'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: true, label: Text('Personal'), icon: Icon(LucideIcons.shield, size: 16)),
+                ButtonSegment(value: false, label: Text('Usuarios'), icon: Icon(LucideIcons.user, size: 16)),
+              ],
+              selected: {_esPersonal},
+              onSelectionChanged: (seleccion) => setState(() => _esPersonal = seleccion.first),
+            ),
+          ),
+        ),
       ),
-      body: usuariosAsync.when(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _mostrarCrear(context),
+        icon: const Icon(LucideIcons.userPlus, size: 18),
+        label: Text(_esPersonal ? 'Nuevo' : 'Nuevo usuario'),
+      ),
+      body: listaAsync.when(
         loading: () => const LoadingSpinner(),
         error: (error, _) => ErrorView(
           message: apiErrorMessage(error, fallback: 'No se pudieron cargar los usuarios.'),
-          onRetry: () => ref.invalidate(usuariosListProvider),
+          onRetry: _invalidarListaActual,
         ),
         data: (usuarios) {
           if (usuarios.isEmpty) {
-            return const EmptyView(icon: LucideIcons.users, message: 'No hay usuarios registrados.');
+            return EmptyView(
+              icon: LucideIcons.users,
+              message: _esPersonal ? 'No hay personal registrado.' : 'No hay usuarios registrados.',
+            );
           }
           final esCompacta = MediaQuery.sizeOf(context).width < kCompactBreakpoint;
           if (esCompacta) {
             return RefreshIndicator(
-              onRefresh: () => ref.refresh(usuariosListProvider.future),
+              onRefresh: () async => _invalidarListaActual(),
               child: ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: usuarios.length,
                 separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) => _UsuarioCard(usuario: usuarios[index]).staggerEntrance(index),
+                itemBuilder: (context, index) =>
+                    _UsuarioCard(usuario: usuarios[index], esPersonal: _esPersonal).staggerEntrance(index),
               ),
             );
           }
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(usuariosListProvider.future),
+            onRefresh: () async => _invalidarListaActual(),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  sliver: SliverToBoxAdapter(child: _UsuariosTabla(usuarios: usuarios)),
+                  sliver: SliverToBoxAdapter(child: _UsuariosTabla(usuarios: usuarios, esPersonal: _esPersonal)),
                 ),
               ],
             ),
@@ -71,10 +111,10 @@ class GestionUsuariosScreen extends ConsumerWidget {
     );
   }
 
-  void _mostrarCrear(BuildContext context, WidgetRef ref) {
+  void _mostrarCrear(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (_) => _UsuarioFormDialog(onSaved: () => ref.invalidate(usuariosListProvider)),
+      builder: (_) => _UsuarioFormDialog(esPersonal: _esPersonal, onSaved: _invalidarListaActual),
     );
   }
 }
@@ -170,9 +210,10 @@ class _UsuarioAvatar extends StatelessWidget {
 }
 
 class _UsuariosTabla extends StatelessWidget {
-  const _UsuariosTabla({required this.usuarios});
+  const _UsuariosTabla({required this.usuarios, required this.esPersonal});
 
   final List<AuthUser> usuarios;
+  final bool esPersonal;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +230,7 @@ class _UsuariosTabla extends StatelessWidget {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _FilaUsuario(usuario: u).staggerEntrance(index),
+                _FilaUsuario(usuario: u, esPersonal: esPersonal).staggerEntrance(index),
                 if (!esUltimo) const Divider(height: 1, thickness: 1, color: AppColors.borde),
               ],
             );
@@ -226,9 +267,10 @@ class _CabeceraTabla extends StatelessWidget {
 }
 
 class _FilaUsuario extends ConsumerStatefulWidget {
-  const _FilaUsuario({required this.usuario});
+  const _FilaUsuario({required this.usuario, required this.esPersonal});
 
   final AuthUser usuario;
+  final bool esPersonal;
 
   @override
   ConsumerState<_FilaUsuario> createState() => _FilaUsuarioState();
@@ -238,10 +280,17 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
   bool _eliminando = false;
   bool _reenviando = false;
 
+  void _invalidarLista() {
+    ref.invalidate(widget.esPersonal ? personalListProvider : usuariosListProvider);
+  }
+
   Future<void> _reenviarInvitacion() async {
     setState(() => _reenviando = true);
     try {
-      final resultado = await ref.read(usuariosRepositoryProvider).reenviarInvitacion(widget.usuario.id);
+      final repo = ref.read(usuariosRepositoryProvider);
+      final resultado = widget.esPersonal
+          ? await repo.reenviarInvitacionPersonal(widget.usuario.id)
+          : await repo.reenviarInvitacion(widget.usuario.id);
       if (mounted) _mostrarLinkInvitacion(context, resultado);
     } on Object catch (e) {
       if (mounted) {
@@ -269,8 +318,13 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
     if (confirmar != true || !mounted) return;
     setState(() => _eliminando = true);
     try {
-      await ref.read(usuariosRepositoryProvider).eliminar(widget.usuario.id);
-      ref.invalidate(usuariosListProvider);
+      final repo = ref.read(usuariosRepositoryProvider);
+      if (widget.esPersonal) {
+        await repo.eliminarPersonal(widget.usuario.id);
+      } else {
+        await repo.eliminar(widget.usuario.id);
+      }
+      _invalidarLista();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Usuario eliminado.')));
     } on Object catch (e) {
       if (mounted) {
@@ -286,7 +340,7 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
   void _editar() {
     showDialog<void>(
       context: context,
-      builder: (_) => _UsuarioFormDialog(usuario: widget.usuario, onSaved: () => ref.invalidate(usuariosListProvider)),
+      builder: (_) => _UsuarioFormDialog(usuario: widget.usuario, esPersonal: widget.esPersonal, onSaved: _invalidarLista),
     );
   }
 
@@ -296,7 +350,11 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final currentUser = ref.watch(authProvider).value;
-    final esPropio = currentUser?.id == u.id;
+    // `personal` y `usuarios` tienen espacios de id independientes (ver
+    // backend/CLAUDE.md) -- comparar solo por id colisionaría con una fila
+    // de la OTRA tabla que casualmente comparta el mismo número.
+    final currentUserEsPersonal = currentUser != null && currentUser.rol != RolUsuario.usuario;
+    final esPropio = currentUserEsPersonal == widget.esPersonal && currentUser?.id == u.id;
 
     return Container(
       color: AppColors.superficie,
@@ -376,6 +434,13 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
           ),
           Expanded(
             flex: 2,
+            // "Editar"/"Eliminar" como botones anchos completos + el ícono
+            // de reenviar invitación no entraban en flex:2 de una tabla de
+            // 5 columnas a un ancho moderado -- overflow real encontrado
+            // por `gestion_usuarios_screen_test.dart` (nunca se había
+            // testeado esta fila antes). Mismo patrón ya usado en
+            // `gestion_reservas_screen.dart`: una sola acción primaria
+            // (acá, reenviar invitación) + el resto en un `PopupMenuButton`.
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -386,20 +451,26 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(LucideIcons.mailPlus, size: 16),
                 ),
-                OutlinedButton.icon(
-                  onPressed: _eliminando ? null : _editar,
-                  icon: const Icon(LucideIcons.pencil, size: 14),
-                  label: const Text('Editar'),
+                PopupMenuButton<String>(
+                  enabled: !_eliminando,
+                  tooltip: 'Más acciones',
+                  icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
+                  onSelected: (v) {
+                    if (v == 'editar') _editar();
+                    if (v == 'eliminar') _eliminar();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'editar',
+                      child: Row(children: [Icon(LucideIcons.pencil, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Editar')]),
+                    ),
+                    if (!esPropio)
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Eliminar')]),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                if (!esPropio)
-                  FilledButton.tonalIcon(
-                    onPressed: _eliminando ? null : _eliminar,
-                    icon: _eliminando
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(LucideIcons.trash2, size: 14),
-                    label: const Text('Eliminar'),
-                  ),
               ],
             ),
           ),
@@ -410,9 +481,10 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
 }
 
 class _UsuarioCard extends ConsumerStatefulWidget {
-  const _UsuarioCard({required this.usuario});
+  const _UsuarioCard({required this.usuario, required this.esPersonal});
 
   final AuthUser usuario;
+  final bool esPersonal;
 
   @override
   ConsumerState<_UsuarioCard> createState() => _UsuarioCardState();
@@ -422,10 +494,17 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
   bool _eliminando = false;
   bool _reenviando = false;
 
+  void _invalidarLista() {
+    ref.invalidate(widget.esPersonal ? personalListProvider : usuariosListProvider);
+  }
+
   Future<void> _reenviarInvitacion() async {
     setState(() => _reenviando = true);
     try {
-      final resultado = await ref.read(usuariosRepositoryProvider).reenviarInvitacion(widget.usuario.id);
+      final repo = ref.read(usuariosRepositoryProvider);
+      final resultado = widget.esPersonal
+          ? await repo.reenviarInvitacionPersonal(widget.usuario.id)
+          : await repo.reenviarInvitacion(widget.usuario.id);
       if (mounted) _mostrarLinkInvitacion(context, resultado);
     } on Object catch (e) {
       if (mounted) {
@@ -453,8 +532,13 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
     if (confirmar != true || !mounted) return;
     setState(() => _eliminando = true);
     try {
-      await ref.read(usuariosRepositoryProvider).eliminar(widget.usuario.id);
-      ref.invalidate(usuariosListProvider);
+      final repo = ref.read(usuariosRepositoryProvider);
+      if (widget.esPersonal) {
+        await repo.eliminarPersonal(widget.usuario.id);
+      } else {
+        await repo.eliminar(widget.usuario.id);
+      }
+      _invalidarLista();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Usuario eliminado.')));
     } on Object catch (e) {
       if (mounted) {
@@ -470,7 +554,7 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
   void _editar() {
     showDialog<void>(
       context: context,
-      builder: (_) => _UsuarioFormDialog(usuario: widget.usuario, onSaved: () => ref.invalidate(usuariosListProvider)),
+      builder: (_) => _UsuarioFormDialog(usuario: widget.usuario, esPersonal: widget.esPersonal, onSaved: _invalidarLista),
     );
   }
 
@@ -480,7 +564,11 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final currentUser = ref.watch(authProvider).value;
-    final esPropio = currentUser?.id == u.id;
+    // `personal` y `usuarios` tienen espacios de id independientes (ver
+    // backend/CLAUDE.md) -- comparar solo por id colisionaría con una fila
+    // de la OTRA tabla que casualmente comparta el mismo número.
+    final currentUserEsPersonal = currentUser != null && currentUser.rol != RolUsuario.usuario;
+    final esPropio = currentUserEsPersonal == widget.esPersonal && currentUser?.id == u.id;
 
     return Card(
       child: Padding(
@@ -573,9 +661,10 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
 }
 
 class _UsuarioFormDialog extends ConsumerStatefulWidget {
-  const _UsuarioFormDialog({this.usuario, required this.onSaved});
+  const _UsuarioFormDialog({this.usuario, required this.esPersonal, required this.onSaved});
 
   final AuthUser? usuario;
+  final bool esPersonal;
   final VoidCallback onSaved;
 
   @override
@@ -599,14 +688,14 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
     final u = widget.usuario;
     _username = u?.username ?? '';
     _email = u?.email ?? '';
-    _rol = u?.rol ?? RolUsuario.usuario;
+    _rol = u?.rol ?? (widget.esPersonal ? RolUsuario.gestor : RolUsuario.usuario);
     _espacioId = u?.espacio?.id;
   }
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
-    if (_rol == RolUsuario.gestor && _espacioId == null) {
+    if (widget.esPersonal && _rol == RolUsuario.gestor && _espacioId == null) {
       setState(() => _error = 'Debes asignar un espacio al gestor');
       return;
     }
@@ -616,23 +705,31 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
     });
     try {
       final repo = ref.read(usuariosRepositoryProvider);
-      if (_esEdicion) {
-        await repo.actualizar(
-          widget.usuario!.id,
-          username: _username,
-          email: _email,
-          rol: _rol.name,
-          espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
-        );
+      if (widget.esPersonal) {
+        if (_esEdicion) {
+          await repo.actualizarPersonal(
+            widget.usuario!.id,
+            username: _username,
+            email: _email,
+            rol: _rol.name,
+            espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
+          );
+        } else {
+          await repo.crearPersonal(
+            username: _username,
+            email: _email,
+            rol: _rol.name,
+            espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
+          );
+        }
       } else {
-        // Sin contraseña: el backend invita a la persona por email vía
-        // Supabase — el admin ya no la elige ni la ve.
-        await repo.crear(
-          username: _username,
-          email: _email,
-          rol: _rol.name,
-          espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
-        );
+        if (_esEdicion) {
+          await repo.actualizar(widget.usuario!.id, username: _username, email: _email);
+        } else {
+          // Sin contraseña: el backend invita a la persona por email vía
+          // Supabase — el admin ya no la elige ni la ve.
+          await repo.crear(username: _username, email: _email);
+        }
       }
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -659,7 +756,7 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
     final espaciosAsync = ref.watch(espaciosListProvider);
 
     return AlertDialog(
-      title: Text(_esEdicion ? 'Editar usuario' : 'Nuevo usuario'),
+      title: Text(_esEdicion ? 'Editar usuario' : (widget.esPersonal ? 'Nuevo miembro del personal' : 'Nuevo usuario')),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -689,32 +786,33 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
                 },
                 onSaved: (v) => _email = v!.trim(),
               ),
-              const SizedBox(height: AppSpacing.md),
-              DropdownButtonFormField<RolUsuario>(
-                initialValue: _rol,
-                decoration: const InputDecoration(labelText: 'Rol *'),
-                items: const [
-                  DropdownMenuItem(value: RolUsuario.usuario, child: Text('Usuario de reservas')),
-                  DropdownMenuItem(value: RolUsuario.gestor, child: Text('Gestor de recursos')),
-                  DropdownMenuItem(value: RolUsuario.admin, child: Text('Administrador total')),
-                ],
-                onChanged: (v) => setState(() => _rol = v!),
-                onSaved: (v) => _rol = v!,
-              ),
-              if (_rol == RolUsuario.gestor) ...[
+              if (widget.esPersonal) ...[
                 const SizedBox(height: AppSpacing.md),
-                espaciosAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los espacios.')),
-                  data: (espacios) => DropdownButtonFormField<int>(
-                    initialValue: _espacioId ?? (espacios.isNotEmpty ? espacios.first.id : null),
-                    decoration: const InputDecoration(labelText: 'Espacio asignado *'),
-                    items: espacios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
-                    onChanged: (v) => setState(() => _espacioId = v),
-                    validator: (v) => v == null ? 'Requerido' : null,
-                    onSaved: (v) => _espacioId = v,
-                  ),
+                DropdownButtonFormField<RolUsuario>(
+                  initialValue: _rol,
+                  decoration: const InputDecoration(labelText: 'Rol *'),
+                  items: const [
+                    DropdownMenuItem(value: RolUsuario.gestor, child: Text('Gestor de recursos')),
+                    DropdownMenuItem(value: RolUsuario.admin, child: Text('Administrador total')),
+                  ],
+                  onChanged: (v) => setState(() => _rol = v!),
+                  onSaved: (v) => _rol = v!,
                 ),
+                if (_rol == RolUsuario.gestor) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  espaciosAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los espacios.')),
+                    data: (espacios) => DropdownButtonFormField<int>(
+                      initialValue: _espacioId ?? (espacios.isNotEmpty ? espacios.first.id : null),
+                      decoration: const InputDecoration(labelText: 'Espacio asignado *'),
+                      items: espacios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
+                      onChanged: (v) => setState(() => _espacioId = v),
+                      validator: (v) => v == null ? 'Requerido' : null,
+                      onSaved: (v) => _espacioId = v,
+                    ),
+                  ),
+                ],
               ],
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),

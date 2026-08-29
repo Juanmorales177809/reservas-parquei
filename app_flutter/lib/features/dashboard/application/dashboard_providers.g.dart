@@ -46,4 +46,4 @@ final class DashboardSummaryProvider
   }
 }
 
-String _$dashboardSummaryHash() => r'84057ed62b184327375c558df75cfb5bd7789a48';
+String _$dashboardSummaryHash() => r'0744d1812e1345bc092049ec04220520f63b29bb';

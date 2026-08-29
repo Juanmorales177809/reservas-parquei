@@ -2,9 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:app_flutter/core/domain/enums.dart';
 import 'package:app_flutter/core/network/api_exception.dart';
+import 'package:app_flutter/core/router/app_routes.dart';
 import 'package:app_flutter/features/auth/application/auth_provider.dart';
 import 'package:app_flutter/features/auth/domain/auth_user.dart';
 import 'package:app_flutter/features/usuarios/data/usuarios_repository.dart';
@@ -83,6 +85,26 @@ void main() {
     );
   }
 
+  /// Con `GoRouter` real (a diferencia de `montar`) -- necesario para los
+  /// casos que ejercitan `context.go(AppRoutes.admin)` tras completar el
+  /// perfil obligatorio.
+  Widget montarConRouter(AuthUser usuario, _UsuariosRepositoryFalso fake) {
+    final router = GoRouter(
+      initialLocation: AppRoutes.perfil,
+      routes: [
+        GoRoute(path: AppRoutes.perfil, builder: (context, state) => const MiPerfilScreen()),
+        GoRoute(path: AppRoutes.admin, builder: (context, state) => const Text('ADMIN_HOME')),
+      ],
+    );
+    return ProviderScope(
+      overrides: [
+        authProvider.overrideWith(() => _AuthFake(usuario)),
+        usuariosRepositoryProvider.overrideWithValue(fake),
+      ],
+      child: MaterialApp.router(routerConfig: router),
+    );
+  }
+
   testWidgets('precarga los campos ya guardados', (tester) async {
     final usuario = _usuario(telefono: '3053695592', vinculacion: VinculacionUsuario.estudiante);
     await tester.pumpWidget(montar(usuario, _UsuariosRepositoryFalso(usuario)));
@@ -103,10 +125,10 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Dependencia / Facultad'), 'Ingeniería');
   }
 
-  testWidgets('guardar envía los campos actuales del formulario', (tester) async {
+  testWidgets('perfil incompleto: al guardar navega a /admin en vez de quedarse en /perfil', (tester) async {
     final usuario = _usuario();
     final fake = _UsuariosRepositoryFalso(usuario);
-    await tester.pumpWidget(montar(usuario, fake));
+    await tester.pumpWidget(montarConRouter(usuario, fake));
     await tester.pumpAndSettle();
 
     await llenarCamposObligatorios(tester);
@@ -114,7 +136,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fake.ultimoEnvio?['telefono'], '3000000000');
+    expect(find.text('ADMIN_HOME'), findsOneWidget);
+    expect(find.byType(MiPerfilScreen), findsNothing);
+  });
+
+  testWidgets('perfil ya completo: guardar una edición muestra el snackbar y no navega', (tester) async {
+    final usuario = _usuario(
+      documentoIdentificacion: '111',
+      telefono: '3000000000',
+      institucion: 'ITM',
+      vinculacion: VinculacionUsuario.estudiante,
+      dependencia: 'Ingeniería',
+    );
+    final fake = _UsuariosRepositoryFalso(usuario);
+    await tester.pumpWidget(montarConRouter(usuario, fake));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono/celular'), '3001112222');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(fake.ultimoEnvio?['telefono'], '3001112222');
     expect(find.text('Perfil actualizado.'), findsOneWidget);
+    expect(find.text('ADMIN_HOME'), findsNothing);
   });
 
   testWidgets('muestra el error del backend si falla el guardado', (tester) async {
