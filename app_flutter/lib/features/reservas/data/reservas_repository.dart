@@ -36,27 +36,101 @@ class ReservasRepository {
     String? ubicacionUso,
     bool? requiereApoyoAuxiliar,
   }) async {
-    final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
-    final tipoSolicitudJson = tipoSolicitud == null ? null : tipoSolicitudToJson(tipoSolicitud);
     final response = await _dio.post<Map<String, dynamic>>(
       '/reservas',
-      data: {
-        'recurso_ids': recursoIds,
-        'zona_ids': zonaIds,
-        'ensayo_ids': ensayoIds,
-        'acompanantes': acompanantes,
-        'fecha': _formatoFecha.format(fecha),
-        'hora_inicio': horaInicio,
-        'hora_fin': horaFin,
-        'asistentes': asistentes,
-        'tipo': ?tipoJson,
-        'descripcion': ?descripcion,
-        'tipo_solicitud': ?tipoSolicitudJson,
-        'ubicacion_uso': ?ubicacionUso,
-        'requiere_apoyo_auxiliar': ?requiereApoyoAuxiliar,
-      },
+      data: _payloadCrear(
+        recursoIds: recursoIds,
+        fecha: fecha,
+        horaInicio: horaInicio,
+        horaFin: horaFin,
+        asistentes: asistentes,
+        tipo: tipo,
+        zonaIds: zonaIds,
+        ensayoIds: ensayoIds,
+        acompanantes: acompanantes,
+        descripcion: descripcion,
+        tipoSolicitud: tipoSolicitud,
+        ubicacionUso: ubicacionUso,
+        requiereApoyoAuxiliar: requiereApoyoAuxiliar,
+      ),
     );
     return Reserva.fromJson(response.data!);
+  }
+
+  /// `POST /reservas` con `repetir_semanas`/`numero_ocurrencias` (2026-08-29,
+  /// "mejor esfuerzo") -- mismos campos que `crear`, pero la respuesta tiene
+  /// otra forma (`ReservaSerieResponse`, no `ReservaResponse`), así que es
+  /// un método aparte en vez de sobrecargar el tipo de retorno de `crear`.
+  Future<ReservaSerieResultado> crearRecurrente({
+    required List<int> recursoIds,
+    required DateTime fecha,
+    required String horaInicio,
+    required String horaFin,
+    required int asistentes,
+    required int repetirSemanas,
+    required int numeroOcurrencias,
+    TipoReserva? tipo,
+    List<int> zonaIds = const [],
+    List<int> ensayoIds = const [],
+    List<Map<String, String>> acompanantes = const [],
+    String? descripcion,
+    TipoSolicitud? tipoSolicitud,
+    String? ubicacionUso,
+    bool? requiereApoyoAuxiliar,
+  }) async {
+    final payload = _payloadCrear(
+      recursoIds: recursoIds,
+      fecha: fecha,
+      horaInicio: horaInicio,
+      horaFin: horaFin,
+      asistentes: asistentes,
+      tipo: tipo,
+      zonaIds: zonaIds,
+      ensayoIds: ensayoIds,
+      acompanantes: acompanantes,
+      descripcion: descripcion,
+      tipoSolicitud: tipoSolicitud,
+      ubicacionUso: ubicacionUso,
+      requiereApoyoAuxiliar: requiereApoyoAuxiliar,
+    )
+      ..['repetir_semanas'] = repetirSemanas
+      ..['numero_ocurrencias'] = numeroOcurrencias;
+    final response = await _dio.post<Map<String, dynamic>>('/reservas', data: payload);
+    return ReservaSerieResultado.fromJson(response.data!);
+  }
+
+  Map<String, dynamic> _payloadCrear({
+    required List<int> recursoIds,
+    required DateTime fecha,
+    required String horaInicio,
+    required String horaFin,
+    required int asistentes,
+    TipoReserva? tipo,
+    List<int> zonaIds = const [],
+    List<int> ensayoIds = const [],
+    List<Map<String, String>> acompanantes = const [],
+    String? descripcion,
+    TipoSolicitud? tipoSolicitud,
+    String? ubicacionUso,
+    bool? requiereApoyoAuxiliar,
+  }) {
+    final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
+    final tipoSolicitudJson = tipoSolicitud == null ? null : tipoSolicitudToJson(tipoSolicitud);
+    return {
+      'recurso_ids': recursoIds,
+      'zona_ids': zonaIds,
+      'ensayo_ids': ensayoIds,
+      'acompanantes': acompanantes,
+      'fecha': _formatoFecha.format(fecha),
+      'hora_inicio': horaInicio,
+      'hora_fin': horaFin,
+      'asistentes': asistentes,
+      'tipo': ?tipoJson,
+      'descripcion': ?descripcion,
+      'tipo_solicitud': ?tipoSolicitudJson,
+      'ubicacion_uso': ?ubicacionUso,
+      'requiere_apoyo_auxiliar': ?requiereApoyoAuxiliar,
+    };
   }
 
   /// `GET /reservas/mis-reservas`.

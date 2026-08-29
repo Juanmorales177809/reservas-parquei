@@ -223,3 +223,30 @@ const _$TipoSolicitudEnumMap = {
   TipoSolicitud.reservaFueraLaboratorio: 'reserva_fuera_laboratorio',
   TipoSolicitud.ordenSalida: 'orden_salida',
 };
+
+_OcurrenciaOmitida _$OcurrenciaOmitidaFromJson(Map<String, dynamic> json) =>
+    _OcurrenciaOmitida(
+      fecha: json['fecha'] as String,
+      motivo: json['motivo'] as String,
+    );
+
+Map<String, dynamic> _$OcurrenciaOmitidaToJson(_OcurrenciaOmitida instance) =>
+    <String, dynamic>{'fecha': instance.fecha, 'motivo': instance.motivo};
+
+_ReservaSerieResultado _$ReservaSerieResultadoFromJson(
+  Map<String, dynamic> json,
+) => _ReservaSerieResultado(
+  creadas: (json['creadas'] as List<dynamic>)
+      .map((e) => Reserva.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  omitidas: (json['omitidas'] as List<dynamic>)
+      .map((e) => OcurrenciaOmitida.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ReservaSerieResultadoToJson(
+  _ReservaSerieResultado instance,
+) => <String, dynamic>{
+  'creadas': instance.creadas,
+  'omitidas': instance.omitidas,
+};

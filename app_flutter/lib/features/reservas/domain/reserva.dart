@@ -144,3 +144,27 @@ abstract class Reserva with _$Reserva {
   /// cancelación.)
   bool get puedeCancelarse => estado == EstadoReserva.aprobada;
 }
+
+/// Espejo de `OcurrenciaOmitida` (`backend/app/schemas/reserva.py`) --
+/// una fecha de una reserva recurrente que no se pudo crear (2026-08-29).
+@freezed
+abstract class OcurrenciaOmitida with _$OcurrenciaOmitida {
+  const factory OcurrenciaOmitida({
+    required String fecha,
+    required String motivo,
+  }) = _OcurrenciaOmitida;
+
+  factory OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
+}
+
+/// Espejo de `ReservaSerieResponse` -- solo la respuesta de `POST /reservas`
+/// cuando se pidió `repetirSemanas` (ver `ReservasRepository.crearRecurrente`).
+@freezed
+abstract class ReservaSerieResultado with _$ReservaSerieResultado {
+  const factory ReservaSerieResultado({
+    required List<Reserva> creadas,
+    required List<OcurrenciaOmitida> omitidas,
+  }) = _ReservaSerieResultado;
+
+  factory ReservaSerieResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieResultadoFromJson(json);
+}

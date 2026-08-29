@@ -1,6 +1,7 @@
 from app.models.control_cambio import ControlCambio
 from app.models.correo_saliente import CorreoSaliente
 from app.models.espacio import Espacio
+from app.models.lista_espera import ListaEspera
 from app.models.notificacion import Notificacion
 from app.models.personal import Personal
 from app.models.recurso import Recurso, TipoRecurso
@@ -20,6 +21,7 @@ __all__ = [
     "CorreoSaliente",
     "Ensayo",
     "Espacio",
+    "ListaEspera",
     "Notificacion",
     "Personal",
     "Recurso",

@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -59,6 +60,19 @@ class Reserva(Base):
     # Fase B: pregunta 18 del formulario real, aplica a las dos ramas que
     # viven en esta tabla.
     requiere_apoyo_auxiliar = Column(Boolean, nullable=False, default=False)
+    # Fase 2026-08-29: marca de idempotencia del recordatorio de reserva
+    # próxima (`services/recordatorios.py`) -- nullable, sin backfill (ver
+    # `migrations.py`). NULL = todavía no se le mandó el recordatorio.
+    recordatorio_enviado_en = Column(DateTime(timezone=True), nullable=True)
+    # Fase 2026-08-29: reservas recurrentes -- vincula las N filas creadas
+    # en una misma solicitud con `repetir_semanas` (mismo valor para todas
+    # las ocurrencias de una serie). NULL para cualquier reserva no
+    # recurrente (la inmensa mayoría). A propósito NO hay tabla ni UI de
+    # gestión de "la serie completa" en esta primera versión -- cada
+    # ocurrencia se edita/cancela individualmente como cualquier otra
+    # reserva; esta columna solo deja la correlación guardada para el
+    # futuro (`~/.claude/plans/dazzling-wobbling-zebra.md`).
+    serie_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

@@ -56,6 +56,10 @@ dependencies:
   # CLAUDE.md raíz). Cloud free tier, supabase_id UUID puente en el backend.
   supabase_flutter: ^2.9.1
   flutter_secure_storage: ^9.2.4
+  # Export del dashboard a CSV/Excel (2026-08-29): único punto del repo que
+  # guarda un archivo en el dispositivo -- cross-platform (Web/Windows/
+  # Android/iOS) en una sola API, sin código condicional por plataforma.
+  file_saver: ^0.4.0
 
 dev_dependencies:
   flutter_test:

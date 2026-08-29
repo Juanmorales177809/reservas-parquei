@@ -44,6 +44,12 @@ class ReservaCreate(BaseModel):
     hora_inicio: time
     hora_fin: time
     asistentes: int = Field(gt=0)
+    # Fase 2026-08-29: reserva recurrente, "mejor esfuerzo" (ver
+    # `~/.claude/plans/dazzling-wobbling-zebra.md`). Ambos ausentes (el
+    # default) es 100% retrocompatible: se comporta como hoy, una sola
+    # reserva. Si se manda uno, se exige el otro (validador de abajo).
+    repetir_semanas: int | None = Field(default=None, ge=1, le=52)
+    numero_ocurrencias: int | None = Field(default=None, ge=2, le=52)
 
     @field_validator("tipo_solicitud")
     @classmethod
@@ -56,6 +62,12 @@ class ReservaCreate(BaseModel):
     def _al_menos_un_recurso_o_zona(self) -> "ReservaCreate":
         if not self.recurso_ids and not self.zona_ids:
             raise ValueError("Debes indicar al menos un recurso o una zona")
+        return self
+
+    @model_validator(mode="after")
+    def _recurrencia_completa_o_ausente(self) -> "ReservaCreate":
+        if (self.repetir_semanas is None) != (self.numero_ocurrencias is None):
+            raise ValueError("repetir_semanas y numero_ocurrencias van juntos, no uno solo")
         return self
 
     @model_validator(mode="after")
@@ -301,3 +313,21 @@ class ReservaResponse(BaseModel):
     ensayo_ids: list[int] = Field(default_factory=list)
     ensayos: list[EnsayoReservaResponse] = Field(default_factory=list)
     acompanantes: list[ReservaAcompananteResponse] = Field(default_factory=list)
+
+
+class OcurrenciaOmitida(BaseModel):
+    """Una fecha de la serie que no se pudo crear (Fase 2026-08-29, reservas
+    recurrentes -- "mejor esfuerzo")."""
+
+    fecha: date
+    motivo: str
+
+
+class ReservaSerieResponse(BaseModel):
+    """Respuesta de `POST /reservas` cuando se pidió `repetir_semanas`
+    (ver `ReservaCreate`) -- reemplaza el `ReservaResponse` único de
+    siempre solo en ese caso; sin recurrencia, el endpoint sigue
+    devolviendo exactamente `ReservaResponse`."""
+
+    creadas: list[ReservaResponse]
+    omitidas: list[OcurrenciaOmitida]

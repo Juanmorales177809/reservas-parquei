@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime, time, timedelta
 from dataclasses import dataclass
 
@@ -37,6 +38,7 @@ from app.models import (
     Zona,
     ZonaRecurso,
 )
+from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.actores import columnas_actor, es_actor
 from app.services.auditoria import registrar_cambio
@@ -50,7 +52,23 @@ from app.services.email_templates import (
     plantilla_reserva_recibida,
 )
 from app.services.horarios import horario_cubre_reserva
+from app.services.lista_espera import notificar_primero_en_espera
 from app.services.reloj import RelojLocal
+
+
+def _notificar_lista_espera_liberados(db: Session, reserva: Reserva) -> None:
+    """Se llama justo después de que `reserva` deja de bloquear horario
+    (rechazo, cancelación o borrado) -- avisa a la lista de espera de cada
+    recurso efectivamente liberado (Fase 12C-6: `reserva_recursos` es la
+    fuente de verdad, no la columna histórica `recurso_id`)."""
+    for recurso_id in get_recurso_ids_reserva(db, reserva.id):
+        notificar_primero_en_espera(
+            db,
+            recurso_id=recurso_id,
+            fecha=reserva.fecha,
+            hora_inicio=reserva.hora_inicio,
+            hora_fin=reserva.hora_fin,
+        )
 
 
 SOLAPAMIENTO_CONSTRAINT = "reservas_sin_solapamiento"
@@ -575,7 +593,9 @@ def _validar_objetivo(
     )
 
 
-def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
+def crear_reserva(
+    db: Session, data: ReservaCreate, usuario: Personal | Usuario, *, serie_id: uuid.UUID | None = None
+) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
         recurso_ids=data.recurso_ids,
@@ -612,6 +632,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
+        serie_id=serie_id,
     )
     db.add(reserva)
     preparar_reserva(db)
@@ -690,6 +711,36 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
     procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
+
+
+def crear_reserva_serie(
+    db: Session, data: ReservaCreate, usuario: Personal | Usuario
+) -> tuple[list[Reserva], list[dict]]:
+    """`data.repetir_semanas`/`numero_ocurrencias` ya están confirmados no
+    nulos por `ReservaCreate._recurrencia_completa_o_ausente` -- este
+    servicio solo se llama desde `api/reservas.py` cuando el caller ya
+    verificó eso.
+
+    "Mejor esfuerzo" (decisión confirmada, ver el plan): cada ocurrencia
+    pasa por el mismo `crear_reserva` de una reserva individual (mismas
+    validaciones, mismo 409 de solapamiento) dentro de su propio
+    `try/except` -- una ocurrencia que falla no aborta las demás. Cada
+    llamada a `crear_reserva` hace su propio flush+commit (`preparar_reserva`/
+    `confirmar_cambios_reserva`), así que un rollback por conflicto en la
+    ocurrencia N nunca deshace las ya confirmadas de la 1..N-1.
+    """
+    assert data.repetir_semanas is not None and data.numero_ocurrencias is not None
+    serie_id = uuid.uuid4()
+    creadas: list[Reserva] = []
+    omitidas: list[dict] = []
+    for i in range(data.numero_ocurrencias):
+        fecha_ocurrencia = data.fecha + timedelta(weeks=data.repetir_semanas * i)
+        data_ocurrencia = data.model_copy(update={"fecha": fecha_ocurrencia})
+        try:
+            creadas.append(crear_reserva(db, data_ocurrencia, usuario, serie_id=serie_id))
+        except HTTPException as exc:
+            omitidas.append({"fecha": fecha_ocurrencia, "motivo": str(exc.detail)})
+    return creadas, omitidas
 
 
 def cambiar_estado(
@@ -778,6 +829,8 @@ def cambiar_estado(
             ),
             es_html=True,
         )
+        if nuevo in {EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA} and estado_anterior in ESTADOS_BLOQUEANTES:
+            _notificar_lista_espera_liberados(db, reserva)
         mensaje_auditoria = f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}"
         if nuevo == EstadoReserva.RECHAZADA and motivo:
             mensaje_auditoria += f" - Motivo: {motivo}"
@@ -884,6 +937,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
         reserva.id,
         f"Canceló su reserva #{reserva.id}",
     )
+    _notificar_lista_espera_liberados(db, reserva)
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
@@ -1048,6 +1102,11 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
     # entera de otra forma -- eliminar es distinto de cancelar, no deja
     # rastro visible para ella en la app.
     propietario = None if es_propietario else reserva.actor
+    # También antes del delete: `reserva_recursos` cascadea junto con la
+    # reserva (ver `Reserva.recursos_asociados`), así que el conjunto
+    # efectivo de recursos ya no se puede leer después.
+    fecha, hora_inicio, hora_fin = reserva.fecha, reserva.hora_inicio, reserva.hora_fin
+    recurso_ids_liberados = get_recurso_ids_reserva(db, reserva.id) if reserva.estado in ESTADOS_BLOQUEANTES else []
     if propietario is not None:
         datos_correo = {
             "email": propietario.email,
@@ -1078,3 +1137,5 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
     db.commit()
     if propietario is not None:
         procesar_pendientes(db)
+    for recurso_id in recurso_ids_liberados:
+        notificar_primero_en_espera(db, recurso_id=recurso_id, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)

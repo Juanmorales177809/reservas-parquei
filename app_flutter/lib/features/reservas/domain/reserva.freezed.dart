@@ -2084,4 +2084,548 @@ $EspacioReservaCopyWith<$Res> get espacio {
 }
 }
 
+
+/// @nodoc
+mixin _$OcurrenciaOmitida {
+
+ String get fecha; String get motivo;
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OcurrenciaOmitidaCopyWith<OcurrenciaOmitida> get copyWith => _$OcurrenciaOmitidaCopyWithImpl<OcurrenciaOmitida>(this as OcurrenciaOmitida, _$identity);
+
+  /// Serializes this OcurrenciaOmitida to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fecha,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaOmitida(fecha: $fecha, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OcurrenciaOmitidaCopyWith<$Res>  {
+  factory $OcurrenciaOmitidaCopyWith(OcurrenciaOmitida value, $Res Function(OcurrenciaOmitida) _then) = _$OcurrenciaOmitidaCopyWithImpl;
+@useResult
+$Res call({
+ String fecha, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class _$OcurrenciaOmitidaCopyWithImpl<$Res>
+    implements $OcurrenciaOmitidaCopyWith<$Res> {
+  _$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
+
+  final OcurrenciaOmitida _self;
+  final $Res Function(OcurrenciaOmitida) _then;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? fecha = null,Object? motivo = null,}) {
+  return _then(OcurrenciaOmitida(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OcurrenciaOmitida].
+extension OcurrenciaOmitidaPatterns on OcurrenciaOmitida {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaOmitida value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fecha,  String motivo)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that.fecha,_that.motivo);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fecha,  String motivo)  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida():
+return $default(_that.fecha,_that.motivo);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fecha,  String motivo)?  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that.fecha,_that.motivo);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OcurrenciaOmitida implements OcurrenciaOmitida {
+  const _OcurrenciaOmitida({required this.fecha, required this.motivo});
+  factory _OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
+
+@override final  String fecha;
+@override final  String motivo;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OcurrenciaOmitidaCopyWith<_OcurrenciaOmitida> get copyWith => __$OcurrenciaOmitidaCopyWithImpl<_OcurrenciaOmitida>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OcurrenciaOmitidaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fecha,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaOmitida(fecha: $fecha, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OcurrenciaOmitidaCopyWith<$Res> implements $OcurrenciaOmitidaCopyWith<$Res> {
+  factory _$OcurrenciaOmitidaCopyWith(_OcurrenciaOmitida value, $Res Function(_OcurrenciaOmitida) _then) = __$OcurrenciaOmitidaCopyWithImpl;
+@override @useResult
+$Res call({
+ String fecha, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class __$OcurrenciaOmitidaCopyWithImpl<$Res>
+    implements _$OcurrenciaOmitidaCopyWith<$Res> {
+  __$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
+
+  final _OcurrenciaOmitida _self;
+  final $Res Function(_OcurrenciaOmitida) _then;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? fecha = null,Object? motivo = null,}) {
+  return _then(_OcurrenciaOmitida(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ReservaSerieResultado {
+
+ List<Reserva> get creadas; List<OcurrenciaOmitida> get omitidas;
+/// Create a copy of ReservaSerieResultado
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ReservaSerieResultadoCopyWith<ReservaSerieResultado> get copyWith => _$ReservaSerieResultadoCopyWithImpl<ReservaSerieResultado>(this as ReservaSerieResultado, _$identity);
+
+  /// Serializes this ReservaSerieResultado to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaSerieResultado&&const DeepCollectionEquality().equals(other.creadas, creadas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(creadas),const DeepCollectionEquality().hash(omitidas));
+
+@override
+String toString() {
+  return 'ReservaSerieResultado(creadas: $creadas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ReservaSerieResultadoCopyWith<$Res>  {
+  factory $ReservaSerieResultadoCopyWith(ReservaSerieResultado value, $Res Function(ReservaSerieResultado) _then) = _$ReservaSerieResultadoCopyWithImpl;
+@useResult
+$Res call({
+ List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class _$ReservaSerieResultadoCopyWithImpl<$Res>
+    implements $ReservaSerieResultadoCopyWith<$Res> {
+  _$ReservaSerieResultadoCopyWithImpl(this._self, this._then);
+
+  final ReservaSerieResultado _self;
+  final $Res Function(ReservaSerieResultado) _then;
+
+/// Create a copy of ReservaSerieResultado
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? creadas = null,Object? omitidas = null,}) {
+  return _then(ReservaSerieResultado(
+creadas: null == creadas ? _self.creadas : creadas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ReservaSerieResultado].
+extension ReservaSerieResultadoPatterns on ReservaSerieResultado {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaSerieResultado value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ReservaSerieResultado() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaSerieResultado value)  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaSerieResultado():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaSerieResultado value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaSerieResultado() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ReservaSerieResultado() when $default != null:
+return $default(_that.creadas,_that.omitidas);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)  $default,) {final _that = this;
+switch (_that) {
+case _ReservaSerieResultado():
+return $default(_that.creadas,_that.omitidas);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,) {final _that = this;
+switch (_that) {
+case _ReservaSerieResultado() when $default != null:
+return $default(_that.creadas,_that.omitidas);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ReservaSerieResultado implements ReservaSerieResultado {
+  const _ReservaSerieResultado({required  List<Reserva> creadas, required  List<OcurrenciaOmitida> omitidas}): _creadas = creadas,_omitidas = omitidas;
+  factory _ReservaSerieResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieResultadoFromJson(json);
+
+ final  List<Reserva> _creadas;
+@override List<Reserva> get creadas {
+  if (_creadas is EqualUnmodifiableListView) return _creadas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_creadas);
+}
+
+ final  List<OcurrenciaOmitida> _omitidas;
+@override List<OcurrenciaOmitida> get omitidas {
+  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_omitidas);
+}
+
+
+/// Create a copy of ReservaSerieResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ReservaSerieResultadoCopyWith<_ReservaSerieResultado> get copyWith => __$ReservaSerieResultadoCopyWithImpl<_ReservaSerieResultado>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ReservaSerieResultadoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaSerieResultado&&const DeepCollectionEquality().equals(other._creadas, _creadas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_creadas),const DeepCollectionEquality().hash(_omitidas));
+
+@override
+String toString() {
+  return 'ReservaSerieResultado(creadas: $creadas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ReservaSerieResultadoCopyWith<$Res> implements $ReservaSerieResultadoCopyWith<$Res> {
+  factory _$ReservaSerieResultadoCopyWith(_ReservaSerieResultado value, $Res Function(_ReservaSerieResultado) _then) = __$ReservaSerieResultadoCopyWithImpl;
+@override @useResult
+$Res call({
+ List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class __$ReservaSerieResultadoCopyWithImpl<$Res>
+    implements _$ReservaSerieResultadoCopyWith<$Res> {
+  __$ReservaSerieResultadoCopyWithImpl(this._self, this._then);
+
+  final _ReservaSerieResultado _self;
+  final $Res Function(_ReservaSerieResultado) _then;
+
+/// Create a copy of ReservaSerieResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? creadas = null,Object? omitidas = null,}) {
+  return _then(_ReservaSerieResultado(
+creadas: null == creadas ? _self._creadas : creadas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+
+}
+
 // dart format on

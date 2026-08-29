@@ -25,6 +25,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.main import app
 
 
@@ -46,3 +47,21 @@ def test_lifespan_es_idempotente(monkeypatch):
         assert cliente.get("/health").status_code == 200
     with TestClient(app) as cliente:
         assert cliente.get("/health").status_code == 200
+
+
+def test_scheduler_de_recordatorios_no_arranca_sin_email_enabled(monkeypatch):
+    """`settings.email_enabled` es False por defecto en el entorno de tests
+    (ver conftest.py) -- sin correo, el `BackgroundScheduler` de
+    `services/recordatorios.py` no tiene nada útil que hacer."""
+    monkeypatch.setattr("app.main.crear_usuario_confirmado", lambda email, password: uuid.uuid4())
+    with TestClient(app):
+        assert app.state.scheduler is None
+
+
+def test_scheduler_de_recordatorios_arranca_y_para_con_email_enabled(monkeypatch):
+    monkeypatch.setattr("app.main.crear_usuario_confirmado", lambda email, password: uuid.uuid4())
+    monkeypatch.setattr(settings, "email_enabled", True)
+    with TestClient(app):
+        assert app.state.scheduler is not None
+        assert app.state.scheduler.running is True
+    assert app.state.scheduler.running is False

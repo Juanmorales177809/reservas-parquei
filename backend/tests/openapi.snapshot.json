@@ -807,6 +807,84 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "ListaEsperaCreate": {
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "recurso_id": {
+            "title": "Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recurso_id",
+          "fecha",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "ListaEsperaCreate",
+        "type": "object"
+      },
+      "ListaEsperaResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "estado": {
+            "title": "Estado",
+            "type": "string"
+          },
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "recurso_id": {
+            "title": "Recurso Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "recurso_id",
+          "fecha",
+          "hora_inicio",
+          "hora_fin",
+          "estado",
+          "created_at"
+        ],
+        "title": "ListaEsperaResponse",
+        "type": "object"
+      },
       "LoginResponse": {
         "description": "Respuesta de `POST /auth/supabase/sesion`.\n\nLa sesión viaja en la cookie HttpOnly `access_token` (el JWT de Supabase\ntal cual); el body ya no expone ningún token.",
         "properties": {
@@ -942,6 +1020,26 @@
           "porcentaje"
         ],
         "title": "OcupacionGlobal",
+        "type": "object"
+      },
+      "OcurrenciaOmitida": {
+        "description": "Una fecha de la serie que no se pudo crear (Fase 2026-08-29, reservas\nrecurrentes -- \"mejor esfuerzo\").",
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "motivo": {
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "motivo"
+        ],
+        "title": "OcurrenciaOmitida",
         "type": "object"
       },
       "PerfilUpdate": {
@@ -1601,12 +1699,38 @@
             "title": "Hora Inicio",
             "type": "string"
           },
+          "numero_ocurrencias": {
+            "anyOf": [
+              {
+                "maximum": 52.0,
+                "minimum": 2.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Ocurrencias"
+          },
           "recurso_ids": {
             "items": {
               "type": "integer"
             },
             "title": "Recurso Ids",
             "type": "array"
+          },
+          "repetir_semanas": {
+            "anyOf": [
+              {
+                "maximum": 52.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetir Semanas"
           },
           "requiere_apoyo_auxiliar": {
             "default": false,
@@ -1866,6 +1990,31 @@
           "espacio"
         ],
         "title": "ReservaResponse",
+        "type": "object"
+      },
+      "ReservaSerieResponse": {
+        "description": "Respuesta de `POST /reservas` cuando se pidió `repetir_semanas`\n(ver `ReservaCreate`) -- reemplaza el `ReservaResponse` único de\nsiempre solo en ese caso; sin recurrencia, el endpoint sigue\ndevolviendo exactamente `ReservaResponse`.",
+        "properties": {
+          "creadas": {
+            "items": {
+              "$ref": "#/components/schemas/ReservaResponse"
+            },
+            "title": "Creadas",
+            "type": "array"
+          },
+          "omitidas": {
+            "items": {
+              "$ref": "#/components/schemas/OcurrenciaOmitida"
+            },
+            "title": "Omitidas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "creadas",
+          "omitidas"
+        ],
+        "title": "ReservaSerieResponse",
         "type": "object"
       },
       "ReservaUpdate": {
@@ -2849,6 +2998,56 @@
         ]
       }
     },
+    "/admin/dashboard/export": {
+      "get": {
+        "description": "Exporta el mismo resumen de `/summary` (todos los espacios) a CSV o Excel.",
+        "operationId": "exportar_dashboard_admin_admin_dashboard_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "formato",
+            "required": true,
+            "schema": {
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "title": "Formato",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Exportar Dashboard Admin",
+        "tags": [
+          "admin-dashboard"
+        ]
+      }
+    },
     "/admin/dashboard/summary": {
       "get": {
         "description": "Resumen global de reservas de recursos para todos los espacios.",
@@ -3625,6 +3824,56 @@
         ]
       }
     },
+    "/gestion/dashboard/export": {
+      "get": {
+        "description": "Exporta el mismo resumen de `/summary` (espacio del gestor) a CSV o Excel.",
+        "operationId": "exportar_dashboard_gestor_gestion_dashboard_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "formato",
+            "required": true,
+            "schema": {
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "title": "Formato",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Exportar Dashboard Gestor",
+        "tags": [
+          "gestion-dashboard"
+        ]
+      }
+    },
     "/gestion/dashboard/summary": {
       "get": {
         "operationId": "obtener_resumen_dashboard_gestor_gestion_dashboard_summary_get",
@@ -3699,6 +3948,122 @@
         "summary": "Health Check",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/lista-espera": {
+      "post": {
+        "operationId": "crear_entrada_endpoint_lista_espera_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListaEsperaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaEsperaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear Entrada Endpoint",
+        "tags": [
+          "lista-espera"
+        ]
+      }
+    },
+    "/lista-espera/mias": {
+      "get": {
+        "operationId": "listar_mias_endpoint_lista_espera_mias_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ListaEsperaResponse"
+                  },
+                  "title": "Response Listar Mias Endpoint Lista Espera Mias Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Listar Mias Endpoint",
+        "tags": [
+          "lista-espera"
+        ]
+      }
+    },
+    "/lista-espera/{entrada_id}": {
+      "delete": {
+        "operationId": "cancelar_endpoint_lista_espera__entrada_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entrada_id",
+            "required": true,
+            "schema": {
+              "title": "Entrada Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Cancelar Endpoint",
+        "tags": [
+          "lista-espera"
         ]
       }
     },
@@ -4496,7 +4861,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReservaResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ReservaResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ReservaSerieResponse"
+                    }
+                  ],
+                  "title": "Response Crear Reserva Endpoint Reservas Post"
                 }
               }
             },

@@ -21,3 +21,13 @@ tzdata==2025.2; sys_platform == "win32"
 # sección "Correo por Microsoft Graph (puente temporal)". Reemplazar por
 # el flujo client_credentials apenas llegue el App Registration real.
 msal==1.38.0
+# Export del dashboard admin/gestor a Excel (app/services/exportar_dashboard.py,
+# 2026-08-29). Ya era dependencia de dev para scripts/importar_inventario.py;
+# pasa a runtime porque ahora también la usa un endpoint real.
+openpyxl==3.1.5
+# Recordatorio de reserva próxima (app/services/recordatorios.py, 2026-08-29):
+# primer y único mecanismo de tareas periódicas del backend. BackgroundScheduler
+# (modo hilo, no asyncio) para no introducir el primer patrón async del
+# proyecto -- el resto del backend, incluido el outbox de correo, es
+# enteramente síncrono por diseño (ver services/email.py).
+apscheduler==3.11.3

@@ -20,10 +20,12 @@ import '../../espacios/domain/disponibilidad_slot.dart';
 import '../../espacios/domain/espacio.dart';
 import '../../espacios/presentation/disponibilidad_slot_grid.dart';
 import '../../espacios/presentation/slot_chip.dart';
+import '../../lista_espera/data/lista_espera_repository.dart';
 import '../../recursos/application/recursos_providers.dart';
 import '../../zonas/application/zonas_providers.dart';
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
+import '../domain/reserva.dart';
 import 'selectable_slot_grid.dart';
 
 /// Sheet multi-eje para crear una reserva completa (Fase P2).
@@ -60,6 +62,12 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
   bool _requiereApoyoAuxiliar = false;
   bool _enviando = false;
   String? _error;
+  // Reservas recurrentes (2026-08-29, "mejor esfuerzo") -- oculto por
+  // defecto, solo cuando `_repetir` está activo se manda `repetirSemanas`/
+  // `numeroOcurrencias` al backend.
+  bool _repetir = false;
+  int _repetirSemanas = 1;
+  int _numeroOcurrencias = 4;
 
   @override
   void initState() {
@@ -100,6 +108,35 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
     });
   }
 
+  /// Resumen de una reserva recurrente: cuántas se crearon, cuáles se
+  /// saltaron y por qué (2026-08-29, "mejor esfuerzo").
+  Future<void> _mostrarResumenSerie(ReservaSerieResultado resultado) {
+    final creadas = resultado.creadas.length;
+    final omitidas = resultado.omitidas;
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(omitidas.isEmpty ? 'Serie creada' : 'Serie creada parcialmente'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(creadas == 1 ? 'Se creó 1 reserva.' : 'Se crearon $creadas reservas.'),
+              if (omitidas.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text('No se pudieron crear ${omitidas.length == 1 ? '1 ocurrencia' : '${omitidas.length} ocurrencias'}:', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: AppSpacing.xs),
+                for (final o in omitidas) Padding(padding: const EdgeInsets.only(top: 4), child: Text('• ${o.fecha}: ${o.motivo}', style: Theme.of(context).textTheme.bodySmall)),
+              ],
+            ],
+          ),
+        ),
+        actions: [FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Entendido'))],
+      ),
+    );
+  }
+
   int _capacidadMax(List<dynamic> recursos, List<dynamic> zonas) {
     final caps = <int>[];
     caps.add(widget.espacio.capacidad);
@@ -119,6 +156,34 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
     final maxIdx = _seleccion.reduce((a, b) => a > b ? a : b);
     setState(() { _enviando = true; _error = null; });
     try {
+      if (_repetir) {
+        final resultado = await ref.read(reservasRepositoryProvider).crearRecurrente(
+              recursoIds: _recursoIds.toList(),
+              zonaIds: _zonaIds.toList(),
+              ensayoIds: _ensayoIds.toList(),
+              acompanantes: List.of(_acompanantes),
+              fecha: _fecha,
+              horaInicio: slots[minIdx].horaInicio,
+              horaFin: slots[maxIdx].horaFin,
+              asistentes: _asistentes,
+              repetirSemanas: _repetirSemanas,
+              numeroOcurrencias: _numeroOcurrencias,
+              tipo: _tipo,
+              descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
+              tipoSolicitud: widget.tipoSolicitud,
+              ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio
+                  ? _ubicacionUsoCtrl.text.trim()
+                  : null,
+              requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
+            );
+        for (final id in _recursoIds) { ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
+        ref.invalidate(misReservasProvider);
+        if (mounted) {
+          await _mostrarResumenSerie(resultado);
+          if (mounted) Navigator.of(context).pop();
+        }
+        return;
+      }
       await ref.read(reservasRepositoryProvider).crear(
             recursoIds: _recursoIds.toList(),
             zonaIds: _zonaIds.toList(),
@@ -146,8 +211,55 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
     } on Object catch (e) {
       final esConflicto = apiErrorStatusCode(e) == 409;
       setState(() => _error = esConflicto ? 'Ese horario ya no está disponible. Actualizá la disponibilidad e intentá de nuevo.' : apiErrorMessage(e, fallback: 'No se pudo crear la reserva. Intentá de nuevo.'));
-      if (esConflicto) { for (final id in _recursoIds) ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
+      if (esConflicto) {
+        for (final id in _recursoIds) { ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
+        if (_recursoIds.isNotEmpty && mounted) {
+          _ofrecerListaEspera(horaInicio: slots[minIdx].horaInicio, horaFin: slots[maxIdx].horaFin);
+        }
+      }
     } finally { if (mounted) setState(() => _enviando = false); }
+  }
+
+  /// Solo a nivel de recurso (no de zona) -- mismo alcance que
+  /// `ListaEspera` en el backend (ver `backend/CLAUDE.md`).
+  void _ofrecerListaEspera({required String horaInicio, required String horaFin}) {
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('¿Querés que te avisemos si se libera?'),
+          duration: const Duration(seconds: 8),
+          // Mismo motivo que en `configuracion_espacio_screen.dart`: un
+          // SnackBar con `action` persiste por defecto y no se autocierra.
+          persist: false,
+          action: SnackBarAction(
+            label: 'Lista de espera',
+            onPressed: () => _anotarseListaEspera(horaInicio: horaInicio, horaFin: horaFin),
+          ),
+        ),
+      );
+  }
+
+  Future<void> _anotarseListaEspera({required String horaInicio, required String horaFin}) async {
+    final repo = ref.read(listaEsperaRepositoryProvider);
+    var exitosas = 0;
+    for (final recursoId in _recursoIds) {
+      try {
+        await repo.crear(recursoId: recursoId, fecha: _fecha, horaInicio: horaInicio, horaFin: horaFin);
+        exitosas++;
+      } catch (_) {
+        // Mejor esfuerzo: si un recurso falla (ya anotado, etc.) no bloquea
+        // los demás -- se informa el resultado agregado al final.
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          exitosas > 0 ? 'Te anotamos en la lista de espera. Te avisamos por correo si se libera.' : 'No se pudo anotar en la lista de espera.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -392,7 +504,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                     data: (slots) {
                       if (slots.isEmpty) return const EmptyView(icon: LucideIcons.calendarX, message: 'No hay franjas disponibles para esta fecha.');
                       if (!isAuthenticated) return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [DisponibilidadSlotGrid(slots: slots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
-                      return _FormularioMulti(slots: slots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(slots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), onConfirmar: () => _reservar(slots));
+                      return _FormularioMulti(slots: slots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(slots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), repetir: _repetir, repetirSemanas: _repetirSemanas, numeroOcurrencias: _numeroOcurrencias, onRepetirChanged: (v) => setState(() => _repetir = v), onRepetirSemanasChanged: (v) => setState(() => _repetirSemanas = v), onNumeroOcurrenciasChanged: (v) => setState(() => _numeroOcurrencias = v), onConfirmar: () => _reservar(slots));
                     },
                   );
                 }
@@ -401,7 +513,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
                   // horario local: usar slotsDesdeHorario si existiera, por ahora mostrar mensaje y permitir seleccionar horario fijo 08-10 como demo
                   final fakeSlots = List.generate(12, (i) => DisponibilidadSlot(horaInicio: '${7 + i}:00'.padLeft(5,'0'), horaFin: '${8 + i}:00'.padLeft(5,'0'), estado: EstadoSlot.libre));
                   if (!isAuthenticated) return Column(children: [DisponibilidadSlotGrid(slots: fakeSlots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
-                  return _FormularioMulti(slots: fakeSlots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(fakeSlots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), onConfirmar: () => _reservar(fakeSlots));
+                  return _FormularioMulti(slots: fakeSlots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, zonasDelEspacio), asistentes: _asistentes, tipo: _tipo, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(fakeSlots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoChanged: (v) => setState(() => _tipo = v), repetir: _repetir, repetirSemanas: _repetirSemanas, numeroOcurrencias: _numeroOcurrencias, onRepetirChanged: (v) => setState(() => _repetir = v), onRepetirSemanasChanged: (v) => setState(() => _repetirSemanas = v), onNumeroOcurrenciasChanged: (v) => setState(() => _numeroOcurrencias = v), onConfirmar: () => _reservar(fakeSlots));
                 }
                 return const EmptyView(icon: LucideIcons.info, message: 'Seleccioná al menos un recurso o una zona para ver disponibilidad.');
               }),
@@ -414,7 +526,7 @@ class _EspacioReservaSheetState extends ConsumerState<EspacioReservaSheet> {
 }
 
 class _FormularioMulti extends StatelessWidget {
-  const _FormularioMulti({required this.slots, required this.seleccion, required this.capacidadMax, required this.asistentes, required this.tipo, required this.enviando, required this.error, required this.onToggle, required this.onRango, required this.onAsistentesChanged, required this.onTipoChanged, required this.onConfirmar});
+  const _FormularioMulti({required this.slots, required this.seleccion, required this.capacidadMax, required this.asistentes, required this.tipo, required this.enviando, required this.error, required this.onToggle, required this.onRango, required this.onAsistentesChanged, required this.onTipoChanged, required this.repetir, required this.repetirSemanas, required this.numeroOcurrencias, required this.onRepetirChanged, required this.onRepetirSemanasChanged, required this.onNumeroOcurrenciasChanged, required this.onConfirmar});
   final List<DisponibilidadSlot> slots;
   final Set<int> seleccion;
   final int capacidadMax;
@@ -426,6 +538,12 @@ class _FormularioMulti extends StatelessWidget {
   final void Function(int, int) onRango;
   final ValueChanged<int> onAsistentesChanged;
   final ValueChanged<TipoReserva?> onTipoChanged;
+  final bool repetir;
+  final int repetirSemanas;
+  final int numeroOcurrencias;
+  final ValueChanged<bool> onRepetirChanged;
+  final ValueChanged<int> onRepetirSemanasChanged;
+  final ValueChanged<int> onNumeroOcurrenciasChanged;
   final VoidCallback onConfirmar;
   @override
   Widget build(BuildContext context) {
@@ -441,6 +559,30 @@ class _FormularioMulti extends StatelessWidget {
         Row(children: [Text('Asistentes', style: Theme.of(context).textTheme.bodyMedium), const Spacer(), IconButton.filledTonal(onPressed: asistentes > 1 ? () => onAsistentesChanged(asistentes - 1) : null, icon: const Icon(LucideIcons.minus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32)), SizedBox(width: 32, child: Text('$asistentes', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall)), IconButton.filledTonal(onPressed: asistentes < capacidadMax ? () => onAsistentesChanged(asistentes + 1) : null, icon: const Icon(LucideIcons.plus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32))]),
         const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<TipoReserva?>(initialValue: tipo, decoration: const InputDecoration(labelText: 'Tipo de reserva (opcional)'), items: [const DropdownMenuItem(value: null, child: Text('Sin especificar')), for (final t in TipoReserva.values) DropdownMenuItem(value: t, child: Text(tipoReservaLabel(t)))], onChanged: onTipoChanged),
+        const SizedBox(height: AppSpacing.md),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Repetir'),
+          subtitle: repetir ? Text('Cada $repetirSemanas ${repetirSemanas == 1 ? 'semana' : 'semanas'}, $numeroOcurrencias veces') : const Text('Crear la misma reserva varias semanas seguidas'),
+          value: repetir,
+          onChanged: onRepetirChanged,
+        ),
+        if (repetir) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(children: [
+            const Expanded(child: Text('Cada cuántas semanas')),
+            IconButton.filledTonal(onPressed: repetirSemanas > 1 ? () => onRepetirSemanasChanged(repetirSemanas - 1) : null, icon: const Icon(LucideIcons.minus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32)),
+            SizedBox(width: 32, child: Text('$repetirSemanas', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall)),
+            IconButton.filledTonal(onPressed: repetirSemanas < 52 ? () => onRepetirSemanasChanged(repetirSemanas + 1) : null, icon: const Icon(LucideIcons.plus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32)),
+          ]),
+          const SizedBox(height: AppSpacing.sm),
+          Row(children: [
+            const Expanded(child: Text('Número de veces')),
+            IconButton.filledTonal(onPressed: numeroOcurrencias > 2 ? () => onNumeroOcurrenciasChanged(numeroOcurrencias - 1) : null, icon: const Icon(LucideIcons.minus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32)),
+            SizedBox(width: 32, child: Text('$numeroOcurrencias', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall)),
+            IconButton.filledTonal(onPressed: numeroOcurrencias < 52 ? () => onNumeroOcurrenciasChanged(numeroOcurrencias + 1) : null, icon: const Icon(LucideIcons.plus, size: 16), constraints: const BoxConstraints.tightFor(width: 32, height: 32)),
+          ]),
+        ],
       ],
       if (error != null) ...[const SizedBox(height: AppSpacing.md), Container(width: double.infinity, padding: const EdgeInsets.all(AppSpacing.md), decoration: BoxDecoration(color: AppEstados.negativo.tinte, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppEstados.negativo.borde.withValues(alpha: 0.4))), child: Text(error!, style: TextStyle(color: AppEstados.negativo.sobreTinte)))],
       const SizedBox(height: AppSpacing.lg),

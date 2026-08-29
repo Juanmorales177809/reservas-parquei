@@ -56,6 +56,11 @@ _COLORES_ESTADO = {
     # gris que "cancelada" a propósito: semántica visual similar ("esto ya
     # no existe"), pero es una clave de color distinta, no un alias.
     "eliminada": ("#6b7280", "#f1f5f9", "#334155"),
+    # Aviso de "cupo disponible" a quien encabeza la lista de espera de un
+    # recurso/horario (ver plantilla_cupo_disponible) -- tampoco es un
+    # estado de Reserva.estado, es buena noticia (se liberó un cupo), mismo
+    # tono verde que "aprobada" a propósito.
+    "cupo_disponible": ("#10b981", "#d1fae5", "#065f46"),
 }
 
 # Recorte real de "Institución Universitaria ITM" (manual pág. 2), reescalado
@@ -383,6 +388,29 @@ def plantilla_reserva_eliminada(
     )
 
 
+def plantilla_cupo_disponible(
+    *, nombre_saludo: str, recurso: str, fecha: str, hora_inicio: str, hora_fin: str
+) -> str:
+    """Aviso a la primera persona en la lista de espera de un recurso/
+    horario de que se liberó un cupo (ver `services/lista_espera.py`).
+    No hay una reserva propia todavía a la que referenciar -- a diferencia
+    de las demás plantillas de reserva, esta no manda `reserva_id`."""
+    tarjeta = _tarjeta_reserva(estado="cupo_disponible", titulo=recurso, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Se liberó el horario que estabas esperando:</p>
+{tarjeta}"""
+    contenido = _contenido_simple(
+        nombre_saludo=nombre_saludo,
+        heading="¡Se liberó<br>un cupo!",
+        cuerpo_html=cuerpo,
+        cierre="Entrá a la app para reservarlo -- es por orden de llegada, así que no te lo aseguramos si tardás en confirmar.",
+    )
+    return _envoltorio(
+        preheader=f"Se liberó {recurso} el {fecha} de {hora_inicio} a {hora_fin}.",
+        contenido_html=contenido,
+        disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.",
+    )
+
+
 def _contenido_simple(*, nombre_saludo: str, heading: str, cuerpo_html: str, cierre: str) -> str:
     return f"""<tr>
 <td class="fluid-padding" style="padding:32px 40px 6px 40px;">
@@ -399,6 +427,29 @@ def _contenido_simple(*, nombre_saludo: str, heading: str, cuerpo_html: str, cie
 <p style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;line-height:1.7;color:#4a4f58;">{_esc(cierre)}</p>
 </td>
 </tr>"""
+
+
+def plantilla_recordatorio_reserva(
+    *, nombre_saludo: str, reserva_id: int, espacio: str, fecha: str, hora_inicio: str, hora_fin: str
+) -> str:
+    """Recordatorio de que una reserva ya aprobada empieza pronto (ver
+    `services/recordatorios.py`) -- mismo tono verde que `plantilla_reserva_estado`
+    con `estado='aprobada'` porque de hecho lo está, pero es un aviso
+    distinto (recordatorio de horario, no notificación de cambio de estado)."""
+    tarjeta = _tarjeta_reserva(estado="aprobada", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu reserva #{reserva_id} empieza pronto:</p>
+{tarjeta}"""
+    contenido = _contenido_simple(
+        nombre_saludo=nombre_saludo,
+        heading="Tu reserva<br>empieza pronto",
+        cuerpo_html=cuerpo,
+        cierre="Si ya no la necesitás, cancelala desde la app para liberar el cupo.",
+    )
+    return _envoltorio(
+        preheader=f"Tu reserva #{reserva_id} de {espacio} empieza pronto.",
+        contenido_html=contenido,
+        disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.",
+    )
 
 
 def plantilla_reserva_pendiente(*, nombre_saludo: str, espacio: str, fecha: str, hora_inicio: str, hora_fin: str) -> str:

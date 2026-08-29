@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:fl_chart/fl_chart.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -20,6 +23,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../reservas/application/reservas_providers.dart';
 import '../application/dashboard_providers.dart';
+import '../data/dashboard_repository.dart';
 import '../domain/dashboard_summary.dart';
 
 // Nombres abreviados a propósito: la primera columna de la tabla de
@@ -80,9 +84,13 @@ class DashboardScreen extends ConsumerWidget {
       return _UsuarioDashboard();
     }
     final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final esAdmin = user?.rol == RolUsuario.admin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [_ExportarDashboardButton(esAdmin: esAdmin)],
+      ),
       body: summaryAsync.when(
         loading: () => const LoadingSpinner(),
         error: (error, _) => ErrorView(
@@ -116,6 +124,66 @@ class DashboardScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Botón de exportar del dashboard (CSV/Excel) — oculto para el rol
+/// `usuario` (esa pantalla ni siquiera llama al endpoint de resumen).
+class _ExportarDashboardButton extends ConsumerStatefulWidget {
+  const _ExportarDashboardButton({required this.esAdmin});
+
+  final bool esAdmin;
+
+  @override
+  ConsumerState<_ExportarDashboardButton> createState() => _ExportarDashboardButtonState();
+}
+
+class _ExportarDashboardButtonState extends ConsumerState<_ExportarDashboardButton> {
+  bool _exportando = false;
+
+  Future<void> _exportar(String formato) async {
+    setState(() => _exportando = true);
+    try {
+      final repo = ref.read(dashboardRepositoryProvider);
+      final bytes = widget.esAdmin ? await repo.exportarAdmin(formato) : await repo.exportarGestion(formato);
+      final hoy = DateTime.now().toIso8601String().split('T').first;
+      await FileSaver.instance.saveFile(
+        name: 'dashboard_$hoy',
+        bytes: Uint8List.fromList(bytes),
+        fileExtension: formato,
+        mimeType: formato == 'csv' ? MimeType.csv : MimeType.microsoftExcel,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dashboard exportado.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo exportar el dashboard.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_exportando) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    return PopupMenuButton<String>(
+      icon: const Icon(LucideIcons.download),
+      tooltip: 'Exportar',
+      onSelected: _exportar,
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'csv', child: Text('Exportar CSV')),
+        PopupMenuItem(value: 'xlsx', child: Text('Exportar Excel')),
+      ],
     );
   }
 }

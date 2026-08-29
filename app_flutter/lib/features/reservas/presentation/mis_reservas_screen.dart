@@ -15,6 +15,9 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../espacios/domain/espacio.dart' show formatearHora;
+import '../../lista_espera/application/lista_espera_providers.dart';
+import '../../lista_espera/data/lista_espera_repository.dart';
+import '../../lista_espera/domain/lista_espera_entrada.dart';
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
 import '../domain/reserva.dart';
@@ -23,8 +26,29 @@ import 'estado_reserva_badge.dart';
 /// Espejo de la lista de "mis reservas" de `frontend/src/app/espacios/page.tsx`
 /// (hoy embebida en esa página vía `GET /reservas/mis-reservas`) — acá vive
 /// en su propia pantalla, coherente con el resto de la navegación de la app.
-class MisReservasScreen extends ConsumerWidget {
+/// Gana una segunda pestaña de "Lista de espera" (2026-08-29) -- ver
+/// `EspacioReservaSheet._ofrecerListaEspera`, el punto donde se crea.
+class MisReservasScreen extends StatelessWidget {
   const MisReservasScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          const TabBar(tabs: [Tab(text: 'Reservas'), Tab(text: 'Lista de espera')]),
+          const Expanded(
+            child: TabBarView(children: [_MisReservasTab(), _MiListaEsperaTab()]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MisReservasTab extends ConsumerWidget {
+  const _MisReservasTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,6 +141,118 @@ class MisReservasScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _MiListaEsperaTab extends ConsumerWidget {
+  const _MiListaEsperaTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entradasAsync = ref.watch(misEntradasListaEsperaProvider);
+
+    return entradasAsync.when(
+      loading: () => const LoadingSpinner(),
+      error: (error, _) => ErrorView(
+        message: apiErrorMessage(error, fallback: 'No se pudo cargar tu lista de espera.'),
+        onRetry: () => ref.invalidate(misEntradasListaEsperaProvider),
+      ),
+      data: (entradas) {
+        if (entradas.isEmpty) {
+          return const EmptyView(
+            icon: LucideIcons.clock,
+            message: 'No estás en ninguna lista de espera',
+            detalle: 'Cuando un horario esté ocupado, podés anotarte para que te avisemos si se libera.',
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(misEntradasListaEsperaProvider.future),
+          child: ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            itemCount: entradas.length,
+            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+            itemBuilder: (context, index) => _EntradaListaEsperaCard(entrada: entradas[index]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EntradaListaEsperaCard extends ConsumerStatefulWidget {
+  const _EntradaListaEsperaCard({required this.entrada});
+
+  final ListaEsperaEntrada entrada;
+
+  @override
+  ConsumerState<_EntradaListaEsperaCard> createState() => _EntradaListaEsperaCardState();
+}
+
+class _EntradaListaEsperaCardState extends ConsumerState<_EntradaListaEsperaCard> {
+  bool _cancelando = false;
+
+  Future<void> _cancelar() async {
+    setState(() => _cancelando = true);
+    try {
+      await ref.read(listaEsperaRepositoryProvider).cancelar(widget.entrada.id);
+      ref.invalidate(misEntradasListaEsperaProvider);
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo cancelar la entrada.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _cancelando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entrada = widget.entrada;
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.calendarDays, size: 16, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(_formatearFecha(entrada.fecha), style: textTheme.bodyMedium),
+                      const SizedBox(width: AppSpacing.md),
+                      Icon(LucideIcons.clock, size: 16, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        '${formatearHora(entrada.horaInicio)}–${formatearHora(entrada.horaFin)}',
+                        style: textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  if (entrada.estado == 'notificada') ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('¡Se liberó! Revisá tu correo.', style: textTheme.bodySmall?.copyWith(color: AppEstados.positivo.sobreTinte)),
+                  ],
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: _cancelando ? null : _cancelar,
+              icon: _cancelando
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(LucideIcons.x, size: 18),
+              tooltip: 'Cancelar',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

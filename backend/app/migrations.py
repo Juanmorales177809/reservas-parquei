@@ -683,6 +683,16 @@ def migrate_resource_reservations() -> None:
         _BACKFILL_ACTOR_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,
         _CHECK_ACTOR_UNICO_RESERVAS_NOTIFICACIONES_CONTROL_CAMBIOS,
         _BORRAR_ADMIN_GESTOR_DE_USUARIOS,
+        # Fase 2026-08-29: marca de idempotencia del recordatorio de reserva
+        # próxima (`services/recordatorios.py`) -- nullable, sin backfill:
+        # las reservas existentes simplemente no tienen recordatorio enviado
+        # todavía, que es el estado correcto para ellas.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS recordatorio_enviado_en TIMESTAMPTZ",
+        # Fase 2026-08-29: correlación de las N filas de una reserva
+        # recurrente (`services/reservas.py::crear_reserva`) -- nullable,
+        # sin backfill (NULL = no recurrente, la inmensa mayoría).
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS serie_id UUID",
+        "CREATE INDEX IF NOT EXISTS ix_reservas_serie_id ON reservas (serie_id)",
     )
 
     with engine.begin() as connection:

@@ -1,8 +1,10 @@
 from collections import Counter
 from datetime import date, timedelta
 from math import ceil
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -12,7 +14,22 @@ from app.domain.valor import HorarioAtencion
 from app.models import Espacio, Personal, Recurso, Reserva, ReservaRecurso, Usuario
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
+from app.services.exportar_dashboard import construir_csv, construir_xlsx
 from app.services.horarios import horas_atencion_dia
+
+_MEDIA_TYPES = {
+    "csv": "text/csv",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def _respuesta_exportacion(resumen: AdminDashboardSummary, formato: Literal["csv", "xlsx"]) -> StreamingResponse:
+    contenido = construir_csv(resumen) if formato == "csv" else construir_xlsx(resumen)
+    return StreamingResponse(
+        iter([contenido]),
+        media_type=_MEDIA_TYPES[formato],
+        headers={"Content-Disposition": f"attachment; filename=dashboard_{date.today().isoformat()}.{formato}"},
+    )
 
 
 router = APIRouter(prefix="/admin/dashboard", tags=["admin-dashboard"])
@@ -277,3 +294,26 @@ def obtener_resumen_dashboard_gestor(
 ):
     espacio_id = get_managed_space_id(db, current_user)
     return _construir_resumen(db, espacio_id=espacio_id, periodo_dias=periodo_dias)
+
+
+@router.get("/export")
+def exportar_dashboard_admin(
+    formato: Literal["csv", "xlsx"] = Query(...),
+    _: Personal = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Exporta el mismo resumen de `/summary` (todos los espacios) a CSV o Excel."""
+    resumen = AdminDashboardSummary(**_construir_resumen(db, espacio_id=None))
+    return _respuesta_exportacion(resumen, formato)
+
+
+@gestion_router.get("/export")
+def exportar_dashboard_gestor(
+    formato: Literal["csv", "xlsx"] = Query(...),
+    current_user: Personal = Depends(require_resource_manager),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Exporta el mismo resumen de `/summary` (espacio del gestor) a CSV o Excel."""
+    espacio_id = get_managed_space_id(db, current_user)
+    resumen = AdminDashboardSummary(**_construir_resumen(db, espacio_id=espacio_id))
+    return _respuesta_exportacion(resumen, formato)

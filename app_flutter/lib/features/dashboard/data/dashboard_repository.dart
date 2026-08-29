@@ -26,6 +26,19 @@ class DashboardRepository {
     );
     return DashboardSummary.fromJson(response.data!);
   }
+
+  Future<List<int>> exportarAdmin(String formato) => _exportar('/admin/dashboard/export', formato);
+
+  Future<List<int>> exportarGestion(String formato) => _exportar('/gestion/dashboard/export', formato);
+
+  Future<List<int>> _exportar(String ruta, String formato) async {
+    final response = await _dio.get<List<int>>(
+      ruta,
+      queryParameters: {'formato': formato},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data!;
+  }
 }
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {

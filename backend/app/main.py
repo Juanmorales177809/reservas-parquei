@@ -1,19 +1,32 @@
 import logging
 from contextlib import asynccontextmanager
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, notificaciones, personal, recursos, reservas, usuarios, zonas
+from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, lista_espera, notificaciones, personal, recursos, reservas, usuarios, zonas
 from app.config import settings
 from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
 from app.middleware.request_id import HEADER, RequestIdMiddleware, resolver_request_id
 from app.migrations import migrate_resource_reservations
 from app.services.email import procesar_pendientes
+from app.services.recordatorios import INTERVALO_MINUTOS, enviar_recordatorios_pendientes
 from app.services.supabase_admin import crear_usuario_confirmado
+
+
+def _job_recordatorios() -> None:
+    """Corre en el hilo del `BackgroundScheduler` (no async, no comparte la
+    sesión de ninguna request) -- abre y cierra su propia sesión, mismo
+    patrón que `seed_admin_user`."""
+    db = SessionLocal()
+    try:
+        enviar_recordatorios_pendientes(db)
+    finally:
+        db.close()
 
 
 @asynccontextmanager
@@ -31,7 +44,22 @@ async def lifespan(app: FastAPI):
         procesar_pendientes(db)
     finally:
         db.close()
+    # Primer y único mecanismo de tareas periódicas del backend (ver
+    # `services/recordatorios.py`). Gateado por EMAIL_ENABLED, igual que
+    # `procesar_pendientes`: sin correo no hay nada que este job pueda
+    # hacer. `BackgroundScheduler` (modo hilo, no asyncio) para no
+    # introducir el primer patrón async de un backend que es enteramente
+    # síncrono por diseño.
+    scheduler = BackgroundScheduler() if settings.email_enabled else None
+    if scheduler is not None:
+        scheduler.add_job(_job_recordatorios, "interval", minutes=INTERVALO_MINUTOS)
+        scheduler.start()
+    # Expuesto en app.state solo para que test_lifespan_arranque.py pueda
+    # verificar que arrancó/paró -- no lo consume ningún endpoint.
+    app.state.scheduler = scheduler
     yield
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
     # engine.dispose() solo cierra conexiones del pool; el engine global de
     # app.db sigue siendo utilizable después (nuevas conexiones al usarlo).
     engine.dispose()
@@ -200,3 +228,4 @@ app.include_router(zonas.router)
 app.include_router(ensayos.router)
 app.include_router(reservas.router)
 app.include_router(notificaciones.router)
+app.include_router(lista_espera.router)
