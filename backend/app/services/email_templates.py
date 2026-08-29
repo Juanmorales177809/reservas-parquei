@@ -50,6 +50,12 @@ _COLORES_ESTADO = {
     "rechazada": ("#dc2626", "#fee2e2", "#991b1b"),
     "cancelada": ("#6b7280", "#f1f5f9", "#334155"),
     "actualizada": (_NAVY, "#dbeafe", _NAVY),
+    # "eliminada" no es un estado de Reserva.estado (esperando/aprobada/
+    # rechazada/cancelada) -- es que la fila desapareció por completo
+    # (DELETE /reservas/{id}, ver plantilla_reserva_eliminada). Mismo tono
+    # gris que "cancelada" a propósito: semántica visual similar ("esto ya
+    # no existe"), pero es una clave de color distinta, no un alias.
+    "eliminada": ("#6b7280", "#f1f5f9", "#334155"),
 }
 
 # Recorte real de "Institución Universitaria ITM" (manual pág. 2), reescalado
@@ -307,6 +313,73 @@ def plantilla_recuperacion_password(*, link: str, nombre_saludo: str = "") -> st
         preheader="Restablecé tu contraseña en Reservas Parque i, Institución Universitaria ITM.",
         contenido_html=contenido,
         disclaimer="Este es un correo automático. Si no solicitaste este cambio,<br>podés ignorar este mensaje: tu contraseña actual sigue siendo válida.",
+    )
+
+
+def plantilla_bienvenida_autoregistro(*, nombre_saludo: str) -> str:
+    """Confirmación de cuenta creada tras el autoregistro abierto
+    (`POST /auth/registro`, ver `app/api/auth.py`) -- a diferencia de
+    `plantilla_invitacion` (alta por un admin, con link para elegir
+    contraseña), acá la cuenta ya quedó lista con la contraseña que la
+    persona eligió en el mismo formulario: no hay ningún link que mandar,
+    solo la confirmación de bienvenida."""
+    cuerpo = """<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu cuenta en el sistema de reservas de los Laboratorios de Investigación del Parque i ya está lista para usarse.</p>"""
+    contenido = _contenido_simple(
+        nombre_saludo=nombre_saludo,
+        heading="¡Bienvenida/o a<br>Reservas Parque i!",
+        cuerpo_html=cuerpo,
+        cierre="Ingresá al sistema para completar tu perfil y empezar a reservar espacios y equipos.",
+    )
+    return _envoltorio(
+        preheader="Tu cuenta en Reservas Parque i ya está lista.",
+        contenido_html=contenido,
+        disclaimer="Este es un correo automático. Si no creaste esta cuenta,<br>contactá a soporte de inmediato.",
+    )
+
+
+def plantilla_password_actualizada(*, nombre_saludo: str) -> str:
+    """Confirmación de que la contraseña de la cuenta cambió -- se manda
+    tras completar una invitación o una recuperación
+    (`AuthRepository.completarCuenta` en Flutter, vía
+    `POST /auth/confirmar-cambio-password`). Práctica de seguridad
+    estándar: si alguien más cambió la contraseña, la persona dueña de la
+    cuenta se entera acá."""
+    cuerpo = """<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">La contraseña de tu cuenta en Reservas Parque i se actualizó correctamente.</p>"""
+    contenido = _contenido_simple(
+        nombre_saludo=nombre_saludo,
+        heading="Tu contraseña fue<br>actualizada",
+        cuerpo_html=cuerpo,
+        cierre="Si no hiciste este cambio vos, contactá a soporte de inmediato.",
+    )
+    return _envoltorio(
+        preheader="Tu contraseña en Reservas Parque i fue actualizada.",
+        contenido_html=contenido,
+        disclaimer="Este es un correo automático de seguridad. Si no reconocés este cambio,<br>contactá a soporte de inmediato.",
+    )
+
+
+def plantilla_reserva_eliminada(
+    *, nombre_saludo: str, reserva_id: int, espacio: str, fecha: str, hora_inicio: str, hora_fin: str
+) -> str:
+    """Aviso al dueño de una reserva de que un gestor/admin la eliminó
+    directamente (`DELETE /reservas/{id}`, distinto de cancelar -- ver
+    `services/reservas.py::eliminar_reserva`). No reusa
+    `plantilla_reserva_estado` porque "eliminada" no es uno de los 4
+    estados posibles de `Reserva.estado`: es que la fila desapareció por
+    completo, no que cambió de estado."""
+    tarjeta = _tarjeta_reserva(estado="eliminada", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu reserva #{reserva_id} fue eliminada:</p>
+{tarjeta}"""
+    contenido = _contenido_simple(
+        nombre_saludo=nombre_saludo,
+        heading="Tu reserva fue<br>eliminada",
+        cuerpo_html=cuerpo,
+        cierre="Si tenés dudas sobre este cambio, contactá al gestor del espacio.",
+    )
+    return _envoltorio(
+        preheader=f"Tu reserva #{reserva_id} de {espacio} fue eliminada.",
+        contenido_html=contenido,
+        disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.",
     )
 
 

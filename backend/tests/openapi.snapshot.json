@@ -2908,6 +2908,26 @@
         ]
       }
     },
+    "/auth/confirmar-cambio-password": {
+      "post": {
+        "description": "Dispara la confirmación de \"tu contraseña fue actualizada\" -- lo\nllama `AuthRepository.completarCuenta` (Flutter) justo después de que\n`Supabase.auth.updateUser` fija la contraseña nueva, tanto al\ncompletar una invitación como una recuperación (las dos pasan por ese\nmismo método del lado del cliente). El cambio de contraseña en sí es\n100% client-side contra Supabase Cloud; este backend no tiene ningún\notro hook para enterarse de que ocurrió, así que el cliente se lo\navisa explícitamente ya autenticado (requiere sesión, no es público).",
+        "operationId": "confirmar_cambio_password_auth_confirmar_cambio_password_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Confirmar Cambio Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/logout": {
       "post": {
         "description": "Cierra la sesión de cookie.\n\nIdempotente: no falla si no existe una cookie previa. No exige\nautenticación — debe poder limpiar una cookie inválida o expirada sin\nrequerir que el cliente tenga un token válido.",

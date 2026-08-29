@@ -7,7 +7,9 @@ from app.auth.auth import NOMBRE_COOKIE_ACCESO, atributos_cookie_acceso, max_age
 from app.crud.identidad import buscar_por_email, buscar_por_supabase_id, buscar_por_username
 from app.crud.usuarios import create_usuario
 from app.db import get_db
-from app.deps import decode_token
+from app.deps import decode_token, get_current_user
+from app.models.personal import Personal
+from app.models.usuario import Usuario
 from app.schemas.usuario import (
     LoginResponse,
     RecuperarPasswordRequest,
@@ -17,7 +19,11 @@ from app.schemas.usuario import (
     UsuarioResponse,
 )
 from app.services.email import encolar_correo, procesar_pendientes
-from app.services.email_templates import plantilla_recuperacion_password
+from app.services.email_templates import (
+    plantilla_bienvenida_autoregistro,
+    plantilla_password_actualizada,
+    plantilla_recuperacion_password,
+)
 from app.services.supabase_admin import SupabaseAdminError, crear_usuario_confirmado, generar_link_recuperacion
 
 
@@ -120,7 +126,18 @@ def registro(payload: RegistroRequest, db: Session = Depends(get_db)) -> Usuario
             detail=f"No se pudo crear la cuenta en Supabase: {exc}",
         ) from exc
 
-    return create_usuario(db, UsuarioCreate(username=payload.username, email=payload.email), supabase_id)
+    usuario = create_usuario(db, UsuarioCreate(username=payload.username, email=payload.email), supabase_id)
+    encolar_correo(
+        db,
+        destinatario=payload.email,
+        asunto="Bienvenida/o a Reservas Parque i",
+        cuerpo=plantilla_bienvenida_autoregistro(nombre_saludo=payload.username),
+        es_html=True,
+    )
+    db.commit()
+    procesar_pendientes(db)
+    db.refresh(usuario)
+    return usuario
 
 
 @router.post("/recuperar", status_code=status.HTTP_204_NO_CONTENT)
@@ -153,6 +170,32 @@ def recuperar_password(payload: RecuperarPasswordRequest, db: Session = Depends(
         destinatario=payload.email,
         asunto="Recuperación de contraseña — Reservas Parque i",
         cuerpo=plantilla_recuperacion_password(link=link, nombre_saludo=usuario.username),
+        es_html=True,
+    )
+    db.commit()
+    procesar_pendientes(db)
+    return None
+
+
+@router.post("/confirmar-cambio-password", status_code=status.HTTP_204_NO_CONTENT)
+def confirmar_cambio_password(
+    current_user: Personal | Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Dispara la confirmación de "tu contraseña fue actualizada" -- lo
+    llama `AuthRepository.completarCuenta` (Flutter) justo después de que
+    `Supabase.auth.updateUser` fija la contraseña nueva, tanto al
+    completar una invitación como una recuperación (las dos pasan por ese
+    mismo método del lado del cliente). El cambio de contraseña en sí es
+    100% client-side contra Supabase Cloud; este backend no tiene ningún
+    otro hook para enterarse de que ocurrió, así que el cliente se lo
+    avisa explícitamente ya autenticado (requiere sesión, no es público).
+    """
+    encolar_correo(
+        db,
+        destinatario=current_user.email,
+        asunto="Tu contraseña fue actualizada — Reservas Parque i",
+        cuerpo=plantilla_password_actualizada(nombre_saludo=current_user.username),
         es_html=True,
     )
     db.commit()

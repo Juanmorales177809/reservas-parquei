@@ -316,6 +316,43 @@ class TestEnganchesDeReserva:
         notificacion = db.query(Notificacion).filter(Notificacion.personal_id == gestor.id).one()
         assert notificacion.tipo == "Cancelada"
 
+    def test_gestor_elimina_reserva_de_otro_notifica_al_dueno(self, client, db, email_habilitado):
+        """DELETE /reservas/{id} es distinto de cancelar (services/reservas.py::
+        eliminar_reserva) -- sin esto, el dueño de la reserva no tenía
+        forma de enterarse de que un gestor la borró directamente."""
+        usuario, gestor, _, recurso = _setup(db)
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        db.query(CorreoSaliente).delete()
+        db.commit()
+
+        respuesta = client.delete(f"/reservas/{creada['id']}", headers=cookies_para(gestor))
+        assert respuesta.status_code == 204
+
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).one()
+        assert correo.estado == "enviado"
+        assert correo.es_html is True
+        assert "eliminada" in correo.cuerpo.lower()
+
+    def test_gestor_elimina_su_propia_reserva_no_se_autonotifica(self, client, db, email_habilitado):
+        usuario, gestor, espacio, _ = _setup(db, nombre_espacio="Sala Correo Self Delete")
+        recurso_gestor = crear_recurso(db, espacio=espacio, usuario=gestor)
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_gestor.id, fecha_habilitada()),
+            headers=cookies_para(gestor),
+        ).json()
+        db.query(CorreoSaliente).delete()
+        db.commit()
+
+        respuesta = client.delete(f"/reservas/{creada['id']}", headers=cookies_para(gestor))
+        assert respuesta.status_code == 204
+
+        assert db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).first() is None
+
     def test_sin_email_enabled_no_se_intenta_enviar_pero_la_reserva_se_crea_igual(self, client, db):
         # Sin la fixture email_habilitado: EMAIL_ENABLED sigue en false. La
         # fila queda en el outbox sin enviarse, y la reserva/notificación

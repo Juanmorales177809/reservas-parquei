@@ -22,7 +22,7 @@ from jose import jwt as jose_jwt
 from app.config import settings
 from app.models import CorreoSaliente, Usuario
 from app.services.supabase_admin import SupabaseAdminError
-from tests.conftest import crear_usuario, token_supabase_para
+from tests.conftest import cookies_para, crear_usuario, token_supabase_para
 
 
 def test_supabase_sesion_exitosa_con_usuario_existente(client, db):
@@ -170,6 +170,29 @@ def test_registro_exitoso_crea_usuario_con_rol_usuario(client, db, monkeypatch):
     usuario = db.query(Usuario).filter(Usuario.email == "nuevo@example.com").first()
     assert usuario is not None
     assert usuario.supabase_id is not None
+    correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == "nuevo@example.com").one()
+    assert correo.es_html is True
+    assert "nuevo" in correo.cuerpo
+
+
+def test_confirmar_cambio_password_encola_el_correo_para_cualquier_identidad(client, db):
+    """Lo llama AuthRepository.completarCuenta (Flutter) justo después de
+    fijar la contraseña nueva contra Supabase -- funciona igual para una
+    cuenta rol usuario que para una de personal (admin/gestor)."""
+    usuario = crear_usuario(db, username="cambia_pw", email="cambia_pw@example.com")
+    admin = crear_usuario(db, username="admin_cambia_pw", email="admin_cambia_pw@example.com", rol="admin")
+
+    for identidad in (usuario, admin):
+        respuesta = client.post("/auth/confirmar-cambio-password", headers=cookies_para(identidad))
+        assert respuesta.status_code == 204
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == identidad.email).one()
+        assert correo.es_html is True
+        assert identidad.username in correo.cuerpo
+
+
+def test_confirmar_cambio_password_sin_sesion_da_401(client):
+    respuesta = client.post("/auth/confirmar-cambio-password")
+    assert respuesta.status_code == 401
 
 
 def test_registro_username_duplicado_da_409(client, db, monkeypatch):

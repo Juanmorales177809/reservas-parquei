@@ -73,10 +73,22 @@ class Reserva(Base):
     # son la fuente de verdad de los conjuntos de la reserva; la columna
     # histórica `recurso_id` se conserva como ancla temporal (12C-4e).
     # `foreign_keys` es necesario porque ambas asociaciones tienen dos FK.
+    # `cascade="all, delete-orphan"` + `passive_deletes=True`: mismo patrón
+    # que `acompanantes` más abajo. Bug real encontrado y corregido
+    # (2026-08-29): sin el `cascade`, `passive_deletes=True` solo no
+    # alcanza para evitar que SQLAlchemy intente poner `reserva_id=NULL`
+    # en las filas asociadas al borrar una `Reserva` -- revienta con
+    # `NotNullViolation` porque esa columna es NOT NULL. Nunca se detectó
+    # antes porque ningún test ejercitaba `DELETE /reservas/{id}` sobre
+    # una reserva con recursos/zonas asociados. La FK real ya tenía
+    # `ondelete="CASCADE"` desde siempre (ver `ReservaRecurso`/
+    # `ReservaZona`); esto solo alinea el cascade de la ORM con lo que la
+    # base de datos ya hacía.
     recursos_asociados = relationship(
         "ReservaRecurso",
         foreign_keys="ReservaRecurso.reserva_id",
         uselist=True,
+        cascade="all, delete-orphan",
         passive_deletes=True,
         overlaps="reserva",
     )
@@ -84,6 +96,7 @@ class Reserva(Base):
         "ReservaZona",
         foreign_keys="ReservaZona.reserva_id",
         uselist=True,
+        cascade="all, delete-orphan",
         passive_deletes=True,
         overlaps="reserva",
     )

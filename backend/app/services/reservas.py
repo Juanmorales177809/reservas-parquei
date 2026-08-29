@@ -44,6 +44,7 @@ from app.services.email import encolar_correo, procesar_pendientes
 from app.services.email_templates import (
     plantilla_reserva_actualizada,
     plantilla_reserva_cancelada_por_usuario,
+    plantilla_reserva_eliminada,
     plantilla_reserva_estado,
     plantilla_reserva_pendiente,
     plantilla_reserva_recibida,
@@ -1042,6 +1043,38 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
 
     descripcion = f"Eliminó la reserva #{reserva.id}"
+    # Capturar antes del delete: si el actor no es el propio dueño (un
+    # gestor/admin borrando la reserva de otra persona), esa persona no se
+    # entera de otra forma -- eliminar es distinto de cancelar, no deja
+    # rastro visible para ella en la app.
+    propietario = None if es_propietario else reserva.actor
+    if propietario is not None:
+        datos_correo = {
+            "email": propietario.email,
+            "nombre_saludo": propietario.username,
+            "reserva_id": reserva.id,
+            "espacio": reserva.espacio.nombre,
+            "fecha": str(reserva.fecha),
+            "hora_inicio": str(reserva.hora_inicio),
+            "hora_fin": str(reserva.hora_fin),
+        }
     db.delete(reserva)
     registrar_cambio(db, usuario, "eliminar", "reserva", reserva_id, descripcion)
+    if propietario is not None:
+        encolar_correo(
+            db,
+            destinatario=datos_correo["email"],
+            asunto="Tu reserva fue eliminada",
+            cuerpo=plantilla_reserva_eliminada(
+                nombre_saludo=datos_correo["nombre_saludo"],
+                reserva_id=datos_correo["reserva_id"],
+                espacio=datos_correo["espacio"],
+                fecha=datos_correo["fecha"],
+                hora_inicio=datos_correo["hora_inicio"],
+                hora_fin=datos_correo["hora_fin"],
+            ),
+            es_html=True,
+        )
     db.commit()
+    if propietario is not None:
+        procesar_pendientes(db)

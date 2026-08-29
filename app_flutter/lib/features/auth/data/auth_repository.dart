@@ -47,7 +47,15 @@ class AuthRepository {
     if (token == null || token.isEmpty) {
       throw Exception('Supabase no devolvió una sesión válida');
     }
-    return _intercambiarSesion(token);
+    final user = await _intercambiarSesion(token);
+    // Aviso de seguridad best-effort ("tu contraseña fue actualizada") --
+    // el cambio de contraseña en sí ya ocurrió (líneas arriba, contra
+    // Supabase); si el correo de confirmación falla no tiene sentido
+    // bloquear el login con una sesión ya válida por eso.
+    try {
+      await _dio.post<void>('/auth/confirmar-cambio-password');
+    } catch (_) {}
+    return user;
   }
 
   /// `POST /auth/registro` (autoregistro abierto, sin aprobación de un
