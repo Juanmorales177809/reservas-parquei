@@ -81,6 +81,60 @@ void main() {
     expect(find.text('Nuevo usuario'), findsWidgets);
     expect(find.text('Rol *'), findsNothing);
   });
+
+  group('GestionUsuariosScreen — búsqueda y orden (2026-08-31)', () {
+    testWidgets('buscar por usuario filtra la lista', (tester) async {
+      await tester.pumpWidget(montar());
+      await tester.pumpAndSettle();
+
+      expect(find.text('admin_flutter'), findsOneWidget);
+      expect(find.text('gestor_flutter'), findsOneWidget);
+
+      // "gestor_flu" (no el nombre completo): si se buscara el texto exacto
+      // del usuario, el propio TextField con ese valor también matchearía
+      // find.text('gestor_flutter'), dando un falso "2 widgets encontrados".
+      await tester.enterText(find.byType(TextField), 'gestor_flu');
+      await tester.pumpAndSettle();
+
+      expect(find.text('gestor_flutter'), findsOneWidget);
+      expect(find.text('admin_flutter'), findsNothing);
+    });
+
+    testWidgets('buscar algo que no matchea nada muestra el mensaje de sin resultados', (tester) async {
+      await tester.pumpWidget(montar());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'inexistente');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('No se encontraron resultados'), findsOneWidget);
+      expect(find.text('admin_flutter'), findsNothing);
+    });
+
+    testWidgets('tocar el header de una columna reordena las filas', (tester) async {
+      await tester.pumpWidget(montar());
+      await tester.pumpAndSettle();
+
+      // Orden inicial (tal cual llega de personalListProvider): admin antes
+      // que gestor.
+      final adminAntes = tester.getTopLeft(find.text('admin_flutter')).dy;
+      final gestorAntes = tester.getTopLeft(find.text('gestor_flutter')).dy;
+      expect(adminAntes, lessThan(gestorAntes));
+
+      await tester.tap(find.text('USUARIO'));
+      await tester.pumpAndSettle();
+
+      // Orden ascendente por username: "admin_flutter" < "gestor_flutter"
+      // alfabéticamente, así que el orden visual no cambia con este dataset
+      // -- tocar de nuevo invierte a descendente y sí se nota el cambio.
+      await tester.tap(find.text('USUARIO'));
+      await tester.pumpAndSettle();
+
+      final adminDespues = tester.getTopLeft(find.text('admin_flutter')).dy;
+      final gestorDespues = tester.getTopLeft(find.text('gestor_flutter')).dy;
+      expect(gestorDespues, lessThan(adminDespues));
+    });
+  });
 }
 
 class _AuthFake extends Auth {

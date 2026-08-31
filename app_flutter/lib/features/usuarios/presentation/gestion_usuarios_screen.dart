@@ -33,12 +33,44 @@ class GestionUsuariosScreen extends ConsumerStatefulWidget {
 
 class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
   bool _esPersonal = true;
+  String _busqueda = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
 
   AsyncValue<List<AuthUser>> get _listaActual =>
       _esPersonal ? ref.watch(personalListProvider) : ref.watch(usuariosListProvider);
 
   void _invalidarListaActual() {
     ref.invalidate(_esPersonal ? personalListProvider : usuariosListProvider);
+  }
+
+  /// Búsqueda + orden 100% client-side (2026-08-31, a pedido explícito del
+  /// usuario) -- mismo patrón que `GestionRecursosScreen`/`GestionZonasScreen`.
+  List<AuthUser> _filtrarYOrdenar(List<AuthUser> usuarios) {
+    var resultado = usuarios;
+    final consulta = _busqueda.trim().toLowerCase();
+    if (consulta.isNotEmpty) {
+      resultado = resultado
+          .where((u) =>
+              u.username.toLowerCase().contains(consulta) ||
+              u.email.toLowerCase().contains(consulta) ||
+              (u.espacio?.nombre.toLowerCase().contains(consulta) ?? false))
+          .toList();
+    }
+    if (_sortColumnIndex != null) {
+      resultado = List.of(resultado)
+        ..sort((a, b) {
+          final cmp = switch (_sortColumnIndex) {
+            0 => a.username.toLowerCase().compareTo(b.username.toLowerCase()),
+            1 => a.rol.name.compareTo(b.rol.name),
+            2 => (a.espacio?.nombre ?? '').toLowerCase().compareTo((b.espacio?.nombre ?? '').toLowerCase()),
+            3 => a.id.compareTo(b.id),
+            _ => 0,
+          };
+          return _sortAscending ? cmp : -cmp;
+        });
+    }
+    return resultado;
   }
 
   @override
@@ -81,30 +113,65 @@ class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
               message: _esPersonal ? 'No hay personal registrado.' : 'No hay usuarios registrados.',
             );
           }
+          final filtrados = _filtrarYOrdenar(usuarios);
           final esCompacta = MediaQuery.sizeOf(context).width < kCompactBreakpoint;
-          if (esCompacta) {
-            return RefreshIndicator(
-              onRefresh: () async => _invalidarListaActual(),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: usuarios.length,
-                separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) =>
-                    _UsuarioCard(usuario: usuarios[index], esPersonal: _esPersonal).staggerEntrance(index),
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => _invalidarListaActual(),
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  sliver: SliverToBoxAdapter(child: _UsuariosTabla(usuarios: usuarios, esPersonal: _esPersonal)),
+          final currentUser = ref.watch(authProvider).value;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar por usuario, correo o espacio',
+                    prefixIcon: Icon(LucideIcons.search, size: 18),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _busqueda = v),
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: filtrados.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No se encontraron resultados para "$_busqueda".',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      )
+                    : esCompacta
+                        ? RefreshIndicator(
+                            onRefresh: () async => _invalidarListaActual(),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              itemCount: filtrados.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+                              itemBuilder: (context, index) =>
+                                  _UsuarioCard(usuario: filtrados[index], esPersonal: _esPersonal).staggerEntrance(index),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () async => _invalidarListaActual(),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _UsuariosTabla(
+                                  usuarios: filtrados,
+                                  esPersonal: _esPersonal,
+                                  currentUserId: currentUser?.id,
+                                  currentUserEsPersonal: currentUser != null && currentUser.rol != RolUsuario.usuario,
+                                  sortColumnIndex: _sortColumnIndex,
+                                  sortAscending: _sortAscending,
+                                  onSort: (indice, asc) => setState(() {
+                                    _sortColumnIndex = indice;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ),
+              ),
+            ],
           );
         },
       ),
@@ -209,74 +276,170 @@ class _UsuarioAvatar extends StatelessWidget {
   }
 }
 
+/// Búsqueda + tabla ordenable (2026-08-31, a pedido explícito del usuario):
+/// `DataTable` nativo en vez del `Column`+`Divider` armado a mano de antes
+/// (mismo motivo que `GestionRecursosScreen`/`GestionZonasScreen` -- ver el
+/// comentario ahí) -- columnas ordenables gratis vía `sortColumnIndex`.
 class _UsuariosTabla extends StatelessWidget {
-  const _UsuariosTabla({required this.usuarios, required this.esPersonal});
+  const _UsuariosTabla({
+    required this.usuarios,
+    required this.esPersonal,
+    required this.currentUserId,
+    required this.currentUserEsPersonal,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
+  });
 
   final List<AuthUser> usuarios;
   final bool esPersonal;
+  final int? currentUserId;
+  final bool currentUserEsPersonal;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex, bool ascending) onSort;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _CabeceraTabla(),
-          const Divider(height: 1, thickness: 1, color: AppColors.borde),
-          ...List.generate(usuarios.length, (index) {
-            final u = usuarios[index];
-            final esUltimo = index == usuarios.length - 1;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _FilaUsuario(usuario: u, esPersonal: esPersonal).staggerEntrance(index),
-                if (!esUltimo) const Divider(height: 1, thickness: 1, color: AppColors.borde),
+      child: DataTable(
+        sortColumnIndex: sortColumnIndex,
+        sortAscending: sortAscending,
+        columns: [
+          DataColumn(label: const Text('USUARIO'), onSort: onSort),
+          DataColumn(label: const Text('ROL'), onSort: onSort),
+          DataColumn(label: const Text('ESPACIO'), onSort: onSort),
+          DataColumn(label: const Text('ID'), numeric: true, onSort: onSort),
+          const DataColumn(label: Text('ACCIONES')),
+        ],
+        rows: [
+          for (final u in usuarios)
+            DataRow(
+              cells: [
+                DataCell(_CeldaUsuario(usuario: u)),
+                DataCell(_CeldaRol(rol: u.rol)),
+                DataCell(_CeldaEspacio(
+                  usuario: u,
+                  esPropio: currentUserEsPersonal == esPersonal && currentUserId == u.id,
+                )),
+                DataCell(Text(
+                  '${u.id}',
+                  style: AppText.numerico(fontSize: 12.5, color: AppColors.textoTerciario, fontWeight: FontWeight.w500),
+                )),
+                DataCell(_AccionesUsuario(
+                  usuario: u,
+                  esPersonal: esPersonal,
+                  esPropio: currentUserEsPersonal == esPersonal && currentUserId == u.id,
+                )),
               ],
-            );
-          }),
+            ),
         ],
       ),
     );
   }
 }
 
-class _CabeceraTabla extends StatelessWidget {
+class _CeldaUsuario extends StatelessWidget {
+  const _CeldaUsuario({required this.usuario});
+
+  final AuthUser usuario;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.superficie,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Expanded(flex: 3, child: Text('USUARIO', style: AppText.overline())),
-          Expanded(flex: 1, child: Text('ROL', style: AppText.overline())),
-          Expanded(flex: 2, child: Text('ESPACIO', style: AppText.overline())),
-          Expanded(flex: 1, child: Text('ID', style: AppText.overline())),
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text('ACCIONES', style: AppText.overline()),
-            ),
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _UsuarioAvatar(username: usuario.username, rol: usuario.rol),
+        const SizedBox(width: AppSpacing.md),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(usuario.username, style: textTheme.titleSmall, overflow: TextOverflow.ellipsis),
+              Text(usuario.email, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant), overflow: TextOverflow.ellipsis),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _FilaUsuario extends ConsumerStatefulWidget {
-  const _FilaUsuario({required this.usuario, required this.esPersonal});
+class _CeldaRol extends StatelessWidget {
+  const _CeldaRol({required this.rol});
+
+  final RolUsuario rol;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: rol == RolUsuario.admin
+            ? scheme.primaryContainer
+            : rol == RolUsuario.gestor
+                ? scheme.tertiaryContainer
+                : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(rol.name, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _CeldaEspacio extends StatelessWidget {
+  const _CeldaEspacio({required this.usuario, required this.esPropio});
+
+  final AuthUser usuario;
+  final bool esPropio;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(LucideIcons.building2, size: 14, color: scheme.onSurfaceVariant),
+        const SizedBox(width: AppSpacing.xs),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 140),
+          child: Text(usuario.espacio?.nombre ?? 'Sin espacio', style: textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+        ),
+        if (esPropio) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: scheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text('Tú', style: textTheme.labelSmall),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AccionesUsuario extends ConsumerStatefulWidget {
+  const _AccionesUsuario({required this.usuario, required this.esPersonal, required this.esPropio});
 
   final AuthUser usuario;
   final bool esPersonal;
+  final bool esPropio;
 
   @override
-  ConsumerState<_FilaUsuario> createState() => _FilaUsuarioState();
+  ConsumerState<_AccionesUsuario> createState() => _AccionesUsuarioState();
 }
 
-class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
+class _AccionesUsuarioState extends ConsumerState<_AccionesUsuario> {
   bool _eliminando = false;
   bool _reenviando = false;
 
@@ -346,136 +509,37 @@ class _FilaUsuarioState extends ConsumerState<_FilaUsuario> {
 
   @override
   Widget build(BuildContext context) {
-    final u = widget.usuario;
-    final textTheme = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final currentUser = ref.watch(authProvider).value;
-    // `personal` y `usuarios` tienen espacios de id independientes (ver
-    // backend/CLAUDE.md) -- comparar solo por id colisionaría con una fila
-    // de la OTRA tabla que casualmente comparta el mismo número.
-    final currentUserEsPersonal = currentUser != null && currentUser.rol != RolUsuario.usuario;
-    final esPropio = currentUserEsPersonal == widget.esPersonal && currentUser?.id == u.id;
-
-    return Container(
-      color: AppColors.superficie,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                _UsuarioAvatar(username: u.username, rol: u.rol),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(u.username, style: textTheme.titleSmall, overflow: TextOverflow.ellipsis),
-                      Text(u.email, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant), overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-              ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: _reenviando || _eliminando ? null : _reenviarInvitacion,
+          tooltip: 'Reenviar invitación',
+          icon: _reenviando
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(LucideIcons.mailPlus, size: 16),
+        ),
+        PopupMenuButton<String>(
+          enabled: !_eliminando,
+          tooltip: 'Más acciones',
+          icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
+          onSelected: (v) {
+            if (v == 'editar') _editar();
+            if (v == 'eliminar') _eliminar();
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'editar',
+              child: Row(children: [Icon(LucideIcons.pencil, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Editar')]),
             ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
-                decoration: BoxDecoration(
-                  color: u.rol == RolUsuario.admin
-                      ? scheme.primaryContainer
-                      : u.rol == RolUsuario.gestor
-                          ? scheme.tertiaryContainer
-                          : scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text(u.rol.name, style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700)),
+            if (!widget.esPropio)
+              const PopupMenuItem(
+                value: 'eliminar',
+                child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Eliminar')]),
               ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Row(
-              children: [
-                Icon(LucideIcons.building2, size: 14, color: scheme.onSurfaceVariant),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(child: Text(u.espacio?.nombre ?? 'Sin espacio', style: textTheme.bodySmall, overflow: TextOverflow.ellipsis)),
-                if (esPropio) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: scheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                    ),
-                    child: Text('Tú', style: textTheme.labelSmall),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Row(
-              children: [
-                Icon(LucideIcons.hash, size: 14, color: scheme.onSurfaceVariant),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '${u.id}',
-                  style: AppText.numerico(fontSize: 12.5, color: AppColors.textoTerciario, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            // "Editar"/"Eliminar" como botones anchos completos + el ícono
-            // de reenviar invitación no entraban en flex:2 de una tabla de
-            // 5 columnas a un ancho moderado -- overflow real encontrado
-            // por `gestion_usuarios_screen_test.dart` (nunca se había
-            // testeado esta fila antes). Mismo patrón ya usado en
-            // `gestion_reservas_screen.dart`: una sola acción primaria
-            // (acá, reenviar invitación) + el resto en un `PopupMenuButton`.
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  onPressed: _reenviando || _eliminando ? null : _reenviarInvitacion,
-                  tooltip: 'Reenviar invitación',
-                  icon: _reenviando
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(LucideIcons.mailPlus, size: 16),
-                ),
-                PopupMenuButton<String>(
-                  enabled: !_eliminando,
-                  tooltip: 'Más acciones',
-                  icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: AppColors.textoSecundario),
-                  onSelected: (v) {
-                    if (v == 'editar') _editar();
-                    if (v == 'eliminar') _eliminar();
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'editar',
-                      child: Row(children: [Icon(LucideIcons.pencil, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Editar')]),
-                    ),
-                    if (!esPropio)
-                      const PopupMenuItem(
-                        value: 'eliminar',
-                        child: Row(children: [Icon(LucideIcons.trash2, size: 16, color: AppColors.textoSecundario), SizedBox(width: AppSpacing.sm), Text('Eliminar')]),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }

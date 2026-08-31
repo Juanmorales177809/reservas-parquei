@@ -11,6 +11,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/estado_badge.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
+import '../../../shell/app_shell.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../espacios/application/espacios_providers.dart';
 import '../../recursos/application/recursos_providers.dart';
@@ -18,12 +19,53 @@ import '../application/zonas_providers.dart';
 import '../data/zonas_repository.dart';
 import '../domain/zona.dart';
 
-class GestionZonasScreen extends ConsumerWidget {
+/// Búsqueda + tabla ordenable en pantalla ancha (2026-08-31) -- mismo
+/// diseño que `GestionRecursosScreen`, ver el comentario ahí para el porqué
+/// de usar `DataTable` nativo en vez del patrón fijo de `_UsuariosTabla`.
+class GestionZonasScreen extends ConsumerStatefulWidget {
   const GestionZonasScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GestionZonasScreen> createState() => _GestionZonasScreenState();
+}
+
+class _GestionZonasScreenState extends ConsumerState<GestionZonasScreen> {
+  String _busqueda = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+
+  List<Zona> _filtrarYOrdenar(List<Zona> zonas, Map<int, String> nombrePorEspacio) {
+    var resultado = zonas;
+    final consulta = _busqueda.trim().toLowerCase();
+    if (consulta.isNotEmpty) {
+      resultado = resultado
+          .where((z) =>
+              z.nombre.toLowerCase().contains(consulta) ||
+              (nombrePorEspacio[z.espacioId] ?? '').toLowerCase().contains(consulta))
+          .toList();
+    }
+    if (_sortColumnIndex != null) {
+      resultado = List.of(resultado)
+        ..sort((a, b) {
+          final cmp = switch (_sortColumnIndex) {
+            0 => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()),
+            1 => (nombrePorEspacio[a.espacioId] ?? '').toLowerCase().compareTo((nombrePorEspacio[b.espacioId] ?? '').toLowerCase()),
+            2 => (a.capacidad ?? -1).compareTo(b.capacidad ?? -1),
+            3 => a.estado.name.compareTo(b.estado.name),
+            _ => 0,
+          };
+          return _sortAscending ? cmp : -cmp;
+        });
+    }
+    return resultado;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final zonasAsync = ref.watch(zonasGestionProvider);
+    final nombrePorEspacio = <int, String>{
+      for (final e in ref.watch(espaciosListProvider).value ?? const []) e.id: e.nombre,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Zonas')),
@@ -42,14 +84,64 @@ class GestionZonasScreen extends ConsumerWidget {
           if (zonas.isEmpty) {
             return const EmptyView(icon: LucideIcons.mapPinned, message: 'No hay zonas registradas.');
           }
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(zonasGestionProvider.future),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: zonas.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) => _ZonaCard(zona: zonas[index]).staggerEntrance(index),
-            ),
+          final filtradas = _filtrarYOrdenar(zonas, nombrePorEspacio);
+          final esCompacta = MediaQuery.sizeOf(context).width < kCompactBreakpoint;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar por nombre o espacio',
+                    prefixIcon: Icon(LucideIcons.search, size: 18),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _busqueda = v),
+                ),
+              ),
+              Expanded(
+                child: filtradas.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No se encontraron resultados para "$_busqueda".',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      )
+                    : esCompacta
+                        ? RefreshIndicator(
+                            onRefresh: () => ref.refresh(zonasGestionProvider.future),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              itemCount: filtradas.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+                              itemBuilder: (context, index) => _ZonaCard(
+                                zona: filtradas[index],
+                                espacioNombre: nombrePorEspacio[filtradas[index].espacioId],
+                              ).staggerEntrance(index),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => ref.refresh(zonasGestionProvider.future),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _ZonasTabla(
+                                  zonas: filtradas,
+                                  nombrePorEspacio: nombrePorEspacio,
+                                  sortColumnIndex: _sortColumnIndex,
+                                  sortAscending: _sortAscending,
+                                  onSort: (indice, asc) => setState(() {
+                                    _sortColumnIndex = indice;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ),
+              ),
+            ],
           );
         },
       ),
@@ -64,9 +156,138 @@ class GestionZonasScreen extends ConsumerWidget {
   }
 }
 
-class _ZonaCard extends ConsumerStatefulWidget {
-  const _ZonaCard({required this.zona});
+class _ZonasTabla extends StatelessWidget {
+  const _ZonasTabla({
+    required this.zonas,
+    required this.nombrePorEspacio,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
+  });
+
+  final List<Zona> zonas;
+  final Map<int, String> nombrePorEspacio;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex, bool ascending) onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: DataTable(
+        sortColumnIndex: sortColumnIndex,
+        sortAscending: sortAscending,
+        columns: [
+          DataColumn(label: const Text('NOMBRE'), onSort: onSort),
+          DataColumn(label: const Text('ESPACIO'), onSort: onSort),
+          DataColumn(label: const Text('CAPACIDAD'), numeric: true, onSort: onSort),
+          DataColumn(label: const Text('ESTADO'), onSort: onSort),
+          const DataColumn(label: Text('ACCIONES')),
+        ],
+        rows: [
+          for (final z in zonas)
+            DataRow(
+              cells: [
+                DataCell(Text(z.nombre)),
+                DataCell(Text(nombrePorEspacio[z.espacioId] ?? 'Espacio ${z.espacioId}')),
+                DataCell(Text(z.capacidad != null ? '${z.capacidad}' : '—')),
+                DataCell(EstadoBadge(estado: z.estado)),
+                DataCell(_AccionesZona(zona: z)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccionesZona extends ConsumerStatefulWidget {
+  const _AccionesZona({required this.zona});
+
   final Zona zona;
+
+  @override
+  ConsumerState<_AccionesZona> createState() => _AccionesZonaState();
+}
+
+class _AccionesZonaState extends ConsumerState<_AccionesZona> {
+  bool _eliminando = false;
+
+  Future<void> _eliminar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar zona'),
+        content: Text('¿Eliminar "${widget.zona.nombre}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _eliminando = true);
+    try {
+      await ref.read(zonasRepositoryProvider).eliminar(widget.zona.id);
+      ref.invalidate(zonasGestionProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Zona eliminada.')));
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo eliminar la zona.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _eliminando = false);
+    }
+  }
+
+  void _editar() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _ZonaFormDialog(zona: widget.zona, onSaved: () => ref.invalidate(zonasGestionProvider)),
+    );
+  }
+
+  void _gestionarRecursos() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _ZonaRecursosDialog(zona: widget.zona, onSaved: () => ref.invalidate(zonasGestionProvider)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: _eliminando ? null : _gestionarRecursos,
+          icon: const Icon(LucideIcons.boxes, size: 16),
+          tooltip: 'Recursos',
+        ),
+        IconButton(
+          onPressed: _eliminando ? null : _editar,
+          icon: const Icon(LucideIcons.pencil, size: 16),
+          tooltip: 'Editar',
+        ),
+        IconButton(
+          onPressed: _eliminando ? null : _eliminar,
+          icon: _eliminando
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(LucideIcons.trash2, size: 16),
+          tooltip: 'Eliminar',
+        ),
+      ],
+    );
+  }
+}
+
+class _ZonaCard extends ConsumerStatefulWidget {
+  const _ZonaCard({required this.zona, this.espacioNombre});
+  final Zona zona;
+  final String? espacioNombre;
   @override
   ConsumerState<_ZonaCard> createState() => _ZonaCardState();
 }
@@ -143,7 +364,7 @@ class _ZonaCardState extends ConsumerState<_ZonaCard> {
               spacing: AppSpacing.md,
               children: [
                 if (z.capacidad != null) _Info(icon: LucideIcons.users, text: 'Capacidad ${z.capacidad}'),
-                _Info(icon: LucideIcons.hash, text: 'ID ${z.id} · Espacio ${z.espacioId}'),
+                _Info(icon: LucideIcons.hash, text: 'ID ${z.id} · Espacio ${widget.espacioNombre ?? z.espacioId}'),
               ],
             ),
             const SizedBox(height: AppSpacing.md),

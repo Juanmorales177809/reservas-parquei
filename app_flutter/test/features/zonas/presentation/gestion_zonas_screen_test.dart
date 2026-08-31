@@ -162,7 +162,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Recursos'));
+      // Búsqueda + tabla ordenable (2026-08-31): en pantalla ancha (el
+      // tamaño de prueba por defecto ya supera kCompactBreakpoint) la
+      // acción "Recursos" es un IconButton en la tabla, sin texto visible
+      // -- se ubica por su tooltip en vez de por find.text.
+      await tester.tap(find.byTooltip('Recursos'));
       await tester.pumpAndSettle();
       return fake;
     }
@@ -215,6 +219,60 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Los recursos [1] ya pertenecen a otra zona'), findsOneWidget);
+    });
+  });
+
+  group('GestionZonasScreen — búsqueda y orden (2026-08-31)', () {
+    Future<void> montar(WidgetTester tester, List<Zona> zonas, List<Espacio> espacios) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith(() => _AuthFake(_usuario(RolUsuario.admin))),
+            zonasGestionProvider.overrideWith((ref) async => zonas),
+            espaciosListProvider.overrideWith((ref) async => espacios),
+          ],
+          child: const MaterialApp(home: GestionZonasScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('buscar por nombre filtra la lista', (tester) async {
+      await montar(tester, [_zona(1, 'Sala Norte'), _zona(2, 'Sala Sur')], [_espacio(1, 'Auditorio')]);
+
+      expect(find.text('Sala Norte'), findsOneWidget);
+      expect(find.text('Sala Sur'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Norte');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sala Norte'), findsOneWidget);
+      expect(find.text('Sala Sur'), findsNothing);
+    });
+
+    testWidgets('buscar algo que no matchea nada muestra el mensaje de sin resultados', (tester) async {
+      await montar(tester, [_zona(1, 'Sala Norte')], [_espacio(1, 'Auditorio')]);
+
+      await tester.enterText(find.byType(TextField), 'inexistente');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('No se encontraron resultados'), findsOneWidget);
+      expect(find.text('Sala Norte'), findsNothing);
+    });
+
+    testWidgets('tocar el header de una columna reordena las filas', (tester) async {
+      await montar(tester, [_zona(1, 'Zeta'), _zona(2, 'Alfa')], [_espacio(1, 'Auditorio')]);
+
+      final zetaAntes = tester.getTopLeft(find.text('Zeta')).dy;
+      final alfaAntes = tester.getTopLeft(find.text('Alfa')).dy;
+      expect(zetaAntes, lessThan(alfaAntes));
+
+      await tester.tap(find.text('NOMBRE'));
+      await tester.pumpAndSettle();
+
+      final zetaDespues = tester.getTopLeft(find.text('Zeta')).dy;
+      final alfaDespues = tester.getTopLeft(find.text('Alfa')).dy;
+      expect(alfaDespues, lessThan(zetaDespues));
     });
   });
 }

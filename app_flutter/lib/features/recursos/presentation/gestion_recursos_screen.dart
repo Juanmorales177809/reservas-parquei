@@ -11,17 +11,62 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/estado_badge.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
+import '../../../shell/app_shell.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../espacios/application/espacios_providers.dart';
 import '../application/recursos_providers.dart';
 import '../data/recursos_repository.dart';
 import '../domain/recurso.dart';
 
-class GestionRecursosScreen extends ConsumerWidget {
+/// Búsqueda + tabla ordenable en pantalla ancha (2026-08-31, a pedido
+/// explícito del usuario) -- mismo breakpoint que `GestionUsuariosScreen`
+/// (`kCompactBreakpoint`), pero acá la tabla es un `DataTable` nativo (con
+/// columnas ordenables de verdad) en vez de replicar el patrón de
+/// `_UsuariosTabla` (fijo, sin orden). Búsqueda y orden 100% client-side
+/// sobre lo que ya devuelve `recursosGestionProvider` -- sin tocar el
+/// backend, sin query params nuevos.
+class GestionRecursosScreen extends ConsumerStatefulWidget {
   const GestionRecursosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GestionRecursosScreen> createState() => _GestionRecursosScreenState();
+}
+
+class _GestionRecursosScreenState extends ConsumerState<GestionRecursosScreen> {
+  String _busqueda = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+
+  List<Recurso> _filtrarYOrdenar(List<Recurso> recursos) {
+    var resultado = recursos;
+    final consulta = _busqueda.trim().toLowerCase();
+    if (consulta.isNotEmpty) {
+      resultado = resultado
+          .where((r) =>
+              r.nombre.toLowerCase().contains(consulta) ||
+              r.tipo.nombre.toLowerCase().contains(consulta) ||
+              r.espacio.nombre.toLowerCase().contains(consulta))
+          .toList();
+    }
+    if (_sortColumnIndex != null) {
+      resultado = List.of(resultado)
+        ..sort((a, b) {
+          final cmp = switch (_sortColumnIndex) {
+            0 => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()),
+            1 => a.tipo.nombre.toLowerCase().compareTo(b.tipo.nombre.toLowerCase()),
+            2 => a.espacio.nombre.toLowerCase().compareTo(b.espacio.nombre.toLowerCase()),
+            3 => a.capacidad.compareTo(b.capacidad),
+            4 => a.estado.name.compareTo(b.estado.name),
+            _ => 0,
+          };
+          return _sortAscending ? cmp : -cmp;
+        });
+    }
+    return resultado;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final recursosAsync = ref.watch(recursosGestionProvider);
     final tiposAsync = ref.watch(tiposRecursosProvider);
 
@@ -44,14 +89,60 @@ class GestionRecursosScreen extends ConsumerWidget {
           if (recursos.isEmpty) {
             return const EmptyView(icon: LucideIcons.package, message: 'No hay recursos registrados.');
           }
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(recursosGestionProvider.future),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: recursos.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) => _RecursoCard(recurso: recursos[index]).staggerEntrance(index),
-            ),
+          final filtrados = _filtrarYOrdenar(recursos);
+          final esCompacta = MediaQuery.sizeOf(context).width < kCompactBreakpoint;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar por nombre, tipo o espacio',
+                    prefixIcon: Icon(LucideIcons.search, size: 18),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _busqueda = v),
+                ),
+              ),
+              Expanded(
+                child: filtrados.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No se encontraron resultados para "$_busqueda".',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      )
+                    : esCompacta
+                        ? RefreshIndicator(
+                            onRefresh: () => ref.refresh(recursosGestionProvider.future),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              itemCount: filtrados.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+                              itemBuilder: (context, index) => _RecursoCard(recurso: filtrados[index]).staggerEntrance(index),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => ref.refresh(recursosGestionProvider.future),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _RecursosTabla(
+                                  recursos: filtrados,
+                                  sortColumnIndex: _sortColumnIndex,
+                                  sortAscending: _sortAscending,
+                                  onSort: (indice, asc) => setState(() {
+                                    _sortColumnIndex = indice;
+                                    _sortAscending = asc;
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ),
+              ),
+            ],
           );
         },
       ),
@@ -62,6 +153,122 @@ class GestionRecursosScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (_) => _RecursoFormDialog(onSaved: () => ref.invalidate(recursosGestionProvider)),
+    );
+  }
+}
+
+class _RecursosTabla extends StatelessWidget {
+  const _RecursosTabla({
+    required this.recursos,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
+  });
+
+  final List<Recurso> recursos;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex, bool ascending) onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: DataTable(
+        sortColumnIndex: sortColumnIndex,
+        sortAscending: sortAscending,
+        columns: [
+          DataColumn(label: const Text('NOMBRE'), onSort: onSort),
+          DataColumn(label: const Text('TIPO'), onSort: onSort),
+          DataColumn(label: const Text('ESPACIO'), onSort: onSort),
+          DataColumn(label: const Text('CAPACIDAD'), numeric: true, onSort: onSort),
+          DataColumn(label: const Text('ESTADO'), onSort: onSort),
+          const DataColumn(label: Text('ACCIONES')),
+        ],
+        rows: [
+          for (final r in recursos)
+            DataRow(
+              cells: [
+                DataCell(Text(r.nombre)),
+                DataCell(Text(r.tipo.nombre)),
+                DataCell(Text(r.espacio.nombre)),
+                DataCell(Text('${r.capacidad}')),
+                DataCell(EstadoBadge(estado: r.estado)),
+                DataCell(_AccionesRecurso(recurso: r)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccionesRecurso extends ConsumerStatefulWidget {
+  const _AccionesRecurso({required this.recurso});
+
+  final Recurso recurso;
+
+  @override
+  ConsumerState<_AccionesRecurso> createState() => _AccionesRecursoState();
+}
+
+class _AccionesRecursoState extends ConsumerState<_AccionesRecurso> {
+  bool _eliminando = false;
+
+  Future<void> _eliminar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar recurso'),
+        content: Text('¿Eliminar "${widget.recurso.nombre}"? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _eliminando = true);
+    try {
+      await ref.read(recursosRepositoryProvider).eliminar(widget.recurso.id);
+      ref.invalidate(recursosGestionProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recurso eliminado.')));
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo eliminar el recurso.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _eliminando = false);
+    }
+  }
+
+  void _editar() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _RecursoFormDialog(recurso: widget.recurso, onSaved: () => ref.invalidate(recursosGestionProvider)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: _eliminando ? null : _editar,
+          icon: const Icon(LucideIcons.pencil, size: 16),
+          tooltip: 'Editar',
+        ),
+        IconButton(
+          onPressed: _eliminando ? null : _eliminar,
+          icon: _eliminando
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(LucideIcons.trash2, size: 16),
+          tooltip: 'Eliminar',
+        ),
+      ],
     );
   }
 }
