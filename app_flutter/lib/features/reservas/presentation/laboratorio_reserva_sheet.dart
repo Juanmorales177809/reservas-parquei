@@ -9,6 +9,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 // `features/tipos_reserva/`) -- sin el `hide`, el nombre `TipoReserva`
 // colisionaría con la clase del catálogo real importada más abajo.
 import '../../../core/domain/enums.dart' hide TipoReserva, tipoReservaLabel, tipoReservaToJson;
+import '../../tipos_reserva/domain/tipo_reserva.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
