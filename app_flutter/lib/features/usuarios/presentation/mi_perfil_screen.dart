@@ -110,31 +110,39 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
     final usuario = ref.watch(authProvider).value;
     _precargarSiHaceFalta(usuario);
     final obligatorio = usuario != null && !usuario.perfilCompleto;
+    // Scaffold sin appBar: no duplica el chrome del shell (la ruta ya vive
+    // dentro del ShellRoute, ver app_router.dart), pero sigue haciendo
+    // falta como ancestro de Material (TextField lo exige) y de
+    // ScaffoldMessenger (el SnackBar de "Perfil actualizado.") -- mismo
+    // patrón ya usado en ConfiguracionLaboratorioScreen.
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi perfil'),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.logOut),
-            tooltip: 'Cerrar sesión',
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                Row(
+                  children: [
+                    Expanded(child: Text('Mi perfil', style: Theme.of(context).textTheme.titleLarge)),
+                    IconButton(
+                      icon: const Icon(LucideIcons.logOut),
+                      tooltip: 'Cerrar sesión',
+                      onPressed: () => ref.read(authProvider.notifier).logout(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   obligatorio
                       ? 'Antes de continuar, completá estos datos -- se guardan una sola vez y se reutilizan al hacer una solicitud.'
                       : 'Estos datos se completan una sola vez y se reutilizan al hacer una solicitud.',
                   style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 TextFormField(
@@ -176,17 +184,18 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
                   Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ],
                 const SizedBox(height: AppSpacing.xl),
-                FilledButton(
-                  onPressed: _guardando ? null : _guardar,
-                  child: _guardando
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Guardar'),
-                ),
-              ],
+                  FilledButton(
+                    onPressed: _guardando ? null : _guardar,
+                    child: _guardando
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Guardar'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

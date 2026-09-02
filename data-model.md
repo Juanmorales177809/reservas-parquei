@@ -2,7 +2,7 @@
 
 > Estado final tras las Fases 1–7 de Juan Carlos (renombres `Espacio→Laboratorio` / `Zona→Espacio`, remoción de Ensayos/recurrentes/Modalidad/PS-gate, y tabla `tipos_reserva` por laboratorio). Complementa a `backend/CLAUDE.md` y `app_flutter/CLAUDE.md` — pensado para lectura externa, no solo para quien ya conoce el código.
 
-Última revisión: 2026-09-02. Commit de referencia: `ea55517` (hotfix `TipoReserva` en sheets; base `f10ad62` Fases 1–7).
+Última revisión: 2026-09-02. Commit de referencia: `bd014e1` (forma única + recursos editables + motivos en tabla + links en correos + propuesta/contrapropuesta).
 
 ## Convenciones
 
@@ -18,6 +18,7 @@
 Laboratorio 1──N Espacio
 Laboratorio 1──N Recurso
 Laboratorio 1──N TipoReserva
+Laboratorio 1──N MotivoSolicitud
 Laboratorio 1──N Reserva
 Laboratorio 1──N UsuarioLaboratorio N──1 Personal (gestor)
 
@@ -27,6 +28,7 @@ Reserva N──N Recurso (vía reserva_recursos, desnormalizado)
 Reserva N──N Espacio (vía reserva_espacios, desnormalizado)
 Reserva 1──N ReservaAcompanante
 Reserva N──1 TipoReserva (nullable)
+Reserva N──1 MotivoSolicitud (nullable, FK motivo_solicitud_id)
 Reserva N──1 Laboratorio, N──1 Recurso (ancla histórica recurso_id)
 
 Personal 1──N Reserva (personal_id)  |  Usuario 1──N Reserva (usuario_id)
@@ -119,6 +121,22 @@ Constraint: `UNIQUE (laboratorio_id, nombre)` (`uq_tipos_reserva_laboratorio_nom
 
 En Flutter: `app_flutter/lib/features/tipos_reserva/domain/tipo_reserva.dart` (`@freezed`, `estado: String` plano `activo`/`inactivo`, no `EstadoEntidad`).
 
+### `motivos_solicitud` — MotivoSolicitud (Fase 2, 2026-09-02)
+
+Catálogo **por laboratorio** (espejo de `tipos_reserva`) para el dropdown de motivo dentro de la forma única de reserva.
+
+| Columna | Tipo | Nulos | Notas |
+|---|---|---|---|
+| `id` | `serial PK` | NO | |
+| `laboratorio_id` | `FK laboratorios.id` | NO | `index` |
+| `nombre` | `varchar(100)` | NO | ej. `Reserva en laboratorio` |
+| `codigo` | `varchar(30)` | NO | `CHECK reserva_en_laboratorio/reserva_fuera_laboratorio/orden_salida` (`ck_motivos_solicitud_codigo`), `UNIQUE(laboratorio_id,codigo)` |
+| `estado` | `varchar(20)` | NO | default `activo`, `CHECK activo/inactivo` |
+| `created_at` / `updated_at` | `timestamptz` | NO | |
+| `created_by` / `updated_by` | `FK personal.id` | SÍ | |
+
+Backfill idempotente por laboratorio en `migrations.py` (3 motivos base). API `GET /motivos-solicitud?laboratorio_id=` (`backend/app/api/motivos_solicitud.py`), Flutter `features/motivos_solicitud/` (domain `MotivoSolicitud`, repo `motivosSolicitudProvider`).
+
 ### `reservas` — Reserva
 
 Tabla central. Una reserva siempre ocurre en un laboratorio, sobre una fecha y un rango horario de un mismo día, con uno o varios recursos y/o espacios.
@@ -140,8 +158,10 @@ Tabla central. Una reserva siempre ocurre en un laboratorio, sobre una fecha y u
 | `motivo_rechazo` | `text` | SÍ | solo cuando `estado=rechazada`; se limpia al salir de rechazada |
 | `descripcion` | `text` | SÍ | Fase A3 — "Actividad a realizar" (texto libre) |
 | `tipo_solicitud` | `varchar(30)` | NO | default `reserva_en_laboratorio`, CHECK `reserva_en_laboratorio`/`reserva_fuera_laboratorio` (`ck_reservas_tipo_solicitud`); `orden_salida` existe en el enum `TipoSolicitud` pero **no** está en el CHECK todavía — se agregará en Fase C cuando `services/solicitudes.py` materialice filas reales con ese valor |
-| `ubicacion_uso` | `varchar(200)` | SÍ | solo cuando `tipo_solicitud=reserva_fuera_laboratorio` (validado en servicio) |
+| `motivo_solicitud_id` | `FK motivos_solicitud.id` | SÍ | nullable, reemplaza progresivamente `tipo_solicitud` (dropdown por laboratorio) |
+| `ubicacion_uso` | `varchar(200)` | SÍ | solo cuando `tipo_solicitud=reserva_fuera_laboratorio` **o** `motivo_solicitud.codigo=reserva_fuera_laboratorio` (validado en `services/reservas.py`) |
 | `requiere_apoyo_auxiliar` | `boolean` | NO | default false (pregunta 18 del formulario real) |
+| `propuesta_motivo` / `propuesta_horarios` / `propuesta_por` / `propuesta_en` | `text` / `text` / `varchar(20) CHECK tecnico/usuario` / `timestamptz` | SÍ | Fase C (propuesta/contrapropuesta) — queda `esperando` con bloque activo, `NULL` = sin propuesta |
 | `recordatorio_enviado_en` | `timestamptz` | SÍ | marca idempotente de `services/recordatorios.py` |
 | `created_at` / `updated_at` | `timestamptz` | NO | |
 

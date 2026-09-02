@@ -6,7 +6,7 @@ Ver [`../CLAUDE.md`](../CLAUDE.md) (contexto general del monorepo) y [`CLAUDE.md
 
 ## Estado
 
-**Fases 0-4 completas + Fase 5 parcial (usuarios)** (ver `CLAUDE.md` para detalle). Última entrega **Fase 5 Usuarios (2026-08-20)**: `GestionUsuariosScreen` (`/usuarios`, solo admin) — listar/crear/editar/eliminar (`POST 201 409 username/email, 400 gestor sin espacio; PUT 200 409 self/last-admin con `pg_advisory_xact_lock`; DELETE 204 409`, validación `username 3..80, email @., password 6..72`), guard `admin-only` (`403` gestor → `/espacios`), `Tú` chip + sin botón Eliminar propio. Previa **Fase 4b**: CRUD recursos/zonas/ensayos + editor `horario_atencion` 6-22. Todo verificado en vivo con Playwright contra `reservas_test:5433` (gestor `gestor_flutter`, admin `admin_flutter`), `flutter analyze` No issues, `flutter test` 1/1.
+**Funcionalmente completo** — Flutter es la única UI del proyecto desde el cutover de la Fase 7 (`frontend/` Next.js retirado del repo). Última entrega **2026-09-02**: renombre completo `Espacio`→`Laboratorio`/`Zona`→`Espacio` en todo el código (Fases 1-7 de `~/.claude/plans/dazzling-wobbling-zebra.md`), catálogo real `tipos_reserva`/`motivos_solicitud` por laboratorio, propuesta/contrapropuesta de horarios sin pasar por `rechazada` (Fase C), forma única de reserva sin diálogo previo de motivo, links a la app en los correos salientes, y fix del bug de navbar al entrar al detalle de un laboratorio. Ver `CLAUDE.md` (detalle técnico completo, sección por fecha) y `../CHANGELOG.md` (registro cronológico factual) para el historial punto por punto.
 
 ## Requisitos
 

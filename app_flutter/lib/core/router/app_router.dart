@@ -127,24 +127,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.registro, builder: (context, state) => const RegistroScreen()),
       GoRoute(path: AppRoutes.completarCuenta, builder: (context, state) => const CompletarCuentaScreen()),
       GoRoute(path: AppRoutes.terminos, builder: (context, state) => const TerminosScreen()),
-      // Empujada, fuera del ShellRoute: no es un destino de la barra de
-      // navegación, se llega acá desde el menú de sesión (`SessionMenu`)
-      // -- cualquier rol autenticado.
-      //
-      // `laboratorioDetalleTemplate` y `adminConfiguracion` NO viven acá --
-      // hasta la Fase 6 (~/.claude/plans/dazzling-wobbling-zebra.md) vivían
-      // fuera del ShellRoute por el mismo motivo que `perfil`, y eso
-      // apagaba el navbar al entrar al detalle de un laboratorio (bug real
-      // reportado). Siguen siendo rutas "empujadas" (`context.push`,
-      // preservan la pila, botón atrás), pero ahora se registran DENTRO del
-      // ShellRoute más abajo -- sus pantallas ya no traen `Scaffold`/`AppBar`
-      // propio (ver `laboratorio_detalle_screen.dart`/
-      // `configuracion_laboratorio_screen.dart`), así que no duplican el
-      // chrome del shell activo.
-      GoRoute(
-        path: AppRoutes.perfil,
-        pageBuilder: (context, state) => _sharedAxisPage(state, const MiPerfilScreen()),
-      ),
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
         routes: [
@@ -197,6 +179,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.adminControlCambios,
             pageBuilder: (context, state) => _fadeThroughPage(state, const AuditoriaScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.perfil,
+            pageBuilder: (context, state) => _sharedAxisPage(
+              state,
+              Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: const MiPerfilScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),

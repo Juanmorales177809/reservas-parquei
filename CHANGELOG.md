@@ -6,6 +6,17 @@ commit, resultados de CI y conteos de pruebas son los reales observados en
 este repositorio (`git log`, GitHub Actions) al momento de cada fase, no
 estimaciones.
 
+## 2026-09-02 — Sesión Parquei: propuesta/contrapropuesta, links en correos, motivos en tabla, forma única y fix prod
+
+- **Contexto:** 4 pedidos del día + bug prod `DependentObjectsStillExist` en `_RENOMBRAR_LABORATORIO_Y_ESPACIO` por `tipos_reserva` FK.
+- **Fix prod** `58f79b1` `fix(migraciones): maneja FK tipos_reserva` — `DROP TABLE tipos_reserva CASCADE` + `CREATE TABLE IF NOT EXISTS` idempotente dentro del mismo `IF`, resto `DROP ... CASCADE`. Verificado idempotente `migrate_resource_reservations() x2` en `reservas_test`.
+- **Fase C — Propuesta/contrapropuesta** `88a02fa` `feat(reservas): propuesta...` — `Reserva` gana `propuesta_motivo/horarios/por/en` (`backend/app/models/reserva.py:71`, `migrations.py:912`), 4 endpoints `PUT /proponer-horarios /contraproponer /aceptar-propuesta /rechazar-propuesta` (`api/reservas.py:118`), plantillas `plantilla_propuesta_horarios`/`contrapropuesta_tecnico` (`email_templates.py:542`), Flutter `Reserva.propuesta*` + `reservas_repository` + `gestion_reservas_screen` (proponer) y `mis_reservas_screen` (aceptar/rechazar/contraproponer). `rechazada` queda histórico.
+- **Links en correos** `4be9071` `feat(parquei): links...` — `FRONTEND_URL` (`config.py:58`, `.env.example:114`), helper `_link_reserva` y botón `Ver reserva` en 6 plantillas.
+- **Motivos en tabla** `4be9071` — `motivos_solicitud` (`models/motivo_solicitud.py:7`, FK `motivo_solicitud_id` en `reservas`), backfill 3 motivos por laboratorio, `schemas/motivo_solicitud.py` + `crud` + `api/motivos_solicitud.py` `GET /motivos-solicitud`, Flutter `features/motivos_solicitud/` (domain/repo/providers).
+- **Forma única + recursos editables** `bd014e1` `fix(flutter): elimina dialog inicial...` — `laboratorio_detalle_screen.dart:152` abre directo `LaboratorioReservaSheet` sin `_MotivoSolicitudDialog` previo; `_RecursoTile` delega al sheet único; `laboratorio_reserva_sheet.dart` dropdown `MotivoSolicitud` + `Recursos` de espacio pre-seleccionados pero `onChanged` editable (quitar/poner) con sincronización de `_recursoIds`.
+- **CI fixes** `ea55517` `fix(flutter): importa TipoReserva`, `86a770c`/`1f99215` `fix(test): cubierto editable`, `bd014e1` 4 warnings → 0 (`flutter analyze No issues`, `pytest 53/53 test_api_reservas`, `openapi.snapshot.json` regenerado).
+- **Commits:** `58f79b1`, `88a02fa`, `4be9071`, `bd014e1`, `86a770c`, `1f99215` → `feature/soV0.1` (ver `git log`).
+
 Convención de commits de esta serie: `<tipo>: <resumen>` (`security:`,
 `test:`), rama `feature/soV0.1`, base `feature/v0.1`. Workflow de CI:
 `.github/workflows/ci.yml` (`name: CI`), tres jobs — `Backend (pytest)`,

@@ -4,31 +4,29 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 
 ## Funcionalidades
 
-- Consulta pública de espacios, recursos activos, zonas y disponibilidad.
-- Reservas de uno o varios bloques horarios consecutivos.
-- Reservas multi-recurso y multi-zona: una misma reserva puede combinar varios recursos y/o zonas del mismo espacio.
-- Modalidad de reserva por espacio (`equipos`, `zonas` o `mixto`), que determina si expone recursos individuales, zonas reservables (con o sin recursos propios), o ambos.
-- Ensayos asociados a una zona, seleccionables opcionalmente al reservar.
+- Consulta pública de laboratorios, espacios y recursos con disponibilidad horaria.
+- **Forma única de reserva**: `LaboratorioReservaSheet` con dropdowns de `TipoReserva` y `MotivoSolicitud` (catálogos por laboratorio, FK `tipo_reserva_id`/`motivo_solicitud_id`), sin página inicial separada de motivos.
+- Reservas multi-recurso y multi-espacio: al elegir un `Espacio` se pre-seleccionan sus `Recursos` pero son editables (quitar/poner) al reservar.
+- Propuesta/contrapropuesta sin pasar a `rechazada`: el técnico propone horarios alternativos (`propuesta_motivo/horarios/por/en` en `reservas`, queda `esperando` con bloque activo), el usuario acepta (re-agenda), rechaza o contrapropone; correos con botón `Ver reserva` (`FRONTEND_URL`).
+- Tipos y motivos en tabla por laboratorio (`tipos_reserva`, `motivos_solicitud` con `UNIQUE(laboratorio_id,nombre)`), no enums fijos.
 - Acompañantes nombrados (nombre y correo) por reserva.
-- Tipo de reserva académica (investigación, trabajo de grado, servicio de ensayo) y recursos de prestación de servicios (PS) restringidos por rol y tipo.
-- Validación de capacidad, anticipación, estado y horario de atención.
-- Prevención transaccional de reservas superpuestas en PostgreSQL.
-- Aprobación automática de reservas: se aplica tanto por un flag configurable por espacio (afecta a cualquier rol, incluido `usuario`) como, de forma independiente, cuando un `gestor` reserva en el espacio que administra — detalle exacto y referencias de código en [`CHANGELOG.md`](CHANGELOG.md) (Fase 12A, corrección de RN-021).
-- Gestión de solicitudes por administradores y gestores, incluido el registro de asistencia.
-- Notificaciones de solicitudes pendientes, aprobaciones, rechazos y cancelaciones.
-- Dashboard con estadísticas de reservas y ocupación.
-- Registro administrativo de cambios.
-- Administración de usuarios, espacios, recursos, zonas y ensayos.
+- Validación de capacidad efectiva (min laboratorio/espacios/recursos), anticipación, estado y horario de atención.
+- Prevención transaccional de reservas superpuestas en PostgreSQL (`btree_gist` `EXCLUDE` en `reservas`, `reserva_recursos` y `reserva_espacios`).
+- Aprobación automática por flag de laboratorio o por gestor en su laboratorio.
+- Gestión de solicitudes por administradores y gestores, incluido registro de asistencia y auditoría.
+- Notificaciones in-app + correo saliente con link a `FRONTEND_URL/reservas/mis-reservas`.
+- Dashboard, control de cambios y administración de usuarios/laboratorios/espacios/recursos/tipos/motivos.
+- `Mi perfil` centrado dentro del `ShellRoute` con navbar visible (fix 2026-09-02).
 
 ## Tecnologías
 
 | Capa | Tecnología |
 | --- | --- |
-| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS y Recharts |
+| Frontend | Flutter 3.47.1 (Web, Windows, Android/iOS) — única UI, Riverpod + Freezed + go_router |
 | Backend | FastAPI, SQLAlchemy, Pydantic y Uvicorn |
-| Autenticación | JWT, Passlib y bcrypt |
-| Base de datos | PostgreSQL 13 |
-| Contenedores | Docker y Docker Compose |
+| Autenticación | Supabase Auth (JWT `supabase_id` + cookie `access_token` HttpOnly) |
+| Base de datos | PostgreSQL 17 (`reservas_test`) / 13 (`reservas_db` prod) + `btree_gist` |
+| Contenedores | Docker y Docker Compose (nginx `flutter_proxy :8091` same-origin) |
 
 ## Imágenes base y runtimes
 
@@ -45,19 +43,11 @@ Detalle de cada cambio, verificación, digest y riesgos aceptados en [`CHANGELOG
 ## Arquitectura
 
 ```text
-Navegador
-   │
-   ▼
-Next.js :3000
-   │  proxy /api, /docs y /openapi.json
-   ▼
-FastAPI :8000 (red interna)
-   │
-   ▼
-PostgreSQL :5432 (red interna)
+Navegador → flutter_proxy (nginx) :8091 → (proxy /api, /docs, /openapi.json) → FastAPI :8000 → PostgreSQL :5432
+Móvil/Escritorio nativo (Windows/Android/iOS) → FastAPI :8000 directo (cookie_jar, sin proxy)
 ```
 
-El navegador siempre se comunica con Next.js. Las solicitudes a `/api/*` son reenviadas internamente al backend. PostgreSQL no publica su puerto al host. pgAdmin es opcional y se expone en el puerto `8085` de forma predeterminada.
+El navegador habla solo con `flutter_proxy` (same-origin, cookie `HttpOnly` `SameSite=Lax`); clientes nativos hablan directo. PostgreSQL y pgAdmin como antes (`:8085`). Ver `docker-compose.yml` y `CLAUDE.md`.
 
 ## Roles y permisos
 
@@ -235,13 +225,18 @@ Los endpoints protegidos se autentican únicamente con la cookie de sesión `acc
 | `PUT /zonas/{id}/recursos` | Admin o gestor | Reemplazar por completo los recursos asociados a una zona. |
 | `GET /ensayos` | Público | Listar ensayos de una zona. |
 | `POST/PUT/DELETE /ensayos` | Admin o gestor | Administrar ensayos dentro del alcance permitido. |
-| `POST /reservas` | Autenticado | Crear una reserva (uno o varios recursos y/o zonas). |
+| `POST /reservas` | Autenticado | Crear una reserva (recursos y/o espacios, `tipo_reserva_id`/`motivo_solicitud_id` opcionales). |
 | `GET /reservas/mis-reservas` | Autenticado | Consultar reservas propias. |
 | `PATCH /reservas/{id}` | Autenticado | Editar una reserva dentro de los permisos aplicables. |
 | `PUT /reservas/{id}/cancelar` | Propietario | Cancelar una reserva aprobada propia. |
+| `PUT /reservas/{id}/proponer-horarios` | Gestor/Admin | Proponer horarios alternativos (queda `esperando` + correo con link). |
+| `PUT /reservas/{id}/contraproponer` | Propietario | Contraproponer horarios al técnico. |
+| `PUT /reservas/{id}/aceptar-propuesta` | Según `propuesta_por` | Aceptar y re-agendar (revalida solapamiento). |
+| `PUT /reservas/{id}/rechazar-propuesta` | Según `propuesta_por` | Rechazar propuesta (limpia, sigue `esperando`). |
 | `GET /reservas` | Admin o gestor | Listar reservas gestionables. |
-| `PUT /reservas/{id}/estado` | Admin o gestor | Aprobar, rechazar o cancelar. |
+| `PUT /reservas/{id}/estado` | Admin o gestor | Aprobar, rechazar o cancelar (rechazada histórico). |
 | `PUT /reservas/{id}/asistio` | Admin o gestor | Registrar si el reservante asistió. |
+| `GET /tipos-reserva` `GET /motivos-solicitud` | Autenticado | Catálogos por laboratorio (`laboratorio_id`). |
 | `GET/PATCH /notificaciones` | Autenticado | Consultar y marcar notificaciones. |
 | `GET /admin/dashboard/summary` | Admin | Estadísticas globales. |
 | `GET /gestion/dashboard/summary` | Admin o gestor | Estadísticas dentro del alcance gestionado. |
@@ -271,14 +266,13 @@ gestionReservas/
 │   ├── pytest.ini
 │   ├── requirements-dev.txt
 │   └── Dockerfile
-├── frontend/
-│   ├── src/app/          # Páginas Next.js
-│   ├── src/components/   # Componentes compartidos
-│   ├── src/context/      # Autenticación y notificaciones
-│   ├── src/services/     # Cliente de la API (espacios, recursos, zonas, ensayos, reservas...)
-│   ├── src/types/        # Tipos TypeScript
-│   ├── e2e/              # Suite E2E (Playwright)
-│   └── Dockerfile
+├── app_flutter/        # Única UI (Flutter Web + Windows/Android/iOS)
+│   ├── lib/core/         # Config, red (dio+cookie), router (go_router), tema, widgets
+│   ├── lib/features/     # laboratorios, espacios, recursos, reservas, tipos_reserva, motivos_solicitud, usuarios, auditoría
+│   ├── lib/shell/        # AppShell adaptativo (bottom/rail/top nav)
+│   ├── integration_test/ # E2E Flutter (Windows nativo)
+│   └── test/             # Unitarios/widget
+├── frontend/ (retirado, ver `app_flutter/CLAUDE.md` Fase 7)
 ├── .env.example
 ├── docker-compose.yml
 └── docker-compose.test.yml

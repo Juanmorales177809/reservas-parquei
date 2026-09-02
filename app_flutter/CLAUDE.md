@@ -331,7 +331,7 @@ Primera fase de un plan más grande (formulario real de solicitud de laboratorio
 Segunda fase del mismo plan: agrega las 2 ramas del formulario real que sí encajan en el modelo actual de `Reserva` (franja horaria de un día). Las otras 2 (orden de salida, mano de obra) quedan visibles pero deshabilitadas hasta la Fase C.
 
 - **`TipoSolicitud`** (`core/domain/enums.dart`), espejo del enum del backend: `reservaEnLaboratorio` (default), `reservaFueraLaboratorio`, `ordenSalida` (existe en el enum pero nunca se manda — el backend lo rechaza con 422 si llegara).
-- **El botón "Reservar" de `EspacioDetalleScreen` pasa a "Nueva solicitud"** y abre primero `_MotivoSolicitudDialog` (texto de la pregunta 11 del formulario real): 2 opciones habilitadas (reserva dentro/fuera del laboratorio) + 2 deshabilitadas con rótulo "Próximamente" (orden de salida, mano de obra). Elegir un motivo cierra el diálogo y abre el `EspacioReservaSheet` de siempre, con `tipoSolicitud` prefijado por parámetro — **no se convirtió el sheet en un formulario de 4 ramas** (ya es denso: recursos+zonas+ensayos+acompañantes+disponibilidad+descripción).
+- **Desactualizado, ver "Forma única de reserva" más abajo**: el párrafo original de esta viñeta describía un `_MotivoSolicitudDialog` previo al sheet de reserva — ese diálogo se retiró el 2026-09-02 junto con el renombre `EspacioDetalleScreen`→`LaboratorioDetalleScreen`/`EspacioReservaSheet`→`LaboratorioReservaSheet` (Fase 5 de `~/.claude/plans/dazzling-wobbling-zebra.md`). El botón "Nueva solicitud" abre directo el sheet único; el motivo pasó a ser un dropdown dentro de él, poblado por un catálogo real (`motivos_solicitud`) en vez de las 2+2 opciones fijas que describía este párrafo.
 - **`EspacioReservaSheet` gana 2 elementos condicionales al motivo**: si es `reservaFueraLaboratorio`, un `TextField` "¿Dónde se va a usar el equipo?" (`ubicacion_uso`, validado como requerido del lado cliente antes de enviar — si está vacío, el sheet muestra un error y no llama al repositorio). El `SwitchListTile` "¿Requiere apoyo del auxiliar del laboratorio?" aparece para ambos motivos habilitados.
 - **`Reserva`/`ReservasRepository`**: `tipoSolicitud` (default `reservaEnLaboratorio`), `ubicacionUso`, `requiereApoyoAuxiliar` — `crear`/`actualizar` los pasan tal cual, mismo patrón que `descripcion` en A3.
 - **`GestionReservasScreen`/`MisReservasScreen`** muestran el motivo (chip o línea, según el layout de cada tarjeta) solo cuando no es el default, más `ubicacion_uso` si tiene valor y un chip "Requiere auxiliar" cuando aplica.
@@ -392,12 +392,16 @@ Primera de 4 features nuevas de una auditoría de funcionalidad a pedido del usu
 
 ## Gestión de la serie completa de una reserva recurrente (2026-08-29, ronda 2)
 
+**Retirada por completo el 2026-09-02** (Fase 2 de `~/.claude/plans/dazzling-wobbling-zebra.md`, a pedido explícito del usuario) -- `serieId`, `OcurrenciaCancelOmitida`/`ReservaSerieCancelResultado`, `listarSerie`/`cancelarSerie` y el chip "Parte de una serie" de `MisReservasScreen` ya no existen en el código. Sección conservada como registro histórico, no como referencia de comportamiento actual.
+
 Segunda de 4 features de la segunda ronda -- backend en `backend/CLAUDE.md` "Gestión de la serie completa de una reserva recurrente".
 
 - **`Reserva`** gana `serieId` (nullable) y `domain/reserva.dart` gana `OcurrenciaCancelOmitida`/`ReservaSerieCancelResultado`. **`ReservasRepository`** gana `listarSerie(serieId)`/`cancelarSerie(serieId)`.
 - **`MisReservasScreen`**: una `_ReservaCard` con `serieId != null` muestra "Parte de una serie · Ver todas" -- abre un diálogo con las demás ocurrencias (fecha/hora/estado) y un botón "Cancelar toda la serie" que llama a `cancelarSerie` y resume el resultado ("mejor esfuerzo": cuántas se cancelaron, cuántas ya no se podían).
 
 ## Reservas recurrentes -- "mejor esfuerzo" (2026-08-29)
+
+**Retirada por completo el 2026-09-02** (Fase 2 de `~/.claude/plans/dazzling-wobbling-zebra.md`, a pedido explícito del usuario) -- `crearRecurrente`, `OcurrenciaOmitida`/`ReservaSerieResultado`, la sección "Repetir" y `_mostrarResumenSerie` ya no existen; el sheet vuelve a llamar siempre a `crear`. Sección conservada como registro histórico, no como referencia de comportamiento actual.
 
 Última de las 4 features del mismo plan (ver "Export del dashboard a CSV/Excel" arriba) -- backend en `backend/CLAUDE.md` "Reservas recurrentes -- 'mejor esfuerzo'".
 
@@ -489,6 +493,28 @@ Fix (manteniendo la navegación adaptativa actual, sin volver a duplicar el `App
 Test nuevo: `test/shell/navbar_en_ruta_empujada_test.dart` monta `AppShell` directamente (mismo patrón que `session_menu_test.dart`) con cada pantalla como `child`, y confirma que `NavigationBar`/`NavigationRail` del shell sigue presente -- antes del fix, estas pantallas nunca se montaban dentro de un `AppShell` en absoluto porque vivían fuera del `ShellRoute`.
 
 **Deuda pendiente**: este fix no se verificó con `flutter run` real contra un backend (correr la app, entrar a un laboratorio, confirmar visualmente que la barra sigue ahí) -- se cubrió con el test de widget de arriba, que monta el árbol correcto pero no reemplaza una verificación manual real (ver "Definición de terminado" en `CLAUDE.md` de la raíz). Pendiente la próxima vez que haya acceso a un entorno con Chrome/Windows real para correr la app.
+
+## Forma única de reserva: sin diálogo previo de motivo (2026-09-02)
+
+Reemplaza el flujo descrito en "Fase B — motivo de la solicitud" más arriba (ver la nota "Desactualizado" agregada ahí): `LaboratorioDetalleScreen` (`_LaboratorioDetalleBody`, botón "Nueva solicitud") abre `LaboratorioReservaSheet` directo, sin pasar antes por `_MotivoSolicitudDialog` (retirado del código, no solo deshabilitado). `_RecursoTile` tampoco abre ya `RecursoDisponibilidadSheet` por separado -- toca cualquier recurso de la lista de un laboratorio y abre el mismo `LaboratorioReservaSheet` único, con el laboratorio resuelto vía `laboratorioProvider(recurso.laboratorioId)`.
+
+- **El motivo pasa a ser un dropdown dentro del sheet** (`DropdownButtonFormField<int?>`, estado `_motivoSolicitudId`), poblado por `motivosSolicitudProvider(laboratorio.id)` (ver "Motivos de solicitud en tabla por laboratorio" en `backend/CLAUDE.md`) en vez de las 2 opciones fijas habilitadas + 2 deshabilitadas ("Próximamente") del diálogo retirado. Si el laboratorio no tiene motivos cargados (`motivos.isEmpty`), el dropdown no se muestra -- el sheet cae de vuelta al texto fijo de `tipoSolicitudLabel(widget.tipoSolicitud)` que ya mostraba antes de esta fase.
+- **Recursos incluidos por un espacio seleccionado ahora son editables, no de solo lectura**: antes (ver "Feature A" más arriba, `Equipos adicionales en una reserva`), un recurso cubierto por un espacio/zona marcado aparecía tildado con `onChanged: null` (deshabilitado, "no sugiere marcarlo dos veces"). Ahora el checkbox queda habilitado -- se puede destildar para excluir ese recurso puntual de la reserva aunque el espacio que lo trae siga marcado, y volver a tildarlo después. El estado real vive en `_recursoIds` (no se infiere solo de qué espacios están marcados); marcar/desmarcar un espacio sigue agregando/quitando en bloque los recursos que trae, pero a partir de ahí cada uno es editable individualmente.
+- **Bug real corregido en el mismo trabajo** (commits `bd014e1`→`86a770c`→`1f99215`): al implementar el checkbox editable, la rama que renderiza un recurso cubierto-pero-deseleccionado (`estaCubierto && !estaSeleccionado`) quedó con `value: true` **hardcodeado** en vez de `value: false` -- visualmente, destildar el checkbox no tenía ningún efecto (seguía viéndose tildado en el siguiente rebuild, aunque `_recursoIds` sí se había actualizado por debajo). El commit `86a770c` actualizó el test (`laboratorio_reserva_sheet_test.dart`, caso "cubierto aparece tildado y se puede destildar") para esperar el comportamiento correcto, pero el propio fix del widget quedó pendiente hasta `1f99215` -- **lección**: cuando un test se reescribe para reflejar un comportamiento nuevo, correrlo antes de dar la tarea por terminada; una aserción actualizada sin ejecutar la suite completa puede quedar en verde en la cabeza de quien la escribió y roja en la práctica.
+- **`ConfiguracionLaboratorioScreen` conserva su título** ("Configuración del espacio" en el código, aunque el resto de la UI ya dice "laboratorio" -- inconsistencia menor de copy, no funcional, pendiente de un ajuste de texto sin urgencia).
+
+## `features/motivos_solicitud/` (catálogo de solo lectura, 2026-09-02)
+
+Mismo patrón mínimo que un catálogo de solo lectura consumido por un dropdown -- sin pantalla de gestión propia (a diferencia de `features/tipos_reserva/`, que si la tiene). `domain/motivo_solicitud.dart` (Freezed, espejo de `MotivoSolicitudResponse`), `data/motivos_solicitud_repository.dart` (`GET /motivos-solicitud?laboratorio_id=`), `application/motivos_solicitud_providers.dart` (`@riverpod motivosSolicitud(ref, laboratorioId)`). Consumido únicamente por `LaboratorioReservaSheet` (ver sección de arriba).
+
+## Propuesta y contrapropuesta de horarios (Fase C, 2026-09-02)
+
+Backend en `backend/CLAUDE.md`, "Propuesta y contrapropuesta de horarios (Fase C, 2026-09-02)" -- 4 endpoints nuevos sobre una reserva `esperando`, sin pasarla nunca a `rechazada`.
+
+- **`Reserva` gana `propuestaMotivo`/`propuestaHorarios`/`propuestaPor`/`propuestaEn`** (todos nullable, `domain/reserva.dart`) y **`ReservasRepository` gana `proponerHorarios`/`contraproponer`/`aceptarPropuesta`/`rechazarPropuesta`** (uno por endpoint, mismos nombres que el backend).
+- **`GestionReservasScreen` (lado gestor/admin)**: `_proponerHorarios()` abre un diálogo con motivo + horarios (texto libre); `_aceptarContrapropuesta()`/`_rechazarContrapropuesta()` aparecen cuando `reserva.propuestaPor == 'usuario'` (el usuario contrapropuso, le toca al técnico responder). Un bloque visual (`Container` con color/borde distinto según quién propuso -- ámbar si `propuestaPor == 'tecnico'`, celeste si `'usuario'`) muestra la propuesta vigente en la tarjeta de la reserva.
+- **`MisReservasScreen` (lado usuario)**: `_aceptarPropuesta()`/`_rechazarPropuesta()`/`_contraproponer()` -- espejo de lo anterior, visible cuando `reserva.propuestaHorarios != null`. `_aceptarPropuesta`/`aceptarContrapropuesta` piden `fecha`/`hora_inicio`/`hora_fin` reales (no el texto libre de la propuesta, que nunca se parsea del lado cliente tampoco) antes de llamar al backend, que re-valida todo igual que crear una reserva nueva.
+- **Sin test de widget dedicado nuevo** para estos diálogos/bloques -- mismo criterio ya documentado para `LaboratorioReservaSheet`/`GestionReservasScreen` (complejidad de montar, sin test previo tampoco), verificado con `flutter analyze`/`flutter test` global.
 
 ## ⚠️ A `/login` se navega con `go`, NUNCA con `push` (bug real, 2026-08-24)
 
