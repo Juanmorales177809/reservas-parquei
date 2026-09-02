@@ -29,7 +29,7 @@ El navegador (Web) solo habla con `flutter_proxy`, igual que antes hablaba solo 
 
 - `backend/app/`: capas `api/` (rutas), `services/` (reglas de negocio), `crud/` (SQLAlchemy), `schemas/` (Pydantic), `models/`, `domain/` (enums y value objects tipados), `auth/` (JWT + bcrypt), `deps.py` (autorización), `main.py` (lifespan), `migrations.py` (SQL idempotente, sin Alembic).
 - `app_flutter/lib/`: `core/` (config, red, router, tema, widgets compartidos), `features/<dominio>/` (`data/domain/application/presentation`, uno por recurso del backend), `shell/` (navegación adaptativa: bottom nav en móvil/tablet angosta, rail lateral en tablet/ventana media, top nav en escritorio/Web ancho).
-- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md), [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) para detalle por área.
+- Ver [backend/CLAUDE.md](backend/CLAUDE.md), [backend/tests/CLAUDE.md](backend/tests/CLAUDE.md), [app_flutter/CLAUDE.md](app_flutter/CLAUDE.md) y [data-model.md](data-model.md) (modelo de datos final tras Fases 1–7) para detalle por área.
 
 ## Comandos principales
 
