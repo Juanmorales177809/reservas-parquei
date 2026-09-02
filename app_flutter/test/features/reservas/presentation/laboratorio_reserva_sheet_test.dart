@@ -187,7 +187,7 @@ void main() {
       expect(find.textContaining('Incluido en espacio'), findsNothing);
     });
 
-    testWidgets('no sugiere marcar dos veces: cubierto aparece tildado y no se puede destildar', (tester) async {
+    testWidgets('cubierto aparece tildado y se puede destildar (editable al reservar)', (tester) async {
       final laboratorio = _laboratorio(1);
       final recursos = [_recurso(1, 'Proyector')];
       final espacios = [_espacio(10, 'Espacio A', recursoIds: [1])];
@@ -203,7 +203,14 @@ void main() {
             (w) => (w.title as Text).data == 'Proyector',
           );
       expect(tileCubierto.value, isTrue);
-      expect(tileCubierto.onChanged, isNull);
+      expect(tileCubierto.onChanged, isNotNull);
+      // Destildar debe ser posible (requisito: recursos de espacio editables)
+      await tester.tap(find.byWidget(tileCubierto));
+      await tester.pumpAndSettle();
+      final tileDespues = tester.widgetList<CheckboxListTile>(find.byType(CheckboxListTile)).firstWhere(
+            (w) => (w.title as Text).data == 'Proyector',
+          );
+      expect(tileDespues.value, isFalse);
     });
 
     testWidgets('recurso cubierto por múltiples espacios lista todas las espacios que lo cubren', (tester) async {
