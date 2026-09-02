@@ -906,6 +906,22 @@ def migrate_resource_reservations() -> None:
             END IF;
         END $$;
         """,
+        # Fase C (contrapropuesta): propuesta del técnico/usuario sin cambiar
+        # estado (queda `esperando` con bloque activo). Todo nullable, sin
+        # backfill para filas históricas.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS propuesta_motivo TEXT",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS propuesta_horarios TEXT",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS propuesta_por VARCHAR(20)",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS propuesta_en TIMESTAMPTZ",
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_reservas_propuesta_por') THEN
+                ALTER TABLE reservas ADD CONSTRAINT ck_reservas_propuesta_por
+                CHECK (propuesta_por IS NULL OR propuesta_por IN ('tecnico', 'usuario'));
+            END IF;
+        END $$;
+        """,
     )
 
     with engine.begin() as connection:

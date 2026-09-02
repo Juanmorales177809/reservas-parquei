@@ -184,6 +184,39 @@ class ReservasRepository {
     return Reserva.fromJson(response.data!);
   }
 
+  /// Fase C: proponer horarios alternativos (técnico, queda `esperando`).
+  Future<Reserva> proponerHorarios(int reservaId, {required String motivo, required String horarios}) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/reservas/$reservaId/proponer-horarios',
+      data: {'motivo': motivo, 'horarios': horarios},
+    );
+    return Reserva.fromJson(response.data!);
+  }
+
+  /// Fase C: contraproponer (usuario, cuando hay propuesta del técnico).
+  Future<Reserva> contraproponer(int reservaId, {required String motivo, required String horarios}) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/reservas/$reservaId/contraproponer',
+      data: {'motivo': motivo, 'horarios': horarios},
+    );
+    return Reserva.fromJson(response.data!);
+  }
+
+  /// Fase C: aceptar propuesta re-agendando.
+  Future<Reserva> aceptarPropuesta(int reservaId, {required DateTime fecha, required String horaInicio, required String horaFin}) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/reservas/$reservaId/aceptar-propuesta',
+      data: {'fecha': _formatoFecha.format(fecha), 'hora_inicio': horaInicio, 'hora_fin': horaFin},
+    );
+    return Reserva.fromJson(response.data!);
+  }
+
+  /// Fase C: rechazar propuesta (limpia, queda `esperando`).
+  Future<Reserva> rechazarPropuesta(int reservaId) async {
+    final response = await _dio.put<Map<String, dynamic>>('/reservas/$reservaId/rechazar-propuesta');
+    return Reserva.fromJson(response.data!);
+  }
+
   /// `DELETE /reservas/{id}` — solo gestor/admin (usuario no puede).
   Future<void> eliminar(int reservaId) async {
     await _dio.delete<void>('/reservas/$reservaId');

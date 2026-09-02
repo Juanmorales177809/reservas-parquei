@@ -68,6 +68,14 @@ class Reserva(Base):
     # próxima (`services/recordatorios.py`) -- nullable, sin backfill (ver
     # `migrations.py`). NULL = todavía no se le mandó el recordatorio.
     recordatorio_enviado_en = Column(DateTime(timezone=True), nullable=True)
+    # Fase C (contrapropuesta): el técnico propone horarios alternativos en
+    # vez de rechazar; la reserva queda `esperando` con la propuesta visible
+    # y es el usuario quien acepta o contrapropone. Todo nullable: sin
+    # propuesta no hay dato que migrar para filas históricas.
+    propuesta_motivo = Column(Text, nullable=True)
+    propuesta_horarios = Column(Text, nullable=True)
+    propuesta_por = Column(String(20), nullable=True)
+    propuesta_en = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -128,6 +136,7 @@ class Reserva(Base):
     )
 
     __table_args__ = (
+        CheckConstraint("propuesta_por IS NULL OR propuesta_por IN ('tecnico', 'usuario')", name="ck_reservas_propuesta_por"),
         CheckConstraint("estado IN ('esperando', 'aprobada', 'rechazada', 'cancelada')", name="ck_reservas_estado"),
         CheckConstraint("hora_inicio < hora_fin", name="ck_reservas_horario_valido"),
         CheckConstraint("asistentes > 0", name="ck_reservas_asistentes_positivos"),

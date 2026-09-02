@@ -1,4 +1,5 @@
-from datetime import date, datetime, time, timedelta
+import html
+from datetime import date, datetime, time, timedelta, timezone
 from dataclasses import dataclass
 
 from fastapi import HTTPException, status
@@ -42,6 +43,8 @@ from app.services.auditoria import registrar_cambio
 from app.services.email import Adjunto, encolar_correo, procesar_pendientes
 from app.services.ics import construir_ics
 from app.services.email_templates import (
+    plantilla_contrapropuesta_tecnico,
+    plantilla_propuesta_horarios,
     plantilla_reserva_actualizada,
     plantilla_reserva_cancelada_por_usuario,
     plantilla_reserva_eliminada,
@@ -774,6 +777,308 @@ def cambiar_estado(
             mensaje_auditoria,
         )
     _sincronizar_campos_asociaciones(db, reserva)
+    confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
+    db.refresh(reserva)
+    return get_reserva(db, reserva.id) or reserva
+
+
+def _validar_propuesta_texto(motivo: str, horarios: str) -> tuple[str, str]:
+    motivo = motivo.strip()
+    horarios = horarios.strip()
+    if not motivo or not horarios:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Motivo y horarios son obligatorios")
+    if len(motivo) > 500:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El motivo no puede superar los 500 caracteres")
+    if len(horarios) > 1000:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Los horarios no pueden superar los 1000 caracteres")
+    return motivo, horarios
+
+
+def proponer_horarios(
+    db: Session, reserva_id: int, motivo: str, horarios: str, tecnico: Personal
+) -> Reserva:
+    """Fase C: el técnico propone horarios alternativos sin cambiar estado."""
+    if tecnico.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el técnico puede proponer horarios")
+    motivo, horarios = _validar_propuesta_texto(motivo, horarios)
+    reserva = get_reserva(db, reserva_id)
+    if reserva is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
+    if reserva.estado != EstadoReserva.ESPERANDO.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo se puede proponer horarios para reservas pendientes")
+    laboratorio_gestionado = get_managed_laboratory_id(db, tecnico)
+    if laboratorio_gestionado is not None and reserva.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
+    reserva.propuesta_motivo = motivo
+    reserva.propuesta_horarios = horarios
+    reserva.propuesta_por = "tecnico"
+    reserva.propuesta_en = datetime.now(timezone.utc)
+    # Notificación + correo al dueño
+    db.add(
+        Notificacion(
+            **columnas_actor(reserva.actor),
+            reserva_id=reserva.id,
+            tipo=TipoNotificacion.ACTUALIZADA.value,
+        )
+    )
+    encolar_correo(
+        db,
+        destinatario=reserva.actor.email,
+        asunto=f"Tu reserva #{reserva.id} tiene una propuesta de nuevo horario",
+        cuerpo=plantilla_propuesta_horarios(
+            nombre_saludo=reserva.actor.username,
+            reserva_id=reserva.id,
+            espacio=reserva.laboratorio.nombre,
+            fecha=str(reserva.fecha),
+            hora_inicio=str(reserva.hora_inicio),
+            hora_fin=str(reserva.hora_fin),
+            motivo=motivo,
+            horarios=horarios,
+            es_contrapropuesta=False,
+        ),
+        es_html=True,
+    )
+    registrar_cambio(
+        db,
+        tecnico,
+        "proponer horarios",
+        "reserva",
+        reserva.id,
+        f"Propuso horarios para #{reserva.id}: {horarios} - Motivo: {motivo}",
+    )
+    confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
+    db.refresh(reserva)
+    return get_reserva(db, reserva.id) or reserva
+
+
+def contraproponer(
+    db: Session, reserva_id: int, motivo: str, horarios: str, usuario: Personal | Usuario
+) -> Reserva:
+    """Fase C: el usuario contrapropone horarios al técnico."""
+    motivo, horarios = _validar_propuesta_texto(motivo, horarios)
+    reserva = get_reserva(db, reserva_id)
+    if reserva is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
+    if not es_actor(reserva, usuario):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el dueño de la reserva puede contraproponer")
+    if reserva.estado != EstadoReserva.ESPERANDO.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo se puede contraproponer para reservas pendientes")
+    if reserva.propuesta_por != "tecnico":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo puedes contraproponer cuando el técnico te propuso horarios")
+    reserva.propuesta_motivo = motivo
+    reserva.propuesta_horarios = horarios
+    reserva.propuesta_por = "usuario"
+    reserva.propuesta_en = datetime.now(timezone.utc)
+    # Notificar a gestores del laboratorio
+    gestores = (
+        db.query(Personal.id, Personal.username, Personal.email)
+        .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
+        .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
+        .all()
+    )
+    # También admin ve todo, pero el correo al menos a gestores; admin puede ver en UI
+    for _, _, gestor_email in gestores:
+        encolar_correo(
+            db,
+            destinatario=gestor_email,
+            asunto=f"Contrapropuesta para reserva #{reserva.id}",
+            cuerpo=plantilla_contrapropuesta_tecnico(
+                nombre_saludo=reserva.actor.username,
+                reserva_id=reserva.id,
+                espacio=reserva.laboratorio.nombre,
+                fecha=str(reserva.fecha),
+                hora_inicio=str(reserva.hora_inicio),
+                hora_fin=str(reserva.hora_fin),
+                motivo=motivo,
+                horarios=horarios,
+            ),
+            es_html=True,
+        )
+    # Notificación al técnico no es directa (no hay actor único), se usa auditoría; el gestor verá en su bandeja si filtramos por laboratorio
+    db.add(
+        Notificacion(
+            **columnas_actor(reserva.actor),
+            reserva_id=reserva.id,
+            tipo=TipoNotificacion.ACTUALIZADA.value,
+        )
+    )
+    registrar_cambio(
+        db,
+        usuario,
+        "contraproponer",
+        "reserva",
+        reserva.id,
+        f"Contrapropuso para #{reserva.id}: {horarios} - Motivo: {motivo}",
+    )
+    confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
+    db.refresh(reserva)
+    return get_reserva(db, reserva.id) or reserva
+
+
+def aceptar_propuesta(
+    db: Session, reserva_id: int, fecha: date, hora_inicio: time, hora_fin: time, actor: Personal | Usuario
+) -> Reserva:
+    """Fase C: acepta la propuesta vigente re-agendando la reserva."""
+    reserva = get_reserva(db, reserva_id)
+    if reserva is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
+    if reserva.estado != EstadoReserva.ESPERANDO.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo se puede aceptar propuesta para reservas pendientes")
+    if not reserva.propuesta_horarios or not reserva.propuesta_por:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No hay propuesta vigente para aceptar")
+    # Quién puede aceptar: si la propuesta es del técnico, solo el dueño; si es del usuario, solo gestor/admin del lab
+    if reserva.propuesta_por == "tecnico":
+        if not es_actor(reserva, actor):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el dueño puede aceptar la propuesta del técnico")
+    else:  # propuesta_por == usuario
+        if actor.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el técnico puede aceptar la contrapropuesta")
+        lab_gestionado = get_managed_laboratory_id(db, actor)
+        if lab_gestionado is not None and reserva.laboratorio_id != lab_gestionado:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
+    if hora_inicio >= hora_fin:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La hora de inicio debe ser menor que la hora de fin")
+    # Validar contra el laboratorio y solapamiento (mismo que crear/editar)
+    objetivo = _resolver_objetivo(
+        db,
+        recurso_ids=get_recurso_ids_reserva(db, reserva.id),
+        espacio_ids=get_espacio_ids_reserva(db, reserva.id),
+        usuario=actor if isinstance(actor, Personal) else reserva.actor,  # para validar laboratorio fijo
+        laboratorio_id_fijo=reserva.laboratorio_id,
+    )
+    _validar_objetivo(
+        db,
+        objetivo,
+        fecha=fecha,
+        hora_inicio=hora_inicio,
+        hora_fin=hora_fin,
+        asistentes=reserva.asistentes,
+        exclude_id=reserva.id,
+    )
+    # Todo ok: re-agendar y limpiar propuesta
+    reserva.fecha = fecha
+    reserva.hora_inicio = hora_inicio
+    reserva.hora_fin = hora_fin
+    # recurso ancla puede necesitar recalcular si el objetivo cambió de laboratorio? No, laboratorio fijo, así que igual
+    reserva.propuesta_motivo = None
+    reserva.propuesta_horarios = None
+    reserva.propuesta_por = None
+    reserva.propuesta_en = None
+    _reescribir_asociaciones(db, reserva, objetivo)  # recrea con nueva fecha/hora pero mismo objetivo
+    # Notificar al otro lado
+    otro_email = None
+    otro_nombre = None
+    if actor_es_dueno := es_actor(reserva, actor):
+        # dueño aceptó propuesta del técnico → avisar a gestores
+        gestores = (
+            db.query(Personal.email, Personal.username)
+            .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
+            .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
+            .all()
+        )
+        for email, username in gestores:
+            encolar_correo(
+                db,
+                destinatario=email,
+                asunto=f"Propuesta aceptada para reserva #{reserva.id}",
+                cuerpo=plantilla_reserva_actualizada(
+                    nombre_saludo=username,
+                    reserva_id=reserva.id,
+                    espacio=reserva.laboratorio.nombre,
+                    fecha=str(fecha),
+                    hora_inicio=str(hora_inicio),
+                    hora_fin=str(hora_fin),
+                    detalle=f"nuevo horario {fecha} {hora_inicio}-{hora_fin}",
+                ),
+                es_html=True,
+            )
+        # Notificación al dueño ya no hace falta (él aceptó)
+        registrar_cambio(db, actor, "aceptar propuesta", "reserva", reserva.id, f"Aceptó propuesta y re-agendó #{reserva.id} a {fecha} {hora_inicio}-{hora_fin}")
+    else:
+        # técnico aceptó contrapropuesta del usuario → avisar al dueño
+        otro_email = reserva.actor.email
+        otro_nombre = reserva.actor.username
+        encolar_correo(
+            db,
+            destinatario=otro_email,
+            asunto=f"Tu contrapropuesta para #{reserva.id} fue aceptada",
+            cuerpo=plantilla_propuesta_horarios(
+                nombre_saludo=otro_nombre,
+                reserva_id=reserva.id,
+                espacio=reserva.laboratorio.nombre,
+                fecha=str(fecha),
+                hora_inicio=str(hora_inicio),
+                hora_fin=str(hora_fin),
+                motivo="Tu propuesta fue aceptada",
+                horarios=f"{fecha} {hora_inicio}-{hora_fin}",
+                es_contrapropuesta=True,
+            ),
+            es_html=True,
+        )
+        db.add(Notificacion(**columnas_actor(reserva.actor), reserva_id=reserva.id, tipo=TipoNotificacion.ACTUALIZADA.value))
+        registrar_cambio(db, actor, "aceptar contrapropuesta", "reserva", reserva.id, f"Aceptó contrapropuesta y re-agendó #{reserva.id} a {fecha} {hora_inicio}-{hora_fin}")
+    _sincronizar_campos_asociaciones(db, reserva)
+    confirmar_cambios_reserva(db)
+    procesar_pendientes(db)
+    db.refresh(reserva)
+    return get_reserva(db, reserva.id) or reserva
+
+
+def rechazar_propuesta(
+    db: Session, reserva_id: int, actor: Personal | Usuario
+) -> Reserva:
+    """Fase C: rechaza la propuesta vigente y la limpia, queda `esperando`."""
+    reserva = get_reserva(db, reserva_id)
+    if reserva is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
+    if reserva.estado != EstadoReserva.ESPERANDO.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo se puede rechazar propuesta para reservas pendientes")
+    if not reserva.propuesta_horarios:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No hay propuesta vigente para rechazar")
+    # Quién puede rechazar: dueño si propuesta es de técnico, técnico si es de usuario
+    if reserva.propuesta_por == "tecnico" and not es_actor(reserva, actor):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el dueño puede rechazar la propuesta del técnico")
+    if reserva.propuesta_por == "usuario" and actor.rol not in {Rol.ADMIN.value, Rol.GESTOR.value}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el técnico puede rechazar la contrapropuesta")
+    if reserva.propuesta_por == "usuario":
+        lab_gestionado = get_managed_laboratory_id(db, actor)
+        if lab_gestionado is not None and reserva.laboratorio_id != lab_gestionado:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
+    propuesta_previa = reserva.propuesta_horarios
+    reserva.propuesta_motivo = None
+    reserva.propuesta_horarios = None
+    reserva.propuesta_por = None
+    reserva.propuesta_en = None
+    # Notificar al otro lado
+    if es_actor(reserva, actor):
+        # dueño rechazó propuesta del técnico → avisar a gestores
+        gestores = (
+            db.query(Personal.email, Personal.username)
+            .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
+            .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
+            .all()
+        )
+        for email, username in gestores:
+            encolar_correo(
+                db,
+                destinatario=email,
+                asunto=f"Propuesta rechazada para reserva #{reserva.id}",
+                cuerpo=f"<p>{html.escape(actor.username)} rechazó tu propuesta de horarios para la reserva #{reserva.id}. La reserva sigue pendiente con su horario original.</p>",
+                es_html=True,
+            )
+    else:
+        encolar_correo(
+            db,
+            destinatario=reserva.actor.email,
+            asunto=f"Tu contrapropuesta para #{reserva.id} fue rechazada",
+            cuerpo=f"<p>Tu contrapropuesta para la reserva #{reserva.id} fue rechazada. La reserva sigue pendiente; el técnico podrá proponerte nuevos horarios.</p>",
+            es_html=True,
+        )
+        db.add(Notificacion(**columnas_actor(reserva.actor), reserva_id=reserva.id, tipo=TipoNotificacion.ACTUALIZADA.value))
+    registrar_cambio(db, actor, "rechazar propuesta", "reserva", reserva.id, f"Rechazó propuesta {propuesta_previa} para #{reserva.id}")
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
     db.refresh(reserva)

@@ -138,6 +138,10 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
         ),
   asistio: json['asistio'] as bool?,
   motivoRechazo: json['motivo_rechazo'] as String?,
+  propuestaMotivo: json['propuesta_motivo'] as String?,
+  propuestaHorarios: json['propuesta_horarios'] as String?,
+  propuestaPor: json['propuesta_por'] as String?,
+  propuestaEn: json['propuesta_en'] as String?,
   descripcion: json['descripcion'] as String?,
   tipoSolicitud:
       $enumDecodeNullable(_$TipoSolicitudEnumMap, json['tipo_solicitud']) ??
@@ -191,6 +195,10 @@ Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
   'tipo_reserva': instance.tipoReserva,
   'asistio': instance.asistio,
   'motivo_rechazo': instance.motivoRechazo,
+  'propuesta_motivo': instance.propuestaMotivo,
+  'propuesta_horarios': instance.propuestaHorarios,
+  'propuesta_por': instance.propuestaPor,
+  'propuesta_en': instance.propuestaEn,
   'descripcion': instance.descripcion,
   'tipo_solicitud': _$TipoSolicitudEnumMap[instance.tipoSolicitud]!,
   'ubicacion_uso': instance.ubicacionUso,

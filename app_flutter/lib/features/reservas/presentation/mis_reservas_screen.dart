@@ -401,6 +401,131 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
     }
   }
 
+  Future<void> _aceptarPropuesta(BuildContext context) async {
+    final fechaCtrl = TextEditingController(text: widget.reserva.fecha);
+    final inicioCtrl = TextEditingController(text: widget.reserva.horaInicio.substring(0, 5));
+    final finCtrl = TextEditingController(text: widget.reserva.horaFin.substring(0, 5));
+    final formKey = GlobalKey<FormState>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aceptar propuesta'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Propuesta: ${widget.reserva.propuestaHorarios}', style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: fechaCtrl,
+                decoration: const InputDecoration(labelText: 'Fecha (YYYY-MM-DD)'),
+                readOnly: true,
+                onTap: () async {
+                  final ini = DateTime.tryParse(fechaCtrl.text) ?? DateTime.now();
+                  final picked = await showDatePicker(context: ctx, initialDate: ini, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                  if (picked != null) {
+                    fechaCtrl.text = '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                  }
+                },
+                validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: inicioCtrl,
+                decoration: const InputDecoration(labelText: 'Hora inicio (HH:MM)'),
+                validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: finCtrl,
+                decoration: const InputDecoration(labelText: 'Hora fin (HH:MM)'),
+                validator: (v) => (v == null || !RegExp(r'^\d{2}:\d{2}$').hasMatch(v)) ? 'HH:MM' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => {if (formKey.currentState!.validate()) Navigator.pop(ctx, true)}, child: const Text('Aceptar')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _cancelando = true);
+    try {
+      await ref.read(reservasRepositoryProvider).aceptarPropuesta(
+            widget.reserva.id,
+            fecha: DateTime.parse(fechaCtrl.text),
+            horaInicio: inicioCtrl.text,
+            horaFin: finCtrl.text,
+          );
+      ref.invalidate(misReservasProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Propuesta aceptada, reserva re-agendada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo aceptar la propuesta.'))));
+    } finally {
+      if (mounted) setState(() => _cancelando = false);
+    }
+  }
+
+  Future<void> _rechazarPropuesta() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rechazar propuesta'),
+        content: const Text('¿Rechazar la propuesta? La reserva seguirá pendiente con su horario original.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Rechazar'))],
+      ),
+    );
+    if (confirmar != true) return;
+    setState(() => _cancelando = true);
+    try {
+      await ref.read(reservasRepositoryProvider).rechazarPropuesta(widget.reserva.id);
+      ref.invalidate(misReservasProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Propuesta rechazada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo rechazar la propuesta.'))));
+    } finally {
+      if (mounted) setState(() => _cancelando = false);
+    }
+  }
+
+  Future<void> _contraproponer(BuildContext context) async {
+    final motivoCtrl = TextEditingController();
+    final horariosCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Contraproponer horarios'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(controller: motivoCtrl, decoration: const InputDecoration(labelText: 'Motivo *'), maxLength: 500, validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(controller: horariosCtrl, decoration: const InputDecoration(labelText: 'Horarios propuestos *', hintText: 'Ej. 12/09 14:00-16:00; 13/09 08:00-10:00'), maxLines: 3, maxLength: 1000, validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null),
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => {if (formKey.currentState!.validate()) Navigator.pop(ctx, true)}, child: const Text('Enviar'))],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _cancelando = true);
+    try {
+      await ref.read(reservasRepositoryProvider).contraproponer(widget.reserva.id, motivo: motivoCtrl.text.trim(), horarios: horariosCtrl.text.trim());
+      ref.invalidate(misReservasProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contrapropuesta enviada.')));
+    } on Object catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo enviar la contrapropuesta.'))));
+    } finally {
+      if (mounted) setState(() => _cancelando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reserva = widget.reserva;
@@ -496,7 +621,94 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
                 ),
               ),
             ],
-            if (reserva.estado == EstadoReserva.esperando) ...[
+            // Fase C: propuesta del técnico / contrapropuesta del usuario
+            if (reserva.propuestaHorarios != null && reserva.propuestaPor != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: reserva.propuestaPor == 'tecnico' ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(
+                    color: reserva.propuestaPor == 'tecnico' ? const Color(0xFFFCD34D) : const Color(0xFF93C5FD),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          reserva.propuestaPor == 'tecnico' ? LucideIcons.clockArrowDown : LucideIcons.clockArrowUp,
+                          size: 14,
+                          color: reserva.propuestaPor == 'tecnico' ? const Color(0xFF92400E) : const Color(0xFF1E40AF),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          reserva.propuestaPor == 'tecnico' ? 'Propuesta del técnico' : 'Tu contrapropuesta (esperando respuesta)',
+                          style: textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: reserva.propuestaPor == 'tecnico' ? const Color(0xFF92400E) : const Color(0xFF1E40AF),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (reserva.propuestaMotivo != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text('Motivo: ${reserva.propuestaMotivo}', style: textTheme.bodySmall),
+                    ],
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Horarios: ${reserva.propuestaHorarios}', style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (reserva.propuestaPor == 'tecnico') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _cancelando ? null : () => _aceptarPropuesta(context),
+                        icon: const Icon(LucideIcons.check, size: 16),
+                        label: const Text('Aceptar horario'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _cancelando ? null : () => _rechazarPropuesta(),
+                        icon: const Icon(LucideIcons.x, size: 16),
+                        label: const Text('Rechazar'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _cancelando ? null : () => _contraproponer(context),
+                    icon: const Icon(LucideIcons.reply, size: 16),
+                    label: const Text('Contraproponer otros horarios'),
+                  ),
+                ),
+              ] else ...[
+                // propuesta del usuario — esperando respuesta del técnico
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _cancelando ? null : () => _rechazarPropuesta(),
+                        icon: const Icon(LucideIcons.x, size: 16),
+                        label: const Text('Cancelar contrapropuesta'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+            if (reserva.estado == EstadoReserva.esperando && reserva.propuestaHorarios == null) ...[
               const SizedBox(height: AppSpacing.md),
               Align(
                 alignment: Alignment.centerRight,

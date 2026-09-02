@@ -117,6 +117,12 @@ abstract class Reserva with _$Reserva {
     TipoReservaReserva? tipoReserva,
     bool? asistio,
     String? motivoRechazo,
+    // Fase C: propuesta del técnico/usuario sin cambiar estado (queda
+    // `esperando` con bloque activo). Todo nullable: sin propuesta no hay dato.
+    String? propuestaMotivo,
+    String? propuestaHorarios,
+    String? propuestaPor,
+    String? propuestaEn,
     // Fase A3: texto libre opcional -- "Actividad a realizar".
     String? descripcion,
     // Fase B: siempre tiene valor (NOT NULL con default en el backend).

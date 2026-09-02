@@ -1717,6 +1717,34 @@
         "title": "RegistroRequest",
         "type": "object"
       },
+      "ReservaAceptarPropuesta": {
+        "additionalProperties": false,
+        "description": "Fase C: acepta la propuesta vigente re-agendando la reserva.",
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "ReservaAceptarPropuesta",
+        "type": "object"
+      },
       "ReservaAcompananteResponse": {
         "properties": {
           "correo": {
@@ -1752,6 +1780,30 @@
           "asistio"
         ],
         "title": "ReservaAsistioUpdate",
+        "type": "object"
+      },
+      "ReservaContraproponer": {
+        "additionalProperties": false,
+        "description": "Fase C: el usuario contrapropone horarios al técnico.",
+        "properties": {
+          "horarios": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Horarios",
+            "type": "string"
+          },
+          "motivo": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "motivo",
+          "horarios"
+        ],
+        "title": "ReservaContraproponer",
         "type": "object"
       },
       "ReservaCreate": {
@@ -1891,6 +1943,30 @@
         "title": "ReservaEstadoUpdate",
         "type": "object"
       },
+      "ReservaProponerHorarios": {
+        "additionalProperties": false,
+        "description": "Fase C: el técnico propone horarios alternativos sin cambiar estado\n(queda `esperando` con bloque activo).",
+        "properties": {
+          "horarios": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Horarios",
+            "type": "string"
+          },
+          "motivo": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "motivo",
+          "horarios"
+        ],
+        "title": "ReservaProponerHorarios",
+        "type": "object"
+      },
       "ReservaResponse": {
         "properties": {
           "acompanantes": {
@@ -1984,6 +2060,51 @@
               }
             ],
             "title": "Motivo Rechazo"
+          },
+          "propuesta_en": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Propuesta En"
+          },
+          "propuesta_horarios": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Propuesta Horarios"
+          },
+          "propuesta_motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Propuesta Motivo"
+          },
+          "propuesta_por": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Propuesta Por"
           },
           "recurso_ids": {
             "items": {
@@ -5124,6 +5245,63 @@
         ]
       }
     },
+    "/reservas/{reserva_id}/aceptar-propuesta": {
+      "put": {
+        "operationId": "aceptar_propuesta_endpoint_reservas__reserva_id__aceptar_propuesta_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaAceptarPropuesta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Aceptar Propuesta Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
     "/reservas/{reserva_id}/asistio": {
       "put": {
         "operationId": "marcar_asistencia_endpoint_reservas__reserva_id__asistio_put",
@@ -5228,6 +5406,63 @@
         ]
       }
     },
+    "/reservas/{reserva_id}/contraproponer": {
+      "put": {
+        "operationId": "contraproponer_endpoint_reservas__reserva_id__contraproponer_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaContraproponer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Contraproponer Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
     "/reservas/{reserva_id}/estado": {
       "put": {
         "operationId": "cambiar_estado_endpoint_reservas__reserva_id__estado_put",
@@ -5280,6 +5515,110 @@
           }
         ],
         "summary": "Cambiar Estado Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}/proponer-horarios": {
+      "put": {
+        "operationId": "proponer_horarios_endpoint_reservas__reserva_id__proponer_horarios_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaProponerHorarios"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Proponer Horarios Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/{reserva_id}/rechazar-propuesta": {
+      "put": {
+        "operationId": "rechazar_propuesta_endpoint_reservas__reserva_id__rechazar_propuesta_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Rechazar Propuesta Endpoint",
         "tags": [
           "reservas"
         ]

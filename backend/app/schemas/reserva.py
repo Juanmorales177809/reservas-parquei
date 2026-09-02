@@ -144,6 +144,57 @@ class ReservaEstadoUpdate(BaseModel):
         return self
 
 
+class ReservaProponerHorarios(BaseModel):
+    """Fase C: el técnico propone horarios alternativos sin cambiar estado
+    (queda `esperando` con bloque activo)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    motivo: str = Field(min_length=1, max_length=500)
+    horarios: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("motivo", "horarios")
+    @classmethod
+    def _strip_no_vacio(cls, value: str) -> str:
+        v = value.strip()
+        if len(v) == 0:
+            raise ValueError("No puede estar vacío")
+        return v
+
+
+class ReservaContraproponer(BaseModel):
+    """Fase C: el usuario contrapropone horarios al técnico."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    motivo: str = Field(min_length=1, max_length=500)
+    horarios: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("motivo", "horarios")
+    @classmethod
+    def _strip_no_vacio(cls, value: str) -> str:
+        v = value.strip()
+        if len(v) == 0:
+            raise ValueError("No puede estar vacío")
+        return v
+
+
+class ReservaAceptarPropuesta(BaseModel):
+    """Fase C: acepta la propuesta vigente re-agendando la reserva."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    fecha: date
+    hora_inicio: time
+    hora_fin: time
+
+    @model_validator(mode="after")
+    def _horario_valido(self) -> "ReservaAceptarPropuesta":
+        if self.hora_inicio >= self.hora_fin:
+            raise ValueError("La hora de inicio debe ser menor que la hora de fin")
+        return self
+
+
 class UsuarioReservaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -281,6 +332,13 @@ class ReservaResponse(BaseModel):
     asistio: bool | None = None
     # Motivo de rechazo (Fase 6): `null` salvo cuando `estado == rechazada`.
     motivo_rechazo: str | None = None
+    # Fase C (contrapropuesta): propuesta del técnico/usuario sin cambiar
+    # estado (queda `esperando` con bloque activo). Todo nullable: sin
+    # propuesta no hay dato.
+    propuesta_motivo: str | None = None
+    propuesta_horarios: str | None = None
+    propuesta_por: str | None = None
+    propuesta_en: datetime | None = None
     # Fase A3: `null` cuando no se especificó ninguna descripción.
     descripcion: str | None = None
     # Fase B: siempre tiene valor (NOT NULL con default en la columna).

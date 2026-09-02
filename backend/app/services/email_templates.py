@@ -539,6 +539,66 @@ def plantilla_reserva_estado(
     )
 
 
+def plantilla_propuesta_horarios(
+    *,
+    nombre_saludo: str,
+    reserva_id: int,
+    espacio: str,
+    fecha: str,
+    hora_inicio: str,
+    hora_fin: str,
+    motivo: str,
+    horarios: str,
+    es_contrapropuesta: bool = False,
+) -> str:
+    """Fase C: propuesta del técnico (o aceptación de contrapropuesta) con
+    horarios alternativos. La reserva queda `esperando` con bloque activo."""
+    tarjeta = _tarjeta_reserva(estado="pendiente", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    titulo = "Tu contrapropuesta fue<br>aceptada" if es_contrapropuesta else "Tu reserva tiene<br>una propuesta"
+    pre = f"Tu contrapropuesta para #{reserva_id} fue aceptada" if es_contrapropuesta else f"Tu reserva #{reserva_id} tiene una propuesta de nuevo horario"
+    intro = "Tu contrapropuesta fue aceptada. Nuevo horario confirmado:" if es_contrapropuesta else "El técnico propone nuevos horarios para tu reserva:"
+    motivo_html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;">
+<tr><td style="padding:12px 18px;background-color:#f8fafc;border-radius:8px;border:1px solid #e9ecf2;">
+<p style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#9199a6;">Motivo</p>
+<p style="margin:4px 0 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">{_esc(motivo)}</p>
+</td></tr></table>"""
+    horarios_html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+<tr><td style="padding:12px 18px;background-color:#fef3c7;border-radius:8px;border:1px solid #fcd34d;">
+<p style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;">Horarios propuestos</p>
+<p style="margin:4px 0 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#92400e;white-space:pre-line;">{_esc(horarios)}</p>
+</td></tr></table>"""
+    cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">{intro}</p>
+{tarjeta}
+{motivo_html}
+{horarios_html}
+<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Mis reservas</strong> para aceptar uno de los horarios o contraproponer otros. La reserva sigue pendiente con su horario original hasta que elijas.</p>"""
+    cierre = "Si ninguno te sirve, podés contraproponer otros horarios desde la app."
+    return _envoltorio(preheader=pre, contenido_html=_contenido_simple(nombre_saludo=nombre_saludo, heading=titulo, cuerpo_html=cuerpo, cierre=cierre), disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.")
+
+
+def plantilla_contrapropuesta_tecnico(
+    *, nombre_saludo: str, reserva_id: int, espacio: str, fecha: str, hora_inicio: str, hora_fin: str, motivo: str, horarios: str
+) -> str:
+    """Aviso al técnico: el usuario contrapropuso horarios."""
+    tarjeta = _tarjeta_reserva(estado="pendiente", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    motivo_html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;">
+<tr><td style="padding:12px 18px;background-color:#f8fafc;border-radius:8px;border:1px solid #e9ecf2;">
+<p style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#9199a6;">Motivo del usuario</p>
+<p style="margin:4px 0 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">{_esc(motivo)}</p>
+</td></tr></table>"""
+    horarios_html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+<tr><td style="padding:12px 18px;background-color:#dbeafe;border-radius:8px;border:1px solid #93c5fd;">
+<p style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1e40af;">Horarios contrapropuestos</p>
+<p style="margin:4px 0 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#1e40af;white-space:pre-line;">{_esc(horarios)}</p>
+</td></tr></table>"""
+    cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">{_esc(nombre_saludo)} contrapropuso nuevos horarios para la reserva #{reserva_id}:</p>
+{tarjeta}
+{motivo_html}
+{horarios_html}
+<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Gestión de reservas</strong> para aceptar la contrapropuesta, rechazarla o proponer otros horarios.</p>"""
+    return _envoltorio(preheader=f"Contrapropuesta para reserva #{reserva_id} de {espacio}", contenido_html=_contenido_simple(nombre_saludo=nombre_saludo, heading="Nueva<br>contrapropuesta", cuerpo_html=cuerpo, cierre="Ingresá al sistema para gestionarla."), disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.")
+
+
 def plantilla_reserva_actualizada(
     *, nombre_saludo: str, reserva_id: int, espacio: str, fecha: str, hora_inicio: str, hora_fin: str, detalle: str
 ) -> str:
