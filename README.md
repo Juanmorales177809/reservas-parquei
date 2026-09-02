@@ -9,6 +9,7 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 - Reservas multi-recurso y multi-espacio: al elegir un `Espacio` se pre-seleccionan sus `Recursos` pero son editables (quitar/poner) al reservar.
 - Propuesta/contrapropuesta sin pasar a `rechazada`: el técnico propone horarios alternativos (`propuesta_motivo/horarios/por/en` en `reservas`, queda `esperando` con bloque activo), el usuario acepta (re-agenda), rechaza o contrapropone; correos con botón `Ver reserva` (`FRONTEND_URL`).
 - Tipos y motivos en tabla por laboratorio (`tipos_reserva`, `motivos_solicitud` con `UNIQUE(laboratorio_id,nombre)`), no enums fijos.
+- Recursos que exigen acompañamiento del auxiliar del laboratorio (`Recurso.requiere_apoyo_auxiliar`): al reservarlos, el campo `requiere_apoyo_auxiliar` de la reserva se fuerza a `true` sin que el usuario pueda destildarlo.
 - Acompañantes nombrados (nombre y correo) por reserva.
 - Validación de capacidad efectiva (min laboratorio/espacios/recursos), anticipación, estado y horario de atención.
 - Prevención transaccional de reservas superpuestas en PostgreSQL (`btree_gist` `EXCLUDE` en `reservas`, `reserva_recursos` y `reserva_espacios`).
