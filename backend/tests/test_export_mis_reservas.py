@@ -9,13 +9,13 @@ import io
 
 from openpyxl import load_workbook
 
-from tests.conftest import cookies_para, crear_espacio, crear_recurso, crear_usuario, fecha_habilitada, payload_reserva
+from tests.conftest import cookies_para, crear_laboratorio, crear_recurso, crear_usuario, fecha_habilitada, payload_reserva
 
 
 def test_export_csv_incluye_la_reserva_propia(client, db):
-    espacio = crear_espacio(db, nombre="Espacio Export Reservas")
+    laboratorio = crear_laboratorio(db, nombre="Laboratorio Export Reservas")
     usuario = crear_usuario(db, username="export_reservas_user", email="export_reservas_user@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Recurso Export Reservas")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Recurso Export Reservas")
     headers = cookies_para(usuario)
     client.post("/reservas", json=payload_reserva(recurso.id, fecha_habilitada()), headers=headers)
 
@@ -24,14 +24,14 @@ def test_export_csv_incluye_la_reserva_propia(client, db):
     assert respuesta.status_code == 200
     assert respuesta.headers["content-type"].startswith("text/csv")
     filas = list(csv.reader(io.StringIO(respuesta.content.decode("utf-8-sig"))))
-    assert filas[0] == ["Fecha", "Hora inicio", "Hora fin", "Espacio", "Recursos", "Estado", "Asistentes"]
-    assert any(fila[3] == espacio.nombre for fila in filas[1:])
+    assert filas[0] == ["Fecha", "Hora inicio", "Hora fin", "Laboratorio", "Recursos", "Estado", "Asistentes"]
+    assert any(fila[3] == laboratorio.nombre for fila in filas[1:])
 
 
 def test_export_xlsx_devuelve_libro_valido(client, db):
-    espacio = crear_espacio(db, nombre="Espacio Export XLSX")
+    laboratorio = crear_laboratorio(db, nombre="Laboratorio Export XLSX")
     usuario = crear_usuario(db, username="export_reservas_xlsx", email="export_reservas_xlsx@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Recurso Export XLSX")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Recurso Export XLSX")
     headers = cookies_para(usuario)
     client.post("/reservas", json=payload_reserva(recurso.id, fecha_habilitada()), headers=headers)
 
@@ -45,10 +45,10 @@ def test_export_xlsx_devuelve_libro_valido(client, db):
 
 
 def test_export_no_incluye_reservas_de_otro(client, db):
-    espacio = crear_espacio(db, nombre="Espacio Export Ajeno")
+    laboratorio = crear_laboratorio(db, nombre="Laboratorio Export Ajeno")
     dueno = crear_usuario(db, username="export_dueno", email="export_dueno@example.com", rol="usuario")
     otro = crear_usuario(db, username="export_otro", email="export_otro@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=dueno, nombre="Recurso Export Ajeno")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=dueno, nombre="Recurso Export Ajeno")
     client.post("/reservas", json=payload_reserva(recurso.id, fecha_habilitada()), headers=cookies_para(dueno))
 
     respuesta = client.get("/reservas/mis-reservas/export", params={"formato": "csv"}, headers=cookies_para(otro))

@@ -16,19 +16,19 @@ enum RolUsuario {
 }
 
 @freezed
-abstract class EspacioResumen with _$EspacioResumen {
-  const factory EspacioResumen({
+abstract class LaboratorioResumen with _$LaboratorioResumen {
+  const factory LaboratorioResumen({
     required int id,
     required String nombre,
     required String ubicacion,
-  }) = _EspacioResumen;
+  }) = _LaboratorioResumen;
 
-  factory EspacioResumen.fromJson(Map<String, dynamic> json) => _$EspacioResumenFromJson(json);
+  factory LaboratorioResumen.fromJson(Map<String, dynamic> json) => _$LaboratorioResumenFromJson(json);
 }
 
-/// Espejo de `AuthUser` en `frontend/src/types/auth.ts`. `espacio` es
-/// explícitamente nullable (un usuario/admin sin espacio asignado, o un
-/// gestor con su único espacio) — nunca se reemplaza por un objeto vacío.
+/// Espejo de `AuthUser` en `frontend/src/types/auth.ts`. `laboratorio` es
+/// explícitamente nullable (un usuario/admin sin laboratorio asignado, o un
+/// gestor con su único laboratorio) — nunca se reemplaza por un objeto vacío.
 @freezed
 abstract class AuthUser with _$AuthUser {
   const factory AuthUser({
@@ -36,7 +36,7 @@ abstract class AuthUser with _$AuthUser {
     required String username,
     required String email,
     required RolUsuario rol,
-    EspacioResumen? espacio,
+    LaboratorioResumen? laboratorio,
     // Fase A2: perfil de usuario -- se completan una vez en `/perfil`,
     // nunca en cada reserva. Nullable: sin backfill para cuentas viejas.
     String? documentoIdentificacion,

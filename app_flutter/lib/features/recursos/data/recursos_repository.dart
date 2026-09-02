@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/dio_client.dart';
-import '../../espacios/domain/disponibilidad_slot.dart';
+import '../../laboratorios/domain/disponibilidad_slot.dart';
 import '../domain/recurso.dart';
 import '../domain/tipo_recurso.dart';
 
@@ -18,11 +18,11 @@ class RecursosRepository {
 
   final Dio _dio;
 
-  Future<List<Recurso>> listar({int? espacioId, bool soloActivos = false}) async {
+  Future<List<Recurso>> listar({int? laboratorioId, bool soloActivos = false}) async {
     final response = await _dio.get<List<dynamic>>(
       '/recursos',
       queryParameters: {
-        'espacio_id': ?espacioId,
+        'laboratorio_id': ?laboratorioId,
         'solo_activos': soloActivos,
       },
     );
@@ -54,7 +54,7 @@ class RecursosRepository {
     String? descripcion,
     required int capacidad,
     String estado = 'activo',
-    int? espacioId,
+    int? laboratorioId,
     bool esPrestacionServicio = false,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
@@ -65,7 +65,7 @@ class RecursosRepository {
         'descripcion': descripcion,
         'capacidad': capacidad,
         'estado': estado,
-        'espacio_id': ?espacioId,
+        'laboratorio_id': ?laboratorioId,
         'es_prestacion_servicio': esPrestacionServicio,
       },
     );
@@ -80,7 +80,7 @@ class RecursosRepository {
     String? descripcion,
     int? capacidad,
     String? estado,
-    int? espacioId,
+    int? laboratorioId,
     bool? esPrestacionServicio,
   }) async {
     final data = <String, dynamic>{};
@@ -89,7 +89,7 @@ class RecursosRepository {
     if (descripcion != null) data['descripcion'] = descripcion;
     if (capacidad != null) data['capacidad'] = capacidad;
     if (estado != null) data['estado'] = estado;
-    if (espacioId != null) data['espacio_id'] = espacioId;
+    if (laboratorioId != null) data['laboratorio_id'] = laboratorioId;
     if (esPrestacionServicio != null) data['es_prestacion_servicio'] = esPrestacionServicio;
     final response = await _dio.put<Map<String, dynamic>>('/recursos/$recursoId', data: data);
     return Recurso.fromJson(response.data!);

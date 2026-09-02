@@ -1,4 +1,3 @@
-import uuid
 from datetime import date, datetime, time, timedelta
 from dataclasses import dataclass
 
@@ -7,37 +6,34 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.crud.reservas import (
-    get_ensayo_ids_reserva,
+    get_espacio_ids_reserva,
+    get_espacios_bloqueantes,
     get_recurso_ids_reserva,
     get_reserva,
     get_reservas_bloqueantes,
-    get_reservas_de_serie,
-    get_zona_ids_reserva,
-    get_zonas_bloqueantes,
 )
-from app.deps import get_managed_space_id
+from app.deps import get_managed_laboratory_id
 from app.domain.enums import (
     EstadoEntidad,
     EstadoReserva,
-    ModalidadEspacio,
     Rol,
     TipoNotificacion,
-    TipoReserva,
     TipoSolicitud,
 )
 from app.domain.protocols import Reloj
 from app.models import (
     Espacio,
+    EspacioRecurso,
+    Laboratorio,
     Notificacion,
     Personal,
     Recurso,
     Reserva,
+    ReservaEspacio,
     ReservaRecurso,
-    ReservaZona,
+    TipoReserva,
     Usuario,
-    UsuarioEspacio,
-    Zona,
-    ZonaRecurso,
+    UsuarioLaboratorio,
 )
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
@@ -92,7 +88,7 @@ def _adjunto_ics_reserva(*, reserva_id: int, espacio: str, fecha, hora_inicio, h
 
 SOLAPAMIENTO_CONSTRAINT = "reservas_sin_solapamiento"
 RESERVA_RECURSOS_CONSTRAINT = "reserva_recursos_sin_solapamiento"
-RESERVA_ZONAS_CONSTRAINT = "reserva_zonas_sin_solapamiento"
+RESERVA_ESPACIOS_CONSTRAINT = "reserva_espacios_sin_solapamiento"
 
 # Fase 12C-4d/12C-6: la doble escritura mantiene `reservas` y las tablas de
 # asociación sincronizadas, así que un solapamiento puede disparar cualquiera
@@ -101,7 +97,7 @@ RESERVA_ZONAS_CONSTRAINT = "reserva_zonas_sin_solapamiento"
 _CONSTRAINTS_SOLAPAMIENTO = (
     SOLAPAMIENTO_CONSTRAINT,
     RESERVA_RECURSOS_CONSTRAINT,
-    RESERVA_ZONAS_CONSTRAINT,
+    RESERVA_ESPACIOS_CONSTRAINT,
 )
 
 
@@ -127,14 +123,14 @@ def _traducir_error_integridad(db: Session, exc: IntegrityError) -> None:
 @dataclass
 class _ObjetivoReserva:
     """Conjunto objetivo de una reserva (Fase 12C-6): recursos directos,
-    zonas, recursos efectivos (deduplicados, orden estable por id) y el
-    espacio único al que todos pertenecen."""
+    espacios, recursos efectivos (deduplicados, orden estable por id) y el
+    laboratorio único al que todos pertenecen."""
 
-    espacio: Espacio
+    laboratorio: Laboratorio
     recurso_ids: list[int]
-    zona_ids: list[int]
+    espacio_ids: list[int]
     recursos_efectivos: list[Recurso]
-    zonas: list[Zona]
+    espacios: list[Espacio]
 
 
 def _cargar_recursos(db: Session, recurso_ids: list[int]) -> list[Recurso]:
@@ -151,25 +147,25 @@ def _cargar_recursos(db: Session, recurso_ids: list[int]) -> list[Recurso]:
     return [por_id[i] for i in sorted(por_id)]
 
 
-def _cargar_zonas(db: Session, zona_ids: list[int]) -> list[Zona]:
-    if not zona_ids:
+def _cargar_espacios(db: Session, espacio_ids: list[int]) -> list[Espacio]:
+    if not espacio_ids:
         return []
-    zonas = db.query(Zona).filter(Zona.id.in_(zona_ids)).all()
-    por_id = {z.id: z for z in zonas}
-    faltantes = sorted(set(zona_ids) - set(por_id))
+    espacios = db.query(Espacio).filter(Espacio.id.in_(espacio_ids)).all()
+    por_id = {e.id: e for e in espacios}
+    faltantes = sorted(set(espacio_ids) - set(por_id))
     if faltantes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Las zonas {faltantes} no existen",
+            detail=f"Los espacios {faltantes} no existen",
         )
     return [por_id[i] for i in sorted(por_id)]
 
 
-def _miembros_zona(db: Session, zona: Zona) -> list[Recurso]:
+def _miembros_espacio(db: Session, espacio: Espacio) -> list[Recurso]:
     return (
         db.query(Recurso)
-        .join(ZonaRecurso, ZonaRecurso.recurso_id == Recurso.id)
-        .filter(ZonaRecurso.zona_id == zona.id)
+        .join(EspacioRecurso, EspacioRecurso.recurso_id == Recurso.id)
+        .filter(EspacioRecurso.espacio_id == espacio.id)
         .order_by(Recurso.id.asc())
         .all()
     )
@@ -179,82 +175,66 @@ def _resolver_objetivo(
     db: Session,
     *,
     recurso_ids: list[int],
-    zona_ids: list[int],
+    espacio_ids: list[int],
     usuario: Personal | Usuario,
-    espacio_id_fijo: int | None = None,
-    tipo: TipoReserva | None = None,
+    laboratorio_id_fijo: int | None = None,
 ) -> _ObjetivoReserva:
     """Resuelve y valida el conjunto objetivo de una reserva (Fase 12C-6).
 
     Reglas aprobadas aplicadas aquí:
-    - Modalidad del espacio: `equipos` no admite zonas; `zonas` no admite
-      recursos directos; `mixto` admite ambos.
-    - Recursos y zonas deben pertenecer a un mismo espacio (el de la reserva;
-      para edición, `espacio_id_fijo` lo fija y valida pertenencia).
-    - Zonas y recursos efectivos deben estar activos.
-    - `validar_acceso_ps` se aplica a cada recurso efectivo (gate de rol de
-      la Fase 12B + gate de tipo de la Fase 12D).
-    - Recursos efectivos = directos ∪ miembros de las zonas, sin duplicados,
-      en orden estable por id.
+    - Recursos y espacios deben pertenecer a un mismo laboratorio (el de la
+      reserva; para edición, `laboratorio_id_fijo` lo fija y valida
+      pertenencia).
+    - Espacios y recursos efectivos deben estar activos.
+    - Recursos efectivos = directos ∪ miembros de los espacios, sin
+      duplicados, en orden estable por id.
     """
     directos = _cargar_recursos(db, recurso_ids)
-    zonas = _cargar_zonas(db, zona_ids)
+    espacios = _cargar_espacios(db, espacio_ids)
 
-    espacios = {r.espacio_id for r in directos} | {z.espacio_id for z in zonas}
-    if not espacios:
+    laboratorios = {r.laboratorio_id for r in directos} | {e.laboratorio_id for e in espacios}
+    if not laboratorios:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Debes indicar al menos un recurso o una zona",
+            detail="Debes indicar al menos un recurso o un espacio",
         )
-    if len(espacios) > 1:
+    if len(laboratorios) > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Los recursos y zonas deben pertenecer al mismo espacio",
+            detail="Los recursos y espacios deben pertenecer al mismo laboratorio",
         )
-    espacio_id = espacios.pop()
-    if espacio_id_fijo is not None and espacio_id != espacio_id_fijo:
+    laboratorio_id = laboratorios.pop()
+    if laboratorio_id_fijo is not None and laboratorio_id != laboratorio_id_fijo:
         raise HTTPException(
             status_code=(
                 status.HTTP_403_FORBIDDEN
                 if usuario.rol in {Rol.GESTOR.value, Rol.ADMIN.value}
                 else status.HTTP_400_BAD_REQUEST
             ),
-            detail="Los recursos y zonas deben pertenecer al espacio de la reserva",
+            detail="Los recursos y espacios deben pertenecer al laboratorio de la reserva",
         )
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if espacio is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El espacio no existe")
+    laboratorio = db.query(Laboratorio).filter(Laboratorio.id == laboratorio_id).first()
+    if laboratorio is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El laboratorio no existe")
 
-    modalidad = espacio.modalidad_reserva
-    if modalidad == ModalidadEspacio.EQUIPOS.value and zona_ids:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este espacio no admite reservas por zonas",
-        )
-    if modalidad == ModalidadEspacio.ZONAS.value and recurso_ids:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este espacio solo admite reservas por zonas",
-        )
-
-    for zona in zonas:
-        if zona.estado != EstadoEntidad.ACTIVO.value:
+    for espacio in espacios:
+        if espacio.estado != EstadoEntidad.ACTIVO.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"La zona {zona.nombre} no está activa para reservas",
+                detail=f"El espacio {espacio.nombre} no está activo para reservas",
             )
 
     por_id: dict[int, Recurso] = {}
     for recurso in directos:
-        if recurso.estado != EstadoEntidad.ACTIVO.value or espacio.estado != EstadoEntidad.ACTIVO.value:
+        if recurso.estado != EstadoEntidad.ACTIVO.value or laboratorio.estado != EstadoEntidad.ACTIVO.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El recurso no está activo para reservas",
             )
         por_id[recurso.id] = recurso
-    for zona in zonas:
-        for miembro in _miembros_zona(db, zona):
-            if miembro.estado != EstadoEntidad.ACTIVO.value or espacio.estado != EstadoEntidad.ACTIVO.value:
+    for espacio in espacios:
+        for miembro in _miembros_espacio(db, espacio):
+            if miembro.estado != EstadoEntidad.ACTIVO.value or laboratorio.estado != EstadoEntidad.ACTIVO.value:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="El recurso no está activo para reservas",
@@ -262,70 +242,67 @@ def _resolver_objetivo(
             por_id[miembro.id] = miembro
     efectivos = [por_id[i] for i in sorted(por_id)]
 
-    for recurso in efectivos:
-        validar_acceso_ps(recurso, usuario, tipo)
-
     return _ObjetivoReserva(
-        espacio=espacio,
+        laboratorio=laboratorio,
         recurso_ids=sorted({r.id for r in directos}),
-        zona_ids=sorted({z.id for z in zonas}),
+        espacio_ids=sorted({e.id for e in espacios}),
         recursos_efectivos=efectivos,
-        zonas=zonas,
+        espacios=espacios,
     )
 
 
 def _resolver_efectivos(
     db: Session,
     recurso_ids: list[int],
-    zona_ids: list[int],
-) -> tuple[list[Recurso], list[Zona], list[Recurso]]:
-    """Resuelve recursos directos, zonas y recursos efectivos SIN volver a
-    validar modalidad/actividad/PS — usado en la aprobación, donde los
-    objetivos ya fueron validados al crear/editar y solo resta chequear el
-    solapamiento transitivo."""
+    espacio_ids: list[int],
+) -> tuple[list[Recurso], list[Espacio], list[Recurso]]:
+    """Resuelve recursos directos, espacios y recursos efectivos SIN volver a
+    validar actividad — usado en la aprobación, donde los objetivos ya
+    fueron validados al crear/editar y solo resta chequear el solapamiento
+    transitivo."""
     directos = _cargar_recursos(db, recurso_ids)
-    zonas = _cargar_zonas(db, zona_ids)
+    espacios = _cargar_espacios(db, espacio_ids)
     por_id: dict[int, Recurso] = {}
     for recurso in directos:
         por_id[recurso.id] = recurso
-    for zona in zonas:
-        for miembro in _miembros_zona(db, zona):
+    for espacio in espacios:
+        for miembro in _miembros_espacio(db, espacio):
             por_id[miembro.id] = miembro
-    return directos, zonas, [por_id[i] for i in sorted(por_id)]
+    return directos, espacios, [por_id[i] for i in sorted(por_id)]
 
 
-def _capacidad_efectiva(espacio: Espacio, objetivo: _ObjetivoReserva) -> int:
-    """Capacidad efectiva = min(espacio, zonas definidas, recursos efectivos)
-    (decisión aprobada 12C-6)."""
-    capacidades = [espacio.capacidad]
-    capacidades_zonas = [z.capacidad for z in objetivo.zonas if z.capacidad is not None]
-    if capacidades_zonas:
-        capacidades.append(min(capacidades_zonas))
+def _capacidad_efectiva(laboratorio: Laboratorio, objetivo: _ObjetivoReserva) -> int:
+    """Capacidad efectiva = min(laboratorio, espacios definidos, recursos
+    efectivos) (decisión aprobada 12C-6)."""
+    capacidades = [laboratorio.capacidad]
+    capacidades_espacios = [e.capacidad for e in objetivo.espacios if e.capacidad is not None]
+    if capacidades_espacios:
+        capacidades.append(min(capacidades_espacios))
     if objetivo.recursos_efectivos:
         capacidades.append(min(r.capacidad for r in objetivo.recursos_efectivos))
     return min(capacidades)
 
 
-def _recurso_ancla(db: Session, espacio: Espacio, recursos_efectivos: list[Recurso]) -> int:
+def _recurso_ancla(db: Session, laboratorio: Laboratorio, recursos_efectivos: list[Recurso]) -> int:
     """Recurso efectivo canónico (orden estable) para la columna histórica
     `Reserva.recurso_id` (Fase 12C-6). La columna es NOT NULL y las
-    migraciones están congeladas, así que una zona sin recursos efectivos se
-    ancla al recurso de menor id de su espacio; riesgo residual documentado
-    (la EXCLUDE histórica podría, en un caso extremo, chocar con una reserva
-    directa de ese recurso ancla). Sin recurso en el espacio, la reserva es
-    irrepresentable y se rechaza con 400."""
+    migraciones están congeladas, así que un espacio sin recursos efectivos
+    se ancla al recurso de menor id de su laboratorio; riesgo residual
+    documentado (la EXCLUDE histórica podría, en un caso extremo, chocar con
+    una reserva directa de ese recurso ancla). Sin recurso en el
+    laboratorio, la reserva es irrepresentable y se rechaza con 400."""
     if recursos_efectivos:
         return min(r.id for r in recursos_efectivos)
     recurso = (
         db.query(Recurso)
-        .filter(Recurso.espacio_id == espacio.id)
+        .filter(Recurso.laboratorio_id == laboratorio.id)
         .order_by(Recurso.id.asc())
         .first()
     )
     if recurso is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La zona sin recursos asociados no puede reservarse mientras la columna recurso_id sea obligatoria",
+            detail="El espacio sin recursos asociados no puede reservarse mientras la columna recurso_id sea obligatoria",
         )
     return recurso.id
 
@@ -333,7 +310,7 @@ def _recurso_ancla(db: Session, espacio: Espacio, recursos_efectivos: list[Recur
 def _validar_solapamiento_efectivos(
     db: Session,
     recursos_efectivos: list[Recurso],
-    zonas: list[Zona],
+    espacios: list[Espacio],
     *,
     fecha: date,
     hora_inicio: time,
@@ -341,63 +318,21 @@ def _validar_solapamiento_efectivos(
     exclude_id: int | None = None,
 ) -> None:
     """Solapamiento transitivo (Fase 12C-6): cada recurso efectivo contra
-    `reserva_recursos` y cada zona contra `reserva_zonas`. Como toda zona
-    reservada materializa sus recursos efectivos, el cruce zona<->recurso
-    queda cubierto por la misma tabla."""
+    `reserva_recursos` y cada espacio contra `reserva_espacios`. Como todo
+    espacio reservado materializa sus recursos efectivos, el cruce
+    espacio<->recurso queda cubierto por la misma tabla."""
     for recurso in recursos_efectivos:
         if get_reservas_bloqueantes(db, recurso.id, fecha, hora_inicio, hora_fin, exclude_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="El recurso ya tiene una reserva en ese horario",
             )
-    for zona in zonas:
-        if get_zonas_bloqueantes(db, zona.id, fecha, hora_inicio, hora_fin, exclude_id):
+    for espacio in espacios:
+        if get_espacios_bloqueantes(db, espacio.id, fecha, hora_inicio, hora_fin, exclude_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="La zona ya tiene una reserva en ese horario",
+                detail="El espacio ya tiene una reserva en ese horario",
             )
-
-
-def _cargar_ensayos(db: Session, ensayo_ids: list[int]) -> list["Ensayo"]:
-    if not ensayo_ids:
-        return []
-    from app.models.ensayo import Ensayo
-
-    ensayos = db.query(Ensayo).filter(Ensayo.id.in_(ensayo_ids)).all()
-    encontrados = {e.id for e in ensayos}
-    faltantes = set(ensayo_ids) - encontrados
-    if faltantes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ensayo(s) no encontrado(s): {sorted(faltantes)}",
-        )
-    return ensayos
-
-
-def _validar_ensayos_pertenecen_a_zonas(ensayos: list["Ensayo"], objetivo: _ObjetivoReserva) -> None:
-    """Fase 12E: cada ensayo debe pertenecer a una de las zonas
-    efectivamente reservadas. Si no, 400."""
-    if not ensayos:
-        return
-    zonas_ids = {z.id for z in objetivo.zonas}
-    for ensayo in ensayos:
-        if ensayo.zona_id not in zonas_ids:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El ensayo no pertenece a ninguna de las zonas reservadas",
-            )
-
-
-def _reescribir_ensayos(db: Session, reserva: Reserva, ensayo_ids: list[int]) -> None:
-    """Borra y recrea las filas de `reserva_ensayos` (Fase 12E, mismo idioma
-    que `_reescribir_asociaciones`: borrar+recrear dentro de la misma
-    transacción, sin commit propio)."""
-
-    from app.models.reserva_ensayo import ReservaEnsayo
-
-    db.query(ReservaEnsayo).filter(ReservaEnsayo.reserva_id == reserva.id).delete(synchronize_session=False)
-    for ensayo_id in ensayo_ids:
-        db.add(ReservaEnsayo(reserva_id=reserva.id, ensayo_id=ensayo_id))
 
 
 def _reescribir_acompanantes(db: Session, reserva: Reserva, acompanantes) -> None:
@@ -418,18 +353,18 @@ def _reescribir_acompanantes(db: Session, reserva: Reserva, acompanantes) -> Non
 
 
 def _reescribir_asociaciones(db: Session, reserva: Reserva, objetivo: _ObjetivoReserva) -> None:
-    """Borra y recrea las filas de `reserva_zonas` y `reserva_recursos` de la
-    reserva dentro de la misma transacción (regla aprobada 12C-6). NUNCA
+    """Borra y recrea las filas de `reserva_espacios` y `reserva_recursos` de
+    la reserva dentro de la misma transacción (regla aprobada 12C-6). NUNCA
     hace `commit`/`rollback` — el flujo llamante es dueño de la transacción,
     igual que la doble escritura de 12C-4d. Sin filas parciales: cualquier
     fallo en el commit revierte reserva y asociaciones como una sola unidad."""
-    db.query(ReservaZona).filter(ReservaZona.reserva_id == reserva.id).delete(synchronize_session=False)
+    db.query(ReservaEspacio).filter(ReservaEspacio.reserva_id == reserva.id).delete(synchronize_session=False)
     db.query(ReservaRecurso).filter(ReservaRecurso.reserva_id == reserva.id).delete(synchronize_session=False)
-    for zona in objetivo.zonas:
+    for espacio in objetivo.espacios:
         db.add(
-            ReservaZona(
+            ReservaEspacio(
                 reserva_id=reserva.id,
-                zona_id=zona.id,
+                espacio_id=espacio.id,
                 fecha=reserva.fecha,
                 hora_inicio=reserva.hora_inicio,
                 hora_fin=reserva.hora_fin,
@@ -462,12 +397,12 @@ def _sincronizar_campos_asociaciones(db: Session, reserva: Reserva) -> None:
         },
         synchronize_session=False,
     )
-    db.query(ReservaZona).filter(ReservaZona.reserva_id == reserva.id).update(
+    db.query(ReservaEspacio).filter(ReservaEspacio.reserva_id == reserva.id).update(
         {
-            ReservaZona.fecha: reserva.fecha,
-            ReservaZona.hora_inicio: reserva.hora_inicio,
-            ReservaZona.hora_fin: reserva.hora_fin,
-            ReservaZona.estado: reserva.estado,
+            ReservaEspacio.fecha: reserva.fecha,
+            ReservaEspacio.hora_inicio: reserva.hora_inicio,
+            ReservaEspacio.hora_fin: reserva.hora_fin,
+            ReservaEspacio.estado: reserva.estado,
         },
         synchronize_session=False,
     )
@@ -475,8 +410,8 @@ def _sincronizar_campos_asociaciones(db: Session, reserva: Reserva) -> None:
 
 def _etiqueta_objetivo(objetivo: _ObjetivoReserva) -> str:
     partes = []
-    if objetivo.zonas:
-        partes.append("la zona " + ", ".join(z.nombre for z in objetivo.zonas))
+    if objetivo.espacios:
+        partes.append("el espacio " + ", ".join(e.nombre for e in objetivo.espacios))
     if objetivo.recursos_efectivos:
         partes.append(
             "los recursos " + ", ".join(sorted({r.nombre for r in objetivo.recursos_efectivos}))
@@ -498,29 +433,29 @@ def confirmar_cambios_reserva(db: Session) -> None:
         _traducir_error_integridad(db, exc)
 
 
-def validar_horario(espacio: Espacio, fecha: date, hora_inicio: time, hora_fin: time) -> None:
+def validar_horario(laboratorio: Laboratorio, fecha: date, hora_inicio: time, hora_fin: time) -> None:
     if hora_inicio >= hora_fin:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La hora de inicio debe ser menor que la hora de fin")
 
-    if not horario_cubre_reserva(espacio, fecha.weekday(), hora_inicio, hora_fin):
+    if not horario_cubre_reserva(laboratorio, fecha.weekday(), hora_inicio, hora_fin):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El horario seleccionado no está habilitado en la configuración del espacio",
+            detail="El horario seleccionado no está habilitado en la configuración del laboratorio",
         )
 
 
 def validar_anticipacion(
-    espacio: Espacio,
+    laboratorio: Laboratorio,
     fecha: date,
     hora_inicio: time,
     reloj: Reloj | None = None,
 ) -> None:
     inicio = datetime.combine(fecha, hora_inicio)
-    fecha_minima = (reloj or RelojLocal()).ahora() + timedelta(hours=espacio.horas_antelacion)
+    fecha_minima = (reloj or RelojLocal()).ahora() + timedelta(hours=laboratorio.horas_antelacion)
     if inicio < fecha_minima:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"La reserva debe hacerse con mínimo {espacio.horas_antelacion} horas de anticipación",
+            detail=f"La reserva debe hacerse con mínimo {laboratorio.horas_antelacion} horas de anticipación",
         )
 
 
@@ -553,35 +488,13 @@ def validar_transicion_estado(
 def validar_recurso_activo(recurso: Recurso | None) -> None:
     if recurso is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El recurso solicitado no existe")
-    if recurso.estado != EstadoEntidad.ACTIVO.value or recurso.espacio.estado != EstadoEntidad.ACTIVO.value:
+    if recurso.estado != EstadoEntidad.ACTIVO.value or recurso.laboratorio.estado != EstadoEntidad.ACTIVO.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El recurso no está activo para reservas")
 
 
 def validar_capacidad(asistentes: int, recurso_capacidad: int) -> None:
     if asistentes > recurso_capacidad:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La cantidad de asistentes supera la capacidad del recurso")
-
-
-def validar_acceso_ps(recurso: Recurso, usuario: Personal | Usuario, tipo: TipoReserva | None = None) -> None:
-    """RN-009 (Fase 12B) + Fase 12D: un recurso de prestación de servicios
-    (PS) no puede reservarse por el rol `usuario` (investigador) — el gate
-    de rol, que se evalúa primero y sin cambios. `gestor` (laboratorista) y
-    `admin` (administrador técnico) sí pueden, pero desde la Fase 12D
-    únicamente cuando la reserva declara `tipo == SERVICIO_DE_ENSAYO`
-    (RN-015): un recurso PS es un servicio de ensayo, no una reserva de
-    investigación ni de grado. Cualquier otro valor (u ausencia) de `tipo`
-    responde 400 para esos roles.
-    """
-    if recurso.es_prestacion_servicio and usuario.rol == Rol.USUARIO.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Los recursos de prestación de servicios no están disponibles para tu rol",
-        )
-    if recurso.es_prestacion_servicio and tipo != TipoReserva.SERVICIO_DE_ENSAYO:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Los recursos de prestación de servicios solo pueden reservarse con tipo de reserva de ensayo",
-        )
 
 
 def _validar_objetivo(
@@ -594,9 +507,9 @@ def _validar_objetivo(
     asistentes: int,
     exclude_id: int | None = None,
 ) -> None:
-    validar_horario(objetivo.espacio, fecha, hora_inicio, hora_fin)
-    validar_anticipacion(objetivo.espacio, fecha, hora_inicio)
-    if asistentes > _capacidad_efectiva(objetivo.espacio, objetivo):
+    validar_horario(objetivo.laboratorio, fecha, hora_inicio, hora_fin)
+    validar_anticipacion(objetivo.laboratorio, fecha, hora_inicio)
+    if asistentes > _capacidad_efectiva(objetivo.laboratorio, objetivo):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La cantidad de asistentes supera la capacidad efectiva de la reserva",
@@ -604,7 +517,7 @@ def _validar_objetivo(
     _validar_solapamiento_efectivos(
         db,
         objetivo.recursos_efectivos,
-        objetivo.zonas,
+        objetivo.espacios,
         fecha=fecha,
         hora_inicio=hora_inicio,
         hora_fin=hora_fin,
@@ -612,15 +525,28 @@ def _validar_objetivo(
     )
 
 
-def crear_reserva(
-    db: Session, data: ReservaCreate, usuario: Personal | Usuario, *, serie_id: uuid.UUID | None = None
-) -> Reserva:
+def _validar_tipo_reserva(db: Session, tipo_reserva_id: int | None, laboratorio_id: int) -> None:
+    """Fase 7: si se manda `tipo_reserva_id`, tiene que existir y ser del
+    mismo laboratorio que la reserva -- mismo criterio que la validación de
+    recursos/espacios "fuera de laboratorio" en app/api/espacios.py."""
+    if tipo_reserva_id is None:
+        return
+    tipo_reserva = db.query(TipoReserva).filter(TipoReserva.id == tipo_reserva_id).first()
+    if tipo_reserva is None:
+        raise HTTPException(status_code=404, detail="Tipo de reserva no encontrado")
+    if tipo_reserva.laboratorio_id != laboratorio_id:
+        raise HTTPException(
+            status_code=400,
+            detail="El tipo de reserva no pertenece al laboratorio de la reserva",
+        )
+
+
+def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
         recurso_ids=data.recurso_ids,
-        zona_ids=data.zona_ids,
+        espacio_ids=data.espacio_ids,
         usuario=usuario,
-        tipo=data.tipo,
     )
     _validar_objetivo(
         db,
@@ -630,20 +556,20 @@ def crear_reserva(
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
     )
-    ensayos = _cargar_ensayos(db, data.ensayo_ids)
-    _validar_ensayos_pertenecen_a_zonas(ensayos, objetivo)
-    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
-    aprobacion_automatica = objetivo.espacio.aprobacion_automatica or espacio_gestionado == objetivo.espacio.id
+    laboratorio_gestionado = get_managed_laboratory_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
+    aprobacion_automatica = objetivo.laboratorio.aprobacion_automatica or laboratorio_gestionado == objetivo.laboratorio.id
+    _validar_tipo_reserva(db, data.tipo_reserva_id, objetivo.laboratorio.id)
 
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=objetivo.espacio.id,
-        recurso_id=_recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos),
+        laboratorio_id=objetivo.laboratorio.id,
+        recurso_id=_recurso_ancla(db, objetivo.laboratorio, objetivo.recursos_efectivos),
         fecha=data.fecha,
         hora_inicio=data.hora_inicio,
         hora_fin=data.hora_fin,
         asistentes=data.asistentes,
         tipo=data.tipo,
+        tipo_reserva_id=data.tipo_reserva_id,
         descripcion=data.descripcion,
         tipo_solicitud=data.tipo_solicitud,
         ubicacion_uso=data.ubicacion_uso,
@@ -651,20 +577,18 @@ def crear_reserva(
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
-        serie_id=serie_id,
     )
     db.add(reserva)
     preparar_reserva(db)
     _reescribir_asociaciones(db, reserva, objetivo)
-    _reescribir_ensayos(db, reserva, data.ensayo_ids)
     _reescribir_acompanantes(db, reserva, data.acompanantes)
     if not aprobacion_automatica:
         gestores = (
             db.query(Personal.id, Personal.username, Personal.email)
-            .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Personal.id)
+            .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
             .filter(
                 Personal.rol == Rol.GESTOR.value,
-                UsuarioEspacio.espacio_id == objetivo.espacio.id,
+                UsuarioLaboratorio.laboratorio_id == objetivo.laboratorio.id,
             )
             .all()
         )
@@ -682,7 +606,7 @@ def crear_reserva(
                 asunto="Nueva reserva pendiente de aprobación",
                 cuerpo=plantilla_reserva_pendiente(
                     nombre_saludo=gestor_username,
-                    espacio=objetivo.espacio.nombre,
+                    espacio=objetivo.laboratorio.nombre,
                     fecha=str(data.fecha),
                     hora_inicio=str(data.hora_inicio),
                     hora_fin=str(data.hora_fin),
@@ -695,7 +619,7 @@ def crear_reserva(
             asunto="Recibimos tu solicitud de reserva",
             cuerpo=plantilla_reserva_recibida(
                 nombre_saludo=usuario.username,
-                espacio=objetivo.espacio.nombre,
+                espacio=objetivo.laboratorio.nombre,
                 fecha=str(data.fecha),
                 hora_inicio=str(data.hora_inicio),
                 hora_fin=str(data.hora_fin),
@@ -710,7 +634,7 @@ def crear_reserva(
             cuerpo=plantilla_reserva_estado(
                 nombre_saludo=usuario.username,
                 reserva_id=reserva.id,
-                espacio=objetivo.espacio.nombre,
+                espacio=objetivo.laboratorio.nombre,
                 fecha=str(data.fecha),
                 hora_inicio=str(data.hora_inicio),
                 hora_fin=str(data.hora_fin),
@@ -719,7 +643,7 @@ def crear_reserva(
             es_html=True,
             adjunto=_adjunto_ics_reserva(
                 reserva_id=reserva.id,
-                espacio=objetivo.espacio.nombre,
+                espacio=objetivo.laboratorio.nombre,
                 fecha=data.fecha,
                 hora_inicio=data.hora_inicio,
                 hora_fin=data.hora_fin,
@@ -737,36 +661,6 @@ def crear_reserva(
     procesar_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
-
-
-def crear_reserva_serie(
-    db: Session, data: ReservaCreate, usuario: Personal | Usuario
-) -> tuple[list[Reserva], list[dict]]:
-    """`data.repetir_semanas`/`numero_ocurrencias` ya están confirmados no
-    nulos por `ReservaCreate._recurrencia_completa_o_ausente` -- este
-    servicio solo se llama desde `api/reservas.py` cuando el caller ya
-    verificó eso.
-
-    "Mejor esfuerzo" (decisión confirmada, ver el plan): cada ocurrencia
-    pasa por el mismo `crear_reserva` de una reserva individual (mismas
-    validaciones, mismo 409 de solapamiento) dentro de su propio
-    `try/except` -- una ocurrencia que falla no aborta las demás. Cada
-    llamada a `crear_reserva` hace su propio flush+commit (`preparar_reserva`/
-    `confirmar_cambios_reserva`), así que un rollback por conflicto en la
-    ocurrencia N nunca deshace las ya confirmadas de la 1..N-1.
-    """
-    assert data.repetir_semanas is not None and data.numero_ocurrencias is not None
-    serie_id = uuid.uuid4()
-    creadas: list[Reserva] = []
-    omitidas: list[dict] = []
-    for i in range(data.numero_ocurrencias):
-        fecha_ocurrencia = data.fecha + timedelta(weeks=data.repetir_semanas * i)
-        data_ocurrencia = data.model_copy(update={"fecha": fecha_ocurrencia})
-        try:
-            creadas.append(crear_reserva(db, data_ocurrencia, usuario, serie_id=serie_id))
-        except HTTPException as exc:
-            omitidas.append({"fecha": fecha_ocurrencia, "motivo": str(exc.detail)})
-    return creadas, omitidas
 
 
 def cambiar_estado(
@@ -796,20 +690,20 @@ def cambiar_estado(
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
-    espacio_gestionado = get_managed_space_id(db, admin_user)
-    if espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
+    laboratorio_gestionado = get_managed_laboratory_id(db, admin_user)
+    if laboratorio_gestionado is not None and reserva.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
     validar_transicion_estado(reserva.estado, nuevo)
     if nuevo == EstadoReserva.APROBADA and reserva.estado != nuevo.value:
-        _, zonas, efectivos = _resolver_efectivos(
+        _, espacios, efectivos = _resolver_efectivos(
             db,
             get_recurso_ids_reserva(db, reserva.id),
-            get_zona_ids_reserva(db, reserva.id),
+            get_espacio_ids_reserva(db, reserva.id),
         )
         _validar_solapamiento_efectivos(
             db,
             efectivos,
-            zonas,
+            espacios,
             fecha=reserva.fecha,
             hora_inicio=reserva.hora_inicio,
             hora_fin=reserva.hora_fin,
@@ -846,7 +740,7 @@ def cambiar_estado(
             cuerpo=plantilla_reserva_estado(
                 nombre_saludo=reserva.actor.username,
                 reserva_id=reserva.id,
-                espacio=reserva.espacio.nombre,
+                espacio=reserva.laboratorio.nombre,
                 fecha=str(reserva.fecha),
                 hora_inicio=str(reserva.hora_inicio),
                 hora_fin=str(reserva.hora_fin),
@@ -857,7 +751,7 @@ def cambiar_estado(
             adjunto=(
                 _adjunto_ics_reserva(
                     reserva_id=reserva.id,
-                    espacio=reserva.espacio.nombre,
+                    espacio=reserva.laboratorio.nombre,
                     fecha=reserva.fecha,
                     hora_inicio=reserva.hora_inicio,
                     hora_fin=reserva.hora_fin,
@@ -891,7 +785,7 @@ def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: P
 
     Copia el molde de `cambiar_estado` pero sin máquina de estados: solo
     verifica rol gestor/admin, existencia de la reserva y pertenencia del
-    gestor a su espacio asignado. No hay transición que validar ni
+    gestor a su laboratorio asignado. No hay transición que validar ni
     solapamiento que re-evaluar; solo se persiste `asistio` y se audita.
     """
 
@@ -903,10 +797,10 @@ def marcar_asistencia(db: Session, reserva_id: int, asistio: bool, admin_user: P
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La reserva no existe")
-    espacio_gestionado = get_managed_space_id(db, admin_user)
-    if espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
+    laboratorio_gestionado = get_managed_laboratory_id(db, admin_user)
+    if laboratorio_gestionado is not None and reserva.laboratorio_id != laboratorio_gestionado:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio"
         )
     reserva.asistio = asistio
     registrar_cambio(
@@ -937,10 +831,10 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
     reserva.estado = EstadoReserva.CANCELADA.value
     gestores = (
         db.query(Personal.id, Personal.username, Personal.email)
-        .join(UsuarioEspacio, UsuarioEspacio.usuario_id == Personal.id)
+        .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
         .filter(
             Personal.rol == Rol.GESTOR.value,
-            UsuarioEspacio.espacio_id == reserva.espacio_id,
+            UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id,
         )
         .all()
     )
@@ -959,7 +853,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
             cuerpo=plantilla_reserva_cancelada_por_usuario(
                 nombre_saludo=gestor_username,
                 reserva_id=reserva.id,
-                espacio=reserva.espacio.nombre,
+                espacio=reserva.laboratorio.nombre,
                 fecha=str(reserva.fecha),
                 hora_inicio=str(reserva.hora_inicio),
                 hora_fin=str(reserva.hora_fin),
@@ -982,23 +876,6 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
     return get_reserva(db, reserva.id) or reserva
 
 
-def cancelar_serie(db: Session, serie_id: uuid.UUID, usuario: Personal | Usuario) -> tuple[list[Reserva], list[dict]]:
-    """Cancela todas las ocurrencias propias de una reserva recurrente que
-    se puedan cancelar -- "mejor esfuerzo", mismo molde que
-    `crear_reserva_serie`: cada ocurrencia pasa por `cancelar_reserva_usuario`
-    (mismas reglas -- solo `aprobada`, solo la propia dueña) dentro de su
-    propio `try/except`, una que falla no aborta las demás."""
-    reservas = get_reservas_de_serie(db, serie_id, usuario)
-    canceladas: list[Reserva] = []
-    omitidas: list[dict] = []
-    for reserva in reservas:
-        try:
-            canceladas.append(cancelar_reserva_usuario(db, reserva.id, usuario))
-        except HTTPException as exc:
-            omitidas.append({"reserva_id": reserva.id, "motivo": str(exc.detail)})
-    return canceladas, omitidas
-
-
 def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuario: Personal | Usuario) -> Reserva:
     reserva = get_reserva(db, reserva_id)
     if reserva is None:
@@ -1012,9 +889,9 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo puedes editar reservas pendientes",
         )
-    espacio_gestionado = get_managed_space_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
-    if not es_propietario and espacio_gestionado is not None and reserva.espacio_id != espacio_gestionado:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
+    laboratorio_gestionado = get_managed_laboratory_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
+    if not es_propietario and laboratorio_gestionado is not None and reserva.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
 
     cambios = data.model_dump(exclude_unset=True)
     if not cambios:
@@ -1022,16 +899,16 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
 
     # Capturar conjuntos previos para detectar agregados (Feature B).
     viejos_recurso_ids = set(get_recurso_ids_reserva(db, reserva.id))
-    viejos_zona_ids = set(get_zona_ids_reserva(db, reserva.id))
+    viejos_espacio_ids = set(get_espacio_ids_reserva(db, reserva.id))
 
     # Ejes de reemplazo completo (Fase 12C-6): un eje ausente se conserva;
     # un eje presente reemplaza el conjunto completo de ese eje.
     recurso_ids = cambios.get("recurso_ids", get_recurso_ids_reserva(db, reserva.id))
-    zona_ids = cambios.get("zona_ids", get_zona_ids_reserva(db, reserva.id))
-    if not recurso_ids and not zona_ids:
+    espacio_ids = cambios.get("espacio_ids", get_espacio_ids_reserva(db, reserva.id))
+    if not recurso_ids and not espacio_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La reserva debe tener al menos un recurso o una zona",
+            detail="La reserva debe tener al menos un recurso o un espacio",
         )
     fecha = cambios.get("fecha", reserva.fecha)
     hora_inicio = cambios.get("hora_inicio", reserva.hora_inicio)
@@ -1041,10 +918,9 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     objetivo = _resolver_objetivo(
         db,
         recurso_ids=recurso_ids,
-        zona_ids=zona_ids,
+        espacio_ids=espacio_ids,
         usuario=usuario,
-        espacio_id_fijo=reserva.espacio_id,
-        tipo=cambios.get("tipo", reserva.tipo),
+        laboratorio_id_fijo=reserva.laboratorio_id,
     )
     _validar_objetivo(
         db,
@@ -1055,15 +931,14 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         asistentes=asistentes,
         exclude_id=reserva.id,
     )
-    if "ensayo_ids" in cambios:
-        ensayos_nuevos = _cargar_ensayos(db, cambios["ensayo_ids"] or [])
-        _validar_ensayos_pertenecen_a_zonas(ensayos_nuevos, objetivo)
-
     reserva.fecha = fecha
     reserva.hora_inicio = hora_inicio
     reserva.hora_fin = hora_fin
     reserva.asistentes = asistentes
     reserva.tipo = cambios.get("tipo", reserva.tipo)
+    nuevo_tipo_reserva_id = cambios.get("tipo_reserva_id", reserva.tipo_reserva_id)
+    _validar_tipo_reserva(db, nuevo_tipo_reserva_id, reserva.laboratorio_id)
+    reserva.tipo_reserva_id = nuevo_tipo_reserva_id
     reserva.descripcion = cambios.get("descripcion", reserva.descripcion)
     nuevo_tipo_solicitud = cambios.get("tipo_solicitud", reserva.tipo_solicitud)
     nueva_ubicacion_uso = cambios.get("ubicacion_uso", reserva.ubicacion_uso)
@@ -1075,18 +950,16 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     reserva.tipo_solicitud = nuevo_tipo_solicitud
     reserva.ubicacion_uso = nueva_ubicacion_uso
     reserva.requiere_apoyo_auxiliar = cambios.get("requiere_apoyo_auxiliar", reserva.requiere_apoyo_auxiliar)
-    reserva.recurso_id = _recurso_ancla(db, objetivo.espacio, objetivo.recursos_efectivos)
+    reserva.recurso_id = _recurso_ancla(db, objetivo.laboratorio, objetivo.recursos_efectivos)
     _reescribir_asociaciones(db, reserva, objetivo)
-    if "ensayo_ids" in cambios:
-        _reescribir_ensayos(db, reserva, cambios["ensayo_ids"] or [])
     if "acompanantes" in cambios:
         _reescribir_acompanantes(db, reserva, cambios["acompanantes"] or [])
-    # Feature B: notificar al dueño si el gestor/admin agrega recursos o zonas.
+    # Feature B: notificar al dueño si el gestor/admin agrega recursos o espacios.
     nuevos_recurso_ids = set(recurso_ids)
-    nuevos_zona_ids = set(zona_ids)
+    nuevos_espacio_ids = set(espacio_ids)
     agregados_recurso_ids = nuevos_recurso_ids - viejos_recurso_ids
-    agregados_zona_ids = nuevos_zona_ids - viejos_zona_ids
-    if (agregados_recurso_ids or agregados_zona_ids) and not es_actor(reserva, usuario) and usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}:
+    agregados_espacio_ids = nuevos_espacio_ids - viejos_espacio_ids
+    if (agregados_recurso_ids or agregados_espacio_ids) and not es_actor(reserva, usuario) and usuario.rol in {Rol.ADMIN.value, Rol.GESTOR.value}:
         db.add(
             Notificacion(
                 **columnas_actor(reserva.actor),
@@ -1100,15 +973,15 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
             if agregados_recurso_ids:
                 agregados_recursos = db.query(Recurso).filter(Recurso.id.in_(list(agregados_recurso_ids))).all()
                 nombres_recursos = [r.nombre for r in agregados_recursos]
-            nombres_zonas: list[str] = []
-            if agregados_zona_ids:
-                agregadas_zonas = db.query(Zona).filter(Zona.id.in_(list(agregados_zona_ids))).all()
-                nombres_zonas = [z.nombre for z in agregadas_zonas]
+            nombres_espacios: list[str] = []
+            if agregados_espacio_ids:
+                agregados_espacios = db.query(Espacio).filter(Espacio.id.in_(list(agregados_espacio_ids))).all()
+                nombres_espacios = [e.nombre for e in agregados_espacios]
             partes: list[str] = []
             if nombres_recursos:
                 partes.append(f"recursos: {', '.join(nombres_recursos)}")
-            if nombres_zonas:
-                partes.append(f"zonas: {', '.join(nombres_zonas)}")
+            if nombres_espacios:
+                partes.append(f"espacios: {', '.join(nombres_espacios)}")
             detalle = " y ".join(partes) if partes else "nuevos recursos"
             encolar_correo(
                 db,
@@ -1117,7 +990,7 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
                 cuerpo=plantilla_reserva_actualizada(
                     nombre_saludo=propietario.username,
                     reserva_id=reserva.id,
-                    espacio=objetivo.espacio.nombre,
+                    espacio=objetivo.laboratorio.nombre,
                     fecha=str(reserva.fecha),
                     hora_inicio=str(reserva.hora_inicio),
                     hora_fin=str(reserva.hora_fin),
@@ -1146,9 +1019,9 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
             detail="Los usuarios no pueden eliminar reservas",
         )
     if usuario.rol == Rol.GESTOR.value and not es_propietario:
-        espacio_gestionado = get_managed_space_id(db, usuario)
-        if reserva.espacio_id != espacio_gestionado:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu espacio")
+        laboratorio_gestionado = get_managed_laboratory_id(db, usuario)
+        if reserva.laboratorio_id != laboratorio_gestionado:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo puedes gestionar reservas de tu laboratorio")
 
     descripcion = f"Eliminó la reserva #{reserva.id}"
     # Capturar antes del delete: si el actor no es el propio dueño (un
@@ -1166,7 +1039,7 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
             "email": propietario.email,
             "nombre_saludo": propietario.username,
             "reserva_id": reserva.id,
-            "espacio": reserva.espacio.nombre,
+            "espacio": reserva.laboratorio.nombre,
             "fecha": str(reserva.fecha),
             "hora_inicio": str(reserva.hora_inicio),
             "hora_fin": str(reserva.hora_fin),

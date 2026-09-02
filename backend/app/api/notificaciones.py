@@ -15,14 +15,15 @@ router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 
 def _etiqueta_objetivo(notificacion: Notificacion) -> str:
     """Nombre mostrable de una reserva para los mensajes (Fase 12C-4e-lectores):
-    la/s zona/s si la reserva las tiene; si no, TODOS los recursos asociados
-    (vía `reserva_recursos`), no solo el ancla singular `Reserva.recurso`."""
+    el/los espacio/s si la reserva los tiene; si no, TODOS los recursos
+    asociados (vía `reserva_recursos`), no solo el ancla singular
+    `Reserva.recurso`."""
     reserva = notificacion.reserva
     if reserva is None:
         return "el recurso"
-    zonas = list(reserva.zonas or [])
-    if zonas:
-        return "la zona " + ", ".join(z.nombre for z in zonas)
+    espacios = list(reserva.espacios or [])
+    if espacios:
+        return "el espacio " + ", ".join(e.nombre for e in espacios)
     nombres = [
         fila.recurso.nombre
         for fila in sorted(reserva.recursos_asociados or (), key=lambda fila: fila.recurso_id)
@@ -47,8 +48,8 @@ def _mensaje(notificacion: Notificacion) -> str:
         return f"Tu reserva de {etiqueta} fue actualizada con nuevos recursos"
     # Cancelada: dos remitentes posibles con el mismo tipo (ver
     # services/reservas.py) -- el propio dueño de la reserva (gestor/admin
-    # la canceló, cambiar_estado) o un gestor del espacio (el dueño canceló
-    # su propia reserva ya aprobada, cancelar_reserva_usuario). Distinguir
+    # la canceló, cambiar_estado) o un gestor del laboratorio (el dueño
+    # canceló su propia reserva ya aprobada, cancelar_reserva_usuario). Distinguir
     # por destinatario evita el "Tu reserva..." engañoso cuando quien lee
     # la notificación no es quien la hizo.
     reserva = notificacion.reserva
@@ -72,8 +73,8 @@ def _respuesta(notificacion: Notificacion) -> NotificacionResponse:
 def _columna_actor(actor: Personal | Usuario):
     """Polimórfico, mismo motivo que `services/actores.py::columnas_actor`
     -- un gestor también recibe notificaciones (reserva pendiente de su
-    espacio, cancelación de una reserva aprobada), así que `/notificaciones`
-    no puede filtrar siempre por `Notificacion.usuario_id`."""
+    laboratorio, cancelación de una reserva aprobada), así que
+    `/notificaciones` no puede filtrar siempre por `Notificacion.usuario_id`."""
     return Notificacion.personal_id if isinstance(actor, Personal) else Notificacion.usuario_id
 
 
@@ -84,8 +85,8 @@ def _query_actor(db: Session, actor: Personal | Usuario):
             joinedload(Notificacion.reserva)
             .joinedload(Reserva.recursos_asociados)
             .joinedload(ReservaRecurso.recurso)
-            .joinedload(Recurso.espacio),
-            joinedload(Notificacion.reserva).joinedload(Reserva.zonas),
+            .joinedload(Recurso.laboratorio),
+            joinedload(Notificacion.reserva).joinedload(Reserva.espacios),
         )
         .filter(_columna_actor(actor) == actor.id)
     )

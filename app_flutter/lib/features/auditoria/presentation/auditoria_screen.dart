@@ -109,7 +109,7 @@ String _soloFecha(String raw) => raw.split('T').first;
 /// No se calcula "Hoy"/"Ayer" a propósito: `created_at` llega naive en
 /// `America/Bogota` (ver `services/reloj.py`) y compararlo contra la fecha
 /// local del dispositivo daría una etiqueta equivocada para cualquiera que
-/// no esté en esa zona — un error silencioso, que es exactamente el riesgo
+/// no esté en esa espacio — un error silencioso, que es exactamente el riesgo
 /// que documenta el plan de migración sobre fechas.
 String _formatearDia(String fecha) {
   final partes = fecha.split('-');

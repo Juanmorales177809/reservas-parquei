@@ -11,7 +11,7 @@ from app.models.reserva_recurso import ReservaRecurso
 from app.services.actores import columnas_actor
 from app.services.lista_espera import notificar_primero_en_espera, vencer_y_reencolar
 
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario
 
 
 class _RelojFijo:
@@ -39,14 +39,14 @@ def _entrada(db, actor, recurso, *, fecha, hora_inicio=time(8, 0), hora_fin=time
 
 
 def _setup(db, *, sufijo="reintento"):
-    espacio = crear_espacio(db, nombre=f"Espacio {sufijo}")
+    laboratorio = crear_laboratorio(db, nombre=f"Laboratorio {sufijo}")
     usuario = crear_usuario(db, username=f"reintento_{sufijo}", email=f"reintento_{sufijo}@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario, nombre=f"Recurso {sufijo}")
-    return espacio, usuario, recurso
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre=f"Recurso {sufijo}")
+    return laboratorio, usuario, recurso
 
 
 def test_expira_y_notifica_al_siguiente_si_sigue_libre(db):
-    espacio, primero, recurso = _setup(db, sufijo="expira_libre")
+    laboratorio, primero, recurso = _setup(db, sufijo="expira_libre")
     segundo = crear_usuario(db, username="segundo_expira_libre", email="segundo_expira_libre@example.com", rol="usuario")
     fecha = date(2026, 9, 1)
     ahora = datetime(2026, 9, 1, 9, 0)
@@ -65,7 +65,7 @@ def test_expira_y_notifica_al_siguiente_si_sigue_libre(db):
 
 
 def test_expira_sin_notificar_a_nadie_si_ya_no_hay_nadie_en_cola(db):
-    espacio, primero, recurso = _setup(db, sufijo="expira_solo")
+    laboratorio, primero, recurso = _setup(db, sufijo="expira_solo")
     fecha = date(2026, 9, 1)
     ahora = datetime(2026, 9, 1, 9, 0)
 
@@ -80,7 +80,7 @@ def test_expira_sin_notificar_a_nadie_si_ya_no_hay_nadie_en_cola(db):
 
 
 def test_expira_sin_renotificar_si_el_recurso_ya_no_esta_libre(db):
-    espacio, primero, recurso = _setup(db, sufijo="expira_ocupado")
+    laboratorio, primero, recurso = _setup(db, sufijo="expira_ocupado")
     segundo = crear_usuario(db, username="segundo_expira_ocupado", email="segundo_expira_ocupado@example.com", rol="usuario")
     otro_dueno = crear_usuario(db, username="dueno_expira_ocupado", email="dueno_expira_ocupado@example.com", rol="usuario")
     fecha = date(2026, 9, 1)
@@ -95,7 +95,7 @@ def test_expira_sin_renotificar_si_el_recurso_ya_no_esta_libre(db):
     # asociación real, igual que hace `crear_reserva` en producción.
     reserva_ocupante = Reserva(
         **columnas_actor(otro_dueno),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=fecha,
         hora_inicio=time(8, 0),
@@ -128,7 +128,7 @@ def test_expira_sin_renotificar_si_el_recurso_ya_no_esta_libre(db):
 
 
 def test_no_expira_si_todavia_no_paso_el_tiempo(db):
-    espacio, primero, recurso = _setup(db, sufijo="no_expira")
+    laboratorio, primero, recurso = _setup(db, sufijo="no_expira")
     fecha = date(2026, 9, 1)
     ahora = datetime(2026, 9, 1, 9, 0)
 
@@ -142,7 +142,7 @@ def test_no_expira_si_todavia_no_paso_el_tiempo(db):
 
 
 def test_notificar_primero_en_espera_setea_notificada_en(db):
-    espacio, primero, recurso = _setup(db, sufijo="notificada_en")
+    laboratorio, primero, recurso = _setup(db, sufijo="notificada_en")
     fecha = date(2026, 9, 1)
     ahora = datetime(2026, 9, 1, 9, 0)
     e1 = _entrada(db, primero, recurso, fecha=fecha, estado="activa")

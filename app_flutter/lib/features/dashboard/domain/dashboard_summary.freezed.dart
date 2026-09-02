@@ -552,42 +552,42 @@ as int,
 
 
 /// @nodoc
-mixin _$ReservasPorEspacio {
+mixin _$ReservasPorLaboratorio {
 
- int get espacioId; String get nombre; int get cantidad;
-/// Create a copy of ReservasPorEspacio
+ int get laboratorioId; String get nombre; int get cantidad;
+/// Create a copy of ReservasPorLaboratorio
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$ReservasPorEspacioCopyWith<ReservasPorEspacio> get copyWith => _$ReservasPorEspacioCopyWithImpl<ReservasPorEspacio>(this as ReservasPorEspacio, _$identity);
+$ReservasPorLaboratorioCopyWith<ReservasPorLaboratorio> get copyWith => _$ReservasPorLaboratorioCopyWithImpl<ReservasPorLaboratorio>(this as ReservasPorLaboratorio, _$identity);
 
-  /// Serializes this ReservasPorEspacio to a JSON map.
+  /// Serializes this ReservasPorLaboratorio to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservasPorEspacio&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.cantidad, cantidad) || other.cantidad == cantidad));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservasPorLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.cantidad, cantidad) || other.cantidad == cantidad));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,espacioId,nombre,cantidad);
+int get hashCode => Object.hash(runtimeType,laboratorioId,nombre,cantidad);
 
 @override
 String toString() {
-  return 'ReservasPorEspacio(espacioId: $espacioId, nombre: $nombre, cantidad: $cantidad)';
+  return 'ReservasPorLaboratorio(laboratorioId: $laboratorioId, nombre: $nombre, cantidad: $cantidad)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $ReservasPorEspacioCopyWith<$Res>  {
-  factory $ReservasPorEspacioCopyWith(ReservasPorEspacio value, $Res Function(ReservasPorEspacio) _then) = _$ReservasPorEspacioCopyWithImpl;
+abstract mixin class $ReservasPorLaboratorioCopyWith<$Res>  {
+  factory $ReservasPorLaboratorioCopyWith(ReservasPorLaboratorio value, $Res Function(ReservasPorLaboratorio) _then) = _$ReservasPorLaboratorioCopyWithImpl;
 @useResult
 $Res call({
- int espacioId, String nombre, int cantidad
+ int laboratorioId, String nombre, int cantidad
 });
 
 
@@ -595,18 +595,18 @@ $Res call({
 
 }
 /// @nodoc
-class _$ReservasPorEspacioCopyWithImpl<$Res>
-    implements $ReservasPorEspacioCopyWith<$Res> {
-  _$ReservasPorEspacioCopyWithImpl(this._self, this._then);
+class _$ReservasPorLaboratorioCopyWithImpl<$Res>
+    implements $ReservasPorLaboratorioCopyWith<$Res> {
+  _$ReservasPorLaboratorioCopyWithImpl(this._self, this._then);
 
-  final ReservasPorEspacio _self;
-  final $Res Function(ReservasPorEspacio) _then;
+  final ReservasPorLaboratorio _self;
+  final $Res Function(ReservasPorLaboratorio) _then;
 
-/// Create a copy of ReservasPorEspacio
+/// Create a copy of ReservasPorLaboratorio
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? espacioId = null,Object? nombre = null,Object? cantidad = null,}) {
-  return _then(ReservasPorEspacio(
-espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+@pragma('vm:prefer-inline') @override $Res call({Object? laboratorioId = null,Object? nombre = null,Object? cantidad = null,}) {
+  return _then(ReservasPorLaboratorio(
+laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
 as String,cantidad: null == cantidad ? _self.cantidad : cantidad // ignore: cast_nullable_to_non_nullable
 as int,
@@ -616,8 +616,8 @@ as int,
 }
 
 
-/// Adds pattern-matching-related methods to [ReservasPorEspacio].
-extension ReservasPorEspacioPatterns on ReservasPorEspacio {
+/// Adds pattern-matching-related methods to [ReservasPorLaboratorio].
+extension ReservasPorLaboratorioPatterns on ReservasPorLaboratorio {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -630,10 +630,10 @@ extension ReservasPorEspacioPatterns on ReservasPorEspacio {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservasPorEspacio value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservasPorLaboratorio value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _ReservasPorEspacio() when $default != null:
+case _ReservasPorLaboratorio() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -652,10 +652,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservasPorEspacio value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservasPorLaboratorio value)  $default,){
 final _that = this;
 switch (_that) {
-case _ReservasPorEspacio():
+case _ReservasPorLaboratorio():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -673,10 +673,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservasPorEspacio value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservasPorLaboratorio value)?  $default,){
 final _that = this;
 switch (_that) {
-case _ReservasPorEspacio() when $default != null:
+case _ReservasPorLaboratorio() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -694,10 +694,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int espacioId,  String nombre,  int cantidad)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int laboratorioId,  String nombre,  int cantidad)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _ReservasPorEspacio() when $default != null:
-return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
+case _ReservasPorLaboratorio() when $default != null:
+return $default(_that.laboratorioId,_that.nombre,_that.cantidad);case _:
   return orElse();
 
 }
@@ -715,10 +715,10 @@ return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int espacioId,  String nombre,  int cantidad)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int laboratorioId,  String nombre,  int cantidad)  $default,) {final _that = this;
 switch (_that) {
-case _ReservasPorEspacio():
-return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
+case _ReservasPorLaboratorio():
+return $default(_that.laboratorioId,_that.nombre,_that.cantidad);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -735,10 +735,10 @@ return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int espacioId,  String nombre,  int cantidad)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int laboratorioId,  String nombre,  int cantidad)?  $default,) {final _that = this;
 switch (_that) {
-case _ReservasPorEspacio() when $default != null:
-return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
+case _ReservasPorLaboratorio() when $default != null:
+return $default(_that.laboratorioId,_that.nombre,_that.cantidad);case _:
   return null;
 
 }
@@ -749,48 +749,48 @@ return $default(_that.espacioId,_that.nombre,_that.cantidad);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _ReservasPorEspacio implements ReservasPorEspacio {
-  const _ReservasPorEspacio({required this.espacioId, required this.nombre, required this.cantidad});
-  factory _ReservasPorEspacio.fromJson(Map<String, dynamic> json) => _$ReservasPorEspacioFromJson(json);
+class _ReservasPorLaboratorio implements ReservasPorLaboratorio {
+  const _ReservasPorLaboratorio({required this.laboratorioId, required this.nombre, required this.cantidad});
+  factory _ReservasPorLaboratorio.fromJson(Map<String, dynamic> json) => _$ReservasPorLaboratorioFromJson(json);
 
-@override final  int espacioId;
+@override final  int laboratorioId;
 @override final  String nombre;
 @override final  int cantidad;
 
-/// Create a copy of ReservasPorEspacio
+/// Create a copy of ReservasPorLaboratorio
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$ReservasPorEspacioCopyWith<_ReservasPorEspacio> get copyWith => __$ReservasPorEspacioCopyWithImpl<_ReservasPorEspacio>(this, _$identity);
+_$ReservasPorLaboratorioCopyWith<_ReservasPorLaboratorio> get copyWith => __$ReservasPorLaboratorioCopyWithImpl<_ReservasPorLaboratorio>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$ReservasPorEspacioToJson(this, );
+  return _$ReservasPorLaboratorioToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservasPorEspacio&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.cantidad, cantidad) || other.cantidad == cantidad));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservasPorLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.cantidad, cantidad) || other.cantidad == cantidad));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,espacioId,nombre,cantidad);
+int get hashCode => Object.hash(runtimeType,laboratorioId,nombre,cantidad);
 
 @override
 String toString() {
-  return 'ReservasPorEspacio(espacioId: $espacioId, nombre: $nombre, cantidad: $cantidad)';
+  return 'ReservasPorLaboratorio(laboratorioId: $laboratorioId, nombre: $nombre, cantidad: $cantidad)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$ReservasPorEspacioCopyWith<$Res> implements $ReservasPorEspacioCopyWith<$Res> {
-  factory _$ReservasPorEspacioCopyWith(_ReservasPorEspacio value, $Res Function(_ReservasPorEspacio) _then) = __$ReservasPorEspacioCopyWithImpl;
+abstract mixin class _$ReservasPorLaboratorioCopyWith<$Res> implements $ReservasPorLaboratorioCopyWith<$Res> {
+  factory _$ReservasPorLaboratorioCopyWith(_ReservasPorLaboratorio value, $Res Function(_ReservasPorLaboratorio) _then) = __$ReservasPorLaboratorioCopyWithImpl;
 @override @useResult
 $Res call({
- int espacioId, String nombre, int cantidad
+ int laboratorioId, String nombre, int cantidad
 });
 
 
@@ -798,18 +798,18 @@ $Res call({
 
 }
 /// @nodoc
-class __$ReservasPorEspacioCopyWithImpl<$Res>
-    implements _$ReservasPorEspacioCopyWith<$Res> {
-  __$ReservasPorEspacioCopyWithImpl(this._self, this._then);
+class __$ReservasPorLaboratorioCopyWithImpl<$Res>
+    implements _$ReservasPorLaboratorioCopyWith<$Res> {
+  __$ReservasPorLaboratorioCopyWithImpl(this._self, this._then);
 
-  final _ReservasPorEspacio _self;
-  final $Res Function(_ReservasPorEspacio) _then;
+  final _ReservasPorLaboratorio _self;
+  final $Res Function(_ReservasPorLaboratorio) _then;
 
-/// Create a copy of ReservasPorEspacio
+/// Create a copy of ReservasPorLaboratorio
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? espacioId = null,Object? nombre = null,Object? cantidad = null,}) {
-  return _then(_ReservasPorEspacio(
-espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+@override @pragma('vm:prefer-inline') $Res call({Object? laboratorioId = null,Object? nombre = null,Object? cantidad = null,}) {
+  return _then(_ReservasPorLaboratorio(
+laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
 as String,cantidad: null == cantidad ? _self.cantidad : cantidad // ignore: cast_nullable_to_non_nullable
 as int,
@@ -2790,7 +2790,7 @@ $DeltaFloatCopyWith<$Res> get ocupacionPorcentaje {
 /// @nodoc
 mixin _$DashboardSummary {
 
- int get totalReservas; int get reservasPendientes; int get recursosActivos; int get usuarios; String? get espacioNombre; ReservasPorEstado get reservasPorEstado; List<ReservasPorFecha> get reservasPorFecha; List<ReservasPorEspacio> get reservasPorEspacio; List<RecursoMasReservado> get recursosMasReservados; List<OcupacionDiaHora> get ocupacionPorDiaHora; OcupacionGlobal get ocupacionGlobal; DashboardDeltas? get deltas;
+ int get totalReservas; int get reservasPendientes; int get recursosActivos; int get usuarios; String? get laboratorioNombre; ReservasPorEstado get reservasPorEstado; List<ReservasPorFecha> get reservasPorFecha; List<ReservasPorLaboratorio> get reservasPorLaboratorio; List<RecursoMasReservado> get recursosMasReservados; List<OcupacionDiaHora> get ocupacionPorDiaHora; OcupacionGlobal get ocupacionGlobal; DashboardDeltas? get deltas;
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2803,16 +2803,16 @@ $DashboardSummaryCopyWith<DashboardSummary> get copyWith => _$DashboardSummaryCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other.reservasPorFecha, reservasPorFecha)&&const DeepCollectionEquality().equals(other.reservasPorEspacio, reservasPorEspacio)&&const DeepCollectionEquality().equals(other.recursosMasReservados, recursosMasReservados)&&const DeepCollectionEquality().equals(other.ocupacionPorDiaHora, ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other.reservasPorFecha, reservasPorFecha)&&const DeepCollectionEquality().equals(other.reservasPorLaboratorio, reservasPorLaboratorio)&&const DeepCollectionEquality().equals(other.recursosMasReservados, recursosMasReservados)&&const DeepCollectionEquality().equals(other.ocupacionPorDiaHora, ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(reservasPorFecha),const DeepCollectionEquality().hash(reservasPorEspacio),const DeepCollectionEquality().hash(recursosMasReservados),const DeepCollectionEquality().hash(ocupacionPorDiaHora),ocupacionGlobal,deltas);
+int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,laboratorioNombre,reservasPorEstado,const DeepCollectionEquality().hash(reservasPorFecha),const DeepCollectionEquality().hash(reservasPorLaboratorio),const DeepCollectionEquality().hash(recursosMasReservados),const DeepCollectionEquality().hash(ocupacionPorDiaHora),ocupacionGlobal,deltas);
 
 @override
 String toString() {
-  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
+  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, laboratorioNombre: $laboratorioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorLaboratorio: $reservasPorLaboratorio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
 }
 
 
@@ -2823,7 +2823,7 @@ abstract mixin class $DashboardSummaryCopyWith<$Res>  {
   factory $DashboardSummaryCopyWith(DashboardSummary value, $Res Function(DashboardSummary) _then) = _$DashboardSummaryCopyWithImpl;
 @useResult
 $Res call({
- int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
+ int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? laboratorioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorLaboratorio> reservasPorLaboratorio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
 });
 
 
@@ -2840,17 +2840,17 @@ class _$DashboardSummaryCopyWithImpl<$Res>
 
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? laboratorioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorLaboratorio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
   return _then(DashboardSummary(
 totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
 as int,reservasPendientes: null == reservasPendientes ? _self.reservasPendientes : reservasPendientes // ignore: cast_nullable_to_non_nullable
 as int,recursosActivos: null == recursosActivos ? _self.recursosActivos : recursosActivos // ignore: cast_nullable_to_non_nullable
 as int,usuarios: null == usuarios ? _self.usuarios : usuarios // ignore: cast_nullable_to_non_nullable
-as int,espacioNombre: freezed == espacioNombre ? _self.espacioNombre : espacioNombre // ignore: cast_nullable_to_non_nullable
+as int,laboratorioNombre: freezed == laboratorioNombre ? _self.laboratorioNombre : laboratorioNombre // ignore: cast_nullable_to_non_nullable
 as String?,reservasPorEstado: null == reservasPorEstado ? _self.reservasPorEstado : reservasPorEstado // ignore: cast_nullable_to_non_nullable
 as ReservasPorEstado,reservasPorFecha: null == reservasPorFecha ? _self.reservasPorFecha : reservasPorFecha // ignore: cast_nullable_to_non_nullable
-as List<ReservasPorFecha>,reservasPorEspacio: null == reservasPorEspacio ? _self.reservasPorEspacio : reservasPorEspacio // ignore: cast_nullable_to_non_nullable
-as List<ReservasPorEspacio>,recursosMasReservados: null == recursosMasReservados ? _self.recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
+as List<ReservasPorFecha>,reservasPorLaboratorio: null == reservasPorLaboratorio ? _self.reservasPorLaboratorio : reservasPorLaboratorio // ignore: cast_nullable_to_non_nullable
+as List<ReservasPorLaboratorio>,recursosMasReservados: null == recursosMasReservados ? _self.recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
 as List<RecursoMasReservado>,ocupacionPorDiaHora: null == ocupacionPorDiaHora ? _self.ocupacionPorDiaHora : ocupacionPorDiaHora // ignore: cast_nullable_to_non_nullable
 as List<OcupacionDiaHora>,ocupacionGlobal: null == ocupacionGlobal ? _self.ocupacionGlobal : ocupacionGlobal // ignore: cast_nullable_to_non_nullable
 as OcupacionGlobal,deltas: freezed == deltas ? _self.deltas : deltas // ignore: cast_nullable_to_non_nullable
@@ -2969,10 +2969,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? laboratorioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorLaboratorio> reservasPorLaboratorio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DashboardSummary() when $default != null:
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.laboratorioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorLaboratorio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   return orElse();
 
 }
@@ -2990,10 +2990,10 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? laboratorioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorLaboratorio> reservasPorLaboratorio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)  $default,) {final _that = this;
 switch (_that) {
 case _DashboardSummary():
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.laboratorioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorLaboratorio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3010,10 +3010,10 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? espacioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorEspacio> reservasPorEspacio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalReservas,  int reservasPendientes,  int recursosActivos,  int usuarios,  String? laboratorioNombre,  ReservasPorEstado reservasPorEstado,  List<ReservasPorFecha> reservasPorFecha,  List<ReservasPorLaboratorio> reservasPorLaboratorio,  List<RecursoMasReservado> recursosMasReservados,  List<OcupacionDiaHora> ocupacionPorDiaHora,  OcupacionGlobal ocupacionGlobal,  DashboardDeltas? deltas)?  $default,) {final _that = this;
 switch (_that) {
 case _DashboardSummary() when $default != null:
-return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.espacioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorEspacio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
+return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActivos,_that.usuarios,_that.laboratorioNombre,_that.reservasPorEstado,_that.reservasPorFecha,_that.reservasPorLaboratorio,_that.recursosMasReservados,_that.ocupacionPorDiaHora,_that.ocupacionGlobal,_that.deltas);case _:
   return null;
 
 }
@@ -3025,14 +3025,14 @@ return $default(_that.totalReservas,_that.reservasPendientes,_that.recursosActiv
 @JsonSerializable()
 
 class _DashboardSummary implements DashboardSummary {
-  const _DashboardSummary({required this.totalReservas, required this.reservasPendientes, required this.recursosActivos, required this.usuarios, this.espacioNombre, required this.reservasPorEstado, required  List<ReservasPorFecha> reservasPorFecha, required  List<ReservasPorEspacio> reservasPorEspacio, required  List<RecursoMasReservado> recursosMasReservados, required  List<OcupacionDiaHora> ocupacionPorDiaHora, required this.ocupacionGlobal, this.deltas}): _reservasPorFecha = reservasPorFecha,_reservasPorEspacio = reservasPorEspacio,_recursosMasReservados = recursosMasReservados,_ocupacionPorDiaHora = ocupacionPorDiaHora;
+  const _DashboardSummary({required this.totalReservas, required this.reservasPendientes, required this.recursosActivos, required this.usuarios, this.laboratorioNombre, required this.reservasPorEstado, required  List<ReservasPorFecha> reservasPorFecha, required  List<ReservasPorLaboratorio> reservasPorLaboratorio, required  List<RecursoMasReservado> recursosMasReservados, required  List<OcupacionDiaHora> ocupacionPorDiaHora, required this.ocupacionGlobal, this.deltas}): _reservasPorFecha = reservasPorFecha,_reservasPorLaboratorio = reservasPorLaboratorio,_recursosMasReservados = recursosMasReservados,_ocupacionPorDiaHora = ocupacionPorDiaHora;
   factory _DashboardSummary.fromJson(Map<String, dynamic> json) => _$DashboardSummaryFromJson(json);
 
 @override final  int totalReservas;
 @override final  int reservasPendientes;
 @override final  int recursosActivos;
 @override final  int usuarios;
-@override final  String? espacioNombre;
+@override final  String? laboratorioNombre;
 @override final  ReservasPorEstado reservasPorEstado;
  final  List<ReservasPorFecha> _reservasPorFecha;
 @override List<ReservasPorFecha> get reservasPorFecha {
@@ -3041,11 +3041,11 @@ class _DashboardSummary implements DashboardSummary {
   return EqualUnmodifiableListView(_reservasPorFecha);
 }
 
- final  List<ReservasPorEspacio> _reservasPorEspacio;
-@override List<ReservasPorEspacio> get reservasPorEspacio {
-  if (_reservasPorEspacio is EqualUnmodifiableListView) return _reservasPorEspacio;
+ final  List<ReservasPorLaboratorio> _reservasPorLaboratorio;
+@override List<ReservasPorLaboratorio> get reservasPorLaboratorio {
+  if (_reservasPorLaboratorio is EqualUnmodifiableListView) return _reservasPorLaboratorio;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_reservasPorEspacio);
+  return EqualUnmodifiableListView(_reservasPorLaboratorio);
 }
 
  final  List<RecursoMasReservado> _recursosMasReservados;
@@ -3078,16 +3078,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.espacioNombre, espacioNombre) || other.espacioNombre == espacioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other._reservasPorFecha, _reservasPorFecha)&&const DeepCollectionEquality().equals(other._reservasPorEspacio, _reservasPorEspacio)&&const DeepCollectionEquality().equals(other._recursosMasReservados, _recursosMasReservados)&&const DeepCollectionEquality().equals(other._ocupacionPorDiaHora, _ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardSummary&&(identical(other.totalReservas, totalReservas) || other.totalReservas == totalReservas)&&(identical(other.reservasPendientes, reservasPendientes) || other.reservasPendientes == reservasPendientes)&&(identical(other.recursosActivos, recursosActivos) || other.recursosActivos == recursosActivos)&&(identical(other.usuarios, usuarios) || other.usuarios == usuarios)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&(identical(other.reservasPorEstado, reservasPorEstado) || other.reservasPorEstado == reservasPorEstado)&&const DeepCollectionEquality().equals(other._reservasPorFecha, _reservasPorFecha)&&const DeepCollectionEquality().equals(other._reservasPorLaboratorio, _reservasPorLaboratorio)&&const DeepCollectionEquality().equals(other._recursosMasReservados, _recursosMasReservados)&&const DeepCollectionEquality().equals(other._ocupacionPorDiaHora, _ocupacionPorDiaHora)&&(identical(other.ocupacionGlobal, ocupacionGlobal) || other.ocupacionGlobal == ocupacionGlobal)&&(identical(other.deltas, deltas) || other.deltas == deltas));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,espacioNombre,reservasPorEstado,const DeepCollectionEquality().hash(_reservasPorFecha),const DeepCollectionEquality().hash(_reservasPorEspacio),const DeepCollectionEquality().hash(_recursosMasReservados),const DeepCollectionEquality().hash(_ocupacionPorDiaHora),ocupacionGlobal,deltas);
+int get hashCode => Object.hash(runtimeType,totalReservas,reservasPendientes,recursosActivos,usuarios,laboratorioNombre,reservasPorEstado,const DeepCollectionEquality().hash(_reservasPorFecha),const DeepCollectionEquality().hash(_reservasPorLaboratorio),const DeepCollectionEquality().hash(_recursosMasReservados),const DeepCollectionEquality().hash(_ocupacionPorDiaHora),ocupacionGlobal,deltas);
 
 @override
 String toString() {
-  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, espacioNombre: $espacioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorEspacio: $reservasPorEspacio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
+  return 'DashboardSummary(totalReservas: $totalReservas, reservasPendientes: $reservasPendientes, recursosActivos: $recursosActivos, usuarios: $usuarios, laboratorioNombre: $laboratorioNombre, reservasPorEstado: $reservasPorEstado, reservasPorFecha: $reservasPorFecha, reservasPorLaboratorio: $reservasPorLaboratorio, recursosMasReservados: $recursosMasReservados, ocupacionPorDiaHora: $ocupacionPorDiaHora, ocupacionGlobal: $ocupacionGlobal, deltas: $deltas)';
 }
 
 
@@ -3098,7 +3098,7 @@ abstract mixin class _$DashboardSummaryCopyWith<$Res> implements $DashboardSumma
   factory _$DashboardSummaryCopyWith(_DashboardSummary value, $Res Function(_DashboardSummary) _then) = __$DashboardSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? espacioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorEspacio> reservasPorEspacio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
+ int totalReservas, int reservasPendientes, int recursosActivos, int usuarios, String? laboratorioNombre, ReservasPorEstado reservasPorEstado, List<ReservasPorFecha> reservasPorFecha, List<ReservasPorLaboratorio> reservasPorLaboratorio, List<RecursoMasReservado> recursosMasReservados, List<OcupacionDiaHora> ocupacionPorDiaHora, OcupacionGlobal ocupacionGlobal, DashboardDeltas? deltas
 });
 
 
@@ -3115,17 +3115,17 @@ class __$DashboardSummaryCopyWithImpl<$Res>
 
 /// Create a copy of DashboardSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? espacioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorEspacio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? totalReservas = null,Object? reservasPendientes = null,Object? recursosActivos = null,Object? usuarios = null,Object? laboratorioNombre = freezed,Object? reservasPorEstado = null,Object? reservasPorFecha = null,Object? reservasPorLaboratorio = null,Object? recursosMasReservados = null,Object? ocupacionPorDiaHora = null,Object? ocupacionGlobal = null,Object? deltas = freezed,}) {
   return _then(_DashboardSummary(
 totalReservas: null == totalReservas ? _self.totalReservas : totalReservas // ignore: cast_nullable_to_non_nullable
 as int,reservasPendientes: null == reservasPendientes ? _self.reservasPendientes : reservasPendientes // ignore: cast_nullable_to_non_nullable
 as int,recursosActivos: null == recursosActivos ? _self.recursosActivos : recursosActivos // ignore: cast_nullable_to_non_nullable
 as int,usuarios: null == usuarios ? _self.usuarios : usuarios // ignore: cast_nullable_to_non_nullable
-as int,espacioNombre: freezed == espacioNombre ? _self.espacioNombre : espacioNombre // ignore: cast_nullable_to_non_nullable
+as int,laboratorioNombre: freezed == laboratorioNombre ? _self.laboratorioNombre : laboratorioNombre // ignore: cast_nullable_to_non_nullable
 as String?,reservasPorEstado: null == reservasPorEstado ? _self.reservasPorEstado : reservasPorEstado // ignore: cast_nullable_to_non_nullable
 as ReservasPorEstado,reservasPorFecha: null == reservasPorFecha ? _self._reservasPorFecha : reservasPorFecha // ignore: cast_nullable_to_non_nullable
-as List<ReservasPorFecha>,reservasPorEspacio: null == reservasPorEspacio ? _self._reservasPorEspacio : reservasPorEspacio // ignore: cast_nullable_to_non_nullable
-as List<ReservasPorEspacio>,recursosMasReservados: null == recursosMasReservados ? _self._recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
+as List<ReservasPorFecha>,reservasPorLaboratorio: null == reservasPorLaboratorio ? _self._reservasPorLaboratorio : reservasPorLaboratorio // ignore: cast_nullable_to_non_nullable
+as List<ReservasPorLaboratorio>,recursosMasReservados: null == recursosMasReservados ? _self._recursosMasReservados : recursosMasReservados // ignore: cast_nullable_to_non_nullable
 as List<RecursoMasReservado>,ocupacionPorDiaHora: null == ocupacionPorDiaHora ? _self._ocupacionPorDiaHora : ocupacionPorDiaHora // ignore: cast_nullable_to_non_nullable
 as List<OcupacionDiaHora>,ocupacionGlobal: null == ocupacionGlobal ? _self.ocupacionGlobal : ocupacionGlobal // ignore: cast_nullable_to_non_nullable
 as OcupacionGlobal,deltas: freezed == deltas ? _self.deltas : deltas // ignore: cast_nullable_to_non_nullable

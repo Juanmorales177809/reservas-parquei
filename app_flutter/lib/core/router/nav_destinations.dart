@@ -44,7 +44,7 @@ class NavDestinationSpec {
   /// pantalla "Más"/Perfil en móvil.
   final bool primario;
 
-  /// `false` = destino público (p. ej. "Espacios"): visible para anónimos
+  /// `false` = destino público (p. ej. "Laboratorios"): visible para anónimos
   /// y para cualquier rol, sin mirar `rolesPermitidos`.
   final bool requiereSesion;
 
@@ -66,10 +66,10 @@ class NavDestinationSpec {
 /// roles, no hay una lista aparte que pueda desincronizarse.
 const kNavDestinations = <NavDestinationSpec>[
   NavDestinationSpec(
-    id: 'espacios',
-    label: 'Espacios',
+    id: 'laboratorios',
+    label: 'Laboratorios',
     icon: LucideIcons.building2,
-    path: AppRoutes.espacios,
+    path: AppRoutes.laboratorios,
     primario: true,
     requiereSesion: false,
   ),
@@ -102,23 +102,23 @@ const kNavDestinations = <NavDestinationSpec>[
     rolesPermitidos: {RolUsuario.gestor, RolUsuario.admin},
   ),
   NavDestinationSpec(
-    id: 'gestion-zonas',
-    label: 'Zonas',
+    id: 'gestion-espacios',
+    label: 'Espacios',
     icon: LucideIcons.mapPinned,
-    path: AppRoutes.adminZonas,
+    path: AppRoutes.adminEspacios,
     primario: false,
     rolesPermitidos: {RolUsuario.gestor, RolUsuario.admin},
   ),
   NavDestinationSpec(
-    id: 'gestion-ensayos',
-    label: 'Ensayos',
-    icon: LucideIcons.flaskConical,
-    path: AppRoutes.adminEnsayos,
+    id: 'gestion-tipos-reserva',
+    label: 'Tipos de reserva',
+    icon: LucideIcons.tag,
+    path: AppRoutes.adminTiposReserva,
     primario: false,
     rolesPermitidos: {RolUsuario.gestor, RolUsuario.admin},
   ),
   NavDestinationSpec(
-    id: 'configuracion-espacio',
+    id: 'configuracion-laboratorio',
     label: 'Configuración',
     icon: LucideIcons.settings,
     path: AppRoutes.adminConfiguracion,
@@ -127,10 +127,10 @@ const kNavDestinations = <NavDestinationSpec>[
     pushed: true,
   ),
   NavDestinationSpec(
-    id: 'gestion-espacios',
-    label: 'Espacios',
+    id: 'gestion-laboratorios',
+    label: 'Laboratorios',
     icon: LucideIcons.building2,
-    path: AppRoutes.adminEspacios,
+    path: AppRoutes.adminLaboratorios,
     primario: false,
     rolesPermitidos: {RolUsuario.admin},
   ),

@@ -6,7 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 
 /// Badge de color por `EstadoReserva` — mismo lenguaje visual que
-/// `EstadoBadge` (espacios/recursos) pero mapeando el dominio del flujo de
+/// `EstadoBadge` (laboratorios/recursos) pero mapeando el dominio del flujo de
 /// aprobación de una reserva.
 ///
 /// Fase 6: usa los tokens verificados de [AppEstados]. El ámbar anterior

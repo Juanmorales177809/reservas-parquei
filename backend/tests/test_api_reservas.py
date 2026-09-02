@@ -3,18 +3,18 @@
 
 Reglas cubiertas:
 - RN-019: reserva de usuario queda en estado esperando (requiere aprobación).
-- RN-020: gestor que reserva recurso de otro espacio queda en esperando.
-- RN-021: gestor que reserva en su propio espacio queda aprobada.
+- RN-020: gestor que reserva recurso de otro laboratorio queda en esperando.
+- RN-021: gestor que reserva en su propio laboratorio queda aprobada.
 - RN-017: confirmación por aprobación o creación directa del gestor.
 - Solapamiento (validación + exclusión btree_gist reservas_sin_solapamiento)
   responde 409; bloques contiguos están permitidos.
 - Bloques de hora completa, horario de atención y anticipación mínima.
-- Capacidad máxima y estado activo del recurso/espacio.
+- Capacidad máxima y estado activo del recurso/laboratorio.
 - Transiciones de estado y cancelación únicamente por el propietario.
 """
 
 from tests.conftest import (
-    crear_espacio,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
@@ -25,16 +25,16 @@ from tests.conftest import (
 
 
 def _setup(db, *, rol="usuario", es_gestor_del_espacio=False, nombre_espacio="Sala A"):
-    espacio = crear_espacio(db, nombre=nombre_espacio)
+    laboratorio = crear_laboratorio(db, nombre=nombre_espacio)
     usuario = crear_usuario(
         db,
         username=f"user_{rol}_{nombre_espacio.replace(' ', '')}",
         email=f"{rol}-{nombre_espacio.replace(' ', '')}@example.com",
         rol=rol,
-        espacio_id=espacio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
+        laboratorio_id=laboratorio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
     )
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-    return usuario, espacio, recurso
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+    return usuario, laboratorio, recurso
 
 
 class TestCrearReserva:
@@ -59,16 +59,16 @@ class TestCrearReserva:
         assert respuesta.json()["estado"] == "aprobada"
 
     def test_gestor_de_otro_espacio_queda_esperando(self, client, db):  # RN-020
-        espacio_a = crear_espacio(db, nombre="Sala Gestor")
+        espacio_a = crear_laboratorio(db, nombre="Sala Gestor")
         usuario = crear_usuario(
             db,
             username="gestor_a",
             email="gestor_a@example.com",
             rol="gestor",
-            espacio_id=espacio_a.id,
+            laboratorio_id=espacio_a.id,
         )
-        espacio_b = crear_espacio(db, nombre="Sala B")
-        recurso_b = crear_recurso(db, espacio=espacio_b, usuario=usuario)
+        espacio_b = crear_laboratorio(db, nombre="Sala B")
+        recurso_b = crear_recurso(db, laboratorio=espacio_b, usuario=usuario)
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_b.id, fecha_habilitada()),
@@ -118,9 +118,9 @@ class TestCrearReserva:
         assert respuesta.status_code == 400
 
     def test_anticipacion_insuficiente_da_400(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Antelada", horas_antelacion=720)
+        laboratorio = crear_laboratorio(db, nombre="Sala Antelada", horas_antelacion=720)
         usuario = crear_usuario(db, username="user_anti", email="user_anti@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -147,9 +147,9 @@ class TestCrearReserva:
         assert respuesta.status_code == 422
 
     def test_recurso_inactivo_da_400(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Inactiva Rec")
+        laboratorio = crear_laboratorio(db, nombre="Sala Inactiva Rec")
         usuario = crear_usuario(db, username="user_rec", email="user_rec@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario, estado="inactivo")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, estado="inactivo")
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -158,9 +158,9 @@ class TestCrearReserva:
         assert respuesta.status_code == 400
 
     def test_espacio_inactivo_da_400(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Inactiva Esp", estado="inactivo")
+        laboratorio = crear_laboratorio(db, nombre="Sala Inactiva Esp", estado="inactivo")
         usuario = crear_usuario(db, username="user_esp", email="user_esp@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -177,24 +177,24 @@ class TestCrearReserva:
 
 
 class TestRecursosPS:
-    """RN-009 (Fase 12B) + Fase 12D: un recurso marcado como PS (prestación
-    de servicios) no puede reservarse por el rol `usuario` (403, gate de rol
-    que se evalúa primero y sin cambios). Desde la Fase 12D, `gestor`/`admin`
-    solo pueden reservarlo si la reserva declara `tipo == servicio_de_ensayo`
-    (RN-015); sin ese tipo, el recurso PS responde 400. El gate de rol del
-    usuario se evalúa siempre ANTES que el gate de tipo."""
+    """`es_prestacion_servicio` sigue existiendo como dato de catálogo en
+    `Recurso` (ver `models/recurso.py`, `api/recursos.py::_puede_ver_ps`),
+    pero el gate que antes bloqueaba su reserva por rol/tipo (RN-009, Fase
+    12B/12D, `validar_acceso_ps`) se quitó del flujo de reserva: un recurso
+    PS se reserva igual que cualquier otro, sin restricción de rol ni de
+    `tipo`."""
 
     def _setup_ps(self, db, *, rol_creador="admin"):
-        espacio = crear_espacio(db, nombre="Sala PS Reserva")
+        laboratorio = crear_laboratorio(db, nombre="Sala PS Reserva")
         creador = crear_usuario(
             db, username=f"creador_{rol_creador}", email=f"creador_{rol_creador}@example.com", rol=rol_creador
         )
         recurso_ps = crear_recurso(
-            db, espacio=espacio, usuario=creador, nombre="Equipo PS Reserva", es_prestacion_servicio=True
+            db, laboratorio=laboratorio, usuario=creador, nombre="Equipo PS Reserva", es_prestacion_servicio=True
         )
-        return espacio, recurso_ps
+        return laboratorio, recurso_ps
 
-    def test_usuario_no_puede_reservar_recurso_ps(self, client, db):
+    def test_usuario_puede_reservar_recurso_ps(self, client, db):
         _, recurso_ps = self._setup_ps(db)
         usuario = crear_usuario(db, username="user_reserva_ps", email="user_reserva_ps@example.com")
         respuesta = client.post(
@@ -202,52 +202,22 @@ class TestRecursosPS:
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
             headers=cookies_para(usuario),
         )
-        assert respuesta.status_code == 403
+        assert respuesta.status_code == 201
 
-    def test_usuario_bloqueado_incluso_con_tipo_servicio_de_ensayo(self, client, db):
-        """El gate de rol del usuario se evalúa antes que el gate de tipo:
-        aunque la reserva declare el tipo de ensayo, el rol `usuario` sigue
-        con 403 (nunca llega al chequeo de tipo de la Fase 12D)."""
-        _, recurso_ps = self._setup_ps(db)
-        usuario = crear_usuario(db, username="user_ps_tipo", email="user_ps_tipo@example.com")
-        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
-        payload["tipo"] = "servicio_de_ensayo"
-        respuesta = client.post(
-            "/reservas",
-            json=payload,
-            headers=cookies_para(usuario),
-        )
-        assert respuesta.status_code == 403
-
-    def test_gestor_sin_tipo_servicio_de_ensayo_no_puede_reservar_ps(self, client, db):
-        espacio, recurso_ps = self._setup_ps(db)
+    def test_gestor_puede_reservar_ps_sin_declarar_tipo(self, client, db):
+        laboratorio, recurso_ps = self._setup_ps(db)
         gestor = crear_usuario(
             db, username="gestor_reserva_ps", email="gestor_reserva_ps@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         respuesta = client.post(
             "/reservas",
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
             headers=cookies_para(gestor),
         )
-        assert respuesta.status_code == 400
-
-    def test_gestor_con_tipo_servicio_de_ensayo_puede_reservar_ps(self, client, db):
-        espacio, recurso_ps = self._setup_ps(db)
-        gestor = crear_usuario(
-            db, username="gestor_reserva_ps2", email="gestor_reserva_ps2@example.com",
-            rol="gestor", espacio_id=espacio.id,
-        )
-        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
-        payload["tipo"] = "servicio_de_ensayo"
-        respuesta = client.post(
-            "/reservas",
-            json=payload,
-            headers=cookies_para(gestor),
-        )
         assert respuesta.status_code == 201
 
-    def test_admin_sin_tipo_servicio_de_ensayo_no_puede_reservar_ps(self, client, db):
+    def test_admin_puede_reservar_ps_sin_declarar_tipo(self, client, db):
         _, recurso_ps = self._setup_ps(db)
         admin = crear_usuario(db, username="admin_reserva_ps", email="admin_reserva_ps@example.com", rol="admin")
         respuesta = client.post(
@@ -255,45 +225,15 @@ class TestRecursosPS:
             json=payload_reserva(recurso_ps.id, fecha_habilitada()),
             headers=cookies_para(admin),
         )
-        assert respuesta.status_code == 400
-
-    def test_admin_con_tipo_servicio_de_ensayo_puede_reservar_ps(self, client, db):
-        _, recurso_ps = self._setup_ps(db)
-        admin = crear_usuario(db, username="admin_reserva_ps2", email="admin_reserva_ps2@example.com", rol="admin")
-        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
-        payload["tipo"] = "servicio_de_ensayo"
-        respuesta = client.post(
-            "/reservas",
-            json=payload,
-            headers=cookies_para(admin),
-        )
         assert respuesta.status_code == 201
 
-    def test_otros_tipos_distintos_del_ensayo_tampoco_habilitan_ps_para_gestor(self, client, db):
-        """Solo `servicio_de_ensayo` habilita la reserva de un recurso PS por
-        gestor/admin; los demás tipos del enum quedan igual de bloqueados que
-        la ausencia de tipo."""
-        espacio, recurso_ps = self._setup_ps(db)
-        gestor = crear_usuario(
-            db, username="gestor_reserva_ps3", email="gestor_reserva_ps3@example.com",
-            rol="gestor", espacio_id=espacio.id,
-        )
-        payload = payload_reserva(recurso_ps.id, fecha_habilitada())
-        payload["tipo"] = "trabajo_grado"
-        respuesta = client.post(
-            "/reservas",
-            json=payload,
-            headers=cookies_para(gestor),
-        )
-        assert respuesta.status_code == 400
-
-    def test_usuario_no_puede_editar_reserva_hacia_recurso_ps(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala PS Editar")
+    def test_usuario_puede_editar_reserva_hacia_recurso_ps(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala PS Editar")
         admin = crear_usuario(db, username="admin_edit_ps", email="admin_edit_ps@example.com", rol="admin")
         usuario = crear_usuario(db, username="user_edit_ps", email="user_edit_ps@example.com")
-        recurso_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Normal Editar")
+        recurso_normal = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Normal Editar")
         recurso_ps = crear_recurso(
-            db, espacio=espacio, usuario=admin, nombre="PS Editar", es_prestacion_servicio=True
+            db, laboratorio=laboratorio, usuario=admin, nombre="PS Editar", es_prestacion_servicio=True
         )
         creada = client.post(
             "/reservas",
@@ -305,7 +245,7 @@ class TestRecursosPS:
             json={"recurso_ids": [recurso_ps.id]},
             headers=cookies_para(usuario),
         )
-        assert respuesta.status_code == 403
+        assert respuesta.status_code == 200
 
     def test_reserva_normal_sin_cambios(self, client, db):
         """Un recurso no-PS sigue reservable por cualquier rol autenticado,
@@ -373,10 +313,10 @@ class TestSolapamiento:
 
 class TestTransiciones:
     def test_flujo_aprobar_y_cancelar(self, client, db):
-        usuario, espacio, recurso = _setup(db)
+        usuario, laboratorio, recurso = _setup(db)
         gestor = crear_usuario(
             db, username="gestor_flow", email="gestor_flow@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         creada = client.post(
             "/reservas",
@@ -397,10 +337,10 @@ class TestTransiciones:
         assert cancelada.json()["estado"] == "cancelada"
 
     def test_rechazada_no_puede_aprobarse(self, client, db):
-        usuario, espacio, recurso = _setup(db)
+        usuario, laboratorio, recurso = _setup(db)
         gestor = crear_usuario(
             db, username="gestor_rech", email="gestor_rech@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         creada = client.post(
             "/reservas",
@@ -436,10 +376,10 @@ class TestTransiciones:
         assert respuesta.status_code == 403
 
     def test_solo_propietario_cancela(self, client, db):
-        usuario, espacio, recurso = _setup(db)
+        usuario, laboratorio, recurso = _setup(db)
         gestor = crear_usuario(
             db, username="gestor_canc", email="gestor_canc@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         otro = crear_usuario(db, username="otro", email="otro@example.com")
         creada = client.post(
@@ -731,7 +671,7 @@ class TestAcompanantes:
 
         return {
             "recurso_ids": [recurso_id],
-            "zona_ids": [],
+            "espacio_ids": [],
             "fecha": fecha.isoformat(),
             "hora_inicio": "08:00",
             "hora_fin": "09:00",
@@ -848,19 +788,19 @@ class TestAcompanantes:
 
 class TestNotificacionAlAgregarRecursos:
     """Feature B (equipos adicionales durante una reserva ya aprobada): un
-    gestor/admin que agrega recurso_ids/zona_ids a una reserva aprobada
+    gestor/admin que agrega recurso_ids/espacio_ids a una reserva aprobada
     notifica al dueño (Notificacion tipo 'Actualizada' + correo en el
     outbox). Ver services/reservas.py::actualizar_reserva."""
 
     def test_gestor_agrega_recurso_a_reserva_aprobada_notifica_al_dueno(self, client, db):
         from app.models import CorreoSaliente, Notificacion
 
-        usuario, espacio, recurso = _setup(db, nombre_espacio="Sala Notif Add")
+        usuario, laboratorio, recurso = _setup(db, nombre_espacio="Sala Notif Add")
         gestor = crear_usuario(
             db, username="gestor_notif_add", email="gestor_notif_add@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
-        recurso2 = crear_recurso(db, espacio=espacio, usuario=gestor, nombre="Recurso extra")
+        recurso2 = crear_recurso(db, laboratorio=laboratorio, usuario=gestor, nombre="Recurso extra")
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -904,10 +844,10 @@ class TestNotificacionAlAgregarRecursos:
     def test_no_notifica_si_no_se_agrega_nada_nuevo(self, client, db):
         from app.models import Notificacion
 
-        usuario, espacio, recurso = _setup(db, nombre_espacio="Sala Notif NoOp")
+        usuario, laboratorio, recurso = _setup(db, nombre_espacio="Sala Notif NoOp")
         gestor = crear_usuario(
             db, username="gestor_notif_noop", email="gestor_notif_noop@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         creada = client.post(
             "/reservas",
@@ -937,13 +877,13 @@ class TestNotificacionAlAgregarRecursos:
     def test_gestor_editando_su_propia_reserva_no_se_autonotifica(self, client, db):
         from app.models import Notificacion
 
-        espacio = crear_espacio(db, nombre="Sala Notif Self")
+        laboratorio = crear_laboratorio(db, nombre="Sala Notif Self")
         gestor = crear_usuario(
             db, username="gestor_notif_self", email="gestor_notif_self@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
-        recurso = crear_recurso(db, espacio=espacio, usuario=gestor)
-        recurso2 = crear_recurso(db, espacio=espacio, usuario=gestor, nombre="Recurso extra self")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=gestor)
+        recurso2 = crear_recurso(db, laboratorio=laboratorio, usuario=gestor, nombre="Recurso extra self")
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso.id, fecha_habilitada()),

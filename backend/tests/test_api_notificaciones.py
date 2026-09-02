@@ -2,17 +2,17 @@
 """Pruebas de integración de notificaciones (api/notificaciones.py).
 
 Reglas cubiertas:
-- Una reserva esperando notifica a los gestores del espacio (Pendiente).
+- Una reserva esperando notifica a los gestores del laboratorio (Pendiente).
 - La aprobación notifica al solicitante (Aprobada).
 - Conteo de no leídas, marcar una y marcar todas.
 """
 
 from tests.conftest import (
-    asociar_zona_recurso,
-    crear_espacio,
+    asociar_espacio_recurso,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
-    crear_zona,
+    crear_espacio,
     fecha_habilitada,
     cookies_para,
     payload_reserva,
@@ -21,13 +21,13 @@ from tests.conftest import (
 
 
 def _reserva_pendiente(client, db):
-    espacio = crear_espacio(db, nombre="Sala Notif")
+    laboratorio = crear_laboratorio(db, nombre="Sala Notif")
     gestor = crear_usuario(
         db, username="gestor_notif", email="gestor_notif@example.com",
-        rol="gestor", espacio_id=espacio.id,
+        rol="gestor", laboratorio_id=laboratorio.id,
     )
     solicitante = crear_usuario(db, username="solicitante", email="solicitante@example.com")
-    recurso = crear_recurso(db, espacio=espacio, usuario=solicitante)
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=solicitante)
     creada = client.post(
         "/reservas",
         json=payload_reserva(recurso.id, fecha_habilitada()),
@@ -120,44 +120,44 @@ def test_cancelacion_por_usuario_notifica_al_gestor_sin_decir_tu_reserva(client,
     assert "Tu reserva" not in cancelada["mensaje"]
 
 
-def test_reserva_de_zona_notifica_la_zona(client, db):
-    """Fase 12C-6: una reserva por zona menciona la zona en el mensaje al
+def test_reserva_de_espacio_notifica_la_espacio(client, db):
+    """Fase 12C-6: una reserva por espacio menciona la espacio en el mensaje al
     gestor, no el recurso ancla."""
-    espacio = crear_espacio(db, nombre="Sala Notif Zona", modalidad_reserva="zonas")
+    laboratorio = crear_laboratorio(db, nombre="Sala Notif Espacio")
     gestor = crear_usuario(
-        db, username="gestor_notif_zona", email="gestor_notif_zona@example.com",
-        rol="gestor", espacio_id=espacio.id,
+        db, username="gestor_notif_espacio", email="gestor_notif_espacio@example.com",
+        rol="gestor", laboratorio_id=laboratorio.id,
     )
-    solicitante = crear_usuario(db, username="solicitante_zona", email="solicitante_zona@example.com")
-    recurso = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Recurso Zona")
-    zona = crear_zona(db, espacio=espacio, usuario=solicitante, nombre="Zona Notif")
-    asociar_zona_recurso(db, zona, recurso)
+    solicitante = crear_usuario(db, username="solicitante_espacio", email="solicitante_espacio@example.com")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=solicitante, nombre="Recurso Espacio")
+    espacio = crear_espacio(db, laboratorio=laboratorio, usuario=solicitante, nombre="Espacio Notif")
+    asociar_espacio_recurso(db, espacio, recurso)
 
     creada = client.post(
         "/reservas",
-        json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+        json=payload_reserva_objetivos(espacio_ids=[espacio.id], fecha=fecha_habilitada()),
         headers=cookies_para(solicitante),
     )
     assert creada.status_code == 201
 
     items = client.get("/notificaciones", headers=cookies_para(gestor)).json()
     assert len(items) == 1
-    assert "Zona Notif" in items[0]["mensaje"]
+    assert "Espacio Notif" in items[0]["mensaje"]
 
 
 def test_reserva_de_multiples_recursos_menciona_todos_en_el_mensaje(client, db):
     """Fase 12C-4e-lectores: una reserva de varios recursos directos (sin
-    zona) menciona TODOS los recursos en el mensaje -- antes de esta
+    espacio) menciona TODOS los recursos en el mensaje -- antes de esta
     subfase, el mensaje solo mostraba el recurso ancla (el de menor id),
     ocultando los demás."""
-    espacio = crear_espacio(db, nombre="Sala Notif Multi Recurso", modalidad_reserva="mixto")
+    laboratorio = crear_laboratorio(db, nombre="Sala Notif Multi Recurso")
     gestor = crear_usuario(
         db, username="gestor_notif_multi", email="gestor_notif_multi@example.com",
-        rol="gestor", espacio_id=espacio.id,
+        rol="gestor", laboratorio_id=laboratorio.id,
     )
     solicitante = crear_usuario(db, username="solicitante_multi", email="solicitante_multi@example.com")
-    r1 = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Proyector Notif")
-    r2 = crear_recurso(db, espacio=espacio, usuario=solicitante, nombre="Cámara Notif")
+    r1 = crear_recurso(db, laboratorio=laboratorio, usuario=solicitante, nombre="Proyector Notif")
+    r2 = crear_recurso(db, laboratorio=laboratorio, usuario=solicitante, nombre="Cámara Notif")
 
     creada = client.post(
         "/reservas",

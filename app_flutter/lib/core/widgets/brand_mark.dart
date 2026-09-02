@@ -42,7 +42,7 @@ class BrandMark extends StatelessWidget {
         // depende de cuánto ocupen las acciones de la `AppBar` y del factor
         // de escala de texto del sistema (accesibilidad), así que un ancho
         // "que siempre entra" no existe. Antes de esto, un `Text` rígido
-        // desbordaba con rayas amarillas y negras en cuanto el espacio se
+        // desbordaba con rayas amarillas y negras en cuanto el laboratorio se
         // achicaba.
         Flexible(
           child: Text(

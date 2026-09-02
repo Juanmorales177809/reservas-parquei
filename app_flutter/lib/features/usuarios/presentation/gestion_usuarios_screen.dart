@@ -14,16 +14,16 @@ import '../../../core/widgets/staggered_entrance.dart';
 import '../../../shell/app_shell.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/auth_user.dart';
-import '../../espacios/application/espacios_providers.dart';
+import '../../laboratorios/application/laboratorios_providers.dart';
 import '../application/usuarios_providers.dart';
 import '../data/usuarios_repository.dart';
 
 /// Dos secciones desde la separación `personal`/`usuarios` (2026-08-28, ver
 /// `backend/CLAUDE.md`) -- "Personal" (admin/gestor, `/personal`) y
-/// "Usuarios" (rol usuario, `/usuarios`), cada una con su propio espacio de
+/// "Usuarios" (rol usuario, `/usuarios`), cada una con su propio laboratorio de
 /// IDs en el backend. `esPersonal` se hila hacia abajo por todos los
 /// widgets de esta pantalla para decidir qué provider/endpoint usar y qué
-/// campos mostrar en el formulario (rol/espacio solo aplican a personal).
+/// campos mostrar en el formulario (rol/laboratorio solo aplican a personal).
 class GestionUsuariosScreen extends ConsumerStatefulWidget {
   const GestionUsuariosScreen({super.key});
 
@@ -45,7 +45,7 @@ class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
   }
 
   /// Búsqueda + orden 100% client-side (2026-08-31, a pedido explícito del
-  /// usuario) -- mismo patrón que `GestionRecursosScreen`/`GestionZonasScreen`.
+  /// usuario) -- mismo patrón que `GestionRecursosScreen`/`GestionEspaciosScreen`.
   List<AuthUser> _filtrarYOrdenar(List<AuthUser> usuarios) {
     var resultado = usuarios;
     final consulta = _busqueda.trim().toLowerCase();
@@ -54,7 +54,7 @@ class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
           .where((u) =>
               u.username.toLowerCase().contains(consulta) ||
               u.email.toLowerCase().contains(consulta) ||
-              (u.espacio?.nombre.toLowerCase().contains(consulta) ?? false))
+              (u.laboratorio?.nombre.toLowerCase().contains(consulta) ?? false))
           .toList();
     }
     if (_sortColumnIndex != null) {
@@ -63,7 +63,7 @@ class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
           final cmp = switch (_sortColumnIndex) {
             0 => a.username.toLowerCase().compareTo(b.username.toLowerCase()),
             1 => a.rol.name.compareTo(b.rol.name),
-            2 => (a.espacio?.nombre ?? '').toLowerCase().compareTo((b.espacio?.nombre ?? '').toLowerCase()),
+            2 => (a.laboratorio?.nombre ?? '').toLowerCase().compareTo((b.laboratorio?.nombre ?? '').toLowerCase()),
             3 => a.id.compareTo(b.id),
             _ => 0,
           };
@@ -122,7 +122,7 @@ class _GestionUsuariosScreenState extends ConsumerState<GestionUsuariosScreen> {
                 padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
                 child: TextField(
                   decoration: const InputDecoration(
-                    hintText: 'Buscar por usuario, correo o espacio',
+                    hintText: 'Buscar por usuario, correo o laboratorio',
                     prefixIcon: Icon(LucideIcons.search, size: 18),
                     isDense: true,
                     border: OutlineInputBorder(),
@@ -278,7 +278,7 @@ class _UsuarioAvatar extends StatelessWidget {
 
 /// Búsqueda + tabla ordenable (2026-08-31, a pedido explícito del usuario):
 /// `DataTable` nativo en vez del `Column`+`Divider` armado a mano de antes
-/// (mismo motivo que `GestionRecursosScreen`/`GestionZonasScreen` -- ver el
+/// (mismo motivo que `GestionRecursosScreen`/`GestionEspaciosScreen` -- ver el
 /// comentario ahí) -- columnas ordenables gratis vía `sortColumnIndex`.
 class _UsuariosTabla extends StatelessWidget {
   const _UsuariosTabla({
@@ -319,7 +319,7 @@ class _UsuariosTabla extends StatelessWidget {
               cells: [
                 DataCell(_CeldaUsuario(usuario: u)),
                 DataCell(_CeldaRol(rol: u.rol)),
-                DataCell(_CeldaEspacio(
+                DataCell(_CeldaLaboratorio(
                   usuario: u,
                   esPropio: currentUserEsPersonal == esPersonal && currentUserId == u.id,
                 )),
@@ -393,8 +393,8 @@ class _CeldaRol extends StatelessWidget {
   }
 }
 
-class _CeldaEspacio extends StatelessWidget {
-  const _CeldaEspacio({required this.usuario, required this.esPropio});
+class _CeldaLaboratorio extends StatelessWidget {
+  const _CeldaLaboratorio({required this.usuario, required this.esPropio});
 
   final AuthUser usuario;
   final bool esPropio;
@@ -410,7 +410,7 @@ class _CeldaEspacio extends StatelessWidget {
         const SizedBox(width: AppSpacing.xs),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 140),
-          child: Text(usuario.espacio?.nombre ?? 'Sin espacio', style: textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+          child: Text(usuario.laboratorio?.nombre ?? 'Sin laboratorio', style: textTheme.bodySmall, overflow: TextOverflow.ellipsis),
         ),
         if (esPropio) ...[
           const SizedBox(width: AppSpacing.sm),
@@ -628,7 +628,7 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final currentUser = ref.watch(authProvider).value;
-    // `personal` y `usuarios` tienen espacios de id independientes (ver
+    // `personal` y `usuarios` tienen laboratorios de id independientes (ver
     // backend/CLAUDE.md) -- comparar solo por id colisionaría con una fila
     // de la OTRA tabla que casualmente comparta el mismo número.
     final currentUserEsPersonal = currentUser != null && currentUser.rol != RolUsuario.usuario;
@@ -676,7 +676,7 @@ class _UsuarioCardState extends ConsumerState<_UsuarioCard> {
                 const SizedBox(width: AppSpacing.md),
                 Icon(LucideIcons.building2, size: 14, color: scheme.onSurfaceVariant),
                 const SizedBox(width: AppSpacing.xs),
-                Text(u.espacio?.nombre ?? 'Sin espacio', style: textTheme.bodySmall),
+                Text(u.laboratorio?.nombre ?? 'Sin laboratorio', style: textTheme.bodySmall),
                 if (esPropio) ...[
                   const SizedBox(width: AppSpacing.md),
                   Container(
@@ -740,7 +740,7 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
   late String _username;
   late String _email;
   late RolUsuario _rol;
-  int? _espacioId;
+  int? _laboratorioId;
   bool _guardando = false;
   String? _error;
 
@@ -753,14 +753,14 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
     _username = u?.username ?? '';
     _email = u?.email ?? '';
     _rol = u?.rol ?? (widget.esPersonal ? RolUsuario.gestor : RolUsuario.usuario);
-    _espacioId = u?.espacio?.id;
+    _laboratorioId = u?.laboratorio?.id;
   }
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
-    if (widget.esPersonal && _rol == RolUsuario.gestor && _espacioId == null) {
-      setState(() => _error = 'Debes asignar un espacio al gestor');
+    if (widget.esPersonal && _rol == RolUsuario.gestor && _laboratorioId == null) {
+      setState(() => _error = 'Debes asignar un laboratorio al gestor');
       return;
     }
     setState(() {
@@ -776,14 +776,14 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
             username: _username,
             email: _email,
             rol: _rol.name,
-            espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
+            laboratorioId: _rol == RolUsuario.gestor ? _laboratorioId : null,
           );
         } else {
           await repo.crearPersonal(
             username: _username,
             email: _email,
             rol: _rol.name,
-            espacioId: _rol == RolUsuario.gestor ? _espacioId : null,
+            laboratorioId: _rol == RolUsuario.gestor ? _laboratorioId : null,
           );
         }
       } else {
@@ -817,7 +817,7 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final espaciosAsync = ref.watch(espaciosListProvider);
+    final laboratoriosAsync = ref.watch(laboratoriosListProvider);
 
     return AlertDialog(
       title: Text(_esEdicion ? 'Editar usuario' : (widget.esPersonal ? 'Nuevo miembro del personal' : 'Nuevo usuario')),
@@ -864,16 +864,16 @@ class _UsuarioFormDialogState extends ConsumerState<_UsuarioFormDialog> {
                 ),
                 if (_rol == RolUsuario.gestor) ...[
                   const SizedBox(height: AppSpacing.md),
-                  espaciosAsync.when(
+                  laboratoriosAsync.when(
                     loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los espacios.')),
-                    data: (espacios) => DropdownButtonFormField<int>(
-                      initialValue: _espacioId ?? (espacios.isNotEmpty ? espacios.first.id : null),
-                      decoration: const InputDecoration(labelText: 'Espacio asignado *'),
-                      items: espacios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
-                      onChanged: (v) => setState(() => _espacioId = v),
+                    error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los laboratorios.')),
+                    data: (laboratorios) => DropdownButtonFormField<int>(
+                      initialValue: _laboratorioId ?? (laboratorios.isNotEmpty ? laboratorios.first.id : null),
+                      decoration: const InputDecoration(labelText: 'Laboratorio asignado *'),
+                      items: laboratorios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
+                      onChanged: (v) => setState(() => _laboratorioId = v),
                       validator: (v) => v == null ? 'Requerido' : null,
-                      onSaved: (v) => _espacioId = v,
+                      onSaved: (v) => _laboratorioId = v,
                     ),
                   ),
                 ],

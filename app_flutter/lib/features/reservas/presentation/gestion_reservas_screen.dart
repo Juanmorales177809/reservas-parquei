@@ -8,13 +8,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../recursos/application/recursos_providers.dart';
-import '../../zonas/application/zonas_providers.dart';
-import '../../zonas/domain/zona.dart';
+import '../../espacios/application/espacios_providers.dart';
+import '../../espacios/domain/espacio.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
-import '../../espacios/domain/espacio.dart' show formatearHora;
+import '../../laboratorios/domain/laboratorio.dart' show formatearHora;
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
 import '../domain/reserva.dart';
@@ -22,7 +22,7 @@ import 'estado_reserva_badge.dart';
 
 /// Espejo de la gestión de reservas de `frontend/src/app/admin/reservas/page.tsx`
 /// (gestor/admin) — acotada a esta Fase 4 a: aprobar, rechazar, cancelar y
-/// marcar asistencia. El backend ya filtra al espacio del gestor
+/// marcar asistencia. El backend ya filtra al laboratorio del gestor
 /// (`get_managed_space_id`); esta pantalla no replica ese filtro.
 class GestionReservasScreen extends ConsumerWidget {
   const GestionReservasScreen({super.key});
@@ -193,7 +193,7 @@ class _GestionReservaCardState extends ConsumerState<_GestionReservaCard> {
               children: [
                 Expanded(
                   child: Text(
-                    '${reserva.usuario.username} · ${reserva.espacio.nombre}',
+                    '${reserva.usuario.username} · ${reserva.laboratorio.nombre}',
                     style: textTheme.titleMedium,
                   ),
                 ),
@@ -376,7 +376,7 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
   late final TextEditingController _finCtrl;
   late final TextEditingController _asistCtrl;
   late Set<int> _recursoIds;
-  late Set<int> _zonaIds;
+  late Set<int> _espacioIds;
   bool _guardando = false;
   String? _error;
 
@@ -389,7 +389,7 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
     _finCtrl = TextEditingController(text: widget.reserva.horaFin.substring(0, 5));
     _asistCtrl = TextEditingController(text: '${widget.reserva.asistentes}');
     _recursoIds = widget.reserva.recursoIds.toSet();
-    _zonaIds = widget.reserva.zonaIds.toSet();
+    _espacioIds = widget.reserva.espacioIds.toSet();
   }
 
   @override
@@ -403,8 +403,8 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_recursoIds.isEmpty && _zonaIds.isEmpty) {
-      setState(() => _error = 'Seleccioná al menos un recurso o una zona.');
+    if (_recursoIds.isEmpty && _espacioIds.isEmpty) {
+      setState(() => _error = 'Seleccioná al menos un recurso o un espacio.');
       return;
     }
     setState(() {
@@ -420,7 +420,7 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
             horaFin: _finCtrl.text,
             asistentes: int.parse(_asistCtrl.text),
             recursoIds: _recursoIds.toList(),
-            zonaIds: _zonaIds.toList(),
+            espacioIds: _espacioIds.toList(),
           );
       if (mounted) Navigator.pop(context, true);
     } on Object catch (e) {
@@ -432,14 +432,14 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final espacioId = widget.reserva.espacioId;
-    final recursos = ref.watch(recursosPorEspacioProvider(espacioId));
-    final zonasAsync = ref.watch(zonasGestionProvider);
-    final zonasDelEspacio = (zonasAsync.value ?? <Zona>[]).where((z) => z.espacioId == espacioId).toList();
+    final laboratorioId = widget.reserva.laboratorioId;
+    final recursos = ref.watch(recursosPorLaboratorioProvider(laboratorioId));
+    final espaciosAsync = ref.watch(espaciosGestionProvider);
+    final espaciosDelLaboratorio = (espaciosAsync.value ?? <Espacio>[]).where((z) => z.laboratorioId == laboratorioId).toList();
 
     final cubiertos = <int>{};
-    for (final z in zonasDelEspacio) {
-      if (_zonaIds.contains(z.id)) cubiertos.addAll(z.recursoIds);
+    for (final z in espaciosDelLaboratorio) {
+      if (_espacioIds.contains(z.id)) cubiertos.addAll(z.recursoIds);
     }
     final nombrePorId = <int, String>{for (final r in recursos) r.id: r.nombre};
 
@@ -474,10 +474,10 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(controller: _asistCtrl, decoration: const InputDecoration(labelText: 'Asistentes'), keyboardType: TextInputType.number, validator: (v) { final n = int.tryParse(v ?? ''); if (n == null || n <=0) return '>0'; return null; }),
                 const SizedBox(height: AppSpacing.lg),
-                if (zonasDelEspacio.isNotEmpty) ...[
+                if (espaciosDelLaboratorio.isNotEmpty) ...[
                   Row(children: [const Icon(LucideIcons.mapPinned, size: 14, color: AppColors.marca), const SizedBox(width: AppSpacing.xs), Text('ZONAS', style: AppText.overline(color: AppColors.marca))]),
                   const SizedBox(height: AppSpacing.xs),
-                  ...zonasDelEspacio.map((z) {
+                  ...espaciosDelLaboratorio.map((z) {
                     final ids = z.recursoIds;
                     String subtitulo;
                     if (ids.isEmpty) {
@@ -494,12 +494,12 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
                       dense: true,
                       title: Text(z.nombre, style: Theme.of(context).textTheme.bodyMedium),
                       subtitle: Text(subtitulo, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
-                      value: _zonaIds.contains(z.id),
+                      value: _espacioIds.contains(z.id),
                       onChanged: (v) => setState(() {
                         if (v == true) {
-                          _zonaIds.add(z.id);
+                          _espacioIds.add(z.id);
                         } else {
-                          _zonaIds.remove(z.id);
+                          _espacioIds.remove(z.id);
                         }
                       }),
                     );
@@ -507,18 +507,18 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
                   const SizedBox(height: AppSpacing.md),
                 ],
                 if (recursos.isNotEmpty) ...[
-                  Row(children: [const Icon(LucideIcons.boxes, size: 14, color: AppColors.marca), const SizedBox(width: AppSpacing.xs), Text(zonasDelEspacio.isNotEmpty ? 'EQUIPOS ADICIONALES' : 'EQUIPOS', style: AppText.overline(color: AppColors.marca))]),
+                  Row(children: [const Icon(LucideIcons.boxes, size: 14, color: AppColors.marca), const SizedBox(width: AppSpacing.xs), Text(espaciosDelLaboratorio.isNotEmpty ? 'EQUIPOS ADICIONALES' : 'EQUIPOS', style: AppText.overline(color: AppColors.marca))]),
                   const SizedBox(height: AppSpacing.xs),
                   ...recursos.map((r) {
                     final cubierto = cubiertos.contains(r.id);
                     if (cubierto) {
-                      final zonasQueCubren = zonasDelEspacio.where((z) => _zonaIds.contains(z.id) && z.recursoIds.contains(r.id)).map((z) => z.nombre).toList();
-                      final zonaTxt = zonasQueCubren.join(', ');
+                      final espaciosQueCubren = espaciosDelLaboratorio.where((z) => _espacioIds.contains(z.id) && z.recursoIds.contains(r.id)).map((z) => z.nombre).toList();
+                      final espacioTxt = espaciosQueCubren.join(', ');
                       return CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                         title: Text(r.nombre, style: const TextStyle(color: AppColors.textoTerciario)),
-                        subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${zonasQueCubren.length == 1 ? "zona" : "zonas"} $zonaTxt', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
+                        subtitle: Text('${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${espaciosQueCubren.length == 1 ? "espacio" : "espacios"} $espacioTxt', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
                         value: true,
                         onChanged: null,
                         activeColor: AppEstados.positivo.borde,
@@ -541,7 +541,7 @@ class _EditarReservaDialogState extends ConsumerState<_EditarReservaDialog> {
                   }),
                   if (cubiertos.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.xs),
-                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(LucideIcons.info, size: 12, color: AppColors.textoTerciario), const SizedBox(width: AppSpacing.xs), Expanded(child: Text('Los equipos marcados como "Incluido" ya vienen con la zona seleccionada.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario, fontSize: 11)))]),
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(LucideIcons.info, size: 12, color: AppColors.textoTerciario), const SizedBox(width: AppSpacing.xs), Expanded(child: Text('Los equipos marcados como "Incluido" ya vienen con el espacio seleccionado.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario, fontSize: 11)))]),
                   ],
                   const SizedBox(height: AppSpacing.md),
                 ],

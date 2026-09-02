@@ -13,15 +13,6 @@ enum EstadoEntidad {
   mantenimiento,
 }
 
-enum ModalidadEspacio {
-  @JsonValue('equipos')
-  equipos,
-  @JsonValue('zonas')
-  zonas,
-  @JsonValue('mixto')
-  mixto,
-}
-
 enum EstadoSlot {
   @JsonValue('libre')
   libre,
@@ -128,9 +119,8 @@ String vinculacionUsuarioLabel(VinculacionUsuario vinculacion) => switch (vincul
     };
 
 /// Motivo de la solicitud (Fase B), del formulario real de solicitud de
-/// laboratorios del ITM. Concepto DISTINTO de [TipoReserva] (académico) y
-/// de `ModalidadEspacio` (config del espacio) — nombres parecidos,
-/// preguntas distintas. El formulario real tiene 4 motivos; solo los 2
+/// laboratorios del ITM. Concepto DISTINTO de [TipoReserva] (académico) —
+/// nombres parecidos, preguntas distintas. El formulario real tiene 4 motivos; solo los 2
 /// primeros existen como reserva de verdad hoy. `ordenSalida` está en el
 /// enum porque el backend ya lo declara (para no romper el `CheckConstraint`
 /// dos veces cuando llegue la Fase C), pero **nunca** se manda desde acá
@@ -156,7 +146,7 @@ String tipoSolicitudToJson(TipoSolicitud tipo) => _kTipoSolicitudJson[tipo]!;
 
 /// Etiqueta en español, texto de la pregunta 11 del formulario real.
 String tipoSolicitudLabel(TipoSolicitud tipo) => switch (tipo) {
-      TipoSolicitud.reservaEnLaboratorio => 'Reserva de espacios/equipos (dentro del laboratorio)',
+      TipoSolicitud.reservaEnLaboratorio => 'Reserva de laboratorios/equipos (dentro del laboratorio)',
       TipoSolicitud.reservaFueraLaboratorio => 'Reserva de equipos (fuera del laboratorio, dentro de la sede)',
       TipoSolicitud.ordenSalida => 'Orden de salida (equipos fuera de la sede)',
     };

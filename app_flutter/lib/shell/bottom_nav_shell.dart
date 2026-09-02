@@ -15,7 +15,7 @@ import 'session_menu.dart';
 ///
 /// Recibe **todos** los destinos visibles y hace el reparto acá: los
 /// `primario` van a la barra inferior (que solo tiene 4-5 ranuras) y el
-/// resto —Recursos/Zonas/Ensayos/Usuarios/Configuración/Auditoría, o sea
+/// resto —Recursos/Espacios/Usuarios/Configuración/Auditoría, o sea
 /// gestión, no navegación diaria— a un menú "Gestión" en la `AppBar`, igual
 /// que hace [TopNavShell].
 ///
@@ -75,7 +75,7 @@ class BottomNavShell extends ConsumerWidget {
       // en navigation_bar.dart). La guarda anterior era `destinos.isEmpty`,
       // que solo cubría el cero — y el caso de UNO es perfectamente
       // alcanzable: un visitante anónimo ve un único destino, porque
-      // "Espacios" es el único con `requiereSesion: false`. En release el
+      // "Laboratorios" es el único con `requiereSesion: false`. En release el
       // assert no corre, así que esto no se veía como pantalla roja, pero la
       // barra quedaba en un estado no soportado. Con menos de dos destinos
       // no hay nada que elegir: no se muestra barra.

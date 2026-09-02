@@ -39,7 +39,7 @@ void main() {
       expect(usuario.perfilCompleto, isFalse);
     });
 
-    test('false si un campo de texto está en blanco (solo espacios)', () {
+    test('false si un campo de texto está en blanco (solo laboratorios)', () {
       final usuario = _usuario(
         documentoIdentificacion: '123',
         telefono: '3000000000',

@@ -6,17 +6,16 @@ from app.models.personal import Personal
 from app.models.recurso import Recurso
 from app.models.reserva import ESTADOS_BLOQUEANTES, Reserva
 from app.models.reserva_recurso import ReservaRecurso
-from app.models.reserva_zona import ReservaZona
+from app.models.reserva_espacio import ReservaEspacio
 from app.models.usuario import Usuario
 
 _OPTIONS_CARGA = (
     joinedload(Reserva.usuario),
     joinedload(Reserva.personal),
-    joinedload(Reserva.espacio),
-    joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.espacio),
-    joinedload(Reserva.zonas_asociadas),
-    joinedload(Reserva.zonas),
-    joinedload(Reserva.ensayos),
+    joinedload(Reserva.laboratorio),
+    joinedload(Reserva.recursos_asociados).joinedload(ReservaRecurso.recurso).joinedload(Recurso.laboratorio),
+    joinedload(Reserva.espacios_asociados),
+    joinedload(Reserva.espacios),
     joinedload(Reserva.acompanantes),
 )
 
@@ -36,8 +35,7 @@ def _enriquecer_con_asociaciones(reservas: list[Reserva]) -> list[Reserva]:
         recursos_por_id = {fila.recurso_id: fila.recurso for fila in reserva.recursos_asociados or ()}
         reserva.recurso_ids = sorted(recursos_por_id)
         reserva.recursos = [recursos_por_id[i] for i in sorted(recursos_por_id)]
-        reserva.zona_ids = sorted({fila.zona_id for fila in reserva.zonas_asociadas or ()})
-        reserva.ensayo_ids = sorted({e.id for e in reserva.ensayos or ()})
+        reserva.espacio_ids = sorted({fila.espacio_id for fila in reserva.espacios_asociados or ()})
     return reservas
 
 
@@ -54,13 +52,13 @@ def get_reservas(db: Session, skip: int = 0, limit: int = 100) -> list[Reserva]:
 
 def get_reservas_gestion(
     db: Session,
-    espacio_id: int | None,
+    laboratorio_id: int | None,
     skip: int = 0,
     limit: int = 100,
 ) -> list[Reserva]:
     query = db.query(Reserva).options(*_OPTIONS_CARGA)
-    if espacio_id is not None:
-        query = query.filter(Reserva.espacio_id == espacio_id)
+    if laboratorio_id is not None:
+        query = query.filter(Reserva.laboratorio_id == laboratorio_id)
     return _enriquecer_con_asociaciones(
         query.order_by(Reserva.fecha.desc(), Reserva.hora_inicio.desc())
         .offset(skip)
@@ -80,20 +78,6 @@ def get_mis_reservas(db: Session, actor: Personal | Usuario) -> list[Reserva]:
         .options(*_OPTIONS_CARGA)
         .filter(columna == actor.id)
         .order_by(Reserva.fecha.desc(), Reserva.hora_inicio.desc())
-        .all()
-    )
-
-
-def get_reservas_de_serie(db: Session, serie_id, actor: Personal | Usuario) -> list[Reserva]:
-    """Las ocurrencias de una reserva recurrente (`Reserva.serie_id`,
-    2026-08-29) que pertenecen a `actor` -- mismo criterio de propiedad que
-    `get_mis_reservas`, nadie ve la serie de otra persona."""
-    columna = Reserva.personal_id if isinstance(actor, Personal) else Reserva.usuario_id
-    return _enriquecer_con_asociaciones(
-        db.query(Reserva)
-        .options(*_OPTIONS_CARGA)
-        .filter(Reserva.serie_id == serie_id, columna == actor.id)
-        .order_by(Reserva.fecha.asc())
         .all()
     )
 
@@ -162,60 +146,44 @@ def get_recurso_ids_reserva(db: Session, reserva_id: int) -> list[int]:
     ]
 
 
-def get_zona_ids_reserva(db: Session, reserva_id: int) -> list[int]:
-    """Zonas asociadas a una reserva según `reserva_zonas` (Fase 12C-6)."""
+def get_espacio_ids_reserva(db: Session, reserva_id: int) -> list[int]:
+    """Espacios asociados a una reserva según `reserva_espacios` (Fase 12C-6)."""
     return [
-        zona_id
-        for (zona_id,) in (
-            db.query(ReservaZona.zona_id)
-            .filter(ReservaZona.reserva_id == reserva_id)
+        espacio_id
+        for (espacio_id,) in (
+            db.query(ReservaEspacio.espacio_id)
+            .filter(ReservaEspacio.reserva_id == reserva_id)
             .distinct()
             .all()
         )
     ]
 
 
-def get_zonas_bloqueantes(
+def get_espacios_bloqueantes(
     db: Session,
-    zona_id: int,
+    espacio_id: int,
     fecha: date,
     hora_inicio: time,
     hora_fin: time,
     exclude_id: int | None = None,
 ) -> list[Reserva]:
-    """Reservas que bloquean la zona/horario consultado (Fase 12C-6).
+    """Reservas que bloquean el espacio/horario consultado (Fase 12C-6).
 
-    JOIN contra `reserva_zonas`, la misma tabla de la constraint
-    `reserva_zonas_sin_solapamiento`; filtra por sus columnas
-    desnormalizadas. `distinct()` evita duplicar reservas con varias zonas.
+    JOIN contra `reserva_espacios`, la misma tabla de la constraint
+    `reserva_espacios_sin_solapamiento`; filtra por sus columnas
+    desnormalizadas. `distinct()` evita duplicar reservas con varios espacios.
     """
     query = (
         db.query(Reserva)
-        .join(ReservaZona, ReservaZona.reserva_id == Reserva.id)
+        .join(ReservaEspacio, ReservaEspacio.reserva_id == Reserva.id)
         .filter(
-            ReservaZona.zona_id == zona_id,
-            ReservaZona.fecha == fecha,
-            ReservaZona.hora_inicio < hora_fin,
-            ReservaZona.hora_fin > hora_inicio,
-            ReservaZona.estado.in_(ESTADOS_BLOQUEANTES),
+            ReservaEspacio.espacio_id == espacio_id,
+            ReservaEspacio.fecha == fecha,
+            ReservaEspacio.hora_inicio < hora_fin,
+            ReservaEspacio.hora_fin > hora_inicio,
+            ReservaEspacio.estado.in_(ESTADOS_BLOQUEANTES),
         )
     )
     if exclude_id is not None:
         query = query.filter(Reserva.id != exclude_id)
     return query.distinct().all()
-
-
-def get_ensayo_ids_reserva(db: Session, reserva_id: int) -> list[int]:
-    """Ensayos asociados a una reserva según `reserva_ensayos` (Fase 12E)."""
-
-    from app.models.reserva_ensayo import ReservaEnsayo
-
-    return [
-        ensayo_id
-        for (ensayo_id,) in (
-            db.query(ReservaEnsayo.ensayo_id)
-            .filter(ReservaEnsayo.reserva_id == reserva_id)
-            .distinct()
-            .all()
-        )
-    ]

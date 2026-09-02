@@ -14,22 +14,22 @@ part of 'auth_user.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$EspacioResumen {
+mixin _$LaboratorioResumen {
 
  int get id; String get nombre; String get ubicacion;
-/// Create a copy of EspacioResumen
+/// Create a copy of LaboratorioResumen
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$EspacioResumenCopyWith<EspacioResumen> get copyWith => _$EspacioResumenCopyWithImpl<EspacioResumen>(this as EspacioResumen, _$identity);
+$LaboratorioResumenCopyWith<LaboratorioResumen> get copyWith => _$LaboratorioResumenCopyWithImpl<LaboratorioResumen>(this as LaboratorioResumen, _$identity);
 
-  /// Serializes this EspacioResumen to a JSON map.
+  /// Serializes this LaboratorioResumen to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EspacioResumen&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.ubicacion, ubicacion) || other.ubicacion == ubicacion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LaboratorioResumen&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.ubicacion, ubicacion) || other.ubicacion == ubicacion));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -38,15 +38,15 @@ int get hashCode => Object.hash(runtimeType,id,nombre,ubicacion);
 
 @override
 String toString() {
-  return 'EspacioResumen(id: $id, nombre: $nombre, ubicacion: $ubicacion)';
+  return 'LaboratorioResumen(id: $id, nombre: $nombre, ubicacion: $ubicacion)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $EspacioResumenCopyWith<$Res>  {
-  factory $EspacioResumenCopyWith(EspacioResumen value, $Res Function(EspacioResumen) _then) = _$EspacioResumenCopyWithImpl;
+abstract mixin class $LaboratorioResumenCopyWith<$Res>  {
+  factory $LaboratorioResumenCopyWith(LaboratorioResumen value, $Res Function(LaboratorioResumen) _then) = _$LaboratorioResumenCopyWithImpl;
 @useResult
 $Res call({
  int id, String nombre, String ubicacion
@@ -57,17 +57,17 @@ $Res call({
 
 }
 /// @nodoc
-class _$EspacioResumenCopyWithImpl<$Res>
-    implements $EspacioResumenCopyWith<$Res> {
-  _$EspacioResumenCopyWithImpl(this._self, this._then);
+class _$LaboratorioResumenCopyWithImpl<$Res>
+    implements $LaboratorioResumenCopyWith<$Res> {
+  _$LaboratorioResumenCopyWithImpl(this._self, this._then);
 
-  final EspacioResumen _self;
-  final $Res Function(EspacioResumen) _then;
+  final LaboratorioResumen _self;
+  final $Res Function(LaboratorioResumen) _then;
 
-/// Create a copy of EspacioResumen
+/// Create a copy of LaboratorioResumen
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? ubicacion = null,}) {
-  return _then(EspacioResumen(
+  return _then(LaboratorioResumen(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
 as String,ubicacion: null == ubicacion ? _self.ubicacion : ubicacion // ignore: cast_nullable_to_non_nullable
@@ -78,8 +78,8 @@ as String,
 }
 
 
-/// Adds pattern-matching-related methods to [EspacioResumen].
-extension EspacioResumenPatterns on EspacioResumen {
+/// Adds pattern-matching-related methods to [LaboratorioResumen].
+extension LaboratorioResumenPatterns on LaboratorioResumen {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -92,10 +92,10 @@ extension EspacioResumenPatterns on EspacioResumen {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _EspacioResumen value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LaboratorioResumen value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _EspacioResumen() when $default != null:
+case _LaboratorioResumen() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -114,10 +114,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _EspacioResumen value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LaboratorioResumen value)  $default,){
 final _that = this;
 switch (_that) {
-case _EspacioResumen():
+case _LaboratorioResumen():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -135,10 +135,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _EspacioResumen value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LaboratorioResumen value)?  $default,){
 final _that = this;
 switch (_that) {
-case _EspacioResumen() when $default != null:
+case _LaboratorioResumen() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -158,7 +158,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  String ubicacion)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _EspacioResumen() when $default != null:
+case _LaboratorioResumen() when $default != null:
 return $default(_that.id,_that.nombre,_that.ubicacion);case _:
   return orElse();
 
@@ -179,7 +179,7 @@ return $default(_that.id,_that.nombre,_that.ubicacion);case _:
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  String ubicacion)  $default,) {final _that = this;
 switch (_that) {
-case _EspacioResumen():
+case _LaboratorioResumen():
 return $default(_that.id,_that.nombre,_that.ubicacion);case _:
   throw StateError('Unexpected subclass');
 
@@ -199,7 +199,7 @@ return $default(_that.id,_that.nombre,_that.ubicacion);case _:
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  String ubicacion)?  $default,) {final _that = this;
 switch (_that) {
-case _EspacioResumen() when $default != null:
+case _LaboratorioResumen() when $default != null:
 return $default(_that.id,_that.nombre,_that.ubicacion);case _:
   return null;
 
@@ -211,28 +211,28 @@ return $default(_that.id,_that.nombre,_that.ubicacion);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _EspacioResumen implements EspacioResumen {
-  const _EspacioResumen({required this.id, required this.nombre, required this.ubicacion});
-  factory _EspacioResumen.fromJson(Map<String, dynamic> json) => _$EspacioResumenFromJson(json);
+class _LaboratorioResumen implements LaboratorioResumen {
+  const _LaboratorioResumen({required this.id, required this.nombre, required this.ubicacion});
+  factory _LaboratorioResumen.fromJson(Map<String, dynamic> json) => _$LaboratorioResumenFromJson(json);
 
 @override final  int id;
 @override final  String nombre;
 @override final  String ubicacion;
 
-/// Create a copy of EspacioResumen
+/// Create a copy of LaboratorioResumen
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$EspacioResumenCopyWith<_EspacioResumen> get copyWith => __$EspacioResumenCopyWithImpl<_EspacioResumen>(this, _$identity);
+_$LaboratorioResumenCopyWith<_LaboratorioResumen> get copyWith => __$LaboratorioResumenCopyWithImpl<_LaboratorioResumen>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$EspacioResumenToJson(this, );
+  return _$LaboratorioResumenToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EspacioResumen&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.ubicacion, ubicacion) || other.ubicacion == ubicacion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LaboratorioResumen&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.ubicacion, ubicacion) || other.ubicacion == ubicacion));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -241,15 +241,15 @@ int get hashCode => Object.hash(runtimeType,id,nombre,ubicacion);
 
 @override
 String toString() {
-  return 'EspacioResumen(id: $id, nombre: $nombre, ubicacion: $ubicacion)';
+  return 'LaboratorioResumen(id: $id, nombre: $nombre, ubicacion: $ubicacion)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$EspacioResumenCopyWith<$Res> implements $EspacioResumenCopyWith<$Res> {
-  factory _$EspacioResumenCopyWith(_EspacioResumen value, $Res Function(_EspacioResumen) _then) = __$EspacioResumenCopyWithImpl;
+abstract mixin class _$LaboratorioResumenCopyWith<$Res> implements $LaboratorioResumenCopyWith<$Res> {
+  factory _$LaboratorioResumenCopyWith(_LaboratorioResumen value, $Res Function(_LaboratorioResumen) _then) = __$LaboratorioResumenCopyWithImpl;
 @override @useResult
 $Res call({
  int id, String nombre, String ubicacion
@@ -260,17 +260,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$EspacioResumenCopyWithImpl<$Res>
-    implements _$EspacioResumenCopyWith<$Res> {
-  __$EspacioResumenCopyWithImpl(this._self, this._then);
+class __$LaboratorioResumenCopyWithImpl<$Res>
+    implements _$LaboratorioResumenCopyWith<$Res> {
+  __$LaboratorioResumenCopyWithImpl(this._self, this._then);
 
-  final _EspacioResumen _self;
-  final $Res Function(_EspacioResumen) _then;
+  final _LaboratorioResumen _self;
+  final $Res Function(_LaboratorioResumen) _then;
 
-/// Create a copy of EspacioResumen
+/// Create a copy of LaboratorioResumen
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? ubicacion = null,}) {
-  return _then(_EspacioResumen(
+  return _then(_LaboratorioResumen(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
 as String,ubicacion: null == ubicacion ? _self.ubicacion : ubicacion // ignore: cast_nullable_to_non_nullable
@@ -285,7 +285,7 @@ as String,
 /// @nodoc
 mixin _$AuthUser {
 
- int get id; String get username; String get email; RolUsuario get rol; EspacioResumen? get espacio; String? get documentoIdentificacion; String? get telefono; String? get institucion; VinculacionUsuario? get vinculacion; String? get dependencia;
+ int get id; String get username; String get email; RolUsuario get rol; LaboratorioResumen? get laboratorio; String? get documentoIdentificacion; String? get telefono; String? get institucion; VinculacionUsuario? get vinculacion; String? get dependencia;
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -298,16 +298,16 @@ $AuthUserCopyWith<AuthUser> get copyWith => _$AuthUserCopyWithImpl<AuthUser>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.documentoIdentificacion, documentoIdentificacion) || other.documentoIdentificacion == documentoIdentificacion)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.institucion, institucion) || other.institucion == institucion)&&(identical(other.vinculacion, vinculacion) || other.vinculacion == vinculacion)&&(identical(other.dependencia, dependencia) || other.dependencia == dependencia));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&(identical(other.documentoIdentificacion, documentoIdentificacion) || other.documentoIdentificacion == documentoIdentificacion)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.institucion, institucion) || other.institucion == institucion)&&(identical(other.vinculacion, vinculacion) || other.vinculacion == vinculacion)&&(identical(other.dependencia, dependencia) || other.dependencia == dependencia));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio,documentoIdentificacion,telefono,institucion,vinculacion,dependencia);
+int get hashCode => Object.hash(runtimeType,id,username,email,rol,laboratorio,documentoIdentificacion,telefono,institucion,vinculacion,dependencia);
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio, documentoIdentificacion: $documentoIdentificacion, telefono: $telefono, institucion: $institucion, vinculacion: $vinculacion, dependencia: $dependencia)';
+  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, laboratorio: $laboratorio, documentoIdentificacion: $documentoIdentificacion, telefono: $telefono, institucion: $institucion, vinculacion: $vinculacion, dependencia: $dependencia)';
 }
 
 
@@ -318,11 +318,11 @@ abstract mixin class $AuthUserCopyWith<$Res>  {
   factory $AuthUserCopyWith(AuthUser value, $Res Function(AuthUser) _then) = _$AuthUserCopyWithImpl;
 @useResult
 $Res call({
- int id, String username, String email, RolUsuario rol, EspacioResumen? espacio, String? documentoIdentificacion, String? telefono, String? institucion, VinculacionUsuario? vinculacion, String? dependencia
+ int id, String username, String email, RolUsuario rol, LaboratorioResumen? laboratorio, String? documentoIdentificacion, String? telefono, String? institucion, VinculacionUsuario? vinculacion, String? dependencia
 });
 
 
-$EspacioResumenCopyWith<$Res>? get espacio;
+$LaboratorioResumenCopyWith<$Res>? get laboratorio;
 
 }
 /// @nodoc
@@ -335,14 +335,14 @@ class _$AuthUserCopyWithImpl<$Res>
 
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,Object? documentoIdentificacion = freezed,Object? telefono = freezed,Object? institucion = freezed,Object? vinculacion = freezed,Object? dependencia = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? laboratorio = freezed,Object? documentoIdentificacion = freezed,Object? telefono = freezed,Object? institucion = freezed,Object? vinculacion = freezed,Object? dependencia = freezed,}) {
   return _then(AuthUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,rol: null == rol ? _self.rol : rol // ignore: cast_nullable_to_non_nullable
-as RolUsuario,espacio: freezed == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioResumen?,documentoIdentificacion: freezed == documentoIdentificacion ? _self.documentoIdentificacion : documentoIdentificacion // ignore: cast_nullable_to_non_nullable
+as RolUsuario,laboratorio: freezed == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioResumen?,documentoIdentificacion: freezed == documentoIdentificacion ? _self.documentoIdentificacion : documentoIdentificacion // ignore: cast_nullable_to_non_nullable
 as String?,telefono: freezed == telefono ? _self.telefono : telefono // ignore: cast_nullable_to_non_nullable
 as String?,institucion: freezed == institucion ? _self.institucion : institucion // ignore: cast_nullable_to_non_nullable
 as String?,vinculacion: freezed == vinculacion ? _self.vinculacion : vinculacion // ignore: cast_nullable_to_non_nullable
@@ -354,13 +354,13 @@ as String?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioResumenCopyWith<$Res>? get espacio {
-    if (_self.espacio == null) {
+$LaboratorioResumenCopyWith<$Res>? get laboratorio {
+    if (_self.laboratorio == null) {
     return null;
   }
 
-  return $EspacioResumenCopyWith<$Res>(_self.espacio!, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioResumenCopyWith<$Res>(_self.laboratorio!, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }
 }
@@ -444,10 +444,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  LaboratorioResumen? laboratorio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthUser() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.laboratorio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
   return orElse();
 
 }
@@ -465,10 +465,10 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String username,  String email,  RolUsuario rol,  LaboratorioResumen? laboratorio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)  $default,) {final _that = this;
 switch (_that) {
 case _AuthUser():
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.laboratorio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -485,10 +485,10 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String username,  String email,  RolUsuario rol,  EspacioResumen? espacio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String username,  String email,  RolUsuario rol,  LaboratorioResumen? laboratorio,  String? documentoIdentificacion,  String? telefono,  String? institucion,  VinculacionUsuario? vinculacion,  String? dependencia)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthUser() when $default != null:
-return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
+return $default(_that.id,_that.username,_that.email,_that.rol,_that.laboratorio,_that.documentoIdentificacion,_that.telefono,_that.institucion,_that.vinculacion,_that.dependencia);case _:
   return null;
 
 }
@@ -500,14 +500,14 @@ return $default(_that.id,_that.username,_that.email,_that.rol,_that.espacio,_tha
 @JsonSerializable()
 
 class _AuthUser extends AuthUser {
-  const _AuthUser({required this.id, required this.username, required this.email, required this.rol, this.espacio, this.documentoIdentificacion, this.telefono, this.institucion, this.vinculacion, this.dependencia}): super._();
+  const _AuthUser({required this.id, required this.username, required this.email, required this.rol, this.laboratorio, this.documentoIdentificacion, this.telefono, this.institucion, this.vinculacion, this.dependencia}): super._();
   factory _AuthUser.fromJson(Map<String, dynamic> json) => _$AuthUserFromJson(json);
 
 @override final  int id;
 @override final  String username;
 @override final  String email;
 @override final  RolUsuario rol;
-@override final  EspacioResumen? espacio;
+@override final  LaboratorioResumen? laboratorio;
 @override final  String? documentoIdentificacion;
 @override final  String? telefono;
 @override final  String? institucion;
@@ -527,16 +527,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.documentoIdentificacion, documentoIdentificacion) || other.documentoIdentificacion == documentoIdentificacion)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.institucion, institucion) || other.institucion == institucion)&&(identical(other.vinculacion, vinculacion) || other.vinculacion == vinculacion)&&(identical(other.dependencia, dependencia) || other.dependencia == dependencia));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.rol, rol) || other.rol == rol)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&(identical(other.documentoIdentificacion, documentoIdentificacion) || other.documentoIdentificacion == documentoIdentificacion)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.institucion, institucion) || other.institucion == institucion)&&(identical(other.vinculacion, vinculacion) || other.vinculacion == vinculacion)&&(identical(other.dependencia, dependencia) || other.dependencia == dependencia));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,email,rol,espacio,documentoIdentificacion,telefono,institucion,vinculacion,dependencia);
+int get hashCode => Object.hash(runtimeType,id,username,email,rol,laboratorio,documentoIdentificacion,telefono,institucion,vinculacion,dependencia);
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, espacio: $espacio, documentoIdentificacion: $documentoIdentificacion, telefono: $telefono, institucion: $institucion, vinculacion: $vinculacion, dependencia: $dependencia)';
+  return 'AuthUser(id: $id, username: $username, email: $email, rol: $rol, laboratorio: $laboratorio, documentoIdentificacion: $documentoIdentificacion, telefono: $telefono, institucion: $institucion, vinculacion: $vinculacion, dependencia: $dependencia)';
 }
 
 
@@ -547,11 +547,11 @@ abstract mixin class _$AuthUserCopyWith<$Res> implements $AuthUserCopyWith<$Res>
   factory _$AuthUserCopyWith(_AuthUser value, $Res Function(_AuthUser) _then) = __$AuthUserCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String username, String email, RolUsuario rol, EspacioResumen? espacio, String? documentoIdentificacion, String? telefono, String? institucion, VinculacionUsuario? vinculacion, String? dependencia
+ int id, String username, String email, RolUsuario rol, LaboratorioResumen? laboratorio, String? documentoIdentificacion, String? telefono, String? institucion, VinculacionUsuario? vinculacion, String? dependencia
 });
 
 
-@override $EspacioResumenCopyWith<$Res>? get espacio;
+@override $LaboratorioResumenCopyWith<$Res>? get laboratorio;
 
 }
 /// @nodoc
@@ -564,14 +564,14 @@ class __$AuthUserCopyWithImpl<$Res>
 
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? espacio = freezed,Object? documentoIdentificacion = freezed,Object? telefono = freezed,Object? institucion = freezed,Object? vinculacion = freezed,Object? dependencia = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? email = null,Object? rol = null,Object? laboratorio = freezed,Object? documentoIdentificacion = freezed,Object? telefono = freezed,Object? institucion = freezed,Object? vinculacion = freezed,Object? dependencia = freezed,}) {
   return _then(_AuthUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,rol: null == rol ? _self.rol : rol // ignore: cast_nullable_to_non_nullable
-as RolUsuario,espacio: freezed == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioResumen?,documentoIdentificacion: freezed == documentoIdentificacion ? _self.documentoIdentificacion : documentoIdentificacion // ignore: cast_nullable_to_non_nullable
+as RolUsuario,laboratorio: freezed == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioResumen?,documentoIdentificacion: freezed == documentoIdentificacion ? _self.documentoIdentificacion : documentoIdentificacion // ignore: cast_nullable_to_non_nullable
 as String?,telefono: freezed == telefono ? _self.telefono : telefono // ignore: cast_nullable_to_non_nullable
 as String?,institucion: freezed == institucion ? _self.institucion : institucion // ignore: cast_nullable_to_non_nullable
 as String?,vinculacion: freezed == vinculacion ? _self.vinculacion : vinculacion // ignore: cast_nullable_to_non_nullable
@@ -584,13 +584,13 @@ as String?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioResumenCopyWith<$Res>? get espacio {
-    if (_self.espacio == null) {
+$LaboratorioResumenCopyWith<$Res>? get laboratorio {
+    if (_self.laboratorio == null) {
     return null;
   }
 
-  return $EspacioResumenCopyWith<$Res>(_self.espacio!, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioResumenCopyWith<$Res>(_self.laboratorio!, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }
 }

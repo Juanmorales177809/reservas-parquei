@@ -4,22 +4,22 @@
 Lee un Excel con una hoja por laboratorio (columnas PLACA/DESCRIPCIÓN, el
 resto se ignora) y crea/actualiza:
 
-- Un `Espacio` por hoja (get-or-create por `nombre` == título de la hoja,
+- Un `Laboratorio` por hoja (get-or-create por `nombre` == título de la hoja,
   recortado). El Excel NO trae ubicación/capacidad/correo del laboratorio
   -- se usan placeholders (`--ubicacion-default`/`--capacidad-default`/
   `--correo-dominio`) que hay que corregir a mano después desde
-  `GestionEspaciosScreen`. `modalidad_reserva` queda en el default
-  ('equipos'): el Excel es inventario plano, sin ninguna noción de Zona.
-- Un `Recurso` por fila con PLACA no vacía, dentro del `Espacio` de su
+  `GestionLaboratoriosScreen`. El Excel es inventario plano, sin ninguna
+  noción de Espacio (sub-área).
+- Un `Recurso` por fila con PLACA no vacía, dentro del `Laboratorio` de su
   hoja, con un `TipoRecurso` genérico get-or-create ("Equipo
   institucional"). Idempotente por `placa` (columna nueva, único índice
   `uq_recursos_placa`): correr el script dos veces con el mismo Excel NO
   duplica nada, la segunda vez actualiza en vez de insertar.
 
-Las Zonas de cada laboratorio (las sub-áreas nombradas del formulario
-real, ej. "Estudio de Grabación y Mezcla 5.1") NO están en el Excel -- se
-crean a mano después con `GestionZonasScreen`, y los recursos recién
-importados se les asocian ahí (Fase A1).
+Los Espacios (sub-áreas) de cada laboratorio (ej. "Estudio de Grabación y
+Mezcla 5.1") NO están en el Excel -- se crean a mano después con
+`GestionEspaciosScreen`, y los recursos recién importados se les asocian
+ahí (Fase A1).
 
 USO (dry-run por defecto, no escribe nada):
 
@@ -51,7 +51,7 @@ import openpyxl
 sys.path.insert(0, ".")
 
 from app.db import SessionLocal  # noqa: E402
-from app.models.espacio import Espacio  # noqa: E402
+from app.models.laboratorio import Laboratorio  # noqa: E402
 from app.models.recurso import Recurso, TipoRecurso  # noqa: E402
 
 TIPO_RECURSO_GENERICO = "Equipo institucional"
@@ -60,8 +60,8 @@ TIPO_RECURSO_GENERICO = "Equipo institucional"
 @dataclass
 class ResumenHoja:
     hoja: str
-    espacio_nombre: str
-    espacio_creado: bool = False
+    laboratorio_nombre: str
+    laboratorio_creado: bool = False
     recursos_creados: int = 0
     recursos_actualizados: int = 0
     filas_saltadas: int = 0
@@ -104,36 +104,35 @@ def _get_or_create_tipo_recurso(db) -> TipoRecurso:
     return tipo
 
 
-def _get_or_create_espacio(db, *, nombre: str, ubicacion: str, capacidad: int, correo_dominio: str, resumen: ResumenHoja) -> Espacio:
-    espacio = db.query(Espacio).filter(Espacio.nombre == nombre).first()
-    if espacio is not None:
-        return espacio
+def _get_or_create_laboratorio(db, *, nombre: str, ubicacion: str, capacidad: int, correo_dominio: str, resumen: ResumenHoja) -> Laboratorio:
+    laboratorio = db.query(Laboratorio).filter(Laboratorio.nombre == nombre).first()
+    if laboratorio is not None:
+        return laboratorio
     slug = "".join(c if c.isalnum() else "-" for c in nombre.lower()).strip("-")
-    espacio = Espacio(
+    laboratorio = Laboratorio(
         nombre=nombre,
         ubicacion=ubicacion,
         capacidad=capacidad,
         estado="activo",
-        modalidad_reserva="equipos",
         correo=f"{slug}@{correo_dominio}",
         # Horario por defecto del modelo (lunes-sábado 7-19h, ver
-        # app/models/espacio.py) -- se corrige a mano si un laboratorio
+        # app/models/laboratorio.py) -- se corrige a mano si un laboratorio
         # real atiende distinto.
     )
-    db.add(espacio)
+    db.add(laboratorio)
     db.flush()
-    resumen.espacio_creado = True
-    return espacio
+    resumen.laboratorio_creado = True
+    return laboratorio
 
 
 def _importar_hoja(db, ws, *, usuario_id: int, ubicacion_default: str, capacidad_default: int, correo_dominio: str, tipo_recurso: TipoRecurso) -> ResumenHoja:
-    nombre_espacio = ws.title.strip()
-    resumen = ResumenHoja(hoja=ws.title, espacio_nombre=nombre_espacio)
+    nombre_laboratorio = ws.title.strip()
+    resumen = ResumenHoja(hoja=ws.title, laboratorio_nombre=nombre_laboratorio)
     fila_encabezado, col_placa, col_desc = _encontrar_encabezado(ws)
 
-    espacio = _get_or_create_espacio(
+    laboratorio = _get_or_create_laboratorio(
         db,
-        nombre=nombre_espacio,
+        nombre=nombre_laboratorio,
         ubicacion=ubicacion_default,
         capacidad=capacidad_default,
         correo_dominio=correo_dominio,
@@ -159,7 +158,7 @@ def _importar_hoja(db, ws, *, usuario_id: int, ubicacion_default: str, capacidad
         if recurso is None:
             recurso = Recurso(
                 nombre=descripcion[:100],
-                espacio_id=espacio.id,
+                laboratorio_id=laboratorio.id,
                 tipo_recurso_id=tipo_recurso.id,
                 capacidad=1,
                 estado="activo",
@@ -171,7 +170,7 @@ def _importar_hoja(db, ws, *, usuario_id: int, ubicacion_default: str, capacidad
             resumen.recursos_creados += 1
         else:
             recurso.nombre = descripcion[:100]
-            recurso.espacio_id = espacio.id
+            recurso.laboratorio_id = laboratorio.id
             recurso.update_by = usuario_id
             resumen.recursos_actualizados += 1
 
@@ -184,9 +183,9 @@ def main() -> None:
     parser.add_argument("--archivo", required=True, help="Ruta al .xlsx")
     parser.add_argument("--usuario-id", required=True, type=int, help="Usuario admin al que se atribuye la carga (created_by/update_by)")
     parser.add_argument("--confirmar", action="store_true", help="Escribe de verdad. Sin esto, solo imprime el resumen (dry-run)")
-    parser.add_argument("--capacidad-default", type=int, default=15, help="Capacidad placeholder para espacios nuevos (default: 15)")
-    parser.add_argument("--ubicacion-default", default="Parque i — piso por definir", help="Ubicación placeholder para espacios nuevos")
-    parser.add_argument("--correo-dominio", default="pendiente.itm.edu.co", help="Dominio placeholder para el correo de espacios nuevos")
+    parser.add_argument("--capacidad-default", type=int, default=15, help="Capacidad placeholder para laboratorios nuevos (default: 15)")
+    parser.add_argument("--ubicacion-default", default="Parque i — piso por definir", help="Ubicación placeholder para laboratorios nuevos")
+    parser.add_argument("--correo-dominio", default="pendiente.itm.edu.co", help="Dominio placeholder para el correo de laboratorios nuevos")
     args = parser.parse_args()
 
     wb = openpyxl.load_workbook(args.archivo, data_only=True, read_only=True)
@@ -210,18 +209,18 @@ def main() -> None:
         total_creados = sum(r.recursos_creados for r in resumenes)
         total_actualizados = sum(r.recursos_actualizados for r in resumenes)
         total_saltados = sum(r.filas_saltadas for r in resumenes)
-        espacios_nuevos = sum(1 for r in resumenes if r.espacio_creado)
+        laboratorios_nuevos = sum(1 for r in resumenes if r.laboratorio_creado)
 
         print(f"{'CONFIRMAR' if args.confirmar else 'DRY-RUN'} -- {len(resumenes)} hojas procesadas\n")
         for r in resumenes:
-            marca_espacio = "NUEVO" if r.espacio_creado else "ya existía"
+            marca_laboratorio = "NUEVO" if r.laboratorio_creado else "ya existía"
             print(
-                f"  {r.hoja!r} -> Espacio {r.espacio_nombre!r} ({marca_espacio}): "
+                f"  {r.hoja!r} -> Laboratorio {r.laboratorio_nombre!r} ({marca_laboratorio}): "
                 f"{r.recursos_creados} creados, {r.recursos_actualizados} actualizados, "
                 f"{r.filas_saltadas} filas saltadas"
             )
         print(
-            f"\nTOTAL: {espacios_nuevos} espacios nuevos, {total_creados} recursos creados, "
+            f"\nTOTAL: {laboratorios_nuevos} laboratorios nuevos, {total_creados} recursos creados, "
             f"{total_actualizados} recursos actualizados, {total_saltados} filas saltadas"
         )
 

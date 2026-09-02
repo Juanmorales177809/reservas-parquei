@@ -18,7 +18,7 @@ from app.domain.enums import (
     TipoReserva,
 )
 from app.schemas.disponibilidad import DisponibilidadSlot
-from app.schemas.espacio import ConfiguracionEspacioUpdate, EspacioCreate, EspacioResponse
+from app.schemas.laboratorio import ConfiguracionLaboratorioUpdate, LaboratorioCreate, LaboratorioResponse
 from app.schemas.notificacion import NotificacionResponse
 from app.schemas.recurso import RecursoCreate
 from app.schemas.reserva import (
@@ -26,7 +26,7 @@ from app.schemas.reserva import (
     ReservaEstadoUpdate,
     ReservaResponse,
     ReservaUpdate,
-    ZonaReservaResponse,
+    EspacioReservaResponse,
 )
 from app.schemas.personal import PersonalCreate, PersonalUpdate
 from app.schemas.usuario import UsuarioResponse
@@ -39,7 +39,7 @@ def _validacion_exc(modelo, **datos):
 
 class TestCamposTipadosConEnums:
     def test_personal_create_rol_es_enum(self):
-        modelo = PersonalCreate(username="gestor1", email="gestor1@example.com", rol="gestor", espacio_id=1)
+        modelo = PersonalCreate(username="gestor1", email="gestor1@example.com", rol="gestor", laboratorio_id=1)
         assert isinstance(modelo.rol, Rol)
         assert modelo.rol == Rol.GESTOR
 
@@ -54,12 +54,12 @@ class TestCamposTipadosConEnums:
         assert isinstance(modelo.rol, Rol)
 
     def test_espacio_create_estado_es_enum(self):
-        modelo = EspacioCreate(nombre="Sala", capacidad=10, correo="sala@example.com")
+        modelo = LaboratorioCreate(nombre="Sala", capacidad=10, correo="sala@example.com")
         assert isinstance(modelo.estado, EstadoEntidad)
         assert modelo.estado == EstadoEntidad.ACTIVO
 
     def test_espacio_response_estado_es_enum(self):
-        modelo = EspacioResponse.model_validate(
+        modelo = LaboratorioResponse.model_validate(
             {
                 "id": 1,
                 "nombre": "Sala",
@@ -71,7 +71,6 @@ class TestCamposTipadosConEnums:
                 "hora_cierre": "20:00:00",
                 "horario_atencion": {"0": [7, 8]},
                 "horas_antelacion": 24,
-                "modalidad_reserva": "equipos",
                 "correo": None,
             }
         )
@@ -79,7 +78,7 @@ class TestCamposTipadosConEnums:
 
     def test_recurso_create_estado_es_enum(self):
         modelo = RecursoCreate(
-            nombre="Recurso", tipo_recurso_id=1, capacidad=5, espacio_id=1
+            nombre="Recurso", tipo_recurso_id=1, capacidad=5, laboratorio_id=1
         )
         assert isinstance(modelo.estado, EstadoEntidad)
 
@@ -92,7 +91,7 @@ class TestCamposTipadosConEnums:
         datos = {
             "id": 1,
             "usuario_id": 1,
-            "espacio_id": 1,
+            "laboratorio_id": 1,
             "fecha": "2026-08-17",
             "hora_inicio": "08:00:00",
             "hora_fin": "10:00:00",
@@ -103,7 +102,7 @@ class TestCamposTipadosConEnums:
             "created_at": "2026-08-13T10:00:00",
             "updated_at": "2026-08-13T10:00:00",
             "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-            "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+            "laboratorio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
         }
         modelo = ReservaResponse.model_validate(datos)
         assert isinstance(modelo.estado, EstadoReserva)
@@ -152,7 +151,7 @@ class TestTipoReserva:
             {
                 "id": 1,
                 "usuario_id": 1,
-                "espacio_id": 1,
+                "laboratorio_id": 1,
                 "fecha": "2026-09-01",
                 "hora_inicio": "08:00",
                 "hora_fin": "10:00",
@@ -163,7 +162,7 @@ class TestTipoReserva:
                 "created_at": "2026-08-01T10:00:00+00:00",
                 "updated_at": "2026-08-01T10:00:00+00:00",
                 "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-                "espacio": {
+                "laboratorio": {
                     "id": 1,
                     "nombre": "Sala",
                     "capacidad": 10,
@@ -171,8 +170,8 @@ class TestTipoReserva:
                 },
                 "recurso_ids": [1],
                 "recursos": [],
-                "zona_ids": [],
-                "zonas": [],
+                "espacio_ids": [],
+                "espacios": [],
                 "tipo": "trabajo_investigacion",
             }
         )
@@ -187,21 +186,21 @@ class TestContratoJsonConservado:
         )
         assert modelo.model_dump()["rol"] == "gestor"
         assert modelo.model_dump_json() == (
-            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","espacio":null,'
+            '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","laboratorio":null,'
             '"documento_identificacion":null,"telefono":null,"institucion":null,'
             '"vinculacion":null,"dependencia":null}'
         )
 
     def test_estados_serializan_como_strings_actuales(self):
         assert (
-            EspacioCreate(nombre="S", capacidad=1, correo="s@example.com").model_dump()["estado"]
+            LaboratorioCreate(nombre="S", capacidad=1, correo="s@example.com").model_dump()["estado"]
             == "activo"
         )
         reserva = ReservaResponse.model_validate(
             {
                 "id": 1,
                 "usuario_id": 1,
-                "espacio_id": 1,
+                "laboratorio_id": 1,
                 "fecha": "2026-08-17",
                 "hora_inicio": "08:00:00",
                 "hora_fin": "10:00:00",
@@ -212,7 +211,7 @@ class TestContratoJsonConservado:
                 "created_at": "2026-08-13T10:00:00",
                 "updated_at": "2026-08-13T10:00:00",
                 "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-                "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+                "laboratorio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
             }
         )
         assert reserva.model_dump()["estado"] == "aprobada"
@@ -234,7 +233,7 @@ class TestValoresRechazados:
         _validacion_exc(PersonalCreate, username="u1", email="u1@example.com", rol="usuario")
 
     def test_estado_invalido_rechazado(self):
-        _validacion_exc(EspacioCreate, nombre="S", capacidad=1, estado="roto")
+        _validacion_exc(LaboratorioCreate, nombre="S", capacidad=1, estado="roto")
         _validacion_exc(RecursoCreate, nombre="R", tipo_recurso_id=1, capacidad=1, estado="roto")
 
     def test_nuevo_estado_esperando_rechazado(self):
@@ -251,14 +250,14 @@ class TestValoresRechazados:
 
 class TestContratoReservasPorObjetivos:
     """Fase 12C-6: `ReservaCreate`/`ReservaUpdate` usan `recurso_ids`/
-    `zona_ids`; `recurso_id` legacy se rechaza (`extra="forbid")."""
+    `espacio_ids`; `recurso_id` legacy se rechaza (`extra="forbid")."""
 
-    def test_zona_reserva_response_acepta_estado_como_enum(self):
-        modelo = ZonaReservaResponse.model_validate(
+    def test_espacio_reserva_response_acepta_estado_como_enum(self):
+        modelo = EspacioReservaResponse.model_validate(
             {
                 "id": 1,
                 "nombre": "Z",
-                "espacio_id": 1,
+                "laboratorio_id": 1,
                 "descripcion": None,
                 "capacidad": 5,
                 "estado": "activo",
@@ -270,18 +269,18 @@ class TestContratoReservasPorObjetivos:
     def test_reserva_create_acepta_listas_y_exige_al_menos_una(self):
         modelo = ReservaCreate(
             recurso_ids=[1],
-            zona_ids=[],
+            espacio_ids=[],
             fecha="2026-08-17",
             hora_inicio="08:00",
             hora_fin="09:00",
             asistentes=2,
         )
         assert modelo.recurso_ids == [1]
-        assert modelo.zona_ids == []
+        assert modelo.espacio_ids == []
         _validacion_exc(
             ReservaCreate,
             recurso_ids=[],
-            zona_ids=[],
+            espacio_ids=[],
             fecha="2026-08-17",
             hora_inicio="08:00",
             hora_fin="09:00",
@@ -301,7 +300,7 @@ class TestContratoReservasPorObjetivos:
     def test_reserva_update_rechaza_recurso_id_legacy(self):
         _validacion_exc(ReservaUpdate, recurso_id=1)
 
-    def test_reserva_response_acepta_listas_y_zonas(self):
+    def test_reserva_response_acepta_listas_y_espacios(self):
         datos = _datos_reserva_response()
         datos["recurso_ids"] = [1]
         datos["recursos"] = [
@@ -310,25 +309,25 @@ class TestContratoReservasPorObjetivos:
                 "nombre": "R",
                 "capacidad": 10,
                 "estado": "activo",
-                "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+                "laboratorio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
             }
         ]
-        datos["zona_ids"] = [5]
-        datos["zonas"] = [
-            {"id": 5, "nombre": "Z", "espacio_id": 1, "descripcion": None, "capacidad": 5, "estado": "activo"}
+        datos["espacio_ids"] = [5]
+        datos["espacios"] = [
+            {"id": 5, "nombre": "Z", "laboratorio_id": 1, "descripcion": None, "capacidad": 5, "estado": "activo"}
         ]
         modelo = ReservaResponse.model_validate(datos)
         assert modelo.recurso_ids == [1]
         assert modelo.recursos[0].nombre == "R"
-        assert modelo.zona_ids == [5]
-        assert modelo.zonas[0].nombre == "Z"
+        assert modelo.espacio_ids == [5]
+        assert modelo.espacios[0].nombre == "Z"
 
     def test_reserva_response_sin_campos_nuevos_usa_defaults(self):
         modelo = ReservaResponse.model_validate(_datos_reserva_response())
         assert modelo.recurso_ids == []
         assert modelo.recursos == []
-        assert modelo.zona_ids == []
-        assert modelo.zonas == []
+        assert modelo.espacio_ids == []
+        assert modelo.espacios == []
 
     def test_reserva_response_no_expone_campos_singulares(self):
         """Fase 12C-4e-schemas: `recurso_id`/`recurso` (el ancla) se retiran
@@ -345,7 +344,7 @@ def _datos_reserva_response():
     return {
         "id": 1,
         "usuario_id": 1,
-        "espacio_id": 1,
+        "laboratorio_id": 1,
         "fecha": "2026-08-17",
         "hora_inicio": "08:00:00",
         "hora_fin": "10:00:00",
@@ -356,34 +355,34 @@ def _datos_reserva_response():
         "created_at": "2026-08-13T10:00:00",
         "updated_at": "2026-08-13T10:00:00",
         "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-        "espacio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
+        "laboratorio": {"id": 1, "nombre": "S", "capacidad": 10, "estado": "activo"},
     }
 
 
 class TestValidacionHorarioConservada:
     def test_normalizacion_orden_y_dedupe(self):
-        modelo = ConfiguracionEspacioUpdate(
+        modelo = ConfiguracionLaboratorioUpdate(
             horario_atencion={1: [9, 8, 8, 7]}, horas_antelacion=24, aprobacion_automatica=False
         )
         assert modelo.horario_atencion == {1: [7, 8, 9]}
 
     def test_mensaje_dia_fuera_de_rango(self):
         with pytest.raises(ValidationError) as exc:
-            ConfiguracionEspacioUpdate(
+            ConfiguracionLaboratorioUpdate(
                 horario_atencion={7: [8]}, horas_antelacion=24, aprobacion_automatica=False
             )
         assert "Los días de atención deben estar entre 0 y 6" in str(exc.value)
 
     def test_mensaje_hora_fuera_de_rango(self):
         with pytest.raises(ValidationError) as exc:
-            ConfiguracionEspacioUpdate(
+            ConfiguracionLaboratorioUpdate(
                 horario_atencion={1: [23]}, horas_antelacion=24, aprobacion_automatica=False
             )
         assert "Las horas deben estar entre 0 y 22" in str(exc.value)
 
     def test_mensaje_sin_franjas(self):
         with pytest.raises(ValidationError) as exc:
-            ConfiguracionEspacioUpdate(
+            ConfiguracionLaboratorioUpdate(
                 horario_atencion={1: [], 2: []}, horas_antelacion=24, aprobacion_automatica=False
             )
         assert "Debes seleccionar al menos una franja de atención" in str(exc.value)
@@ -392,7 +391,7 @@ class TestValidacionHorarioConservada:
         # Opción A (compatibilidad de contrato): el schema conserva las claves
         # de días vacíos con listas []; HorarioAtencion elimina los días vacíos
         # solo en su normalización interna y NO reemplaza la salida pública.
-        modelo = ConfiguracionEspacioUpdate(
+        modelo = ConfiguracionLaboratorioUpdate(
             horario_atencion={1: [], 2: [9]}, horas_antelacion=24, aprobacion_automatica=False
         )
         assert modelo.horario_atencion == {1: [], 2: [9]}

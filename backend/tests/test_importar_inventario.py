@@ -13,11 +13,11 @@ cubrir de verdad el bug de `EmptyCell` ya corregido en
 import openpyxl
 import pytest
 
-from app.models.espacio import Espacio
+from app.models.laboratorio import Laboratorio
 from app.models.recurso import Recurso
 from scripts.importar_inventario import (
     _encontrar_encabezado,
-    _get_or_create_espacio,
+    _get_or_create_laboratorio,
     _get_or_create_tipo_recurso,
     _importar_hoja,
     ResumenHoja,
@@ -105,10 +105,10 @@ class TestEncontrarEncabezado:
             _encontrar_encabezado(ws)
 
 
-class TestGetOrCreateEspacio:
-    def test_crea_espacio_nuevo_con_placeholders(self, db):
-        resumen = ResumenHoja(hoja="X", espacio_nombre="LAB NUEVO")
-        espacio = _get_or_create_espacio(
+class TestGetOrCreateLaboratorio:
+    def test_crea_laboratorio_nuevo_con_placeholders(self, db):
+        resumen = ResumenHoja(hoja="X", laboratorio_nombre="LAB NUEVO")
+        laboratorio = _get_or_create_laboratorio(
             db,
             nombre="LAB NUEVO",
             ubicacion="Parque i — piso por definir",
@@ -116,28 +116,27 @@ class TestGetOrCreateEspacio:
             correo_dominio="pendiente.itm.edu.co",
             resumen=resumen,
         )
-        assert espacio.id is not None
-        assert espacio.ubicacion == "Parque i — piso por definir"
-        assert espacio.capacidad == 15
-        assert espacio.correo == "lab-nuevo@pendiente.itm.edu.co"
-        assert espacio.estado == "activo"
-        assert resumen.espacio_creado is True
+        assert laboratorio.id is not None
+        assert laboratorio.ubicacion == "Parque i — piso por definir"
+        assert laboratorio.capacidad == 15
+        assert laboratorio.correo == "lab-nuevo@pendiente.itm.edu.co"
+        assert laboratorio.estado == "activo"
+        assert resumen.laboratorio_creado is True
 
-    def test_reusa_espacio_existente_por_nombre(self, db):
+    def test_reusa_laboratorio_existente_por_nombre(self, db):
         db.add(
-            Espacio(
+            Laboratorio(
                 nombre="LAB YA EXISTE",
                 ubicacion="Ubicación real",
                 capacidad=40,
                 estado="activo",
-                modalidad_reserva="equipos",
                 correo="labyaexiste@itm.edu.co",
             )
         )
         db.commit()
 
-        resumen = ResumenHoja(hoja="X", espacio_nombre="LAB YA EXISTE")
-        espacio = _get_or_create_espacio(
+        resumen = ResumenHoja(hoja="X", laboratorio_nombre="LAB YA EXISTE")
+        laboratorio = _get_or_create_laboratorio(
             db,
             nombre="LAB YA EXISTE",
             ubicacion="Parque i — piso por definir",
@@ -145,14 +144,14 @@ class TestGetOrCreateEspacio:
             correo_dominio="pendiente.itm.edu.co",
             resumen=resumen,
         )
-        assert espacio.ubicacion == "Ubicación real"
-        assert espacio.capacidad == 40
-        assert resumen.espacio_creado is False
-        assert db.query(Espacio).filter(Espacio.nombre == "LAB YA EXISTE").count() == 1
+        assert laboratorio.ubicacion == "Ubicación real"
+        assert laboratorio.capacidad == 40
+        assert resumen.laboratorio_creado is False
+        assert db.query(Laboratorio).filter(Laboratorio.nombre == "LAB YA EXISTE").count() == 1
 
 
 class TestImportarHoja:
-    def test_crea_espacio_y_recursos_salta_filas_vacias(self, db, tmp_path):
+    def test_crea_laboratorio_y_recursos_salta_filas_vacias(self, db, tmp_path):
         ws = _hoja_desde_filas(
             tmp_path,
             "LAB IMPORT",
@@ -178,13 +177,13 @@ class TestImportarHoja:
             tipo_recurso=tipo,
         )
 
-        assert resumen.espacio_creado is True
+        assert resumen.laboratorio_creado is True
         assert resumen.recursos_creados == 3
         assert resumen.recursos_actualizados == 0
         assert resumen.filas_saltadas == 2
 
-        espacio = db.query(Espacio).filter(Espacio.nombre == "LAB IMPORT").one()
-        recursos = db.query(Recurso).filter(Recurso.espacio_id == espacio.id).all()
+        laboratorio = db.query(Laboratorio).filter(Laboratorio.nombre == "LAB IMPORT").one()
+        recursos = db.query(Recurso).filter(Recurso.laboratorio_id == laboratorio.id).all()
         assert {r.placa for r in recursos} == {"100", "101", "103"}
         assert all(r.tipo_recurso_id == tipo.id for r in recursos)
         assert all(r.capacidad == 1 and r.estado == "activo" for r in recursos)
@@ -247,7 +246,7 @@ class TestImportarHoja:
         db.commit()
         assert segundo.recursos_creados == 0
         assert segundo.recursos_actualizados == 1
-        assert segundo.espacio_creado is False
+        assert segundo.laboratorio_creado is False
 
         recursos = db.query(Recurso).filter(Recurso.placa == "300").all()
         assert len(recursos) == 1
@@ -269,5 +268,5 @@ class TestImportarHoja:
         )
         db.rollback()
 
-        assert db.query(Espacio).filter(Espacio.nombre == "LAB DRY RUN").count() == 0
+        assert db.query(Laboratorio).filter(Laboratorio.nombre == "LAB DRY RUN").count() == 0
         assert db.query(Recurso).filter(Recurso.placa == "400").count() == 0

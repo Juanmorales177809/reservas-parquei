@@ -27,14 +27,14 @@ void main() {
   setUpAll(asegurarFixturesE2e);
 
   group('Público y guard de rol', () {
-    testWidgets('un visitante anónimo ve /espacios sin que lo redirijan a /login', (tester) async {
+    testWidgets('un visitante anónimo ve /laboratorios sin que lo redirijan a /login', (tester) async {
       await iniciarApp(tester);
-      await irA(tester, '/espacios');
+      await irA(tester, '/laboratorios');
 
-      expect(find.text('Elegí un espacio para ver sus recursos y disponibilidad'), findsOneWidget);
+      expect(find.text('Elegí un laboratorio para ver sus recursos y disponibilidad'), findsOneWidget);
       // Sin sesión, "Dashboard" no debe verse: su `NavDestinationSpec` no
       // declara `requiereSesion: false`, así que por defecto exige sesión —
-      // solo "Espacios" es público (ver nav_destinations.dart). Antes esta
+      // solo "Laboratorios" es público (ver nav_destinations.dart). Antes esta
       // aserción usaba "Inicio", el destino que se eliminó al pasar a ser
       // el dashboard el punto de aterrizaje tras autenticarse.
       expect(find.text('Dashboard'), findsNothing);
@@ -46,10 +46,10 @@ void main() {
 
       await irA(tester, '/usuarios');
 
-      // `app_router.dart` redirige a /espacios cuando el rol no coincide
+      // `app_router.dart` redirige a /laboratorios cuando el rol no coincide
       // con `rolesPermitidos` del destino — la pantalla de gestión de
       // usuarios no debe llegar a mostrarse.
-      expect(find.text('Elegí un espacio para ver sus recursos y disponibilidad'), findsOneWidget);
+      expect(find.text('Elegí un laboratorio para ver sus recursos y disponibilidad'), findsOneWidget);
 
       await logout(tester);
     });

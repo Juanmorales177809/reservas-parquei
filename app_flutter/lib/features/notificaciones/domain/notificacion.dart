@@ -7,7 +7,7 @@ part 'notificacion.g.dart';
 
 /// Espejo de `NotificacionResponse` (`backend/app/schemas/notificacion.py`).
 /// `mensaje` ya viene armado por el backend (incluye el nombre del
-/// recurso/zona) — se muestra literal, sin recomponerlo en el cliente.
+/// recurso/espacio) — se muestra literal, sin recomponerlo en el cliente.
 @freezed
 abstract class Notificacion with _$Notificacion {
   const factory Notificacion({

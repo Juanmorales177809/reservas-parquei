@@ -41,7 +41,7 @@ class AppTheme {
   /// `ColorScheme.fromSeed` deriva superficies levemente teñidas de azul y
   /// un `secondary`/`tertiary` violáceos por el algoritmo de Material 3.
   /// Se parte de él (para que los slots que no usamos tengan algo
-  /// razonable) pero se sobrescriben todos los que la UI toca de verdad.
+  /// raespacioble) pero se sobrescriben todos los que la UI toca de verdad.
   static ColorScheme _lightScheme() {
     return ColorScheme.fromSeed(seedColor: AppColors.marca).copyWith(
       primary: AppColors.marca,

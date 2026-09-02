@@ -9,16 +9,16 @@ abstract final class AppRoutes {
   // No hay `inicio`: tras autenticarse se aterriza en [admin], el
   // dashboard real. La antigua `/dashboard` servía una `InicioScreen`
   // placeholder y se eliminó el 2026-08-24.
-  static const espacios = '/espacios';
-  static const espacioDetalleTemplate = '/espacios/:id';
-  static String espacioDetalle(int id) => '/espacios/$id';
+  static const laboratorios = '/laboratorios';
+  static const laboratorioDetalleTemplate = '/laboratorios/:id';
+  static String laboratorioDetalle(int id) => '/laboratorios/$id';
   static const misReservas = '/reservas/mis-reservas';
   static const nuevaReserva = '/reservas/nueva';
   static const admin = '/admin';
-  static const adminEspacios = '/admin/espacios';
+  static const adminLaboratorios = '/admin/laboratorios';
   static const adminRecursos = '/admin/recursos';
-  static const adminZonas = '/admin/zonas';
-  static const adminEnsayos = '/admin/ensayos';
+  static const adminEspacios = '/admin/espacios';
+  static const adminTiposReserva = '/admin/tipos-reserva';
   static const adminReservas = '/admin/reservas';
   static const adminConfiguracion = '/admin/configuracion';
   static const adminControlCambios = '/admin/control-cambios';
@@ -28,6 +28,6 @@ abstract final class AppRoutes {
   /// Templates de ruta accesibles sin sesión (ver `frontend/CLAUDE.md`,
   /// "Rutas públicas y protegidas"), comparados contra `state.fullPath` de
   /// go_router (el template registrado, no la URL interpolada — así
-  /// `/espacios/:id` cubre cualquier id sin enumerarlos).
-  static const publicas = {login, registro, completarCuenta, terminos, espacios, espacioDetalleTemplate};
+  /// `/laboratorios/:id` cubre cualquier id sin enumerarlos).
+  static const publicas = {login, registro, completarCuenta, terminos, laboratorios, laboratorioDetalleTemplate};
 }

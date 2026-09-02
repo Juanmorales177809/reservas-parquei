@@ -14,7 +14,7 @@ class PersonalCreate(BaseModel):
     username: str = Field(min_length=3, max_length=80)
     email: str = Field(max_length=255)
     rol: Rol = Rol.GESTOR
-    espacio_id: int | None = None
+    laboratorio_id: int | None = None
 
     @field_validator("email")
     @classmethod
@@ -45,7 +45,7 @@ class PersonalUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=80)
     email: str | None = Field(default=None, max_length=255)
     rol: Rol | None = None
-    espacio_id: int | None = None
+    laboratorio_id: int | None = None
     documento_identificacion: str | None = Field(default=None, max_length=30)
     telefono: str | None = Field(default=None, max_length=30)
     institucion: str | None = Field(default=None, max_length=120)

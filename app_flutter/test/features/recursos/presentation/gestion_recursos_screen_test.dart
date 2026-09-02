@@ -5,14 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/core/domain/enums.dart';
 import 'package:app_flutter/features/auth/application/auth_provider.dart';
 import 'package:app_flutter/features/auth/domain/auth_user.dart';
-import 'package:app_flutter/features/espacios/domain/espacio.dart';
+import 'package:app_flutter/features/laboratorios/domain/laboratorio.dart';
 import 'package:app_flutter/features/recursos/application/recursos_providers.dart';
 import 'package:app_flutter/features/recursos/domain/recurso.dart';
 import 'package:app_flutter/features/recursos/domain/tipo_recurso.dart';
 import 'package:app_flutter/features/recursos/presentation/gestion_recursos_screen.dart';
 
 /// Búsqueda + tabla ordenable en `GestionRecursosScreen` (2026-08-31),
-/// mismo patrón que `gestion_zonas_screen_test.dart`.
+/// mismo patrón que `gestion_espacios_screen_test.dart`.
 class _AuthFake extends Auth {
   _AuthFake(this._usuario);
 
@@ -22,7 +22,7 @@ class _AuthFake extends Auth {
   Future<AuthUser?> build() async => _usuario;
 }
 
-Espacio _espacio(int id, String nombre) => Espacio(
+Laboratorio _laboratorio(int id, String nombre) => Laboratorio(
       id: id,
       nombre: nombre,
       ubicacion: 'Bloque $id',
@@ -33,17 +33,16 @@ Espacio _espacio(int id, String nombre) => Espacio(
       horaCierre: '18:00:00',
       horarioAtencion: const {'0': [8, 9, 10]},
       horasAntelacion: 0,
-      modalidadReserva: ModalidadEspacio.zonas,
     );
 
-Recurso _recurso(int id, String nombre, {int espacioId = 1, String espacioNombre = 'Auditorio'}) => Recurso(
+Recurso _recurso(int id, String nombre, {int laboratorioId = 1, String laboratorioNombre = 'Auditorio'}) => Recurso(
       id: id,
       nombre: nombre,
-      espacioId: espacioId,
+      laboratorioId: laboratorioId,
       tipoRecursoId: 1,
       capacidad: 1,
       estado: EstadoEntidad.activo,
-      espacio: _espacio(espacioId, espacioNombre),
+      laboratorio: _laboratorio(laboratorioId, laboratorioNombre),
       tipo: const TipoRecurso(id: 1, nombre: 'Equipo', descripcion: '', activo: 'activo'),
       esPrestacionServicio: false,
     );
@@ -82,10 +81,10 @@ void main() {
       expect(find.text('Cámara'), findsNothing);
     });
 
-    testWidgets('buscar por espacio también filtra', (tester) async {
+    testWidgets('buscar por laboratorio también filtra', (tester) async {
       await montar(tester, [
-        _recurso(1, 'Proyector', espacioId: 1, espacioNombre: 'Auditorio'),
-        _recurso(2, 'Cámara', espacioId: 2, espacioNombre: 'Laboratorio'),
+        _recurso(1, 'Proyector', laboratorioId: 1, laboratorioNombre: 'Auditorio'),
+        _recurso(2, 'Cámara', laboratorioId: 2, laboratorioNombre: 'Laboratorio'),
       ]);
 
       await tester.enterText(find.byType(TextField), 'Laboratorio');

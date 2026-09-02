@@ -4,7 +4,7 @@
 Contraparte de `test_api_usuarios.py` desde la separación en dos tablas
 (`personal` para admin/gestor, `usuarios` para rol usuario -- ver
 `~/.claude/plans/dazzling-wobbling-zebra.md`). Cubre lo que antes vivía en
-`test_api_usuarios.py` para rol admin/gestor (RN-003 espacio del gestor,
+`test_api_usuarios.py` para rol admin/gestor (RN-003 laboratorio del gestor,
 protección del último admin, reenviar invitación) más lo nuevo: la
 promoción de una cuenta `usuario` existente a `personal`.
 """
@@ -15,7 +15,7 @@ import pytest
 
 from app.models import CorreoSaliente, Notificacion, Personal, Usuario
 from app.services.supabase_admin import SupabaseAdminError
-from tests.conftest import cookies_para, crear_espacio, crear_usuario
+from tests.conftest import cookies_para, crear_laboratorio, crear_usuario
 
 
 @pytest.fixture(autouse=True)
@@ -39,16 +39,16 @@ def test_crear_gestor_sin_espacio_da_400(client, db):
 
 def test_crear_gestor_con_espacio(client, db):
     admin = _admin(db)
-    espacio = crear_espacio(db, nombre="Sala Gestores")
+    laboratorio = crear_laboratorio(db, nombre="Sala Gestores")
     payload = {
         "username": "gestor_ok",
         "email": "gestor_ok@example.com",
         "rol": "gestor",
-        "espacio_id": espacio.id,
+        "laboratorio_id": laboratorio.id,
     }
     respuesta = client.post("/personal", json=payload, headers=cookies_para(admin))
     assert respuesta.status_code == 201
-    assert respuesta.json()["espacio"]["nombre"] == "Sala Gestores"
+    assert respuesta.json()["laboratorio"]["nombre"] == "Sala Gestores"
 
 
 def test_crear_personal_rechaza_rol_usuario(client, db):
@@ -62,7 +62,7 @@ def test_crear_personal_rechaza_rol_usuario(client, db):
 
 def test_crear_personal_solo_admin(client, db):
     gestor = crear_usuario(db, username="gestor_no_crea", email="gestor_no_crea@example.com", rol="gestor")
-    payload = {"username": "otro", "email": "otro@example.com", "rol": "gestor", "espacio_id": 1}
+    payload = {"username": "otro", "email": "otro@example.com", "rol": "gestor", "laboratorio_id": 1}
     respuesta = client.post("/personal", json=payload, headers=cookies_para(gestor))
     assert respuesta.status_code == 403
 
@@ -166,20 +166,20 @@ def test_actualizar_rol_de_gestor_a_admin_dentro_de_personal(client, db):
 class TestPromoverUsuarioAPersonal:
     def test_promover_usuario_existente_a_gestor(self, client, db):
         admin = _admin(db)
-        espacio = crear_espacio(db, nombre="Sala Ascenso")
+        laboratorio = crear_laboratorio(db, nombre="Sala Ascenso")
         usuario = crear_usuario(db, username="usuario_a_ascender", email="usuario_a_ascender@example.com")
         supabase_id_original = usuario.supabase_id
 
         respuesta = client.post(
             f"/personal/promover/{usuario.id}",
-            json={"username": usuario.username, "email": usuario.email, "rol": "gestor", "espacio_id": espacio.id},
+            json={"username": usuario.username, "email": usuario.email, "rol": "gestor", "laboratorio_id": laboratorio.id},
             headers=cookies_para(admin),
         )
 
         assert respuesta.status_code == 200
         cuerpo = respuesta.json()
         assert cuerpo["rol"] == "gestor"
-        assert cuerpo["espacio"]["nombre"] == "Sala Ascenso"
+        assert cuerpo["laboratorio"]["nombre"] == "Sala Ascenso"
         # El id CAMBIA (personal/usuarios tienen secuencias independientes
         # que pueden colisionar, ver services/migrar_actor.py) -- lo que se
         # preserva es la identidad de Supabase y el resto de los datos.
@@ -196,13 +196,13 @@ class TestPromoverUsuarioAPersonal:
         from datetime import time as time_t
 
         admin = _admin(db)
-        espacio = crear_espacio(db, nombre="Sala Repunte")
+        laboratorio = crear_laboratorio(db, nombre="Sala Repunte")
         usuario = crear_usuario(db, username="usuario_con_historial", email="usuario_con_historial@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
 
         reserva = Reserva(
             **columnas_actor(usuario),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
             hora_inicio=time_t(8, 0),
@@ -217,7 +217,7 @@ class TestPromoverUsuarioAPersonal:
 
         respuesta = client.post(
             f"/personal/promover/{usuario.id}",
-            json={"username": usuario.username, "email": usuario.email, "rol": "gestor", "espacio_id": espacio.id},
+            json={"username": usuario.username, "email": usuario.email, "rol": "gestor", "laboratorio_id": laboratorio.id},
             headers=cookies_para(admin),
         )
         assert respuesta.status_code == 200

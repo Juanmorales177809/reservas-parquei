@@ -9,7 +9,7 @@ Modelos SQLAlchemy (ORM) que mapean el esquema de PostgreSQL. Las columnas y con
 | Archivo | Acción | Descripción |
 |---|---|---|
 | reserva.py | Modificado | `ESTADOS_RESERVA` y `ESTADOS_BLOQUEANTES` pasan de tuplas literales a **alias derivados de los enums del dominio** (`EstadoReserva`, `ESTADOS_RESERVA_BLOQUEANTES`) vía `.value` |
-| espacio.py | Modificado (Fase 12B) | Nuevas columnas `modalidad_reserva` (`String(20)`, NOT NULL, default `'equipos'`, `CheckConstraint` `ck_espacios_modalidad_reserva`) y `correo` (`String(255)`, nullable) |
+| espacio.py | Modificado (Fase 12B; `modalidad_reserva`/`ck_espacios_modalidad_reserva` removidos en Fase 3 de `~/.claude/plans/dazzling-wobbling-zebra.md`) | Nueva columna `correo` (`String(255)`, nullable) |
 | recurso.py | Modificado (Fase 12B) | Nueva columna `es_prestacion_servicio` (`Boolean`, NOT NULL, default `false`) |
 | zona.py | Nuevo (Fase 12C-1) | Entidad `Zona` aislada: `id`, `nombre`, `espacio_id` (FK `espacios.id` NOT NULL), `descripcion`, `capacidad` (nullable), `estado` (`CheckConstraint` `ck_zonas_estado`), `created_at`/`updated_at`, `created_by`/`updated_by` (FK `usuarios.id` NOT NULL). Sin asociación con `Recurso`, sin integración con `Reserva` todavía |
 | zona_recurso.py | Nuevo (Fase 12C-3) | Asociación `zona_recursos`: `id`, `zona_id` (FK `zonas.id`, `ondelete=CASCADE`), `recurso_id` (FK `recursos.id`, `ondelete=CASCADE`). `UniqueConstraint` sobre `recurso_id` solo — un recurso pertenece, como máximo, a una zona |

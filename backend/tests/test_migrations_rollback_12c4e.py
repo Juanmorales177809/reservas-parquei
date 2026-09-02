@@ -7,11 +7,11 @@ desechables** que este módulo crea y elimina con `CREATE/DROP SCHEMA` dentro de
 `reservas_test` — nunca contra `public` y nunca contra el esquema real. El
 procedimiento es esquema-agnóstico (resuelve contra `search_path`), por lo que
 puede ejecutarse en un esquema efímero con las tres tablas mínimas que los
-gates consultan (reservas, reserva_recursos, reserva_zonas), sin FKs.
+gates consultan (reservas, reserva_recursos, reserva_espacios), sin FKs.
 
 Reglas verificadas aquí (contrato de la Fase 12C-4e):
 - aborta ANTES de modificar datos si detecta: G1 multi-recurso, G2 cualquier
-  reserva con zona, G3 divergencia de ancla, G4 divergencia de fecha/hora/
+  reserva con espacio, G3 divergencia de ancla, G4 divergencia de fecha/hora/
   estado, G5 reserva huérfana;
 - el mensaje de aborto identifica el gate y la(s) reserva(s) afectada(s);
 - el dataset reversible (solo reservas singulares coherentes) completa el
@@ -37,7 +37,7 @@ _TABLAS_MINIMAS = """
 CREATE TABLE {s}.reservas (
     id SERIAL PRIMARY KEY,
     usuario_id INTEGER NOT NULL,
-    espacio_id INTEGER NOT NULL,
+    laboratorio_id INTEGER NOT NULL,
     recurso_id INTEGER NOT NULL,
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
@@ -54,10 +54,10 @@ CREATE TABLE {s}.reserva_recursos (
     hora_fin TIME NOT NULL,
     estado VARCHAR(20) NOT NULL
 );
-CREATE TABLE {s}.reserva_zonas (
+CREATE TABLE {s}.reserva_espacios (
     id SERIAL PRIMARY KEY,
     reserva_id INTEGER NOT NULL,
-    zona_id INTEGER NOT NULL,
+    espacio_id INTEGER NOT NULL,
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
@@ -95,7 +95,7 @@ def _insertar_reserva(nombre, *, recurso_id, fecha, estado="aprobada"):
         conn.execute(text(f"SET LOCAL search_path TO {nombre}, public"))
         return conn.execute(text(
             "INSERT INTO reservas "
-            "(usuario_id, espacio_id, recurso_id, fecha, hora_inicio, hora_fin, estado, asistentes) "
+            "(usuario_id, laboratorio_id, recurso_id, fecha, hora_inicio, hora_fin, estado, asistentes) "
             f"VALUES (1, 1, {recurso_id}, '{fecha}', '08:00', '10:00', '{estado}', 2) "
             "RETURNING id"
         )).scalar()
@@ -111,13 +111,13 @@ def _insertar_rr(nombre, reserva_id, recurso_id, fecha, estado="aprobada"):
         ))
 
 
-def _insertar_rz(nombre, reserva_id, zona_id, fecha, estado="aprobada"):
+def _insertar_rz(nombre, reserva_id, espacio_id, fecha, estado="aprobada"):
     with engine.begin() as conn:
         conn.execute(text(f"SET LOCAL search_path TO {nombre}, public"))
         conn.execute(text(
-            "INSERT INTO reserva_zonas "
-            "(reserva_id, zona_id, fecha, hora_inicio, hora_fin, estado) "
-            f"VALUES ({reserva_id}, {zona_id}, '{fecha}', '08:00', '10:00', '{estado}')"
+            "INSERT INTO reserva_espacios "
+            "(reserva_id, espacio_id, fecha, hora_inicio, hora_fin, estado) "
+            f"VALUES ({reserva_id}, {espacio_id}, '{fecha}', '08:00', '10:00', '{estado}')"
         ))
 
 
@@ -138,7 +138,7 @@ def _foto(nombre):
             ],
             "rz": [
                 tuple(fila) for fila in conn.execute(text(
-                    "SELECT reserva_id, zona_id, estado FROM reserva_zonas ORDER BY reserva_id"
+                    "SELECT reserva_id, espacio_id, estado FROM reserva_espacios ORDER BY reserva_id"
                 )).fetchall()
             ],
         }
@@ -187,7 +187,7 @@ def _espera_aborto(nombre, fragmento, antes):
     assert "reservas {" in str(excinfo.value), "el mensaje debe identificar las reservas afectadas"
     assert _foto(nombre) == antes, "el aborto modificó datos: debe abortar antes de escribir"
     assert _tabla_existe(nombre, "reserva_recursos") is True
-    assert _tabla_existe(nombre, "reserva_zonas") is True
+    assert _tabla_existe(nombre, "reserva_espacios") is True
 
 
 # ---------------------------------------------------------------------------
@@ -197,12 +197,12 @@ def _espera_aborto(nombre, fragmento, antes):
 
 def test_la_migracion_de_arranque_no_ejecuta_el_rollback():
     """El procedimiento es manual/operatorio: tras la migración de arranque de
-    la suite (fixture `preparar_esquema`), reserva_recursos/reserva_zonas
+    la suite (fixture `preparar_esquema`), reserva_recursos/reserva_espacios
     siguen existiendo en public. El rollback solo se ejecuta en esquemas
     desechables desde este módulo."""
     with engine.connect() as conn:
         assert conn.execute(text("SELECT to_regclass('public.reserva_recursos') IS NOT NULL")).scalar() is True
-        assert conn.execute(text("SELECT to_regclass('public.reserva_zonas') IS NOT NULL")).scalar() is True
+        assert conn.execute(text("SELECT to_regclass('public.reserva_espacios') IS NOT NULL")).scalar() is True
 
 
 # ---------------------------------------------------------------------------
@@ -240,33 +240,33 @@ def test_g1_multi_recurso_aborta_sin_modificar(esquema_desechable):
 @pytest.mark.parametrize(
     "armar",
     [
-        lambda s: _armar_solo_zona(s),
+        lambda s: _armar_solo_espacio(s),
         lambda s: _armar_mixta(s),
-        lambda s: _armar_zona_con_efectivos(s),
+        lambda s: _armar_espacio_con_efectivos(s),
     ],
-    ids=["solo_zona", "mixta", "zona_con_efectivos"],
+    ids=["solo_espacio", "mixta", "espacio_con_efectivos"],
 )
-def test_g2_cualquier_reserva_con_zona_aborta_sin_modificar(esquema_desechable, armar):
+def test_g2_cualquier_reserva_con_espacio_aborta_sin_modificar(esquema_desechable, armar):
     armar(esquema_desechable)
-    _espera_aborto(esquema_desechable, "G2 reserva_con_zona", _foto(esquema_desechable))
+    _espera_aborto(esquema_desechable, "G2 reserva_con_espacio", _foto(esquema_desechable))
 
 
-def _armar_solo_zona(s):
-    """Reserva solo por zona sin recursos: fila en reserva_zonas, sin rr."""
+def _armar_solo_espacio(s):
+    """Reserva solo por espacio sin recursos: fila en reserva_espacios, sin rr."""
     r = _insertar_reserva(s, recurso_id=10, fecha="2026-09-03")
     _insertar_rz(s, r, 20, "2026-09-03")
 
 
 def _armar_mixta(s):
-    """Reserva mixta: zona (con su recurso efectivo 10) + recurso directo 11."""
+    """Reserva mixta: espacio (con su recurso efectivo 10) + recurso directo 11."""
     r = _insertar_reserva(s, recurso_id=10, fecha="2026-09-04")
     _insertar_rz(s, r, 20, "2026-09-04")
     _insertar_rr(s, r, 10, "2026-09-04")
     _insertar_rr(s, r, 11, "2026-09-04")
 
 
-def _armar_zona_con_efectivos(s):
-    """Reserva por zona con recursos efectivos: rz + rr con su único efectivo."""
+def _armar_espacio_con_efectivos(s):
+    """Reserva por espacio con recursos efectivos: rz + rr con su único efectivo."""
     r = _insertar_reserva(s, recurso_id=10, fecha="2026-09-07")
     _insertar_rz(s, r, 20, "2026-09-07")
     _insertar_rr(s, r, 10, "2026-09-07")
@@ -303,7 +303,7 @@ def test_rollback_reversible_restaura_esquema_legacy_y_conteos(esquema_desechabl
     # Estado inicial del esquema desechable: tablas nuevas presentes, esquema
     # histórico ausente (constraint e índices se restaurarán).
     assert _tabla_existe(esquema_desechable, "reserva_recursos") is True
-    assert _tabla_existe(esquema_desechable, "reserva_zonas") is True
+    assert _tabla_existe(esquema_desechable, "reserva_espacios") is True
     assert _constraint_presente(esquema_desechable, "reservas_sin_solapamiento") is False
     assert _indices_historicos_presentes(esquema_desechable) is False
 
@@ -311,7 +311,7 @@ def test_rollback_reversible_restaura_esquema_legacy_y_conteos(esquema_desechabl
 
     # Tablas nuevas eliminadas; esquema histórico restaurado.
     assert _tabla_existe(esquema_desechable, "reserva_recursos") is False
-    assert _tabla_existe(esquema_desechable, "reserva_zonas") is False
+    assert _tabla_existe(esquema_desechable, "reserva_espacios") is False
     assert _constraint_presente(esquema_desechable, "reservas_sin_solapamiento") is True
     assert _indices_historicos_presentes(esquema_desechable) is True
     assert _recurso_id_nullable(esquema_desechable) is False
@@ -360,7 +360,7 @@ def test_rollback_fallo_tras_ddl_revierte_todo(esquema_desechable):
 
     # Todo revertido: tablas nuevas de vuelta, datos idénticos, sin cambios de esquema.
     assert _tabla_existe(esquema_desechable, "reserva_recursos") is True
-    assert _tabla_existe(esquema_desechable, "reserva_zonas") is True
+    assert _tabla_existe(esquema_desechable, "reserva_espacios") is True
     assert _foto(esquema_desechable) == antes
     assert _constraint_presente(esquema_desechable, "reservas_sin_solapamiento") is False
 
@@ -392,7 +392,7 @@ def test_rollback_idempotente_segunda_ejecucion_ya_revertido(esquema_desechable)
 
     # La segunda ejecución no altera nada.
     assert _tabla_existe(esquema_desechable, "reserva_recursos") is False
-    assert _tabla_existe(esquema_desechable, "reserva_zonas") is False
+    assert _tabla_existe(esquema_desechable, "reserva_espacios") is False
     assert _constraint_presente(esquema_desechable, "reservas_sin_solapamiento") is True
     with engine.connect() as conn:
         conn.execute(text(f"SET LOCAL search_path TO {esquema_desechable}, public"))

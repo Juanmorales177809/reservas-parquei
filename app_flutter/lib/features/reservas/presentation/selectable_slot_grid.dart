@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/enums.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../espacios/domain/disponibilidad_slot.dart';
-import '../../espacios/presentation/slot_chip.dart';
+import '../../laboratorios/domain/disponibilidad_slot.dart';
+import '../../laboratorios/presentation/slot_chip.dart';
 
 /// Grilla interactiva: permite elegir un rango de franjas `libre`
 /// consecutivas. Las `ocupado`/`mantenimiento` se muestran pero no son

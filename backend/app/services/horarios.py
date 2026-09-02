@@ -10,11 +10,11 @@ configuración, sin ocultarlo.
 from datetime import time
 
 from app.domain.valor import FranjaHoraria, HorarioAtencion
-from app.models import Espacio
+from app.models import Laboratorio
 
 
-def horas_atencion_dia(espacio: Espacio, dia_semana: int) -> list[int]:
-    horario_dict = espacio.horario_atencion or {}
+def horas_atencion_dia(laboratorio: Laboratorio, dia_semana: int) -> list[int]:
+    horario_dict = laboratorio.horario_atencion or {}
     if not any(horario_dict.values()):
         return []
     horario = HorarioAtencion(horario_dict)
@@ -22,7 +22,7 @@ def horas_atencion_dia(espacio: Espacio, dia_semana: int) -> list[int]:
 
 
 def horario_cubre_reserva(
-    espacio: Espacio,
+    laboratorio: Laboratorio,
     dia_semana: int,
     hora_inicio: time,
     hora_fin: time,
@@ -31,7 +31,7 @@ def horario_cubre_reserva(
         franja = FranjaHoraria(hora_inicio, hora_fin)
     except ValueError:
         return False
-    horario_dict = espacio.horario_atencion or {}
+    horario_dict = laboratorio.horario_atencion or {}
     if not any(horario_dict.values()):
         return False
     return HorarioAtencion(horario_dict).cubre_franja(dia_semana, franja)

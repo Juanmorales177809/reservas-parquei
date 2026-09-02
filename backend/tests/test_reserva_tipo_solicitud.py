@@ -19,13 +19,13 @@ from sqlalchemy.exc import IntegrityError
 from app.domain.enums import TipoSolicitud
 from app.models.reserva import Reserva
 from app.services.actores import columnas_actor
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario, fecha_habilitada
 
 
-def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
+def _crear_reserva_modelo(db, *, usuario, laboratorio, recurso, **kwargs):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),
         hora_inicio=kwargs.get("hora_inicio", time_t(8, 0)),
@@ -42,12 +42,12 @@ def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
 
 class TestModelo:
     def test_default_es_reserva_en_laboratorio(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="ts_default", email="ts_default@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         reserva = Reserva(
             **columnas_actor(usuario),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
             hora_inicio=time_t(8, 0),
@@ -65,10 +65,10 @@ class TestModelo:
         [TipoSolicitud.RESERVA_EN_LABORATORIO.value, TipoSolicitud.RESERVA_FUERA_LABORATORIO.value],
     )
     def test_los_dos_valores_del_check_se_aceptan(self, db, valor):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username=f"ts_{valor}", email=f"ts_{valor}@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso, tipo_solicitud=valor)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso, tipo_solicitud=valor)
         assert reserva.tipo_solicitud == valor
 
     def test_orden_salida_rechazado_por_check_constraint(self, db):
@@ -76,12 +76,12 @@ class TestModelo:
         existe en el enum de dominio, la base de datos todavía no lo acepta
         en `reservas` -- confirma que el CHECK está acotado a 2 valores, no
         a los 3 del enum completo."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="ts_orden_salida", email="ts_orden_salida@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         reserva = Reserva(
             **columnas_actor(usuario),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
             hora_inicio=time_t(8, 0),
@@ -95,12 +95,12 @@ class TestModelo:
             db.commit()
 
     def test_valor_arbitrario_rechazado_por_check_constraint(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="ts_inv", email="ts_inv@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         reserva = Reserva(
             **columnas_actor(usuario),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
             hora_inicio=time_t(8, 0),

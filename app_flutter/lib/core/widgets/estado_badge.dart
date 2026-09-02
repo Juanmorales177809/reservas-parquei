@@ -6,7 +6,7 @@ import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
 /// Badge de color por `EstadoEntidad` — compartido entre features
-/// (espacios, recursos, zonas, ensayos).
+/// (laboratorios, recursos, espacios).
 ///
 /// Fase 6: los colores salen de [AppEstados], donde cada estado tiene un
 /// tono distinto para relleno, texto-sobre-tinte y borde. Antes usaba un

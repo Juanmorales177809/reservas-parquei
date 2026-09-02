@@ -15,7 +15,7 @@ Contratos Pydantic de la API FastAPI: modelos de entrada (creación/actualizaci�
 | notificacion.py | Modificado | `tipo` pasa de `Literal` a `TipoNotificacion` |
 | reserva.py | Modificado (Fase 12D, parcial) | `tipo` (`TipoReserva`) en `ReservaCreate`/`ReservaUpdate`/`ReservaResponse` |
 | disponibilidad.py | Modificado | `estado` pasa de `str` a `EstadoSlot` |
-| espacio.py | Modificado (Fase 12B) | `EspacioCreate`/`Update`/`Response` ganan `modalidad_reserva: ModalidadEspacio` y `correo: str` (obligatorio en Create, opcional en Update/Response); validador manual de formato de correo (mismo patrón que `usuario.py`) |
+| espacio.py | Modificado (Fase 12B; `modalidad_reserva` removido en Fase 3 de `~/.claude/plans/dazzling-wobbling-zebra.md`) | `EspacioCreate`/`Update`/`Response` ganan `modalidad_reserva: ModalidadEspacio` y `correo: str` (obligatorio en Create, opcional en Update/Response); validador manual de formato de correo (mismo patrón que `usuario.py`) |
 | recurso.py | Modificado (Fase 12B) | `RecursoCreate`/`Update`/`Response` ganan `es_prestacion_servicio: bool` (default `False`) |
 | zona.py | Nuevo (Fase 12C-2) | `ZonaCreate` (`nombre`, `espacio_id` obligatorio, `descripcion`, `capacidad` opcional `>0`, `estado` default `activo`), `ZonaUpdate` (todo opcional, sin `created_by`/`updated_by`), `ZonaResponse` (incluye timestamps y auditoría; sin `recursos` todavía) |
 | zona.py | Modificado (Fase 12C-3) | Agrega `ZonaRecursosUpdate` (`recurso_ids: list[int]`, reemplazo completo) y `ZonaRecursosResponse` (`zona_id`, `recurso_ids` resultantes) — deliberadamente separados de `ZonaResponse`, sin ampliar ese contrato |

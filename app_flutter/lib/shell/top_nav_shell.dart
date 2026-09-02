@@ -15,7 +15,7 @@ import 'session_menu.dart';
 /// misma lista de destinos que [BottomNavShell] — nunca la duplica.
 ///
 /// Los destinos `primario: true` (los mismos que caben en la bottom nav
-/// móvil) van como botón directo; el resto (Recursos/Zonas/Ensayos/
+/// móvil) van como botón directo; el resto (Recursos/Espacios/
 /// Usuarios/Configuración — gestión, no navegación diaria) se agrupan en
 /// un único menú "Gestión" para no abarrotar la barra — antes de esto,
 /// cada destino nuevo de la Fase 4b/5 se agregaba como botón suelto y la

@@ -8,7 +8,7 @@ import '../../auth/domain/auth_user.dart';
 /// Espejo de `frontend/src/services/usuarios.ts`. Desde la separación
 /// `personal`/`usuarios` (2026-08-28, ver `backend/CLAUDE.md` --
 /// "Autoregistro abierto" y el plan `dazzling-wobbling-zebra.md`),
-/// `/usuarios` es exclusivamente rol `usuario` (sin `rol`/`espacio_id`,
+/// `/usuarios` es exclusivamente rol `usuario` (sin `rol`/`laboratorio_id`,
 /// que ya no aplican ahí); `/personal` es admin/gestor, con la misma
 /// forma de respuesta (`AuthUser`/`UsuarioResponse` no cambió). La mayoría
 /// de los métodos son solo admin (`require_admin`) -- excepto
@@ -51,7 +51,7 @@ class UsuariosRepository {
 
   /// `PUT /usuarios/me` — self-service, cualquier identidad autenticada
   /// (personal o usuario) edita su propio perfil. A propósito NO acepta
-  /// `rol`/`espacioId`/`username`/`email`: el backend (`PerfilUpdate`,
+  /// `rol`/`laboratorioId`/`username`/`email`: el backend (`PerfilUpdate`,
   /// `extra="forbid"`) los rechaza con 422 si llegaran -- ni siquiera
   /// existe la forma de mandarlos desde acá.
   Future<AuthUser> actualizarMiPerfil({
@@ -95,11 +95,11 @@ class UsuariosRepository {
     required String username,
     required String email,
     required String rol,
-    int? espacioId,
+    int? laboratorioId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/personal',
-      data: {'username': username, 'email': email, 'rol': rol, 'espacio_id': ?espacioId},
+      data: {'username': username, 'email': email, 'rol': rol, 'laboratorio_id': ?laboratorioId},
     );
     return AuthUser.fromJson(response.data!);
   }
@@ -113,13 +113,13 @@ class UsuariosRepository {
     String? username,
     String? email,
     String? rol,
-    int? espacioId,
+    int? laboratorioId,
   }) async {
     final data = <String, dynamic>{};
     if (username != null) data['username'] = username;
     if (email != null) data['email'] = email;
     if (rol != null) data['rol'] = rol;
-    if (espacioId != null) data['espacio_id'] = espacioId;
+    if (laboratorioId != null) data['laboratorio_id'] = laboratorioId;
     final response = await _dio.put<Map<String, dynamic>>('/personal/$personalId', data: data);
     return AuthUser.fromJson(response.data!);
   }
@@ -142,11 +142,11 @@ class UsuariosRepository {
     required String username,
     required String email,
     required String rol,
-    int? espacioId,
+    int? laboratorioId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/personal/promover/$usuarioId',
-      data: {'username': username, 'email': email, 'rol': rol, 'espacio_id': ?espacioId},
+      data: {'username': username, 'email': email, 'rol': rol, 'laboratorio_id': ?laboratorioId},
     );
     return AuthUser.fromJson(response.data!);
   }

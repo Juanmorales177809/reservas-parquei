@@ -30,7 +30,7 @@ class Personal(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    espacios_asignados = relationship("UsuarioEspacio", back_populates="personal", cascade="all, delete-orphan")
+    laboratorios_asignados = relationship("UsuarioLaboratorio", back_populates="personal", cascade="all, delete-orphan")
     recursos_creados = relationship("Recurso", foreign_keys="Recurso.created_by")
     recursos_actualizados = relationship("Recurso", foreign_keys="Recurso.update_by")
     notificaciones = relationship("Notificacion", back_populates="personal")
@@ -47,5 +47,5 @@ class Personal(Base):
     )
 
     @property
-    def espacio(self):
-        return self.espacios_asignados[0].espacio if self.espacios_asignados else None
+    def laboratorio(self):
+        return self.laboratorios_asignados[0].laboratorio if self.laboratorios_asignados else None

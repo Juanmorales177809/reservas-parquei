@@ -15,7 +15,7 @@ import '../data/usuarios_repository.dart';
 /// su propio perfil (Fase A2). Los campos vienen del formulario real de
 /// solicitud de laboratorios del ITM (documento, teléfono, institución,
 /// vinculación, dependencia) y se completan acá una sola vez, no en cada
-/// reserva -- ver `EspacioReservaSheet`, que ya no vuelve a pedirlos.
+/// reserva -- ver `LaboratorioReservaSheet`, que ya no vuelve a pedirlos.
 ///
 /// Obligatorio para cualquier rol (2026-08-28): el guard de
 /// `app_router.dart` redirige acá mientras `AuthUser.perfilCompleto` sea

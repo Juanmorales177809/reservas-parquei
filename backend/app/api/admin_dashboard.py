@@ -9,9 +9,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_managed_space_id, require_admin, require_resource_manager
+from app.deps import get_managed_laboratory_id, require_admin, require_resource_manager
 from app.domain.valor import HorarioAtencion
-from app.models import Espacio, Personal, Recurso, Reserva, ReservaRecurso, Usuario
+from app.models import Laboratorio, Personal, Recurso, Reserva, ReservaRecurso, Usuario
 from app.models.reserva import ESTADOS_BLOQUEANTES
 from app.schemas.admin_dashboard import AdminDashboardSummary
 from app.services.exportar_archivo import respuesta_streaming
@@ -34,14 +34,14 @@ def _calcular_ocupacion_porcentaje(
     db: Session,
     reservas_bloqueantes: list,
     recursos_activos: list,
-    horarios_por_espacio: dict,
+    horarios_por_laboratorio: dict,
 ) -> float:
     if not reservas_bloqueantes:
         return 0.0
     fechas = {fecha for _, fecha, _, _ in reservas_bloqueantes}
     horas_ocupadas = 0.0
-    for espacio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
-        horario = horarios_por_espacio.get(espacio_id)
+    for laboratorio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+        horario = horarios_por_laboratorio.get(laboratorio_id)
         habilitadas = set(horario.horas_del_dia(fecha.weekday())) if horario is not None else set()
         horas_ocupadas += sum(
             1 for hora in range(hora_inicio.hour, ceil(hora_fin.hour + hora_fin.minute / 60)) if hora in habilitadas
@@ -49,20 +49,20 @@ def _calcular_ocupacion_porcentaje(
     horas_disponibles = 0.0
     for fecha in fechas:
         for recurso in recursos_activos:
-            espacio_recurso = recurso.espacio
-            if espacio_recurso.estado == "activo":
-                horas_disponibles += len(horas_atencion_dia(espacio_recurso, fecha.weekday()))
+            laboratorio_recurso = recurso.laboratorio
+            if laboratorio_recurso.estado == "activo":
+                horas_disponibles += len(horas_atencion_dia(laboratorio_recurso, fecha.weekday()))
     if horas_disponibles == 0:
         return 0.0
     return round((horas_ocupadas / horas_disponibles) * 100, 2)
 
 
-def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | None = None) -> dict:
+def _construir_resumen(db: Session, laboratorio_id: int | None, periodo_dias: int | None = None) -> dict:
     reservas_query = db.query(Reserva)
     recursos_query = db.query(Recurso)
-    if espacio_id is not None:
-        reservas_query = reservas_query.filter(Reserva.espacio_id == espacio_id)
-        recursos_query = recursos_query.filter(Recurso.espacio_id == espacio_id)
+    if laboratorio_id is not None:
+        reservas_query = reservas_query.filter(Reserva.laboratorio_id == laboratorio_id)
+        recursos_query = recursos_query.filter(Recurso.laboratorio_id == laboratorio_id)
 
     estados = dict(
         reservas_query.with_entities(Reserva.estado, func.count(Reserva.id))
@@ -80,32 +80,32 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
         )
     ]
 
-    reservas_por_espacio_query = (
-        db.query(Espacio.id, Espacio.nombre, func.count(Reserva.id).label("cantidad"))
-        .join(Reserva, Reserva.espacio_id == Espacio.id)
+    reservas_por_laboratorio_query = (
+        db.query(Laboratorio.id, Laboratorio.nombre, func.count(Reserva.id).label("cantidad"))
+        .join(Reserva, Reserva.laboratorio_id == Laboratorio.id)
     )
-    if espacio_id is not None:
-        reservas_por_espacio_query = reservas_por_espacio_query.filter(Espacio.id == espacio_id)
-    reservas_por_espacio = [
-        {"espacio_id": item_id, "nombre": nombre, "cantidad": cantidad}
+    if laboratorio_id is not None:
+        reservas_por_laboratorio_query = reservas_por_laboratorio_query.filter(Laboratorio.id == laboratorio_id)
+    reservas_por_laboratorio = [
+        {"laboratorio_id": item_id, "nombre": nombre, "cantidad": cantidad}
         for item_id, nombre, cantidad in (
-            reservas_por_espacio_query
-            .group_by(Espacio.id, Espacio.nombre)
-            .order_by(func.count(Reserva.id).desc(), Espacio.nombre.asc())
+            reservas_por_laboratorio_query
+            .group_by(Laboratorio.id, Laboratorio.nombre)
+            .order_by(func.count(Reserva.id).desc(), Laboratorio.nombre.asc())
             .all()
         )
     ]
 
     # Fase 12C-6: "el dashboard cuenta por recurso" -> JOIN contra
     # `reserva_recursos` (los recursos efectivos materializados), no contra la
-    # columna histórica `Reserva.recurso_id`. Una reserva de zona con N
+    # columna histórica `Reserva.recurso_id`. Una reserva de espacio con N
     # recursos efectivos cuenta N veces (cada fila reclamada).
     recursos_mas_reservados_query = (
         db.query(Recurso.id, Recurso.nombre, func.count(ReservaRecurso.id).label("cantidad"))
         .join(ReservaRecurso, ReservaRecurso.recurso_id == Recurso.id)
     )
-    if espacio_id is not None:
-        recursos_mas_reservados_query = recursos_mas_reservados_query.filter(Recurso.espacio_id == espacio_id)
+    if laboratorio_id is not None:
+        recursos_mas_reservados_query = recursos_mas_reservados_query.filter(Recurso.laboratorio_id == laboratorio_id)
     recursos_mas_reservados = [
         {"recurso_id": recurso_id, "nombre": nombre, "cantidad": cantidad}
         for recurso_id, nombre, cantidad in (
@@ -120,23 +120,24 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
     ocupacion = Counter()
     reservas_bloqueantes = (
         reservas_query.with_entities(
-            Reserva.espacio_id, Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin
+            Reserva.laboratorio_id, Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin
         )
         .filter(Reserva.estado.in_(ESTADOS_BLOQUEANTES))
         .all()
     )
 
-    # Horario real por espacio (fuente única del dominio). Un horario vacío o
-    # inválido no aporta horas habilitadas (dato legacy, no error funcional).
-    horarios_por_espacio: dict[int, HorarioAtencion | None] = {}
-    for espacio_id, horario in db.query(Espacio.id, Espacio.horario_atencion).all():
+    # Horario real por laboratorio (fuente única del dominio). Un horario
+    # vacío o inválido no aporta horas habilitadas (dato legacy, no error
+    # funcional).
+    horarios_por_laboratorio: dict[int, HorarioAtencion | None] = {}
+    for lab_id, horario in db.query(Laboratorio.id, Laboratorio.horario_atencion).all():
         try:
-            horarios_por_espacio[espacio_id] = HorarioAtencion(horario or {})
+            horarios_por_laboratorio[lab_id] = HorarioAtencion(horario or {})
         except ValueError:
-            horarios_por_espacio[espacio_id] = None
+            horarios_por_laboratorio[lab_id] = None
 
-    for espacio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
-        horario = horarios_por_espacio.get(espacio_id)
+    for lab_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+        horario = horarios_por_laboratorio.get(lab_id)
         habilitadas = (
             set(horario.horas_del_dia(fecha.weekday())) if horario is not None else set()
         )
@@ -167,10 +168,11 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
     )
     fechas_con_ocupacion = {fecha for _, fecha, _, _ in reservas_bloqueantes}
 
-    # Horas ocupadas según el horario real de cada espacio (no un rango fijo).
+    # Horas ocupadas según el horario real de cada laboratorio (no un rango
+    # fijo).
     horas_ocupadas = 0.0
-    for espacio_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
-        horario = horarios_por_espacio.get(espacio_id)
+    for lab_id, fecha, hora_inicio, hora_fin in reservas_bloqueantes:
+        horario = horarios_por_laboratorio.get(lab_id)
         habilitadas = (
             set(horario.horas_del_dia(fecha.weekday())) if horario is not None else set()
         )
@@ -182,9 +184,9 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
     horas_disponibles = 0.0
     for fecha in fechas_con_ocupacion:
         for recurso in recursos_activos:
-            espacio_recurso = recurso.espacio
-            if espacio_recurso.estado == "activo":
-                horas_disponibles += len(horas_atencion_dia(espacio_recurso, fecha.weekday()))
+            laboratorio_recurso = recurso.laboratorio
+            if laboratorio_recurso.estado == "activo":
+                horas_disponibles += len(horas_atencion_dia(laboratorio_recurso, fecha.weekday()))
     porcentaje_ocupacion = (
         round((horas_ocupadas / horas_disponibles) * 100, 2)
         if horas_disponibles > 0
@@ -192,7 +194,7 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
     )
 
     total_reservas = sum(estados.values())
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first() if espacio_id is not None else None
+    laboratorio = db.query(Laboratorio).filter(Laboratorio.id == laboratorio_id).first() if laboratorio_id is not None else None
 
     deltas = None
     if periodo_dias is not None:
@@ -212,7 +214,7 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
         def _bloqueantes_en_rango(desde: date, hasta: date):
             return (
                 reservas_query.with_entities(
-                    Reserva.espacio_id, Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin
+                    Reserva.laboratorio_id, Reserva.fecha, Reserva.hora_inicio, Reserva.hora_fin
                 )
                 .filter(Reserva.estado.in_(ESTADOS_BLOQUEANTES), Reserva.fecha >= desde, Reserva.fecha <= hasta)
                 .all()
@@ -220,8 +222,8 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
 
         bloque_actual = _bloqueantes_en_rango(desde_actual, hasta_actual)
         bloque_previo = _bloqueantes_en_rango(desde_previo, hasta_previo)
-        pct_actual = _calcular_ocupacion_porcentaje(db, bloque_actual, recursos_activos, horarios_por_espacio)
-        pct_previo = _calcular_ocupacion_porcentaje(db, bloque_previo, recursos_activos, horarios_por_espacio)
+        pct_actual = _calcular_ocupacion_porcentaje(db, bloque_actual, recursos_activos, horarios_por_laboratorio)
+        pct_previo = _calcular_ocupacion_porcentaje(db, bloque_previo, recursos_activos, horarios_por_laboratorio)
         delta_ocup = round(pct_actual - pct_previo, 2)
         delta_ocup_pct = round((pct_actual - pct_previo) / pct_previo * 100, 2) if pct_previo != 0 else None
 
@@ -248,7 +250,7 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
         "reservas_pendientes": estados.get("esperando", 0),
         "recursos_activos": len(recursos_activos),
         "usuarios": db.query(Usuario).count(),
-        "espacio_nombre": espacio.nombre if espacio else None,
+        "laboratorio_nombre": laboratorio.nombre if laboratorio else None,
         "reservas_por_estado": {
             "pendientes": estados.get("esperando", 0),
             "aprobadas": estados.get("aprobada", 0),
@@ -256,7 +258,7 @@ def _construir_resumen(db: Session, espacio_id: int | None, periodo_dias: int | 
             "canceladas": estados.get("cancelada", 0),
         },
         "reservas_por_fecha": reservas_por_fecha,
-        "reservas_por_espacio": reservas_por_espacio,
+        "reservas_por_laboratorio": reservas_por_laboratorio,
         "recursos_mas_reservados": recursos_mas_reservados,
         "ocupacion_por_dia_hora": ocupacion_por_dia_hora,
         "ocupacion_global": {
@@ -274,8 +276,8 @@ def obtener_resumen_dashboard_admin(
     db: Session = Depends(get_db),
     periodo_dias: int | None = Query(default=None, ge=1, le=365, description="Ventana para delta vs período previo"),
 ):
-    """Resumen global de reservas de recursos para todos los espacios."""
-    return _construir_resumen(db, espacio_id=None, periodo_dias=periodo_dias)
+    """Resumen global de reservas de recursos para todos los laboratorios."""
+    return _construir_resumen(db, laboratorio_id=None, periodo_dias=periodo_dias)
 
 
 @gestion_router.get("/summary", response_model=AdminDashboardSummary)
@@ -284,8 +286,8 @@ def obtener_resumen_dashboard_gestor(
     db: Session = Depends(get_db),
     periodo_dias: int | None = Query(default=None, ge=1, le=365, description="Ventana para delta vs período previo"),
 ):
-    espacio_id = get_managed_space_id(db, current_user)
-    return _construir_resumen(db, espacio_id=espacio_id, periodo_dias=periodo_dias)
+    laboratorio_id = get_managed_laboratory_id(db, current_user)
+    return _construir_resumen(db, laboratorio_id=laboratorio_id, periodo_dias=periodo_dias)
 
 
 @router.get("/export")
@@ -294,8 +296,8 @@ def exportar_dashboard_admin(
     _: Personal = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    """Exporta el mismo resumen de `/summary` (todos los espacios) a CSV o Excel."""
-    resumen = AdminDashboardSummary(**_construir_resumen(db, espacio_id=None))
+    """Exporta el mismo resumen de `/summary` (todos los laboratorios) a CSV o Excel."""
+    resumen = AdminDashboardSummary(**_construir_resumen(db, laboratorio_id=None))
     return _respuesta_exportacion(resumen, formato)
 
 
@@ -305,7 +307,7 @@ def exportar_dashboard_gestor(
     current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    """Exporta el mismo resumen de `/summary` (espacio del gestor) a CSV o Excel."""
-    espacio_id = get_managed_space_id(db, current_user)
-    resumen = AdminDashboardSummary(**_construir_resumen(db, espacio_id=espacio_id))
+    """Exporta el mismo resumen de `/summary` (laboratorio del gestor) a CSV o Excel."""
+    laboratorio_id = get_managed_laboratory_id(db, current_user)
+    resumen = AdminDashboardSummary(**_construir_resumen(db, laboratorio_id=laboratorio_id))
     return _respuesta_exportacion(resumen, formato)

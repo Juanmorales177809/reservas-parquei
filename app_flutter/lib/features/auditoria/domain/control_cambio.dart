@@ -9,7 +9,7 @@ part 'control_cambio.g.dart';
 /// "eliminar", "configurar", "cambiar estado", "marcar_asistencia",
 /// "cancelar"), así que la UI mapea por prefijo con un color por defecto
 /// en vez de un `switch` exhaustivo. `createdAt` queda como texto crudo
-/// (mismo criterio que `Reserva`/`Espacio`: riesgo zona horaria
+/// (mismo criterio que `Reserva`/`Laboratorio`: riesgo espacio horaria
 /// `America/Bogota`, nunca `DateTime.parse`).
 @freezed
 abstract class ControlCambio with _$ControlCambio {

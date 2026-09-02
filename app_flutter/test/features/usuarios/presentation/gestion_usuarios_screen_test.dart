@@ -4,14 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_flutter/features/auth/application/auth_provider.dart';
 import 'package:app_flutter/features/auth/domain/auth_user.dart';
-import 'package:app_flutter/features/espacios/application/espacios_providers.dart';
+import 'package:app_flutter/features/laboratorios/application/laboratorios_providers.dart';
 import 'package:app_flutter/features/usuarios/application/usuarios_providers.dart';
 import 'package:app_flutter/features/usuarios/presentation/gestion_usuarios_screen.dart';
 
 /// Cubre la separación en dos secciones ("Personal" / "Usuarios") desde la
 /// división `personal`/`usuarios` en el backend (2026-08-28, ver
 /// `backend/CLAUDE.md`) -- cada sección lista de un endpoint distinto y el
-/// formulario de alta muestra rol/espacio solo para personal.
+/// formulario de alta muestra rol/laboratorio solo para personal.
 void main() {
   final admin = AuthUser(id: 1, username: 'admin_flutter', email: 'admin@example.com', rol: RolUsuario.admin);
   final gestor = AuthUser(id: 2, username: 'gestor_flutter', email: 'gestor@example.com', rol: RolUsuario.gestor);
@@ -31,7 +31,7 @@ void main() {
         authProvider.overrideWith(() => _AuthFake(admin)),
         personalListProvider.overrideWith((ref) async => [admin, gestor]),
         usuariosListProvider.overrideWith((ref) async => [usuario]),
-        espaciosListProvider.overrideWith((ref) async => []),
+        laboratoriosListProvider.overrideWith((ref) async => []),
       ],
       child: const MaterialApp(home: GestionUsuariosScreen()),
     );

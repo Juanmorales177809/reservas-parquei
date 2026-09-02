@@ -6,7 +6,7 @@ import io
 
 from openpyxl import load_workbook
 
-from tests.conftest import cookies_para, crear_espacio, crear_recurso, crear_usuario, fecha_habilitada, payload_reserva
+from tests.conftest import cookies_para, crear_laboratorio, crear_recurso, crear_usuario, fecha_habilitada, payload_reserva
 
 
 def _admin_headers(db):
@@ -16,8 +16,8 @@ def _admin_headers(db):
 
 def test_export_csv_incluye_cambios_reales(client, db):
     admin, headers = _admin_headers(db)
-    espacio = crear_espacio(db, nombre="Espacio Auditoria Export")
-    recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Auditoria Export")
+    laboratorio = crear_laboratorio(db, nombre="Laboratorio Auditoria Export")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Auditoria Export")
     client.post("/reservas", json=payload_reserva(recurso.id, fecha_habilitada()), headers=headers)
 
     respuesta = client.get("/admin/control-cambios/export", params={"formato": "csv"}, headers=headers)

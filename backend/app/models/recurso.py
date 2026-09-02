@@ -20,7 +20,7 @@ class Recurso(Base):
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
-    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
+    laboratorio_id = Column(Integer, ForeignKey("laboratorios.id"), nullable=False, index=True)
     tipo_recurso_id = Column(Integer, ForeignKey("tipos_recursos.id"), nullable=False)
     descripcion = Column(Text, nullable=True)
     capacidad = Column(Integer, nullable=False)
@@ -42,7 +42,7 @@ class Recurso(Base):
     created_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
     update_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
 
-    espacio = relationship("Espacio", back_populates="recursos")
+    laboratorio = relationship("Laboratorio", back_populates="recursos")
     tipo = relationship("TipoRecurso", back_populates="recursos")
     reservas = relationship("Reserva", back_populates="recurso")
     creador = relationship("Personal", foreign_keys=[created_by], overlaps="recursos_creados")

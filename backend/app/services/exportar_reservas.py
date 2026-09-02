@@ -10,7 +10,7 @@ from openpyxl import Workbook
 from app.models import Reserva
 from app.schemas.control_cambio import ControlCambioResponse
 
-_ENCABEZADO_RESERVAS = ("Fecha", "Hora inicio", "Hora fin", "Espacio", "Recursos", "Estado", "Asistentes")
+_ENCABEZADO_RESERVAS = ("Fecha", "Hora inicio", "Hora fin", "Laboratorio", "Recursos", "Estado", "Asistentes")
 _ENCABEZADO_CONTROL_CAMBIOS = ("Fecha", "Actor", "Acción", "Entidad", "ID entidad", "Descripción")
 
 
@@ -19,7 +19,7 @@ def _fila_reserva(reserva: Reserva) -> tuple:
         reserva.fecha.isoformat(),
         str(reserva.hora_inicio),
         str(reserva.hora_fin),
-        reserva.espacio.nombre,
+        reserva.laboratorio.nombre,
         ", ".join(r.nombre for r in reserva.recursos),
         reserva.estado,
         reserva.asistentes,

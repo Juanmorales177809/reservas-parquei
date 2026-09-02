@@ -1,5 +1,4 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, func
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -17,13 +16,13 @@ class Reserva(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     # Polimórfico a propósito: quien crea una reserva puede ser rol
-    # `usuario` O `personal` (un gestor reserva su propio espacio) --
+    # `usuario` O `personal` (un gestor reserva su propio laboratorio) --
     # exactamente una de las dos debe estar llena, nunca las dos ni
     # ninguna (`ck_reservas_actor_unico`). Ver `actor` más abajo y
     # `app/services/actores.py::columnas_actor`.
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
     personal_id = Column(Integer, ForeignKey("personal.id"), nullable=True, index=True)
-    espacio_id = Column(Integer, ForeignKey("espacios.id"), nullable=False, index=True)
+    laboratorio_id = Column(Integer, ForeignKey("laboratorios.id"), nullable=False, index=True)
     recurso_id = Column(Integer, ForeignKey("recursos.id"), nullable=False, index=True)
     fecha = Column(Date, nullable=False, index=True)
     hora_inicio = Column(Time, nullable=False)
@@ -35,6 +34,11 @@ class Reserva(Base):
     # tipo lo dejan sin valor. El CheckConstraint (en `__table_args__`) fija
     # los tres valores admitidos del enum TipoReserva.
     tipo = Column(String(30), nullable=True)
+    # Fase 7: reemplaza `tipo` como catálogo real por laboratorio (ver
+    # app/models/tipo_reserva.py) -- `tipo` se deja intacto, sin backfill ni
+    # lectura/escritura de código nuevo (dato histórico inerte, mismo
+    # criterio de cautela que `serie_id`/`ensayos` de fases anteriores).
+    tipo_reserva_id = Column(Integer, ForeignKey("tipos_reserva.id"), nullable=True)
     # Fase 12D-bis: asistencia real, separada de estado/aprobación. Nullable
     # por diseño (sin backfill): las reservas existentes lo dejan sin valor.
     # Solo gestor/admin pueden escribirlo vía endpoint dedicado.
@@ -51,8 +55,8 @@ class Reserva(Base):
     # default, a diferencia de `tipo` (académico, nullable): toda reserva
     # SÍ tiene un motivo, aunque no lo declare explícitamente al crearla
     # (las reservas de antes de la Fase B quedan en el default vía
-    # backfill de la migración). Distinto de `tipo`/`modalidad_reserva` de
-    # `Espacio` -- ver el docstring de `TipoSolicitud`.
+    # backfill de la migración). Distinto de `tipo` (académico) -- ver el
+    # docstring de `TipoSolicitud`.
     tipo_solicitud = Column(String(30), nullable=False, default="reserva_en_laboratorio")
     # Fase B: solo tiene sentido cuando tipo_solicitud == reserva_fuera_laboratorio
     # (validado en el servicio, no acá) -- el resto de las ramas lo dejan null.
@@ -64,26 +68,18 @@ class Reserva(Base):
     # próxima (`services/recordatorios.py`) -- nullable, sin backfill (ver
     # `migrations.py`). NULL = todavía no se le mandó el recordatorio.
     recordatorio_enviado_en = Column(DateTime(timezone=True), nullable=True)
-    # Fase 2026-08-29: reservas recurrentes -- vincula las N filas creadas
-    # en una misma solicitud con `repetir_semanas` (mismo valor para todas
-    # las ocurrencias de una serie). NULL para cualquier reserva no
-    # recurrente (la inmensa mayoría). A propósito NO hay tabla ni UI de
-    # gestión de "la serie completa" en esta primera versión -- cada
-    # ocurrencia se edita/cancela individualmente como cualquier otra
-    # reserva; esta columna solo deja la correlación guardada para el
-    # futuro (`~/.claude/plans/dazzling-wobbling-zebra.md`).
-    serie_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     usuario = relationship("Usuario", back_populates="reservas")
     personal = relationship("Personal", back_populates="reservas")
-    espacio = relationship("Espacio", back_populates="reservas")
+    laboratorio = relationship("Laboratorio", back_populates="reservas")
     recurso = relationship("Recurso", back_populates="reservas")
+    tipo_reserva = relationship("TipoReserva")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
 
     # Fase 12C-6: relaciones aditivas de lectura hacia las tablas de
-    # asociación (sin cambio de esquema). `reserva_recursos`/`reserva_zonas`
+    # asociación (sin cambio de esquema). `reserva_recursos`/`reserva_espacios`
     # son la fuente de verdad de los conjuntos de la reserva; la columna
     # histórica `recurso_id` se conserva como ancla temporal (12C-4e).
     # `foreign_keys` es necesario porque ambas asociaciones tienen dos FK.
@@ -94,9 +90,9 @@ class Reserva(Base):
     # en las filas asociadas al borrar una `Reserva` -- revienta con
     # `NotNullViolation` porque esa columna es NOT NULL. Nunca se detectó
     # antes porque ningún test ejercitaba `DELETE /reservas/{id}` sobre
-    # una reserva con recursos/zonas asociados. La FK real ya tenía
+    # una reserva con recursos/espacios asociados. La FK real ya tenía
     # `ondelete="CASCADE"` desde siempre (ver `ReservaRecurso`/
-    # `ReservaZona`); esto solo alinea el cascade de la ORM con lo que la
+    # `ReservaEspacio`); esto solo alinea el cascade de la ORM con lo que la
     # base de datos ya hacía.
     recursos_asociados = relationship(
         "ReservaRecurso",
@@ -106,27 +102,19 @@ class Reserva(Base):
         passive_deletes=True,
         overlaps="reserva",
     )
-    zonas_asociadas = relationship(
-        "ReservaZona",
-        foreign_keys="ReservaZona.reserva_id",
+    espacios_asociados = relationship(
+        "ReservaEspacio",
+        foreign_keys="ReservaEspacio.reserva_id",
         uselist=True,
         cascade="all, delete-orphan",
         passive_deletes=True,
         overlaps="reserva",
     )
-    zonas = relationship(
-        "Zona",
-        secondary="reserva_zonas",
-        primaryjoin="Reserva.id == ReservaZona.reserva_id",
-        secondaryjoin="ReservaZona.zona_id == Zona.id",
-        uselist=True,
-        viewonly=True,
-    )
-    ensayos = relationship(
-        "Ensayo",
-        secondary="reserva_ensayos",
-        primaryjoin="Reserva.id == ReservaEnsayo.reserva_id",
-        secondaryjoin="ReservaEnsayo.ensayo_id == Ensayo.id",
+    espacios = relationship(
+        "Espacio",
+        secondary="reserva_espacios",
+        primaryjoin="Reserva.id == ReservaEspacio.reserva_id",
+        secondaryjoin="ReservaEspacio.espacio_id == Espacio.id",
         uselist=True,
         viewonly=True,
     )

@@ -2,10 +2,10 @@
 """Pruebas del campo `tipo` de Reserva (Fase 12D, parcial).
 
 Alcance de esta subfase: el campo de tipo de reserva académica
-(TRABAJO_INVESTIGACION / TRABAJO_GRADO / SERVICIO_DE_ENSAYO) en Reserva,
-el `CheckConstraint` que lo valida en base de datos y el gate PS que exige
-`tipo == servicio_de_ensayo` para recursos PS reservados por gestor/admin
-(el rol usuario sigue bloqueado antes de llegar a ese chequeo, sin cambios).
+(TRABAJO_INVESTIGACION / TRABAJO_GRADO / SERVICIO_DE_ENSAYO) en Reserva y
+el `CheckConstraint` que lo valida en base de datos. El gate PS que antes
+exigía `tipo == servicio_de_ensayo` para recursos PS se quitó del flujo de
+reserva (ver `backend/CLAUDE.md`) -- este archivo ya no lo cubre.
 
 Fuera de alcance, incluso aquí: `Proyecto` (entidad, parte de 12D) queda
 pendiente como ya estaba; ver CHANGELOG.md.
@@ -23,7 +23,7 @@ from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.actores import columnas_actor
 from tests.conftest import (
     cookies_para,
-    crear_espacio,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
@@ -31,10 +31,10 @@ from tests.conftest import (
 )
 
 
-def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
+def _crear_reserva_modelo(db, *, usuario, laboratorio, recurso, **kwargs):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),
         hora_inicio=kwargs.get("hora_inicio", time_t(8, 0)),
@@ -51,10 +51,10 @@ def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
 
 class TestModelo:
     def test_tipo_nulo_por_defecto(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="tipo_nulo", email="tipo_nulo@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso)
         assert reserva.tipo is None
 
     @pytest.mark.parametrize(
@@ -66,19 +66,19 @@ class TestModelo:
         ],
     )
     def test_los_tres_valores_validos_se_aceptan(self, db, valor):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username=f"tipo_{valor}", email=f"tipo_{valor}@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso, tipo=valor)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso, tipo=valor)
         assert reserva.tipo == valor
 
     def test_valor_invalido_rechazado_por_check_constraint(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="tipo_inv", email="tipo_inv@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         reserva = Reserva(
             **columnas_actor(usuario),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha_habilitada(),
             hora_inicio=time_t(8, 0),
@@ -155,9 +155,9 @@ class TestSchemas:
 
 class TestApi:
     def test_post_persiste_tipo(self, client, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="api_tipo1", email="api_tipo1@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
         payload["tipo"] = TipoReserva.TRABAJO_GRADO.value
         respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))
@@ -165,9 +165,9 @@ class TestApi:
         assert respuesta.json()["tipo"] == TipoReserva.TRABAJO_GRADO.value
 
     def test_post_sin_tipo_deja_tipo_nulo(self, client, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="api_tipo2", email="api_tipo2@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         respuesta = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),
@@ -177,10 +177,10 @@ class TestApi:
         assert respuesta.json()["tipo"] is None
 
     def test_patch_actualiza_tipo(self, client, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="api_tipo3", email="api_tipo3@example.com", rol="admin")
         usuario = crear_usuario(db, username="api_tipo3b", email="api_tipo3b@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),
@@ -197,10 +197,10 @@ class TestApi:
     def test_patch_sin_tipo_en_el_payload_lo_deja_sin_cambios(self, client, db):
         """Es el caso que se rompería en silencio si la actualización no
         usara `cambios.get("tipo", reserva.tipo)` (eje ausente = conservar)."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="api_tipo4", email="api_tipo4@example.com", rol="admin")
         usuario = crear_usuario(db, username="api_tipo4b", email="api_tipo4b@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
         payload["tipo"] = TipoReserva.TRABAJO_INVESTIGACION.value
         creada = client.post("/reservas", json=payload, headers=cookies_para(usuario)).json()
@@ -214,10 +214,10 @@ class TestApi:
         assert respuesta.json()["tipo"] == TipoReserva.TRABAJO_INVESTIGACION.value
 
     def test_patch_con_tipo_nulo_explicito_lo_limpia(self, client, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="api_tipo5", email="api_tipo5@example.com", rol="admin")
         usuario = crear_usuario(db, username="api_tipo5b", email="api_tipo5b@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
         payload["tipo"] = TipoReserva.TRABAJO_GRADO.value
         creada = client.post("/reservas", json=payload, headers=cookies_para(usuario)).json()
@@ -230,9 +230,9 @@ class TestApi:
         assert respuesta.json()["tipo"] is None
 
     def test_post_con_tipo_fuera_del_enum_da_422(self, client, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="api_tipo6", email="api_tipo6@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
         payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
         payload["tipo"] = "catedra"
         respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))

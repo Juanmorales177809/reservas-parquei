@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import EstadoEntidad
-from app.schemas.espacio import EspacioResponse
+from app.schemas.laboratorio import LaboratorioResponse
 
 
 class TipoRecursoResponse(BaseModel):
@@ -19,7 +19,7 @@ class RecursoCreate(BaseModel):
     descripcion: str | None = None
     capacidad: int = Field(gt=0)
     estado: EstadoEntidad = EstadoEntidad.ACTIVO
-    espacio_id: int | None = None
+    laboratorio_id: int | None = None
     # RN-009: recurso de "prestación de servicios" (PS). Visibilidad y
     # reserva restringidas a gestor/admin — ver app/api/recursos.py y
     # app/services/reservas.py (Fase 12B).
@@ -32,7 +32,7 @@ class RecursoUpdate(BaseModel):
     descripcion: str | None = None
     capacidad: int | None = Field(default=None, gt=0)
     estado: EstadoEntidad | None = None
-    espacio_id: int | None = None
+    laboratorio_id: int | None = None
     es_prestacion_servicio: bool | None = None
 
 
@@ -41,12 +41,12 @@ class RecursoResponse(BaseModel):
 
     id: int
     nombre: str
-    espacio_id: int
+    laboratorio_id: int
     tipo_recurso_id: int
     descripcion: str | None
     capacidad: int
     estado: EstadoEntidad
-    espacio: EspacioResponse
+    laboratorio: LaboratorioResponse
     tipo: TipoRecursoResponse
     es_prestacion_servicio: bool
     # Fase D: identificador de activo físico del inventario institucional

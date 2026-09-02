@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_flutter/core/domain/enums.dart';
 import 'package:app_flutter/core/router/app_routes.dart';
-import 'package:app_flutter/features/espacios/presentation/slot_chip.dart';
+import 'package:app_flutter/features/laboratorios/presentation/slot_chip.dart';
 import 'package:app_flutter/main.dart' as app_main;
 import 'package:app_flutter/shell/session_menu.dart';
 

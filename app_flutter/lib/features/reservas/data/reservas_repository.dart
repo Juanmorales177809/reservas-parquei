@@ -10,8 +10,8 @@ final _formatoFecha = DateFormat('yyyy-MM-dd');
 
 /// Espejo de `frontend/src/services/reservas.ts`, acotado al alcance de la
 /// Fase 2 (ver plan de migración): creación por `recurso_ids` (modalidad
-/// "equipos"), sin selección de zonas/ensayos/acompañantes todavía —
-/// `zona_ids`/`ensayo_ids`/`acompanantes` siempre se envían vacíos, el
+/// "equipos"), sin selección de espacios/acompañantes todavía —
+/// `espacio_ids`/`acompanantes` siempre se envían vacíos, el
 /// contrato del backend los acepta igual (`default_factory=list`).
 class ReservasRepository {
   ReservasRepository(this._dio);
@@ -19,8 +19,8 @@ class ReservasRepository {
   final Dio _dio;
 
   /// `POST /reservas`. `horaInicio`/`horaFin` en formato `"HH:MM"`.
-  /// Fase P2: ahora soporta todos los ejes (`recurso_ids`/`zona_ids`/`ensayo_ids`/`acompanantes`/`tipo`)
-  /// según `modalidad_reserva` y validaciones de `services/reservas.py`.
+  /// Fase P2: ahora soporta todos los ejes (`recurso_ids`/`espacio_ids`/`acompanantes`/`tipo`),
+  /// según las validaciones de `services/reservas.py`.
   Future<Reserva> crear({
     required List<int> recursoIds,
     required DateTime fecha,
@@ -28,8 +28,8 @@ class ReservasRepository {
     required String horaFin,
     required int asistentes,
     TipoReserva? tipo,
-    List<int> zonaIds = const [],
-    List<int> ensayoIds = const [],
+    int? tipoReservaId,
+    List<int> espacioIds = const [],
     List<Map<String, String>> acompanantes = const [],
     String? descripcion,
     TipoSolicitud? tipoSolicitud,
@@ -45,8 +45,8 @@ class ReservasRepository {
         horaFin: horaFin,
         asistentes: asistentes,
         tipo: tipo,
-        zonaIds: zonaIds,
-        ensayoIds: ensayoIds,
+        tipoReservaId: tipoReservaId,
+        espacioIds: espacioIds,
         acompanantes: acompanantes,
         descripcion: descripcion,
         tipoSolicitud: tipoSolicitud,
@@ -57,48 +57,6 @@ class ReservasRepository {
     return Reserva.fromJson(response.data!);
   }
 
-  /// `POST /reservas` con `repetir_semanas`/`numero_ocurrencias` (2026-08-29,
-  /// "mejor esfuerzo") -- mismos campos que `crear`, pero la respuesta tiene
-  /// otra forma (`ReservaSerieResponse`, no `ReservaResponse`), así que es
-  /// un método aparte en vez de sobrecargar el tipo de retorno de `crear`.
-  Future<ReservaSerieResultado> crearRecurrente({
-    required List<int> recursoIds,
-    required DateTime fecha,
-    required String horaInicio,
-    required String horaFin,
-    required int asistentes,
-    required int repetirSemanas,
-    required int numeroOcurrencias,
-    TipoReserva? tipo,
-    List<int> zonaIds = const [],
-    List<int> ensayoIds = const [],
-    List<Map<String, String>> acompanantes = const [],
-    String? descripcion,
-    TipoSolicitud? tipoSolicitud,
-    String? ubicacionUso,
-    bool? requiereApoyoAuxiliar,
-  }) async {
-    final payload = _payloadCrear(
-      recursoIds: recursoIds,
-      fecha: fecha,
-      horaInicio: horaInicio,
-      horaFin: horaFin,
-      asistentes: asistentes,
-      tipo: tipo,
-      zonaIds: zonaIds,
-      ensayoIds: ensayoIds,
-      acompanantes: acompanantes,
-      descripcion: descripcion,
-      tipoSolicitud: tipoSolicitud,
-      ubicacionUso: ubicacionUso,
-      requiereApoyoAuxiliar: requiereApoyoAuxiliar,
-    )
-      ..['repetir_semanas'] = repetirSemanas
-      ..['numero_ocurrencias'] = numeroOcurrencias;
-    final response = await _dio.post<Map<String, dynamic>>('/reservas', data: payload);
-    return ReservaSerieResultado.fromJson(response.data!);
-  }
-
   Map<String, dynamic> _payloadCrear({
     required List<int> recursoIds,
     required DateTime fecha,
@@ -106,8 +64,8 @@ class ReservasRepository {
     required String horaFin,
     required int asistentes,
     TipoReserva? tipo,
-    List<int> zonaIds = const [],
-    List<int> ensayoIds = const [],
+    int? tipoReservaId,
+    List<int> espacioIds = const [],
     List<Map<String, String>> acompanantes = const [],
     String? descripcion,
     TipoSolicitud? tipoSolicitud,
@@ -118,14 +76,17 @@ class ReservasRepository {
     final tipoSolicitudJson = tipoSolicitud == null ? null : tipoSolicitudToJson(tipoSolicitud);
     return {
       'recurso_ids': recursoIds,
-      'zona_ids': zonaIds,
-      'ensayo_ids': ensayoIds,
+      'espacio_ids': espacioIds,
       'acompanantes': acompanantes,
       'fecha': _formatoFecha.format(fecha),
       'hora_inicio': horaInicio,
       'hora_fin': horaFin,
       'asistentes': asistentes,
       'tipo': ?tipoJson,
+      // Fase 7: catálogo real por laboratorio (reemplaza `tipo` hacia
+      // adelante, ver backend/CLAUDE.md) -- `tipo` se conserva sin tocar
+      // por compatibilidad de lectura de reservas históricas.
+      'tipo_reserva_id': ?tipoReservaId,
       'descripcion': ?descripcion,
       'tipo_solicitud': ?tipoSolicitudJson,
       'ubicacion_uso': ?ubicacionUso,
@@ -149,18 +110,6 @@ class ReservasRepository {
     return response.data!;
   }
 
-  /// `GET /reservas/serie/{serieId}` (2026-08-29, gestión de serie completa).
-  Future<List<Reserva>> listarSerie(String serieId) async {
-    final response = await _dio.get<List<dynamic>>('/reservas/serie/$serieId');
-    return response.data!.map((json) => Reserva.fromJson(json as Map<String, dynamic>)).toList();
-  }
-
-  /// `PUT /reservas/serie/{serieId}/cancelar`.
-  Future<ReservaSerieCancelResultado> cancelarSerie(String serieId) async {
-    final response = await _dio.put<Map<String, dynamic>>('/reservas/serie/$serieId/cancelar');
-    return ReservaSerieCancelResultado.fromJson(response.data!);
-  }
-
   /// `PUT /reservas/{id}/cancelar` — solo el propietario, y solo si la
   /// reserva está `aprobada` (`Reserva.puedeCancelarse`).
   Future<Reserva> cancelar(int reservaId) async {
@@ -169,7 +118,7 @@ class ReservasRepository {
   }
 
   /// `GET /reservas` — gestión, solo gestor/admin. El backend ya filtra al
-  /// espacio del gestor (`get_managed_space_id`); el cliente no replica
+  /// laboratorio del gestor (`get_managed_space_id`); el cliente no replica
   /// ese filtro.
   Future<List<Reserva>> listarGestion({int skip = 0, int limit = 100}) async {
     final response = await _dio.get<List<dynamic>>(
@@ -203,7 +152,7 @@ class ReservasRepository {
   }
 
   /// `PATCH /reservas/{id}` — editar propia (usuario si esperando) o gestor/admin.
-  /// Feature B: ahora también acepta `recursoIds`/`zonaIds` para que el gestor
+  /// Feature B: ahora también acepta `recursoIds`/`espacioIds` para que el gestor
   /// pueda agregar equipos a una reserva ya aprobada.
   Future<Reserva> actualizar(
     int reservaId, {
@@ -216,7 +165,8 @@ class ReservasRepository {
     String? ubicacionUso,
     bool? requiereApoyoAuxiliar,
     List<int>? recursoIds,
-    List<int>? zonaIds,
+    List<int>? espacioIds,
+    int? tipoReservaId,
   }) async {
     final data = <String, dynamic>{};
     if (fecha != null) data['fecha'] = _formatoFecha.format(fecha);
@@ -224,11 +174,12 @@ class ReservasRepository {
     if (horaFin != null) data['hora_fin'] = horaFin;
     if (asistentes != null) data['asistentes'] = asistentes;
     if (descripcion != null) data['descripcion'] = descripcion;
+    if (tipoReservaId != null) data['tipo_reserva_id'] = tipoReservaId;
     if (tipoSolicitud != null) data['tipo_solicitud'] = tipoSolicitudToJson(tipoSolicitud);
     if (ubicacionUso != null) data['ubicacion_uso'] = ubicacionUso;
     if (requiereApoyoAuxiliar != null) data['requiere_apoyo_auxiliar'] = requiereApoyoAuxiliar;
     if (recursoIds != null) data['recurso_ids'] = recursoIds;
-    if (zonaIds != null) data['zona_ids'] = zonaIds;
+    if (espacioIds != null) data['espacio_ids'] = espacioIds;
     final response = await _dio.patch<Map<String, dynamic>>('/reservas/$reservaId', data: data);
     return Reserva.fromJson(response.data!);
   }

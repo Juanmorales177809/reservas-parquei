@@ -6,14 +6,14 @@ part of 'auth_user.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_EspacioResumen _$EspacioResumenFromJson(Map<String, dynamic> json) =>
-    _EspacioResumen(
+_LaboratorioResumen _$LaboratorioResumenFromJson(Map<String, dynamic> json) =>
+    _LaboratorioResumen(
       id: (json['id'] as num).toInt(),
       nombre: json['nombre'] as String,
       ubicacion: json['ubicacion'] as String,
     );
 
-Map<String, dynamic> _$EspacioResumenToJson(_EspacioResumen instance) =>
+Map<String, dynamic> _$LaboratorioResumenToJson(_LaboratorioResumen instance) =>
     <String, dynamic>{
       'id': instance.id,
       'nombre': instance.nombre,
@@ -25,9 +25,11 @@ _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
   username: json['username'] as String,
   email: json['email'] as String,
   rol: $enumDecode(_$RolUsuarioEnumMap, json['rol']),
-  espacio: json['espacio'] == null
+  laboratorio: json['laboratorio'] == null
       ? null
-      : EspacioResumen.fromJson(json['espacio'] as Map<String, dynamic>),
+      : LaboratorioResumen.fromJson(
+          json['laboratorio'] as Map<String, dynamic>,
+        ),
   documentoIdentificacion: json['documento_identificacion'] as String?,
   telefono: json['telefono'] as String?,
   institucion: json['institucion'] as String?,
@@ -43,7 +45,7 @@ Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
   'username': instance.username,
   'email': instance.email,
   'rol': _$RolUsuarioEnumMap[instance.rol]!,
-  'espacio': instance.espacio,
+  'laboratorio': instance.laboratorio,
   'documento_identificacion': instance.documentoIdentificacion,
   'telefono': instance.telefono,
   'institucion': instance.institucion,

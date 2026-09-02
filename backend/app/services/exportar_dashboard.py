@@ -22,8 +22,8 @@ def _filas_resumen(resumen: AdminDashboardSummary) -> list[tuple[str, object]]:
         ("Recursos activos", resumen.recursos_activos),
         ("Usuarios", resumen.usuarios),
     ]
-    if resumen.espacio_nombre is not None:
-        filas.insert(0, ("Espacio", resumen.espacio_nombre))
+    if resumen.laboratorio_nombre is not None:
+        filas.insert(0, ("Laboratorio", resumen.laboratorio_nombre))
     return filas
 
 
@@ -53,9 +53,9 @@ def construir_csv(resumen: AdminDashboardSummary) -> bytes:
         writer.writerow((item.fecha.isoformat(), item.cantidad))
 
     writer.writerow([])
-    writer.writerow(("Reservas por espacio",))
-    writer.writerow(("Espacio", "Cantidad"))
-    for item in resumen.reservas_por_espacio:
+    writer.writerow(("Reservas por laboratorio",))
+    writer.writerow(("Laboratorio", "Cantidad"))
+    for item in resumen.reservas_por_laboratorio:
         writer.writerow((item.nombre, item.cantidad))
 
     writer.writerow([])
@@ -98,10 +98,10 @@ def construir_xlsx(resumen: AdminDashboardSummary) -> bytes:
     for item in resumen.reservas_por_fecha:
         hoja_fecha.append((item.fecha.isoformat(), item.cantidad))
 
-    hoja_espacio = libro.create_sheet("Reservas por espacio")
-    hoja_espacio.append(("Espacio", "Cantidad"))
-    for item in resumen.reservas_por_espacio:
-        hoja_espacio.append((item.nombre, item.cantidad))
+    hoja_laboratorio = libro.create_sheet("Reservas por laboratorio")
+    hoja_laboratorio.append(("Laboratorio", "Cantidad"))
+    for item in resumen.reservas_por_laboratorio:
+        hoja_laboratorio.append((item.nombre, item.cantidad))
 
     hoja_recursos = libro.create_sheet("Recursos más reservados")
     hoja_recursos.append(("Recurso", "Cantidad"))

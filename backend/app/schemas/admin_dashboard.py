@@ -21,8 +21,8 @@ class RecursoMasReservado(BaseModel):
     cantidad: int
 
 
-class ReservasPorEspacio(BaseModel):
-    espacio_id: int
+class ReservasPorLaboratorio(BaseModel):
+    laboratorio_id: int
     nombre: str
     cantidad: int
 
@@ -72,10 +72,10 @@ class AdminDashboardSummary(BaseModel):
     reservas_pendientes: int
     recursos_activos: int
     usuarios: int
-    espacio_nombre: str | None = None
+    laboratorio_nombre: str | None = None
     reservas_por_estado: ReservasPorEstado
     reservas_por_fecha: list[ReservasPorFecha]
-    reservas_por_espacio: list[ReservasPorEspacio]
+    reservas_por_laboratorio: list[ReservasPorLaboratorio]
     recursos_mas_reservados: list[RecursoMasReservado]
     ocupacion_por_dia_hora: list[OcupacionDiaHora]
     ocupacion_global: OcupacionGlobal

@@ -107,7 +107,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                       .slideY(begin: 0.2, end: 0),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Registrate para reservar espacios y equipos',
+                    'Registrate para reservar laboratorios y equipos',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(delay: 220.ms, duration: 300.ms),

@@ -22,7 +22,7 @@ abstract final class AppText {
   /// en Flutter.
   ///
   /// Este nivel es el que separa "etiqueta de dato" de "dato" sin gastar
-  /// espacio vertical — era exactamente el que faltaba. Vive también en el
+  /// laboratorio vertical — era exactamente el que faltaba. Vive también en el
   /// slot `labelSmall` del `TextTheme` para que los widgets de Material lo
   /// hereden solos.
   static TextStyle overline({Color color = AppColors.textoTerciario}) {

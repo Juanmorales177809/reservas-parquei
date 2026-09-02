@@ -19,7 +19,7 @@ class ReservaRecurso(Base):
     verdad hasta 12C-4b en adelante).
 
     `recurso_id` no lleva `ondelete="CASCADE"` (a diferencia de
-    `zona_id`/`recurso_id` en `ZonaRecurso`, Fase 12C-3): un recurso ya
+    `espacio_id`/`recurso_id` en `EspacioRecurso`, Fase 12C-3): un recurso ya
     referenciado en una reserva no debe poder eliminarse silenciosamente
     a nivel de base de datos — mismo criterio de fondo que ya aplica
     `eliminar_recurso` con su guard de "no se puede eliminar un recurso

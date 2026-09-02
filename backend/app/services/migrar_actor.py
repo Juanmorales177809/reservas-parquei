@@ -22,10 +22,10 @@ from sqlalchemy import text
 from app.auth.auth import hash_password
 from app.models.personal import Personal
 from app.models.usuario import Usuario
-from app.models.usuario_espacio import UsuarioEspacio
+from app.models.usuario_laboratorio import UsuarioLaboratorio
 
 
-def promover_a_personal(db: Session, usuario: Usuario, rol: str, espacio_id: int | None) -> Personal:
+def promover_a_personal(db: Session, usuario: Usuario, rol: str, laboratorio_id: int | None) -> Personal:
     """usuario -> gestor/admin. `rol` ya validado por quien llama (admin o
     gestor, nunca usuario -- ver `schemas/personal.py::PersonalCreate`).
 
@@ -65,8 +65,8 @@ def promover_a_personal(db: Session, usuario: Usuario, rol: str, espacio_id: int
     db.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": viejo_id})
     db.flush()
 
-    if rol == "gestor" and espacio_id is not None:
-        db.add(UsuarioEspacio(usuario_id=nuevo_id, espacio_id=espacio_id))
+    if rol == "gestor" and laboratorio_id is not None:
+        db.add(UsuarioLaboratorio(usuario_id=nuevo_id, laboratorio_id=laboratorio_id))
 
     db.commit()
     nuevo = db.query(Personal).filter(Personal.id == nuevo_id).first()
@@ -77,7 +77,7 @@ def promover_a_personal(db: Session, usuario: Usuario, rol: str, espacio_id: int
 def degradar_a_usuario(db: Session, personal: Personal) -> Usuario:
     """gestor/admin -> usuario. Falla con `IntegrityError` (traducido a 409
     por quien llama, `api/personal.py`) si esta persona todavía figura
-    como `created_by`/`updated_by` de algún recurso/zona/ensayo/espacio --
+    como `created_by`/`updated_by` de algún recurso/espacio/laboratorio --
     esas FK apuntan a `personal.id` sin `ON DELETE`, así que Postgres
     rechaza el `DELETE` en vez de dejar una referencia rota. No se intenta
     detectar ese caso de antemano: dejar que la constraint real lo
@@ -107,7 +107,7 @@ def degradar_a_usuario(db: Session, personal: Personal) -> Usuario:
             text(f"UPDATE {tabla} SET usuario_id = :nuevo_id, personal_id = NULL WHERE personal_id = :viejo_id"),
             {"nuevo_id": nuevo_id, "viejo_id": viejo_id},
         )
-    db.execute(text("DELETE FROM usuarios_espacios WHERE usuario_id = :id"), {"id": viejo_id})
+    db.execute(text("DELETE FROM usuarios_laboratorios WHERE usuario_id = :id"), {"id": viejo_id})
     db.execute(text("DELETE FROM personal WHERE id = :id"), {"id": viejo_id})
     db.commit()
     nuevo = db.query(Usuario).filter(Usuario.id == nuevo_id).first()

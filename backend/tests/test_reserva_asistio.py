@@ -18,7 +18,7 @@ from app.schemas.reserva import ReservaAsistioUpdate, ReservaResponse
 from app.services.actores import columnas_actor
 from tests.conftest import (
     cookies_para,
-    crear_espacio,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
@@ -26,10 +26,10 @@ from tests.conftest import (
 )
 
 
-def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
+def _crear_reserva_modelo(db, *, usuario, laboratorio, recurso, **kwargs):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=kwargs.get("fecha", fecha_habilitada()),
         hora_inicio=kwargs.get("hora_inicio", time_t(8, 0)),
@@ -46,25 +46,25 @@ def _crear_reserva_modelo(db, *, usuario, espacio, recurso, **kwargs):
 
 class TestModelo:
     def test_asistio_nulo_por_defecto(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="asist_nulo", email="asist_nulo@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso)
         assert reserva.asistio is None
 
     @pytest.mark.parametrize("valor", [True, False])
     def test_asistio_true_false_se_persisten(self, db, valor):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username=f"asist_{valor}", email=f"asist_{valor}@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso, asistio=valor)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso, asistio=valor)
         assert reserva.asistio is valor
 
     def test_asistio_explicito_none_se_persiste_como_null(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         usuario = crear_usuario(db, username="asist_none", email="asist_none@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-        reserva = _crear_reserva_modelo(db, usuario=usuario, espacio=espacio, recurso=recurso, asistio=None)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+        reserva = _crear_reserva_modelo(db, usuario=usuario, laboratorio=laboratorio, recurso=recurso, asistio=None)
         assert reserva.asistio is None
 
 
@@ -83,7 +83,7 @@ class TestSchemas:
             {
                 "id": 1,
                 "usuario_id": 1,
-                "espacio_id": 1,
+                "laboratorio_id": 1,
                 "fecha": "2026-09-01",
                 "hora_inicio": "08:00",
                 "hora_fin": "10:00",
@@ -96,11 +96,11 @@ class TestSchemas:
                 "created_at": "2026-08-01T10:00:00+00:00",
                 "updated_at": "2026-08-01T10:00:00+00:00",
                 "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-                "espacio": {"id": 1, "nombre": "Sala", "capacidad": None, "estado": "activo"},
+                "laboratorio": {"id": 1, "nombre": "Sala", "capacidad": None, "estado": "activo"},
                 "recurso_ids": [1],
                 "recursos": [],
-                "zona_ids": [],
-                "zonas": [],
+                "espacio_ids": [],
+                "espacios": [],
             }
         )
         assert modelo.asistio is None
@@ -111,7 +111,7 @@ class TestSchemas:
             {
                 "id": 1,
                 "usuario_id": 1,
-                "espacio_id": 1,
+                "laboratorio_id": 1,
                 "fecha": "2026-09-01",
                 "hora_inicio": "08:00",
                 "hora_fin": "10:00",
@@ -124,11 +124,11 @@ class TestSchemas:
                 "created_at": "2026-08-01T10:00:00+00:00",
                 "updated_at": "2026-08-01T10:00:00+00:00",
                 "usuario": {"id": 1, "username": "u", "email": "u@example.com", "rol": "usuario"},
-                "espacio": {"id": 1, "nombre": "Sala", "capacidad": None, "estado": "activo"},
+                "laboratorio": {"id": 1, "nombre": "Sala", "capacidad": None, "estado": "activo"},
                 "recurso_ids": [1],
                 "recursos": [],
-                "zona_ids": [],
-                "zonas": [],
+                "espacio_ids": [],
+                "espacios": [],
             }
         )
         assert modelo.asistio is valor
@@ -136,23 +136,23 @@ class TestSchemas:
 
 class TestApi:
     def _crear_reserva(self, client, db, *, usuario):
-        espacio = db.query(usuario.__class__).filter_by(id=usuario.id).first()
-        # crear una reserva válida para el usuario dado (reusa espacio existente si hay)
-        from tests.conftest import crear_espacio as _ce, crear_recurso as _cr
+        laboratorio = db.query(usuario.__class__).filter_by(id=usuario.id).first()
+        # crear una reserva válida para el usuario dado (reusa laboratorio existente si hay)
+        from tests.conftest import crear_laboratorio as _ce, crear_recurso as _cr
 
-        # reutilizar el espacio del recurso creado para no depender del usuario
+        # reutilizar el laboratorio del recurso creado para no depender del usuario
         esp = _ce(db, nombre="Sala Asistio")
-        rec = _cr(db, espacio=esp, usuario=usuario if usuario.rol == "admin" else crear_usuario(db, username="admin_asist_tmp", email="admin_asist_tmp@example.com", rol="admin"))
+        rec = _cr(db, laboratorio=esp, usuario=usuario if usuario.rol == "admin" else crear_usuario(db, username="admin_asist_tmp", email="admin_asist_tmp@example.com", rol="admin"))
         payload = payload_reserva_objetivos(recurso_ids=[rec.id], fecha=fecha_habilitada())
         resp = client.post("/reservas", json=payload, headers=cookies_para(usuario))
         assert resp.status_code == 201, resp.text
         return resp.json(), esp, rec
 
     def test_usuario_no_puede_marcar_asistencia_incluso_propietario(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Asistio U")
+        laboratorio = crear_laboratorio(db, nombre="Sala Asistio U")
         admin = crear_usuario(db, username="admin_asist_u", email="admin_asist_u@example.com", rol="admin")
         usuario = crear_usuario(db, username="u_asist", email="u_asist@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),
@@ -162,11 +162,11 @@ class TestApi:
         assert resp.status_code == 403
 
     def test_gestor_de_otro_espacio_no_puede_marcar_asistencia(self, client, db):
-        espacio_a = crear_espacio(db, nombre="Sala Asistio A")
-        espacio_b = crear_espacio(db, nombre="Sala Asistio B")
-        gestor_a = crear_usuario(db, username="gestor_asist_a", email="gestor_asist_a@example.com", rol="gestor", espacio_id=espacio_a.id)
+        espacio_a = crear_laboratorio(db, nombre="Sala Asistio A")
+        espacio_b = crear_laboratorio(db, nombre="Sala Asistio B")
+        gestor_a = crear_usuario(db, username="gestor_asist_a", email="gestor_asist_a@example.com", rol="gestor", laboratorio_id=espacio_a.id)
         usuario = crear_usuario(db, username="u_asist_b", email="u_asist_b@example.com")
-        recurso_b = crear_recurso(db, espacio=espacio_b, usuario=gestor_a)
+        recurso_b = crear_recurso(db, laboratorio=espacio_b, usuario=gestor_a)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso_b.id], fecha=fecha_habilitada()),
@@ -176,10 +176,10 @@ class TestApi:
         assert resp.status_code == 403
 
     def test_gestor_de_su_espacio_puede_marcar_asistencia(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Asistio Gestor")
-        gestor = crear_usuario(db, username="gestor_asist_ok", email="gestor_asist_ok@example.com", rol="gestor", espacio_id=espacio.id)
+        laboratorio = crear_laboratorio(db, nombre="Sala Asistio Gestor")
+        gestor = crear_usuario(db, username="gestor_asist_ok", email="gestor_asist_ok@example.com", rol="gestor", laboratorio_id=laboratorio.id)
         usuario = crear_usuario(db, username="u_asist_g", email="u_asist_g@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=gestor)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=gestor)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),
@@ -194,10 +194,10 @@ class TestApi:
         assert cambio.accion == "marcar_asistencia"
 
     def test_admin_puede_marcar_asistencia_sin_restriccion_de_espacio(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Asistio Admin")
+        laboratorio = crear_laboratorio(db, nombre="Sala Asistio Admin")
         admin = crear_usuario(db, username="admin_asist_ok", email="admin_asist_ok@example.com", rol="admin")
         usuario = crear_usuario(db, username="u_asist_admin", email="u_asist_admin@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),
@@ -213,10 +213,10 @@ class TestApi:
         assert resp.status_code == 404
 
     def test_asistio_se_puede_alternar(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Asistio Toggle")
+        laboratorio = crear_laboratorio(db, nombre="Sala Asistio Toggle")
         admin = crear_usuario(db, username="admin_asist_toggle", email="admin_asist_toggle@example.com", rol="admin")
         usuario = crear_usuario(db, username="u_asist_toggle", email="u_asist_toggle@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         creada = client.post(
             "/reservas",
             json=payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada()),

@@ -17,6 +17,8 @@ Capa de dominio tipada del backend: enums, value objects y protocols que encapsu
 
 ### Fase 12B — `ModalidadEspacio`
 
+**Removido (lista de cambios de Juan Carlos, ver `~/.claude/plans/dazzling-wobbling-zebra.md`, Fase 3)**: `ModalidadEspacio`/`Espacio.modalidad_reserva` se quitó por completo del dominio, el modelo, los schemas y el gate de `services/reservas.py` — ambos ejes (recursos y zonas) quedan siempre permitidos simultáneamente en una reserva, sin configuración explícita por espacio. La sección de abajo queda como registro histórico de por qué existía.
+
 - Valores en minúsculas (`equipos`/`zonas`/`mixto`), consistentes con la mayoría de enums existentes (`EstadoEntidad`, `EstadoReserva`, `Rol`) — no las mayúsculas literales del documento Word (decisión documentada, no una regla legada por un constraint preexistente como `TipoNotificacion`).
 - El campo en `Espacio` se llama `modalidad_reserva`, deliberadamente distinto de `tipo` (el campo de tipo de reserva académica de `Reserva`, RN-012/RN-015, Fase 12D) — ambos conceptos comparten nombre parecido en el documento fuente (`tipo_reserva` en el legado) pero son cosas distintas.
 

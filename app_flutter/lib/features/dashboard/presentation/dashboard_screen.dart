@@ -39,7 +39,7 @@ const _kColoresEstado = [
   Color(0xFF64748B), // neutro
 ];
 
-/// Los tres gráficos de conteo (reservas por espacio, reservas por fecha,
+/// Los tres gráficos de conteo (reservas por laboratorio, reservas por fecha,
 /// recursos más reservados) miden **cantidades enteras**, pero `fl_chart`
 /// reparte el eje Y en fracciones si no se le indica lo contrario: con un
 /// máximo de 3 dibujaba `0, 0.5, 1, 1.5, 2, 2.5, 3` — etiquetas que no
@@ -118,8 +118,8 @@ class DashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (esGestor && summary.espacioNombre != null) ...[
-                    Text('Espacio: ${summary.espacioNombre}', style: Theme.of(context).textTheme.titleSmall),
+                  if (esGestor && summary.laboratorioNombre != null) ...[
+                    Text('Laboratorio: ${summary.laboratorioNombre}', style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: AppSpacing.md),
                   ],
                   _SummaryStrip(summary: summary, esAdmin: esAdmin),
@@ -183,7 +183,7 @@ class _UsuarioDashboard extends ConsumerWidget {
                         Text('Acciones rápidas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: AppSpacing.md),
                         Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.sm, children: [
-                          FilledButton.icon(onPressed: () => context.go(AppRoutes.espacios), icon: const Icon(LucideIcons.building2, size: 18), label: const Text('Ver espacios')),
+                          FilledButton.icon(onPressed: () => context.go(AppRoutes.laboratorios), icon: const Icon(LucideIcons.building2, size: 18), label: const Text('Ver laboratorios')),
                           OutlinedButton.icon(onPressed: () => context.go(AppRoutes.misReservas), icon: const Icon(LucideIcons.calendarDays, size: 18), label: const Text('Mis reservas')),
                         ]),
                       ]),
@@ -249,7 +249,7 @@ class _SummaryStrip extends StatelessWidget {
                 ],
               );
             }
-            // Divisores verticales entre KPIs: con solo espacio, la franja
+            // Divisores verticales entre KPIs: con solo laboratorio, la franja
             // se lee como cuatro textos sueltos; con divisores, como un
             // instrumento de medición.
             //
@@ -312,7 +312,7 @@ class _StatItem extends StatelessWidget {
             children: [
               // El valor primero y la etiqueta debajo en `overline`: es el
               // nivel tipográfico que separa "etiqueta de dato" de "dato"
-              // sin gastar espacio vertical.
+              // sin gastar laboratorio vertical.
               AnimatedCounter(
                 value: value,
                 style: AppText.numerico(fontSize: 26, fontWeight: FontWeight.w700, height: 1.15),
@@ -388,7 +388,7 @@ class _OcupacionHero extends StatelessWidget {
     return HoverLift(
       child: _CardContainer(
         title: 'Ocupación global',
-        subtitle: 'Horas reservadas en todos los recursos y espacios.',
+        subtitle: 'Horas reservadas en todos los recursos y laboratorios.',
         child: ocupacion.horasDisponibles == 0
             ? const _EmptyChart(message: 'No hay ocupación registrada.', height: 220)
             : SizedBox(
@@ -509,23 +509,23 @@ class _AnalisisSection extends StatelessWidget {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 900;
             final cards = <Widget>[
-              if (esAdmin && summary.reservasPorEspacio.isNotEmpty)
+              if (esAdmin && summary.reservasPorLaboratorio.isNotEmpty)
                 _CardContainer(
-                  title: 'Reservas por espacio',
-                  subtitle: 'Incluye las reservas de todos los recursos de cada espacio.',
+                  title: 'Reservas por laboratorio',
+                  subtitle: 'Incluye las reservas de todos los recursos de cada laboratorio.',
                   child: SizedBox(
                     height: chartHeight,
                     child: Builder(builder: (context) {
                     final eje = _ejeEntero(
-                      summary.reservasPorEspacio.map((e) => e.cantidad).fold<int>(0, (a, b) => a > b ? a : b),
+                      summary.reservasPorLaboratorio.map((e) => e.cantidad).fold<int>(0, (a, b) => a > b ? a : b),
                     );
                     return BarChart(
                       BarChartData(
                         maxY: eje.maxY,
                         barGroups: [
-                          for (var i = 0; i < summary.reservasPorEspacio.length; i++)
+                          for (var i = 0; i < summary.reservasPorLaboratorio.length; i++)
                             BarChartGroupData(x: i, barRods: [
-                              BarChartRodData(toY: summary.reservasPorEspacio[i].cantidad.toDouble(), color: AppColors.marca, width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
+                              BarChartRodData(toY: summary.reservasPorLaboratorio[i].cantidad.toDouble(), color: AppColors.marca, width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
                             ]),
                         ],
                         titlesData: FlTitlesData(
@@ -535,10 +535,10 @@ class _AnalisisSection extends StatelessWidget {
                               showTitles: true,
                               getTitlesWidget: (v, meta) {
                                 final idx = v.toInt();
-                                if (idx < 0 || idx >= summary.reservasPorEspacio.length) return const SizedBox.shrink();
+                                if (idx < 0 || idx >= summary.reservasPorLaboratorio.length) return const SizedBox.shrink();
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 4),
-                                  child: Text(summary.reservasPorEspacio[idx].nombre, style: const TextStyle(fontSize: 10), overflow: TextOverflow.ellipsis),
+                                  child: Text(summary.reservasPorLaboratorio[idx].nombre, style: const TextStyle(fontSize: 10), overflow: TextOverflow.ellipsis),
                                 );
                               },
                             ),
@@ -727,7 +727,7 @@ class _CardContainer extends StatelessWidget {
 /// Antes era una segunda torta. El dashboard ya tiene un donut protagonista
 /// ("Ocupación global"): dos gráficos circulares en la misma pantalla
 /// compiten por el mismo rol y ninguno gana. Una barra apilada ocupa una
-/// fracción del espacio, se lee más rápido (comparar longitudes es más
+/// fracción del laboratorio, se lee más rápido (comparar longitudes es más
 /// preciso que comparar ángulos) y deja el peso visual al hero.
 class _EstadoBarraApilada extends StatelessWidget {
   const _EstadoBarraApilada({required this.estado});
@@ -876,7 +876,7 @@ class _HeatmapCard extends StatelessWidget {
                 builder: (context, constraints) {
                   // 14 columnas (1 de día + 13 de hora): en pantallas
                   // anchas se reparte el ancho disponible entre todas en
-                  // vez de quedar en un ancho fijo angosto con espacio
+                  // vez de quedar en un ancho fijo angosto con laboratorio
                   // vacío a la derecha; en pantallas chicas nunca baja de
                   // 44px (mínimo legible) y ahí sí entra en scroll
                   // horizontal.

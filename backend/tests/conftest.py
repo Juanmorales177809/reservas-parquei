@@ -55,7 +55,7 @@ from app.config import settings  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.migrations import migrate_resource_reservations  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Espacio, Personal, Recurso, TipoRecurso, Usuario, UsuarioEspacio, Zona, ZonaRecurso  # noqa: E402
+from app.models import Espacio, EspacioRecurso, Laboratorio, Personal, Recurso, TipoRecurso, Usuario, UsuarioLaboratorio  # noqa: E402
 
 TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -97,7 +97,7 @@ def client():
 # ---------------------------------------------------------------------------
 
 
-def crear_usuario(db, *, username, email, password="password123", rol="usuario", espacio_id=None, supabase_id=None):
+def crear_usuario(db, *, username, email, password="password123", rol="usuario", laboratorio_id=None, supabase_id=None):
     """`password` se acepta por compatibilidad con los ~600 sitios de la
     suite que ya lo pasan, pero es vestigial desde la migración a Supabase
     Auth: `hashed_password` no se lee para autenticar. Lo que SÍ autentica
@@ -121,8 +121,8 @@ def crear_usuario(db, *, username, email, password="password123", rol="usuario",
         )
         db.add(entidad)
         db.flush()
-        if espacio_id is not None:
-            db.add(UsuarioEspacio(usuario_id=entidad.id, espacio_id=espacio_id))
+        if laboratorio_id is not None:
+            db.add(UsuarioLaboratorio(usuario_id=entidad.id, laboratorio_id=laboratorio_id))
     else:
         entidad = Usuario(
             username=username,
@@ -138,25 +138,24 @@ def crear_usuario(db, *, username, email, password="password123", rol="usuario",
     return entidad
 
 
-def crear_personal(db, *, username, email, rol="gestor", espacio_id=None, supabase_id=None):
+def crear_personal(db, *, username, email, rol="gestor", laboratorio_id=None, supabase_id=None):
     """Alias explícito de `crear_usuario(..., rol="gestor"|"admin")` para
     tests nuevos que prefieran dejarlo claro en el nombre -- mismo
     comportamiento, no es obligatorio migrar los sitios existentes."""
-    return crear_usuario(db, username=username, email=email, rol=rol, espacio_id=espacio_id, supabase_id=supabase_id)
+    return crear_usuario(db, username=username, email=email, rol=rol, laboratorio_id=laboratorio_id, supabase_id=supabase_id)
 
 
-def crear_espacio(
+def crear_laboratorio(
     db,
     *,
     nombre="Sala de pruebas",
     estado="activo",
     horas_antelacion=24,
     horario_atencion=None,
-    modalidad_reserva="equipos",
     correo=None,
     capacidad=20,
 ):
-    espacio = Espacio(
+    laboratorio = Laboratorio(
         nombre=nombre,
         ubicacion="Sede de pruebas",
         capacidad=capacidad,
@@ -167,24 +166,23 @@ def crear_espacio(
             if horario_atencion is not None
             else {str(dia): list(range(7, 20)) for dia in range(6)}
         ),
-        modalidad_reserva=modalidad_reserva,
         correo=correo,
     )
-    db.add(espacio)
+    db.add(laboratorio)
     db.commit()
-    db.refresh(espacio)
-    return espacio
+    db.refresh(laboratorio)
+    return laboratorio
 
 
 _USERNAME_PERSONAL_AUTOCREADO = "_personal_autocreado_para_fk"
 
 
 def _personal_para_fk(db, usuario):
-    """`created_by`/`update_by`/`updated_by` de recursos/zonas/ensayos/
-    espacios ahora exigen un id de `Personal` (ver
+    """`created_by`/`update_by`/`updated_by` de recursos/espacios/
+    laboratorios ahora exigen un id de `Personal` (ver
     `~/.claude/plans/dazzling-wobbling-zebra.md`) -- muchos tests pasan
     cómodamente el mismo `usuario` (rol `usuario`) que usan como dueño de
-    la reserva a `crear_recurso`/`crear_zona`, algo que antes de la
+    la reserva a `crear_recurso`/`crear_espacio`, algo que antes de la
     separación no importaba porque era la misma tabla. Si `usuario` ya es
     `Personal`, se usa tal cual; si no, se crea (o reusa, dentro del mismo
     test) un admin de pruebas dedicado, para no obligar a tocar los ~150
@@ -205,7 +203,7 @@ def _personal_para_fk(db, usuario):
 def crear_recurso(
     db,
     *,
-    espacio,
+    laboratorio,
     usuario,
     nombre="Recurso de pruebas",
     capacidad=10,
@@ -221,7 +219,7 @@ def crear_recurso(
     creador = _personal_para_fk(db, usuario)
     recurso = Recurso(
         nombre=nombre,
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         tipo_recurso_id=tipo.id,
         descripcion="",
         capacidad=capacidad,
@@ -281,7 +279,7 @@ def payload_reserva(recurso_id, fecha, hora_inicio="08:00", hora_fin="10:00", as
     """Payload de reserva por recursos directos (Fase 12C-6).
 
     `recurso_id` desaparece del contrato: la reserva se expresa con
-    `recurso_ids`/`zona_ids`. Este helper conserva su firma (un recurso)
+    `recurso_ids`/`espacio_ids`. Este helper conserva su firma (un recurso)
     y lo traduce al nuevo payload.
     """
     return payload_reserva_objetivos(
@@ -295,18 +293,17 @@ def payload_reserva(recurso_id, fecha, hora_inicio="08:00", hora_fin="10:00", as
 
 def payload_reserva_objetivos(
     recurso_ids=None,
-    zona_ids=None,
+    espacio_ids=None,
     fecha=None,
     hora_inicio="08:00",
     hora_fin="10:00",
     asistentes=2,
     tipo="__ausente__",
-    ensayo_ids=None,
     acompanantes=None,
 ):
     payload = {
         "recurso_ids": recurso_ids or [],
-        "zona_ids": zona_ids or [],
+        "espacio_ids": espacio_ids or [],
         "fecha": fecha.isoformat(),
         "hora_inicio": hora_inicio,
         "hora_fin": hora_fin,
@@ -316,40 +313,38 @@ def payload_reserva_objetivos(
     # y `None` explícito son semánticas distintas para el PATCH).
     if tipo != "__ausente__":
         payload["tipo"] = tipo
-    if ensayo_ids is not None:
-        payload["ensayo_ids"] = ensayo_ids
     if acompanantes is not None:
         payload["acompanantes"] = acompanantes
     return payload
 
 
-def crear_zona(
+def crear_espacio(
     db,
     *,
-    espacio,
+    laboratorio,
     usuario,
-    nombre="Zona de pruebas",
+    nombre="Espacio de pruebas",
     capacidad=None,
     estado="activo",
 ):
     creador = _personal_para_fk(db, usuario)
-    zona = Zona(
+    espacio = Espacio(
         nombre=nombre,
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         descripcion="",
         capacidad=capacidad,
         estado=estado,
         created_by=creador.id,
         updated_by=creador.id,
     )
-    db.add(zona)
+    db.add(espacio)
     db.commit()
-    db.refresh(zona)
-    return zona
+    db.refresh(espacio)
+    return espacio
 
 
-def asociar_zona_recurso(db, zona, recurso):
-    db.add(ZonaRecurso(zona_id=zona.id, recurso_id=recurso.id))
+def asociar_espacio_recurso(db, espacio, recurso):
+    db.add(EspacioRecurso(espacio_id=espacio.id, recurso_id=recurso.id))
     db.commit()
 
 

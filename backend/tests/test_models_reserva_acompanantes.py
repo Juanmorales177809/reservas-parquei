@@ -10,13 +10,13 @@ from app.db import Base, engine
 from app.models.reserva import Reserva
 from app.models.reserva_acompanante import ReservaAcompanante
 from app.services.actores import columnas_actor
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario
 
 
-def _crear_reserva(db, *, usuario, espacio, recurso):
+def _crear_reserva(db, *, usuario, laboratorio, recurso):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=date(2026, 9, 1),
         hora_inicio=time(8, 0),
@@ -32,10 +32,10 @@ def _crear_reserva(db, *, usuario, espacio, recurso):
 
 class TestReservaAcompananteCreacion:
     def test_se_crea_via_create_all(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="adm_ac1", email="adm_ac1@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
         ac = ReservaAcompanante(reserva_id=reserva.id, nombre="Ana", correo="ana@example.com")
         db.add(ac)
         db.commit()
@@ -43,10 +43,10 @@ class TestReservaAcompananteCreacion:
         assert ac.id is not None
 
     def test_unique_correo_por_reserva(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="adm_ac2", email="adm_ac2@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
         db.add(ReservaAcompanante(reserva_id=reserva.id, nombre="Ana", correo="ana@example.com"))
         db.commit()
         db.add(ReservaAcompanante(reserva_id=reserva.id, nombre="Ana2", correo="ana@example.com"))
@@ -54,12 +54,12 @@ class TestReservaAcompananteCreacion:
             db.commit()
 
     def test_mismo_correo_en_distinta_reserva_permitido(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="adm_ac3", email="adm_ac3@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
         r2 = Reserva(
-            **columnas_actor(admin), espacio_id=espacio.id, recurso_id=recurso.id,
+            **columnas_actor(admin), laboratorio_id=laboratorio.id, recurso_id=recurso.id,
             fecha=date(2026, 9, 2), hora_inicio=time(8, 0), hora_fin=time(9, 0),
             estado="esperando", asistentes=1,
         )
@@ -74,10 +74,10 @@ class TestReservaAcompananteCreacion:
 
 class TestReservaAcompananteOnDelete:
     def test_eliminar_reserva_cascade(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="adm_ac4", email="adm_ac4@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
         db.add(ReservaAcompanante(reserva_id=reserva.id, nombre="Ana", correo="ana@example.com"))
         db.commit()
         db.delete(reserva)

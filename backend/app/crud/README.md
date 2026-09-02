@@ -9,7 +9,7 @@ Consultas de persistencia SQLAlchemy. La lógica de negocio vive en `services/`;
 | Archivo | Acción | Descripción |
 |---|---|---|
 | espacios.py | Modificado | `create_espacio` construye el horario por defecto con `HorarioAtencion` (validación de dominio) y lo serializa al formato exacto que ya se persistía: `{"0": [7..19], ..., "5": [7..19]}` |
-| espacios.py | Modificado (Fase 12B) | `create_espacio` propaga `modalidad_reserva` y `correo` del payload al modelo |
+| espacios.py | Modificado (Fase 12B; `modalidad_reserva` removido en Fase 3 de `~/.claude/plans/dazzling-wobbling-zebra.md`) | `create_espacio` propaga `correo` del payload al modelo |
 | zonas.py | Nuevo (Fase 12C-2) | `get_zona`, `create_zona` (fija `created_by`/`updated_by` desde el usuario autenticado), `update_zona` (aplica un dict de cambios ya validado/filtrado por `api/zonas.py` y refresca `updated_by`). Sin función de listado — ver `backend/app/api/README.md`, Fase 12C-2 |
 | zonas.py | Modificado (Fase 12C-3) | Agrega `reemplazar_recursos_de_zona`: diff completo (quitar/agregar) de `zona_recursos` para una zona, con `try/except IntegrityError` que traduce un conflicto de la `UniqueConstraint` a `HTTPException(409)` — red de seguridad ante condición de carrera, mismo patrón que `services/reservas.py::_traducir_error_integridad` |
 | reservas.py | Modificado (Fase 12C-5) | `get_reservas_bloqueantes` pasa a hacer JOIN contra `reserva_recursos` (consulta por recurso, con `distinct`); nuevo `get_recurso_ids_reserva` para resolver los recursos de una reserva desde la asociación |

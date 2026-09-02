@@ -4,9 +4,9 @@
 Reglas cubiertas (Fase 12B):
 - RN-009: los recursos marcados como PS (prestación de servicios) no son
   visibles para el rol `usuario` (mapeo Word: investigador) en ningún
-  listado público, y un intento de reservarlos responde 403 (ver
-  test_api_reservas.py::TestRecursosPS para la parte de creación de
-  reserva).
+  listado público -- gate de CATÁLOGO, sin relación con la reserva en sí
+  (el gate que antes bloqueaba reservarlos se quitó, ver
+  test_api_reservas.py::TestRecursosPS y backend/CLAUDE.md).
 - Los roles `gestor` (laboratorista) y `admin` (administrador técnico) sí
   ven y gestionan recursos PS con normalidad.
 - Un recurso ya existente sin el campo PS explícito conserva su
@@ -15,11 +15,11 @@ Reglas cubiertas (Fase 12B):
 """
 
 from tests.conftest import (
-    asociar_zona_recurso,
-    crear_espacio,
+    asociar_espacio_recurso,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
-    crear_zona,
+    crear_espacio,
     fecha_habilitada,
     cookies_para,
     payload_reserva_objetivos,
@@ -27,17 +27,17 @@ from tests.conftest import (
 
 
 def _escenario(db):
-    espacio = crear_espacio(db, nombre="Sala PS")
+    laboratorio = crear_laboratorio(db, nombre="Sala PS")
     admin = crear_usuario(db, username="admin_ps", email="admin_ps@example.com", rol="admin")
     gestor = crear_usuario(
-        db, username="gestor_ps", email="gestor_ps@example.com", rol="gestor", espacio_id=espacio.id
+        db, username="gestor_ps", email="gestor_ps@example.com", rol="gestor", laboratorio_id=laboratorio.id
     )
     usuario = crear_usuario(db, username="user_ps", email="user_ps@example.com")
-    recurso_normal = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Microscopio")
+    recurso_normal = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Microscopio")
     recurso_ps = crear_recurso(
-        db, espacio=espacio, usuario=admin, nombre="Equipo de ensayo", es_prestacion_servicio=True
+        db, laboratorio=laboratorio, usuario=admin, nombre="Equipo de ensayo", es_prestacion_servicio=True
     )
-    return espacio, admin, gestor, usuario, recurso_normal, recurso_ps
+    return laboratorio, admin, gestor, usuario, recurso_normal, recurso_ps
 
 
 class TestVisibilidadPS:
@@ -128,15 +128,15 @@ class TestVisibilidadPS:
 
 class TestGestionPS:
     def test_gestor_crea_recurso_ps(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Crear PS")
+        laboratorio = crear_laboratorio(db, nombre="Sala Crear PS")
         gestor = crear_usuario(
             db, username="gestor_crea_ps", email="gestor_crea_ps@example.com",
-            rol="gestor", espacio_id=espacio.id,
+            rol="gestor", laboratorio_id=laboratorio.id,
         )
         tipo_id = client.get("/recursos/tipos").json()
         # Asegura que exista al menos un tipo (creado por otro recurso previo si aplica)
         if not tipo_id:
-            crear_recurso(db, espacio=espacio, usuario=gestor)
+            crear_recurso(db, laboratorio=laboratorio, usuario=gestor)
             tipo_id = client.get("/recursos/tipos").json()
         respuesta = client.post(
             "/recursos",
@@ -153,7 +153,7 @@ class TestGestionPS:
         assert respuesta.json()["es_prestacion_servicio"] is True
 
     def test_usuario_no_puede_crear_recursos(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Crear PS 2")
+        laboratorio = crear_laboratorio(db, nombre="Sala Crear PS 2")
         usuario = crear_usuario(db, username="user_crea_ps", email="user_crea_ps@example.com")
         respuesta = client.post(
             "/recursos",
@@ -162,7 +162,7 @@ class TestGestionPS:
                 "tipo_recurso_id": 1,
                 "capacidad": 1,
                 "estado": "activo",
-                "espacio_id": espacio.id,
+                "laboratorio_id": laboratorio.id,
                 "es_prestacion_servicio": True,
             },
             headers=cookies_para(usuario),
@@ -172,56 +172,56 @@ class TestGestionPS:
     def test_recurso_sin_campo_ps_explicito_nace_false(self, client, db):
         """Compatibilidad: si el payload no incluye es_prestacion_servicio,
         el recurso nace visible/reservable como antes de esta fase."""
-        espacio = crear_espacio(db, nombre="Sala Default PS")
+        laboratorio = crear_laboratorio(db, nombre="Sala Default PS")
         admin = crear_usuario(db, username="admin_default_ps", email="admin_default_ps@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Legado")
-        respuesta = client.get(f"/recursos", params={"espacio_id": espacio.id})
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Legado")
+        respuesta = client.get(f"/recursos", params={"laboratorio_id": laboratorio.id})
         cuerpo = [r for r in respuesta.json() if r["nombre"] == "Recurso Legado"]
         assert len(cuerpo) == 1
         assert cuerpo[0]["es_prestacion_servicio"] is False
 
 
-class TestGuardConReservaDeZona:
+class TestGuardConReservaDeEspacio:
     """Fase 12C-6: los guards de mover/eliminar recurso consultan
     `reserva_recursos`, no solo la columna histórica `Reserva.recurso_id`.
-    Un recurso reclamado por una reserva de zona (fila de asociación sin ser
+    Un recurso reclamado por una reserva de espacio (fila de asociación sin ser
     el `recurso_id` ancla) debe bloquear el movimiento y la eliminación."""
 
-    def _escenario_reserva_zona(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Guard Zona", modalidad_reserva="mixto")
-        admin = crear_usuario(db, username="admin_guard_zona", email="admin_guard_zona@example.com", rol="admin")
-        r_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Ancla Guard")
-        r_secundario = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Secundario Guard")
-        zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona Guard")
-        asociar_zona_recurso(db, zona, r_ancla)
-        asociar_zona_recurso(db, zona, r_secundario)
+    def _escenario_reserva_espacio(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Guard Espacio")
+        admin = crear_usuario(db, username="admin_guard_espacio", email="admin_guard_espacio@example.com", rol="admin")
+        r_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Ancla Guard")
+        r_secundario = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Secundario Guard")
+        espacio = crear_espacio(db, laboratorio=laboratorio, usuario=admin, nombre="Espacio Guard")
+        asociar_espacio_recurso(db, espacio, r_ancla)
+        asociar_espacio_recurso(db, espacio, r_secundario)
         creada = client.post(
             "/reservas",
-            json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+            json=payload_reserva_objetivos(espacio_ids=[espacio.id], fecha=fecha_habilitada()),
             headers=cookies_para(admin),
         )
         assert creada.status_code == 201
-        return espacio, admin, r_ancla, r_secundario
+        return laboratorio, admin, r_ancla, r_secundario
 
-    def test_eliminar_recurso_no_ancla_reservado_por_zona_da_409(self, client, db):
-        _, admin, _, r_secundario = self._escenario_reserva_zona(client, db)
+    def test_eliminar_recurso_no_ancla_reservado_por_espacio_da_409(self, client, db):
+        _, admin, _, r_secundario = self._escenario_reserva_espacio(client, db)
         respuesta = client.delete(
             f"/recursos/{r_secundario.id}", headers=cookies_para(admin)
         )
         assert respuesta.status_code == 409
 
-    def test_mover_recurso_no_ancla_reservado_por_zona_da_409(self, client, db):
-        espacio, admin, _, r_secundario = self._escenario_reserva_zona(client, db)
-        otro_espacio = crear_espacio(db, nombre="Otro Espacio Guard", modalidad_reserva="mixto")
+    def test_mover_recurso_no_ancla_reservado_por_espacio_da_409(self, client, db):
+        laboratorio, admin, _, r_secundario = self._escenario_reserva_espacio(client, db)
+        otro_espacio = crear_laboratorio(db, nombre="Otro Laboratorio Guard")
         respuesta = client.put(
             f"/recursos/{r_secundario.id}",
-            json={"espacio_id": otro_espacio.id},
+            json={"laboratorio_id": otro_espacio.id},
             headers=cookies_para(admin),
         )
         assert respuesta.status_code == 409
 
     def test_eliminar_recurso_ancla_reservado_sigue_bloqueado(self, client, db):
-        _, admin, r_ancla, _ = self._escenario_reserva_zona(client, db)
+        _, admin, r_ancla, _ = self._escenario_reserva_espacio(client, db)
         respuesta = client.delete(
             f"/recursos/{r_ancla.id}", headers=cookies_para(admin)
         )
@@ -232,8 +232,8 @@ class TestGuardSoloReservaRecursos:
     """Fase 12C-4e-lectores: `_recurso_tiene_reservas` deja de consultar la
     columna histórica `Reserva.recurso_id` como fallback -- solo consulta
     `reserva_recursos`. Caso límite real: el recurso "ancla" de una reserva
-    de zona SIN recursos asociados (ver
-    test_reservas_zonas.py::test_zona_sin_recursos_ancla_al_recurso_de_menor_id)
+    de espacio SIN recursos asociados (ver
+    test_reservas_espacios.py::test_espacio_sin_recursos_ancla_al_recurso_de_menor_id)
     no tiene ninguna fila en `reserva_recursos` para esa reserva -- el guard
     de aplicación ya no lo detecta. Pero `reservas.recurso_id` sigue siendo
     NOT NULL con FK real (`fk_reservas_recurso`, sin retirar en esta
@@ -241,17 +241,17 @@ class TestGuardSoloReservaRecursos:
     base de datos en vez del guard explícito -- por eso sigue dando 409,
     traducido explícitamente en vez de dejarlo escapar como 500."""
 
-    def test_recurso_ancla_de_zona_sin_recursos_sigue_bloqueado_por_fk(self, client, db):
-        espacio = crear_espacio(db, nombre="Sala Ancla Sin Recursos", modalidad_reserva="mixto")
+    def test_recurso_ancla_de_espacio_sin_recursos_sigue_bloqueado_por_fk(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Ancla Sin Recursos")
         admin = crear_usuario(
             db, username="admin_ancla_libre", email="admin_ancla_libre@example.com", rol="admin"
         )
-        r_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Menor Id Libre")
-        zona = crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona Sin Recursos Libre")
-        # La zona NO tiene ningun recurso asociado.
+        r_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Menor Id Libre")
+        espacio = crear_espacio(db, laboratorio=laboratorio, usuario=admin, nombre="Espacio Sin Recursos Libre")
+        # La espacio NO tiene ningun recurso asociado.
         creada = client.post(
             "/reservas",
-            json=payload_reserva_objetivos(zona_ids=[zona.id], fecha=fecha_habilitada()),
+            json=payload_reserva_objetivos(espacio_ids=[espacio.id], fecha=fecha_habilitada()),
             headers=cookies_para(admin),
         )
         assert creada.status_code == 201

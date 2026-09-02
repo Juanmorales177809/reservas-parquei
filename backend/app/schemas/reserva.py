@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from datetime import date, datetime, time
 from typing import Literal
 
@@ -15,16 +14,15 @@ class ReservaCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     recurso_ids: list[int] = Field(default_factory=list)
-    zona_ids: list[int] = Field(default_factory=list)
+    espacio_ids: list[int] = Field(default_factory=list)
     # Fase 12D (parcial): tipo de reserva académica (RN-012/RN-015).
-    # Opcional: las reservas que no lo declaran quedan sin tipo. Solo
-    # `servicio_de_ensayo` habilita los recursos PS para gestor/admin
-    # (ver services/reservas.py::validar_acceso_ps).
+    # Opcional: las reservas que no lo declaran quedan sin tipo.
     tipo: TipoReserva | None = None
-    # Fase 12E: ensayos seleccionados durante la reserva (N:1 Zona,
-    # RN-015/RN-016). Cada ensayo debe pertenecer a una de las zonas
-    # efectivamente reservadas (validado en services/reservas.py).
-    ensayo_ids: list[int] = Field(default_factory=list)
+    # Fase 7: catálogo real por laboratorio (app/models/tipo_reserva.py),
+    # reemplaza `tipo` hacia adelante -- `tipo` se conserva sin tocar por
+    # compatibilidad de lectura de reservas históricas (ver su comentario en
+    # models/reserva.py). Opcional, igual que `tipo`.
+    tipo_reserva_id: int | None = None
     # Fase 12E: acompañantes nombrados (N:1 Reserva, RN-015).
     acompanantes: list[AcompananteInput] = Field(default_factory=list)
     # Fase A3: texto libre opcional -- "Actividad a realizar" del formulario
@@ -45,12 +43,6 @@ class ReservaCreate(BaseModel):
     hora_inicio: time
     hora_fin: time
     asistentes: int = Field(gt=0)
-    # Fase 2026-08-29: reserva recurrente, "mejor esfuerzo" (ver
-    # `~/.claude/plans/dazzling-wobbling-zebra.md`). Ambos ausentes (el
-    # default) es 100% retrocompatible: se comporta como hoy, una sola
-    # reserva. Si se manda uno, se exige el otro (validador de abajo).
-    repetir_semanas: int | None = Field(default=None, ge=1, le=52)
-    numero_ocurrencias: int | None = Field(default=None, ge=2, le=52)
 
     @field_validator("tipo_solicitud")
     @classmethod
@@ -60,15 +52,9 @@ class ReservaCreate(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _al_menos_un_recurso_o_zona(self) -> "ReservaCreate":
-        if not self.recurso_ids and not self.zona_ids:
-            raise ValueError("Debes indicar al menos un recurso o una zona")
-        return self
-
-    @model_validator(mode="after")
-    def _recurrencia_completa_o_ausente(self) -> "ReservaCreate":
-        if (self.repetir_semanas is None) != (self.numero_ocurrencias is None):
-            raise ValueError("repetir_semanas y numero_ocurrencias van juntos, no uno solo")
+    def _al_menos_un_recurso_o_espacio(self) -> "ReservaCreate":
+        if not self.recurso_ids and not self.espacio_ids:
+            raise ValueError("Debes indicar al menos un recurso o un espacio")
         return self
 
     @model_validator(mode="after")
@@ -85,14 +71,14 @@ class ReservaUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     recurso_ids: list[int] | None = None
-    zona_ids: list[int] | None = None
+    espacio_ids: list[int] | None = None
     # Fase 12D (parcial): `tipo` es un eje de asignación simple (ausente se
     # conserva; `null` explícito lo limpia). Ver `actualizar_reserva` en
     # services/reservas.py (`cambios.get("tipo", reserva.tipo)`).
     tipo: TipoReserva | None = None
-    # Fase 12E: eje de reemplazo completo para ensayos (mismo criterio que
-    # recurso_ids/zona_ids: ausente conserva, presente reemplaza).
-    ensayo_ids: list[int] | None = None
+    # Fase 7: mismo criterio simple que `tipo` -- ausente conserva, `null`
+    # explícito limpia.
+    tipo_reserva_id: int | None = None
     # Fase 12E: eje de reemplazo completo para acompañantes (ausente
     # conserva, presente reemplaza; `[]` explícito la vacía).
     acompanantes: list[AcompananteInput] | None = None
@@ -167,12 +153,12 @@ class UsuarioReservaResponse(BaseModel):
     rol: Rol
 
 
-class EspacioReservaResponse(BaseModel):
+class LaboratorioReservaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     nombre: str
-    # Opcional (Fase 12E): ver app/schemas/espacio.py.
+    # Opcional (Fase 12E): ver app/schemas/laboratorio.py.
     capacidad: int | None = None
     estado: EstadoEntidad
 
@@ -185,34 +171,35 @@ class RecursoReservaResponse(BaseModel):
     # Opcional (Fase 12E): ver app/schemas/recurso.py.
     capacidad: int | None = None
     estado: EstadoEntidad
-    espacio: EspacioReservaResponse
+    laboratorio: LaboratorioReservaResponse
 
 
-class ZonaReservaResponse(BaseModel):
-    """Zona asociada a una reserva (Fase 12C-6). Misma base mínima que
-    `ZonaResponse` sin timestamps/auditoría — suficiente para la respuesta
-    de la reserva y los mensajes de notificación."""
+class EspacioReservaResponse(BaseModel):
+    """Espacio asociado a una reserva (Fase 12C-6). Misma base mínima que
+    `EspacioResponse` sin timestamps/auditoría — suficiente para la
+    respuesta de la reserva y los mensajes de notificación."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     nombre: str
-    espacio_id: int
+    laboratorio_id: int
     descripcion: str | None
     capacidad: int | None
     estado: EstadoEntidad
 
 
-class EnsayoReservaResponse(BaseModel):
-    """Ensayo asociado a una reserva (Fase 12E, N:1 Zona). Subset mínimo
-    para la respuesta de reserva, mismo criterio que ZonaReservaResponse."""
+class TipoReservaReservaResponse(BaseModel):
+    """Tipo de reserva asociado a una reserva (Fase 7). Misma base mínima
+    que `TipoReservaResponse` sin timestamps/auditoría -- mismo criterio que
+    `LaboratorioReservaResponse`/`EspacioReservaResponse`."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    laboratorio_id: int
     nombre: str
-    zona_id: int
-    estado: EstadoEntidad
+    estado: str
 
 
 class AcompananteInput(BaseModel):
@@ -251,7 +238,7 @@ class _ReservaConActorNormalizado:
     `ReservaResponse` (contrato sin cambios: sigue exponiendo `usuario_id`/
     `usuario` como antes de la separación en dos tablas) no necesite saber
     de qué tabla vino el actor -- una reserva de un gestor que reservó su
-    propio espacio se sirve exactamente igual que una de un `usuario`."""
+    propio laboratorio se sirve exactamente igual que una de un `usuario`."""
 
     __slots__ = ("_reserva",)
 
@@ -277,7 +264,7 @@ class ReservaResponse(BaseModel):
 
     id: int
     usuario_id: int
-    espacio_id: int
+    laboratorio_id: int
     fecha: date
     hora_inicio: time
     hora_fin: time
@@ -286,6 +273,9 @@ class ReservaResponse(BaseModel):
     # Fase 12D (parcial): tipo de reserva académica declarada al crear o
     # editar la reserva; `null` cuando no se especificó.
     tipo: TipoReserva | None = None
+    # Fase 7: catálogo real por laboratorio; `null` cuando no se especificó.
+    tipo_reserva_id: int | None = None
+    tipo_reserva: TipoReservaReservaResponse | None = None
     # Fase 12D-bis: asistencia real, separada de estado/aprobación; `null`
     # cuando aún no se marcó.
     asistio: bool | None = None
@@ -297,16 +287,10 @@ class ReservaResponse(BaseModel):
     tipo_solicitud: TipoSolicitud
     ubicacion_uso: str | None = None
     requiere_apoyo_auxiliar: bool
-    # Fase 2026-08-29 (gestión de serie completa): `null` para cualquier
-    # reserva no recurrente -- la inmensa mayoría. Antes deliberadamente
-    # oculto del contrato (ver "Reservas recurrentes" en backend/CLAUDE.md);
-    # se expone ahora porque hace falta para que el cliente pueda ofrecer
-    # "ver/cancelar la serie completa".
-    serie_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
     usuario: UsuarioReservaResponse
-    espacio: EspacioReservaResponse
+    laboratorio: LaboratorioReservaResponse
     # Fase 12C-4e-schemas: `recurso_id`/`recurso` (el ancla singular) se
     # retiran del contrato. `recursos_asociados` (`crud.reservas`) sigue
     # siendo la fuente de verdad para los conjuntos -- `reservas.recurso_id`
@@ -315,42 +299,6 @@ class ReservaResponse(BaseModel):
     # exponerse aquí.
     recurso_ids: list[int] = Field(default_factory=list)
     recursos: list[RecursoReservaResponse] = Field(default_factory=list)
-    zona_ids: list[int] = Field(default_factory=list)
-    zonas: list[ZonaReservaResponse] = Field(default_factory=list)
-    ensayo_ids: list[int] = Field(default_factory=list)
-    ensayos: list[EnsayoReservaResponse] = Field(default_factory=list)
+    espacio_ids: list[int] = Field(default_factory=list)
+    espacios: list[EspacioReservaResponse] = Field(default_factory=list)
     acompanantes: list[ReservaAcompananteResponse] = Field(default_factory=list)
-
-
-class OcurrenciaOmitida(BaseModel):
-    """Una fecha de la serie que no se pudo crear (Fase 2026-08-29, reservas
-    recurrentes -- "mejor esfuerzo")."""
-
-    fecha: date
-    motivo: str
-
-
-class ReservaSerieResponse(BaseModel):
-    """Respuesta de `POST /reservas` cuando se pidió `repetir_semanas`
-    (ver `ReservaCreate`) -- reemplaza el `ReservaResponse` único de
-    siempre solo en ese caso; sin recurrencia, el endpoint sigue
-    devolviendo exactamente `ReservaResponse`."""
-
-    creadas: list[ReservaResponse]
-    omitidas: list[OcurrenciaOmitida]
-
-
-class OcurrenciaCancelOmitida(BaseModel):
-    """Una ocurrencia de la serie que no se pudo cancelar (Fase 2026-08-29,
-    gestión de serie completa -- "mejor esfuerzo": ya estaba cancelada, no
-    era propia, o no estaba `aprobada`)."""
-
-    reserva_id: int
-    motivo: str
-
-
-class ReservaSerieCancelResponse(BaseModel):
-    """Respuesta de `PUT /reservas/serie/{serie_id}/cancelar`."""
-
-    canceladas: list[ReservaResponse]
-    omitidas: list[OcurrenciaCancelOmitida]

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api import admin_dashboard, auth, control_cambios, ensayos, espacios, lista_espera, notificaciones, personal, recursos, reservas, usuarios, zonas
+from app.api import admin_dashboard, auth, control_cambios, espacios, laboratorios, lista_espera, notificaciones, personal, recursos, reservas, tipos_reserva, usuarios
 from app.config import settings
 from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
@@ -180,10 +180,10 @@ def seed_admin_user() -> None:
     db: Session = SessionLocal()
     try:
         from app.models.personal import Personal
-        from app.initial_data.espacios import init_espacios
+        from app.initial_data.laboratorios import init_laboratorios
 
-        # Poblar espacios iniciales
-        init_espacios(db)
+        # Poblar laboratorios iniciales
+        init_laboratorios(db)
 
         # El admin inicial vive en `personal` desde la separación
         # personal/usuarios (2026-08-28, ver
@@ -236,10 +236,10 @@ app.include_router(admin_dashboard.gestion_router)
 app.include_router(control_cambios.router)
 app.include_router(usuarios.router)
 app.include_router(personal.router)
-app.include_router(espacios.router)
+app.include_router(laboratorios.router)
 app.include_router(recursos.router)
-app.include_router(zonas.router)
-app.include_router(ensayos.router)
+app.include_router(espacios.router)
+app.include_router(tipos_reserva.router)
 app.include_router(reservas.router)
 app.include_router(notificaciones.router)
 app.include_router(lista_espera.router)

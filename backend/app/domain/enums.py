@@ -25,31 +25,16 @@ class Rol(str, Enum):
     ADMIN = "admin"
 
 
-class ModalidadEspacio(str, Enum):
-    """Modalidad de reserva configurada por espacio (RN-006, Fase 12B).
-
-    Nombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente
-    distinto de `tipo` (RN-012, Fase 12D), el tipo de reserva académica de
-    `Reserva`, que es un concepto distinto aunque el documento fuente usa
-    nombres parecidos para ambos (`tipo_reserva` en el legado).
-    """
-
-    EQUIPOS = "equipos"
-    ZONAS = "zonas"
-    MIXTO = "mixto"
-
-
 class TipoReserva(str, Enum):
     """Tipo de reserva académica de `Reserva` (RN-012/RN-015, Fase 12D).
 
     Nombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba
     el código y la documentación como punto de extensión pendiente antes de
-    existir (services/reservas.py::validar_acceso_ps, models/README.md).
-    Tres valores exactos del roadmap aprobado, sin catálogo "otro":
-    TRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO (grado,
-    proyectos de grado) y SERVICIO_DE_ENSAYO (ensayo, prestación de
-    servicios). `servicio_de_ensayo` es el valor que el gate PS de la
-    Fase 12D exige para reservar un recurso marcado como PS.
+    existir (models/README.md). Tres valores exactos del roadmap aprobado,
+    sin catálogo "otro": TRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO
+    (grado, proyectos de grado) y SERVICIO_DE_ENSAYO (ensayo). El gate de
+    prestación de servicios que antes exigía este valor para reservar un
+    recurso PS se quitó del flujo de reserva (ver backend/CLAUDE.md).
     """
 
     TRABAJO_INVESTIGACION = "trabajo_investigacion"
@@ -61,8 +46,7 @@ class TipoSolicitud(str, Enum):
     """Motivo de la solicitud (Fase B), del formulario real de solicitud de
     laboratorios del ITM. Nombre del campo en `Reserva`: `tipo_solicitud`
     -- concepto DISTINTO de `tipo` (académico: trabajo_investigacion/
-    trabajo_grado/servicio_de_ensayo, `TipoReserva` arriba) y de
-    `modalidad_reserva` de `Espacio` (`ModalidadEspacio`): los tres tienen
+    trabajo_grado/servicio_de_ensayo, `TipoReserva` arriba): los dos tienen
     nombres parecidos pero responden preguntas distintas.
 
     El formulario real tiene 4 motivos; solo los 2 primeros viven acá.

@@ -32,7 +32,7 @@ class EmptyView extends StatelessWidget {
   /// Una línea de contexto: qué puede hacer el usuario al respecto.
   final String? detalle;
 
-  /// Acción primaria, si la hay ("Ver espacios", "Limpiar filtros").
+  /// Acción primaria, si la hay ("Ver laboratorios", "Limpiar filtros").
   final Widget? accion;
 
   @override

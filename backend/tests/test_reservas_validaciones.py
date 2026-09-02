@@ -3,10 +3,10 @@
 
 Reglas cubiertas:
 - Validación de horario: inicio < fin y contención en horario_atencion.
-- Anticipación mínima por espacio usando la hora local (reloj inyectable
+- Anticipación mínima por laboratorio usando la hora local (reloj inyectable
   vía monkeypatch sobre `app.services.reservas.ahora_local`).
 - Máquina de transiciones de estado.
-- Capacidad y estado activo del recurso y su espacio.
+- Capacidad y estado activo del recurso y su laboratorio.
 """
 
 from datetime import date, datetime, time
@@ -15,7 +15,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.domain.enums import EstadoReserva
-from app.models import Espacio, Recurso
+from app.models import Laboratorio, Recurso
 from app.services import reservas as servicios
 
 
@@ -27,8 +27,8 @@ class _RelojFijo:
         return self._valor
 
 
-def _espacio(horario=None, horas_antelacion=24, estado="activo"):
-    return Espacio(
+def _laboratorio(horario=None, horas_antelacion=24, estado="activo"):
+    return Laboratorio(
         nombre="Sala",
         capacidad=10,
         estado=estado,
@@ -37,13 +37,13 @@ def _espacio(horario=None, horas_antelacion=24, estado="activo"):
     )
 
 
-def _recurso(estado="activo", espacio=None):
+def _recurso(estado="activo", laboratorio=None):
     return Recurso(
         nombre="Recurso",
         capacidad=10,
         estado=estado,
-        espacio=espacio or _espacio(),
-        espacio_id=1,
+        laboratorio=laboratorio or _laboratorio(),
+        laboratorio_id=1,
         tipo_recurso_id=1,
         created_by=1,
         update_by=1,
@@ -53,30 +53,30 @@ def _recurso(estado="activo", espacio=None):
 class TestValidarHorario:
     def test_inicio_mayor_que_fin_da_400(self):
         with pytest.raises(HTTPException) as exc:
-            servicios.validar_horario(_espacio(), date(2026, 8, 17), time(10, 0), time(8, 0))
+            servicios.validar_horario(_laboratorio(), date(2026, 8, 17), time(10, 0), time(8, 0))
         assert exc.value.status_code == 400
 
     def test_horario_no_habilitado_da_400(self):
         with pytest.raises(HTTPException) as exc:
-            servicios.validar_horario(_espacio(), date(2026, 8, 17), time(20, 0), time(21, 0))
+            servicios.validar_horario(_laboratorio(), date(2026, 8, 17), time(20, 0), time(21, 0))
         assert exc.value.status_code == 400
 
     def test_horario_valido_no_levanta(self):
-        servicios.validar_horario(_espacio(), date(2026, 8, 17), time(8, 0), time(10, 0))
+        servicios.validar_horario(_laboratorio(), date(2026, 8, 17), time(8, 0), time(10, 0))
 
 
 class TestValidarAnticipacion:
     def test_dentro_de_antelacion_da_400(self):
-        espacio = _espacio(horas_antelacion=24)
+        laboratorio = _laboratorio(horas_antelacion=24)
         reloj = _RelojFijo(datetime(2026, 8, 17, 10, 0))
         with pytest.raises(HTTPException) as exc:
-            servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(9, 0), reloj=reloj)
+            servicios.validar_anticipacion(laboratorio, date(2026, 8, 18), time(9, 0), reloj=reloj)
         assert exc.value.status_code == 400
 
     def test_fuera_de_antelacion_no_levanta(self):
-        espacio = _espacio(horas_antelacion=24)
+        laboratorio = _laboratorio(horas_antelacion=24)
         reloj = _RelojFijo(datetime(2026, 8, 17, 10, 0))
-        servicios.validar_anticipacion(espacio, date(2026, 8, 18), time(11, 0), reloj=reloj)
+        servicios.validar_anticipacion(laboratorio, date(2026, 8, 18), time(11, 0), reloj=reloj)
 
 
 class TestValidarTransicion:
@@ -136,11 +136,11 @@ class TestValidarRecursoActivo:
             servicios.validar_recurso_activo(_recurso(estado="inactivo"))
         assert exc.value.status_code == 400
 
-    def test_espacio_inactivo_da_400(self):
-        espacio = _espacio(estado="inactivo")
+    def test_laboratorio_inactivo_da_400(self):
+        laboratorio = _laboratorio(estado="inactivo")
         with pytest.raises(HTTPException) as exc:
-            servicios.validar_recurso_activo(_recurso(espacio=espacio))
+            servicios.validar_recurso_activo(_recurso(laboratorio=laboratorio))
         assert exc.value.status_code == 400
 
-    def test_recurso_y_espacio_activos_no_levantan(self):
+    def test_recurso_y_laboratorio_activos_no_levantan(self):
         servicios.validar_recurso_activo(_recurso())

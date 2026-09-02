@@ -9,7 +9,7 @@ from app.auth.auth import NOMBRE_COOKIE_ACCESO
 from app.config import settings
 from app.crud.identidad import buscar_por_supabase_id
 from app.db import get_db
-from app.models import Personal, Usuario, UsuarioEspacio
+from app.models import Personal, Usuario, UsuarioLaboratorio
 from app.services.supabase_jwks import obtener_clave as obtener_clave_jwks
 
 
@@ -160,20 +160,20 @@ def require_resource_manager(current_user: Personal | Usuario = Depends(get_curr
     return current_user
 
 
-def get_managed_space_id(db: Session, usuario: Personal) -> int | None:
+def get_managed_laboratory_id(db: Session, usuario: Personal) -> int | None:
     if usuario.rol == "admin":
         return None
     asignacion = (
-        db.query(UsuarioEspacio)
-        .filter(UsuarioEspacio.usuario_id == usuario.id)
+        db.query(UsuarioLaboratorio)
+        .filter(UsuarioLaboratorio.usuario_id == usuario.id)
         .first()
     )
     if asignacion is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="El gestor no tiene un espacio asignado",
+            detail="El gestor no tiene un laboratorio asignado",
         )
-    return asignacion.espacio_id
+    return asignacion.laboratorio_id
 
 
 def get_current_user_optional(
@@ -184,7 +184,7 @@ def get_current_user_optional(
 
     Sin `Depends(cookie_auth)` a propósito, para NO añadir el esquema de
     seguridad al OpenAPI de los endpoints públicos que lo usan (RN-005 en
-    GET /espacios). Un token inválido se trata como acceso anónimo.
+    GET /laboratorios). Un token inválido se trata como acceso anónimo.
     """
     token = request.cookies.get(NOMBRE_COOKIE_ACCESO)
     if not token:

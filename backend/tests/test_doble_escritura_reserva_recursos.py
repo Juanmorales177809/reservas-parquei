@@ -5,7 +5,7 @@ Al crear una `Reserva` singular o modificar su recurso, fecha, horas o
 estado, `services/reservas.py` mantiene `reservas` y exactamente una fila
 por reserva en `reserva_recursos`, con las columnas desnormalizadas
 (`fecha`, `hora_inicio`, `hora_fin`, `estado`) y el `recurso_id`
-sincronizados. En 12C-6 el contrato pasó a `recurso_ids`/`zona_ids`; estas
+sincronizados. En 12C-6 el contrato pasó a `recurso_ids`/`espacio_ids`; estas
 pruebas (regresión del flujo singular) crean y actualizan reservas a través
 del eje `recurso_ids` y verifican que la invariante de una sola fila
 sincronizada se mantiene bajo el nuevo mecanismo de reescritura de
@@ -26,7 +26,7 @@ from sqlalchemy import text
 from app.migrations import migrate_resource_reservations
 from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
-from app.models.reserva_zona import ReservaZona
+from app.models.reserva_espacio import ReservaEspacio
 from app.schemas.reserva import ReservaCreate, ReservaUpdate
 from app.services.reservas import (
     actualizar_reserva,
@@ -35,20 +35,20 @@ from app.services.reservas import (
     crear_reserva,
 )
 from app.services.actores import columnas_actor
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario, fecha_habilitada
 
 
 def _setup(db, *, rol="usuario", es_gestor_del_espacio=False):
-    espacio = crear_espacio(db)
+    laboratorio = crear_laboratorio(db)
     usuario = crear_usuario(
         db,
         username=f"dd_{rol}_{es_gestor_del_espacio}",
         email=f"dd_{rol}_{es_gestor_del_espacio}@example.com",
         rol=rol,
-        espacio_id=espacio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
+        laboratorio_id=laboratorio.id if (rol == "gestor" and es_gestor_del_espacio) else None,
     )
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-    return usuario, espacio, recurso
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+    return usuario, laboratorio, recurso
 
 
 def _crear_reserva_servicio(
@@ -127,21 +127,21 @@ class TestCreacion:
             total_filas=1,
         )
 
-    def test_crear_no_escribe_en_reserva_zonas(self, db):
-        """No se habilita reserva solo por zona en esta subfase:
+    def test_crear_no_escribe_en_reserva_espacios(self, db):
+        """No se habilita reserva solo por espacio en esta subfase:
         la creación de una reserva de recurso no produce ninguna fila en
-        `reserva_zonas`."""
+        `reserva_espacios`."""
         usuario, _, recurso = _setup(db)
         _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha_habilitada())
 
         assert db.query(ReservaRecurso).count() == 1
-        assert db.query(ReservaZona).count() == 0
+        assert db.query(ReservaEspacio).count() == 0
 
 
 class TestActualizarRecurso:
     def test_cambiar_recurso_sincroniza_recurso_id_sin_duplicar_fila(self, db):
-        usuario, espacio, recurso_a = _setup(db)
-        recurso_b = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Recurso B")
+        usuario, laboratorio, recurso_a = _setup(db)
+        recurso_b = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Recurso B")
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso_a.id, fecha=fecha)
 
@@ -197,18 +197,18 @@ class TestActualizarFechaHora:
 
 
 class TestCambioEstado:
-    def _setup_gestor(self, db, espacio):
+    def _setup_gestor(self, db, laboratorio):
         return crear_usuario(
             db,
             username="dd_gestor_estado",
             email="dd_gestor_estado@example.com",
             rol="gestor",
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
         )
 
     def test_aprobar_sincroniza_estado(self, db):
-        usuario, espacio, recurso = _setup(db)
-        gestor = self._setup_gestor(db, espacio)
+        usuario, laboratorio, recurso = _setup(db)
+        gestor = self._setup_gestor(db, laboratorio)
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha)
 
@@ -222,8 +222,8 @@ class TestCambioEstado:
         )
 
     def test_rechazar_sincroniza_estado(self, db):
-        usuario, espacio, recurso = _setup(db)
-        gestor = self._setup_gestor(db, espacio)
+        usuario, laboratorio, recurso = _setup(db)
+        gestor = self._setup_gestor(db, laboratorio)
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha)
 
@@ -237,8 +237,8 @@ class TestCambioEstado:
         )
 
     def test_cancelar_por_usuario_sincroniza_estado(self, db):
-        usuario, espacio, recurso = _setup(db)
-        gestor = self._setup_gestor(db, espacio)
+        usuario, laboratorio, recurso = _setup(db)
+        gestor = self._setup_gestor(db, laboratorio)
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha)
         cambiar_estado(db, reserva.id, "aprobada", gestor)
@@ -302,8 +302,8 @@ class TestSolapamiento:
         `reserva_recursos` y el 409 lo produce el propio servicio; la
         constraint de la base queda como segunda línea de defensa. En ambos
         casos la transacción entera debe revertirse (sin filas parciales)."""
-        usuario, espacio, recurso_ancla = _setup(db)
-        recurso_bajo_prueba = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Bajo Prueba")
+        usuario, laboratorio, recurso_ancla = _setup(db)
+        recurso_bajo_prueba = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Bajo Prueba")
         fecha = fecha_habilitada()
         ancla = _crear_reserva_servicio(db, usuario, recurso_id=recurso_ancla.id, fecha=fecha)
         db.add(ReservaRecurso(
@@ -329,8 +329,8 @@ class TestSolapamiento:
         recurso/horario ocupado solo en `reserva_recursos` debe fallar con
         409 y revertir completo (la reserva conserva su recurso y horario
         originales en ambas tablas)."""
-        usuario, espacio, recurso_ancla = _setup(db)
-        recurso_bajo_prueba = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Bajo Prueba")
+        usuario, laboratorio, recurso_ancla = _setup(db)
+        recurso_bajo_prueba = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Bajo Prueba")
         fecha = fecha_habilitada()
         ancla = _crear_reserva_servicio(db, usuario, recurso_id=recurso_ancla.id, fecha=fecha)
         reserva_b = _crear_reserva_servicio(
@@ -379,13 +379,13 @@ class TestReservaHistoricaBackfilled:
         por `migrate_resource_reservations()` (12C-4b) conserva su única fila:
         al actualizarla por el servicio, la fila existente se actualiza en
         lugar de crearse una nueva."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="dd_hist_bk", email="dd_hist_bk@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         fecha = fecha_habilitada()
         reserva = Reserva(
             **columnas_actor(admin),
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
             recurso_id=recurso.id,
             fecha=fecha,
             hora_inicio=time(8, 0),
@@ -421,14 +421,14 @@ class TestInvariantesExactas:
         """Ciclo de vida completo (crear → cambiar recurso → cambiar
         fecha/horas → aprobar → cancelar) mantiene la invariante de
         exactamente una fila sincronizada en cada paso."""
-        usuario, espacio, recurso_a = _setup(db)
-        recurso_b = crear_recurso(db, espacio=espacio, usuario=usuario, nombre="Recurso B")
+        usuario, laboratorio, recurso_a = _setup(db)
+        recurso_b = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Recurso B")
         gestor = crear_usuario(
             db,
             username="dd_gestor_inv",
             email="dd_gestor_inv@example.com",
             rol="gestor",
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
         )
         fecha = fecha_habilitada()
 
@@ -481,13 +481,13 @@ class TestAusenciaDeBloqueos:
         'idle in transaction' ni esperando un lock (mismo chequeo que el test
         de migración de 12C-4b/12C-4c, ahora para las operaciones de
         servicio)."""
-        usuario, espacio, recurso = _setup(db)
+        usuario, laboratorio, recurso = _setup(db)
         gestor = crear_usuario(
             db,
             username="dd_gestor_lock",
             email="dd_gestor_lock@example.com",
             rol="gestor",
-            espacio_id=espacio.id,
+            laboratorio_id=laboratorio.id,
         )
         fecha = fecha_habilitada()
         reserva = _crear_reserva_servicio(db, usuario, recurso_id=recurso.id, fecha=fecha)

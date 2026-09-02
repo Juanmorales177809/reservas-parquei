@@ -37,7 +37,7 @@
               }
             ]
           },
-          "espacio_nombre": {
+          "laboratorio_nombre": {
             "anyOf": [
               {
                 "type": "string"
@@ -46,7 +46,7 @@
                 "type": "null"
               }
             ],
-            "title": "Espacio Nombre"
+            "title": "Laboratorio Nombre"
           },
           "ocupacion_global": {
             "$ref": "#/components/schemas/OcupacionGlobal"
@@ -73,13 +73,6 @@
             "title": "Reservas Pendientes",
             "type": "integer"
           },
-          "reservas_por_espacio": {
-            "items": {
-              "$ref": "#/components/schemas/ReservasPorEspacio"
-            },
-            "title": "Reservas Por Espacio",
-            "type": "array"
-          },
           "reservas_por_estado": {
             "$ref": "#/components/schemas/ReservasPorEstado"
           },
@@ -88,6 +81,13 @@
               "$ref": "#/components/schemas/ReservasPorFecha"
             },
             "title": "Reservas Por Fecha",
+            "type": "array"
+          },
+          "reservas_por_laboratorio": {
+            "items": {
+              "$ref": "#/components/schemas/ReservasPorLaboratorio"
+            },
+            "title": "Reservas Por Laboratorio",
             "type": "array"
           },
           "total_reservas": {
@@ -106,7 +106,7 @@
           "usuarios",
           "reservas_por_estado",
           "reservas_por_fecha",
-          "reservas_por_espacio",
+          "reservas_por_laboratorio",
           "recursos_mas_reservados",
           "ocupacion_por_dia_hora",
           "ocupacion_global"
@@ -114,7 +114,7 @@
         "title": "AdminDashboardSummary",
         "type": "object"
       },
-      "ConfiguracionEspacioResponse": {
+      "ConfiguracionLaboratorioResponse": {
         "properties": {
           "aprobacion_automatica": {
             "title": "Aprobacion Automatica",
@@ -126,14 +126,6 @@
             },
             "title": "Dias Atencion",
             "type": "array"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
-          "espacio_nombre": {
-            "title": "Espacio Nombre",
-            "type": "string"
           },
           "hora_apertura": {
             "format": "time",
@@ -158,11 +150,19 @@
           "horas_antelacion": {
             "title": "Horas Antelacion",
             "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "laboratorio_nombre": {
+            "title": "Laboratorio Nombre",
+            "type": "string"
           }
         },
         "required": [
-          "espacio_id",
-          "espacio_nombre",
+          "laboratorio_id",
+          "laboratorio_nombre",
           "dias_atencion",
           "hora_apertura",
           "hora_cierre",
@@ -170,10 +170,10 @@
           "horas_antelacion",
           "aprobacion_automatica"
         ],
-        "title": "ConfiguracionEspacioResponse",
+        "title": "ConfiguracionLaboratorioResponse",
         "type": "object"
       },
-      "ConfiguracionEspacioUpdate": {
+      "ConfiguracionLaboratorioUpdate": {
         "properties": {
           "aprobacion_automatica": {
             "title": "Aprobacion Automatica",
@@ -201,7 +201,7 @@
           "horas_antelacion",
           "aprobacion_automatica"
         ],
-        "title": "ConfiguracionEspacioUpdate",
+        "title": "ConfiguracionLaboratorioUpdate",
         "type": "object"
       },
       "ControlCambioResponse": {
@@ -388,33 +388,114 @@
         "title": "DisponibilidadSlot",
         "type": "object"
       },
-      "EnsayoCreate": {
+      "EspacioCreate": {
         "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad",
             "default": "activo"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
           },
           "nombre": {
             "maxLength": 100,
             "minLength": 1,
             "title": "Nombre",
             "type": "string"
-          },
-          "zona_id": {
-            "title": "Zona Id",
-            "type": "integer"
           }
         },
         "required": [
           "nombre",
-          "zona_id"
+          "laboratorio_id"
         ],
-        "title": "EnsayoCreate",
+        "title": "EspacioCreate",
         "type": "object"
       },
-      "EnsayoReservaResponse": {
-        "description": "Ensayo asociado a una reserva (Fase 12E, N:1 Zona). Subset mínimo\npara la respuesta de reserva, mismo criterio que ZonaReservaResponse.",
+      "EspacioRecursosResponse": {
+        "description": "Respuesta de PUT /espacios/{espacio_id}/recursos. Deliberadamente no\nextiende EspacioResponse (que no incluye `recursos` todavía, ver 12C-2) —\nesta subfase agrega su propio schema mínimo en vez de ampliar el\ncontrato ya aprobado de EspacioResponse sin necesidad.",
         "properties": {
+          "espacio_id": {
+            "title": "Espacio Id",
+            "type": "integer"
+          },
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "espacio_id",
+          "recurso_ids"
+        ],
+        "title": "EspacioRecursosResponse",
+        "type": "object"
+      },
+      "EspacioRecursosUpdate": {
+        "description": "Fase 12C-3: reemplazo completo de la asociación Espacio<->Recurso.",
+        "properties": {
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          }
+        },
+        "title": "EspacioRecursosUpdate",
+        "type": "object"
+      },
+      "EspacioReservaResponse": {
+        "description": "Espacio asociado a una reserva (Fase 12C-6). Misma base mínima que\n`EspacioResponse` sin timestamps/auditoría — suficiente para la\nrespuesta de la reserva y los mensajes de notificación.",
+        "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
           },
@@ -422,26 +503,39 @@
             "title": "Id",
             "type": "integer"
           },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
           "nombre": {
             "title": "Nombre",
             "type": "string"
-          },
-          "zona_id": {
-            "title": "Zona Id",
-            "type": "integer"
           }
         },
         "required": [
           "id",
           "nombre",
-          "zona_id",
+          "laboratorio_id",
+          "descripcion",
+          "capacidad",
           "estado"
         ],
-        "title": "EnsayoReservaResponse",
+        "title": "EspacioReservaResponse",
         "type": "object"
       },
-      "EnsayoResponse": {
+      "EspacioResponse": {
         "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -458,6 +552,17 @@
             ],
             "title": "Created By"
           },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
           },
@@ -465,9 +570,20 @@
             "title": "Id",
             "type": "integer"
           },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
           "nombre": {
             "title": "Nombre",
             "type": "string"
+          },
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -484,27 +600,48 @@
               }
             ],
             "title": "Updated By"
-          },
-          "zona_id": {
-            "title": "Zona Id",
-            "type": "integer"
           }
         },
         "required": [
           "id",
           "nombre",
-          "zona_id",
+          "laboratorio_id",
+          "descripcion",
+          "capacidad",
           "estado",
           "created_at",
           "updated_at",
           "created_by",
           "updated_by"
         ],
-        "title": "EnsayoResponse",
+        "title": "EspacioResponse",
         "type": "object"
       },
-      "EnsayoUpdate": {
+      "EspacioUpdate": {
         "properties": {
+          "capacidad": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacidad"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
           "estado": {
             "anyOf": [
               {
@@ -514,6 +651,17 @@
                 "type": "null"
               }
             ]
+          },
+          "laboratorio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Laboratorio Id"
           },
           "nombre": {
             "anyOf": [
@@ -527,23 +675,56 @@
               }
             ],
             "title": "Nombre"
-          },
-          "zona_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Zona Id"
           }
         },
-        "title": "EnsayoUpdate",
+        "title": "EspacioUpdate",
         "type": "object"
       },
-      "EspacioCreate": {
+      "EstadoEntidad": {
+        "description": "Estado de entidades gestionables (espacios y recursos).",
+        "enum": [
+          "activo",
+          "inactivo",
+          "mantenimiento"
+        ],
+        "title": "EstadoEntidad",
+        "type": "string"
+      },
+      "EstadoReserva": {
+        "description": "Estados del ciclo de vida de una reserva.",
+        "enum": [
+          "esperando",
+          "aprobada",
+          "rechazada",
+          "cancelada"
+        ],
+        "title": "EstadoReserva",
+        "type": "string"
+      },
+      "EstadoSlot": {
+        "description": "Estado de una franja horaria en la respuesta de disponibilidad.",
+        "enum": [
+          "libre",
+          "ocupado",
+          "mantenimiento"
+        ],
+        "title": "EstadoSlot",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LaboratorioCreate": {
         "properties": {
           "capacidad": {
             "exclusiveMinimum": 0.0,
@@ -559,10 +740,6 @@
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad",
             "default": "activo"
-          },
-          "modalidad_reserva": {
-            "$ref": "#/components/schemas/ModalidadEspacio",
-            "default": "equipos"
           },
           "nombre": {
             "maxLength": 100,
@@ -582,10 +759,10 @@
           "capacidad",
           "correo"
         ],
-        "title": "EspacioCreate",
+        "title": "LaboratorioCreate",
         "type": "object"
       },
-      "EspacioReservaResponse": {
+      "LaboratorioReservaResponse": {
         "properties": {
           "capacidad": {
             "anyOf": [
@@ -615,10 +792,10 @@
           "nombre",
           "estado"
         ],
-        "title": "EspacioReservaResponse",
+        "title": "LaboratorioReservaResponse",
         "type": "object"
       },
-      "EspacioResponse": {
+      "LaboratorioResponse": {
         "properties": {
           "capacidad": {
             "title": "Capacidad",
@@ -673,9 +850,6 @@
             "title": "Id",
             "type": "integer"
           },
-          "modalidad_reserva": {
-            "$ref": "#/components/schemas/ModalidadEspacio"
-          },
           "nombre": {
             "title": "Nombre",
             "type": "string"
@@ -695,13 +869,12 @@
           "hora_apertura",
           "hora_cierre",
           "horario_atencion",
-          "horas_antelacion",
-          "modalidad_reserva"
+          "horas_antelacion"
         ],
-        "title": "EspacioResponse",
+        "title": "LaboratorioResponse",
         "type": "object"
       },
-      "EspacioUpdate": {
+      "LaboratorioUpdate": {
         "properties": {
           "capacidad": {
             "anyOf": [
@@ -738,16 +911,6 @@
               }
             ]
           },
-          "modalidad_reserva": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModalidadEspacio"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "nombre": {
             "anyOf": [
               {
@@ -774,51 +937,7 @@
             "title": "Ubicacion"
           }
         },
-        "title": "EspacioUpdate",
-        "type": "object"
-      },
-      "EstadoEntidad": {
-        "description": "Estado de entidades gestionables (espacios y recursos).",
-        "enum": [
-          "activo",
-          "inactivo",
-          "mantenimiento"
-        ],
-        "title": "EstadoEntidad",
-        "type": "string"
-      },
-      "EstadoReserva": {
-        "description": "Estados del ciclo de vida de una reserva.",
-        "enum": [
-          "esperando",
-          "aprobada",
-          "rechazada",
-          "cancelada"
-        ],
-        "title": "EstadoReserva",
-        "type": "string"
-      },
-      "EstadoSlot": {
-        "description": "Estado de una franja horaria en la respuesta de disponibilidad.",
-        "enum": [
-          "libre",
-          "ocupado",
-          "mantenimiento"
-        ],
-        "title": "EstadoSlot",
-        "type": "string"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
+        "title": "LaboratorioUpdate",
         "type": "object"
       },
       "ListaEsperaCreate": {
@@ -911,16 +1030,6 @@
         ],
         "title": "LoginResponse",
         "type": "object"
-      },
-      "ModalidadEspacio": {
-        "description": "Modalidad de reserva configurada por espacio (RN-006, Fase 12B).\n\nNombre del campo en `Espacio`: `modalidad_reserva` — deliberadamente\ndistinto de `tipo` (RN-012, Fase 12D), el tipo de reserva académica de\n`Reserva`, que es un concepto distinto aunque el documento fuente usa\nnombres parecidos para ambos (`tipo_reserva` en el legado).",
-        "enum": [
-          "equipos",
-          "zonas",
-          "mixto"
-        ],
-        "title": "ModalidadEspacio",
-        "type": "string"
       },
       "NotificacionResponse": {
         "properties": {
@@ -1036,45 +1145,6 @@
         "title": "OcupacionGlobal",
         "type": "object"
       },
-      "OcurrenciaCancelOmitida": {
-        "description": "Una ocurrencia de la serie que no se pudo cancelar (Fase 2026-08-29,\ngestión de serie completa -- \"mejor esfuerzo\": ya estaba cancelada, no\nera propia, o no estaba `aprobada`).",
-        "properties": {
-          "motivo": {
-            "title": "Motivo",
-            "type": "string"
-          },
-          "reserva_id": {
-            "title": "Reserva Id",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "reserva_id",
-          "motivo"
-        ],
-        "title": "OcurrenciaCancelOmitida",
-        "type": "object"
-      },
-      "OcurrenciaOmitida": {
-        "description": "Una fecha de la serie que no se pudo crear (Fase 2026-08-29, reservas\nrecurrentes -- \"mejor esfuerzo\").",
-        "properties": {
-          "fecha": {
-            "format": "date",
-            "title": "Fecha",
-            "type": "string"
-          },
-          "motivo": {
-            "title": "Motivo",
-            "type": "string"
-          }
-        },
-        "required": [
-          "fecha",
-          "motivo"
-        ],
-        "title": "OcurrenciaOmitida",
-        "type": "object"
-      },
       "PerfilUpdate": {
         "additionalProperties": false,
         "description": "Body de `PUT /usuarios/me` (self-service, cualquier rol autenticado).\n\nContiene EXCLUSIVAMENTE los campos de perfil -- nunca `rol`,\n`espacio_id`, `username` ni `email`. `extra=\"forbid\"` hace que mandar\ncualquier otro campo (ej. `{\"rol\": \"admin\"}`) sea un 422 de validación,\nno un campo ignorado en silencio: la escalada de privilegios es\nestructuralmente imposible acá, no depende de que el handler se\nacuerde de filtrar. No reusar `UsuarioUpdate` para este endpoint bajo\nninguna circunstancia -- ver `backend/CLAUDE.md`.",
@@ -1169,7 +1239,7 @@
             "title": "Email",
             "type": "string"
           },
-          "espacio_id": {
+          "laboratorio_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -1178,7 +1248,7 @@
                 "type": "null"
               }
             ],
-            "title": "Espacio Id"
+            "title": "Laboratorio Id"
           },
           "rol": {
             "$ref": "#/components/schemas/Rol",
@@ -1237,17 +1307,6 @@
             ],
             "title": "Email"
           },
-          "espacio_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Espacio Id"
-          },
           "institucion": {
             "anyOf": [
               {
@@ -1259,6 +1318,17 @@
               }
             ],
             "title": "Institucion"
+          },
+          "laboratorio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Laboratorio Id"
           },
           "rol": {
             "anyOf": [
@@ -1347,7 +1417,11 @@
             "title": "Es Prestacion Servicio",
             "type": "boolean"
           },
-          "espacio_id": {
+          "estado": {
+            "$ref": "#/components/schemas/EstadoEntidad",
+            "default": "activo"
+          },
+          "laboratorio_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -1356,11 +1430,7 @@
                 "type": "null"
               }
             ],
-            "title": "Espacio Id"
-          },
-          "estado": {
-            "$ref": "#/components/schemas/EstadoEntidad",
-            "default": "activo"
+            "title": "Laboratorio Id"
           },
           "nombre": {
             "maxLength": 100,
@@ -1417,15 +1487,15 @@
             ],
             "title": "Capacidad"
           },
-          "espacio": {
-            "$ref": "#/components/schemas/EspacioReservaResponse"
-          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
           },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "laboratorio": {
+            "$ref": "#/components/schemas/LaboratorioReservaResponse"
           },
           "nombre": {
             "title": "Nombre",
@@ -1436,7 +1506,7 @@
           "id",
           "nombre",
           "estado",
-          "espacio"
+          "laboratorio"
         ],
         "title": "RecursoReservaResponse",
         "type": "object"
@@ -1462,18 +1532,18 @@
             "title": "Es Prestacion Servicio",
             "type": "boolean"
           },
-          "espacio": {
-            "$ref": "#/components/schemas/EspacioResponse"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
           "estado": {
             "$ref": "#/components/schemas/EstadoEntidad"
           },
           "id": {
             "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio": {
+            "$ref": "#/components/schemas/LaboratorioResponse"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
             "type": "integer"
           },
           "nombre": {
@@ -1502,12 +1572,12 @@
         "required": [
           "id",
           "nombre",
-          "espacio_id",
+          "laboratorio_id",
           "tipo_recurso_id",
           "descripcion",
           "capacidad",
           "estado",
-          "espacio",
+          "laboratorio",
           "tipo",
           "es_prestacion_servicio"
         ],
@@ -1550,17 +1620,6 @@
             ],
             "title": "Es Prestacion Servicio"
           },
-          "espacio_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Espacio Id"
-          },
           "estado": {
             "anyOf": [
               {
@@ -1570,6 +1629,17 @@
                 "type": "null"
               }
             ]
+          },
+          "laboratorio_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Laboratorio Id"
           },
           "nombre": {
             "anyOf": [
@@ -1710,11 +1780,11 @@
             ],
             "title": "Descripcion"
           },
-          "ensayo_ids": {
+          "espacio_ids": {
             "items": {
               "type": "integer"
             },
-            "title": "Ensayo Ids",
+            "title": "Espacio Ids",
             "type": "array"
           },
           "fecha": {
@@ -1732,38 +1802,12 @@
             "title": "Hora Inicio",
             "type": "string"
           },
-          "numero_ocurrencias": {
-            "anyOf": [
-              {
-                "maximum": 52.0,
-                "minimum": 2.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Numero Ocurrencias"
-          },
           "recurso_ids": {
             "items": {
               "type": "integer"
             },
             "title": "Recurso Ids",
             "type": "array"
-          },
-          "repetir_semanas": {
-            "anyOf": [
-              {
-                "maximum": 52.0,
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Repetir Semanas"
           },
           "requiere_apoyo_auxiliar": {
             "default": false,
@@ -1780,6 +1824,17 @@
               }
             ]
           },
+          "tipo_reserva_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Reserva Id"
+          },
           "tipo_solicitud": {
             "$ref": "#/components/schemas/TipoSolicitud",
             "default": "reserva_en_laboratorio"
@@ -1795,13 +1850,6 @@
               }
             ],
             "title": "Ubicacion Uso"
-          },
-          "zona_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Zona Ids",
-            "type": "array"
           }
         },
         "required": [
@@ -1883,26 +1931,19 @@
             ],
             "title": "Descripcion"
           },
-          "ensayo_ids": {
+          "espacio_ids": {
             "items": {
               "type": "integer"
             },
-            "title": "Ensayo Ids",
+            "title": "Espacio Ids",
             "type": "array"
           },
-          "ensayos": {
+          "espacios": {
             "items": {
-              "$ref": "#/components/schemas/EnsayoReservaResponse"
+              "$ref": "#/components/schemas/EspacioReservaResponse"
             },
-            "title": "Ensayos",
+            "title": "Espacios",
             "type": "array"
-          },
-          "espacio": {
-            "$ref": "#/components/schemas/EspacioReservaResponse"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
           },
           "estado": {
             "$ref": "#/components/schemas/EstadoReserva"
@@ -1924,6 +1965,13 @@
           },
           "id": {
             "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio": {
+            "$ref": "#/components/schemas/LaboratorioReservaResponse"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
             "type": "integer"
           },
           "motivo_rechazo": {
@@ -1955,18 +2003,6 @@
             "title": "Requiere Apoyo Auxiliar",
             "type": "boolean"
           },
-          "serie_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Serie Id"
-          },
           "tipo": {
             "anyOf": [
               {
@@ -1976,6 +2012,27 @@
                 "type": "null"
               }
             ]
+          },
+          "tipo_reserva": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipoReservaReservaResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tipo_reserva_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Reserva Id"
           },
           "tipo_solicitud": {
             "$ref": "#/components/schemas/TipoSolicitud"
@@ -2002,26 +2059,12 @@
           "usuario_id": {
             "title": "Usuario Id",
             "type": "integer"
-          },
-          "zona_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Zona Ids",
-            "type": "array"
-          },
-          "zonas": {
-            "items": {
-              "$ref": "#/components/schemas/ZonaReservaResponse"
-            },
-            "title": "Zonas",
-            "type": "array"
           }
         },
         "required": [
           "id",
           "usuario_id",
-          "espacio_id",
+          "laboratorio_id",
           "fecha",
           "hora_inicio",
           "hora_fin",
@@ -2032,59 +2075,9 @@
           "created_at",
           "updated_at",
           "usuario",
-          "espacio"
+          "laboratorio"
         ],
         "title": "ReservaResponse",
-        "type": "object"
-      },
-      "ReservaSerieCancelResponse": {
-        "description": "Respuesta de `PUT /reservas/serie/{serie_id}/cancelar`.",
-        "properties": {
-          "canceladas": {
-            "items": {
-              "$ref": "#/components/schemas/ReservaResponse"
-            },
-            "title": "Canceladas",
-            "type": "array"
-          },
-          "omitidas": {
-            "items": {
-              "$ref": "#/components/schemas/OcurrenciaCancelOmitida"
-            },
-            "title": "Omitidas",
-            "type": "array"
-          }
-        },
-        "required": [
-          "canceladas",
-          "omitidas"
-        ],
-        "title": "ReservaSerieCancelResponse",
-        "type": "object"
-      },
-      "ReservaSerieResponse": {
-        "description": "Respuesta de `POST /reservas` cuando se pidió `repetir_semanas`\n(ver `ReservaCreate`) -- reemplaza el `ReservaResponse` único de\nsiempre solo en ese caso; sin recurrencia, el endpoint sigue\ndevolviendo exactamente `ReservaResponse`.",
-        "properties": {
-          "creadas": {
-            "items": {
-              "$ref": "#/components/schemas/ReservaResponse"
-            },
-            "title": "Creadas",
-            "type": "array"
-          },
-          "omitidas": {
-            "items": {
-              "$ref": "#/components/schemas/OcurrenciaOmitida"
-            },
-            "title": "Omitidas",
-            "type": "array"
-          }
-        },
-        "required": [
-          "creadas",
-          "omitidas"
-        ],
-        "title": "ReservaSerieResponse",
         "type": "object"
       },
       "ReservaUpdate": {
@@ -2127,7 +2120,7 @@
             ],
             "title": "Descripcion"
           },
-          "ensayo_ids": {
+          "espacio_ids": {
             "anyOf": [
               {
                 "items": {
@@ -2139,7 +2132,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ensayo Ids"
+            "title": "Espacio Ids"
           },
           "fecha": {
             "anyOf": [
@@ -2206,6 +2199,17 @@
               }
             ]
           },
+          "tipo_reserva_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Reserva Id"
+          },
           "tipo_solicitud": {
             "$ref": "#/components/schemas/TipoSolicitud",
             "default": "reserva_en_laboratorio"
@@ -2221,46 +2225,9 @@
               }
             ],
             "title": "Ubicacion Uso"
-          },
-          "zona_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Zona Ids"
           }
         },
         "title": "ReservaUpdate",
-        "type": "object"
-      },
-      "ReservasPorEspacio": {
-        "properties": {
-          "cantidad": {
-            "title": "Cantidad",
-            "type": "integer"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
-          "nombre": {
-            "title": "Nombre",
-            "type": "string"
-          }
-        },
-        "required": [
-          "espacio_id",
-          "nombre",
-          "cantidad"
-        ],
-        "title": "ReservasPorEspacio",
         "type": "object"
       },
       "ReservasPorEstado": {
@@ -2308,6 +2275,29 @@
           "cantidad"
         ],
         "title": "ReservasPorFecha",
+        "type": "object"
+      },
+      "ReservasPorLaboratorio": {
+        "properties": {
+          "cantidad": {
+            "title": "Cantidad",
+            "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "laboratorio_id",
+          "nombre",
+          "cantidad"
+        ],
+        "title": "ReservasPorLaboratorio",
         "type": "object"
       },
       "Rol": {
@@ -2377,7 +2367,7 @@
         "type": "object"
       },
       "TipoReserva": {
-        "description": "Tipo de reserva académica de `Reserva` (RN-012/RN-015, Fase 12D).\n\nNombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba\nel código y la documentación como punto de extensión pendiente antes de\nexistir (services/reservas.py::validar_acceso_ps, models/README.md).\nTres valores exactos del roadmap aprobado, sin catálogo \"otro\":\nTRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO (grado,\nproyectos de grado) y SERVICIO_DE_ENSAYO (ensayo, prestación de\nservicios). `servicio_de_ensayo` es el valor que el gate PS de la\nFase 12D exige para reservar un recurso marcado como PS.",
+        "description": "Tipo de reserva académica de `Reserva` (RN-012/RN-015, Fase 12D).\n\nNombre del campo en `Reserva`: `tipo` — el mismo nombre que ya citaba\nel código y la documentación como punto de extensión pendiente antes de\nexistir (models/README.md). Tres valores exactos del roadmap aprobado,\nsin catálogo \"otro\": TRABAJO_INVESTIGACION (investigación), TRABAJO_GRADO\n(grado, proyectos de grado) y SERVICIO_DE_ENSAYO (ensayo). El gate de\nprestación de servicios que antes exigía este valor para reservar un\nrecurso PS se quitó del flujo de reserva (ver backend/CLAUDE.md).",
         "enum": [
           "trabajo_investigacion",
           "trabajo_grado",
@@ -2386,8 +2376,168 @@
         "title": "TipoReserva",
         "type": "string"
       },
+      "TipoReservaCreate": {
+        "properties": {
+          "estado": {
+            "default": "activo",
+            "enum": [
+              "activo",
+              "inactivo"
+            ],
+            "title": "Estado",
+            "type": "string"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "laboratorio_id",
+          "nombre"
+        ],
+        "title": "TipoReservaCreate",
+        "type": "object"
+      },
+      "TipoReservaReservaResponse": {
+        "description": "Tipo de reserva asociado a una reserva (Fase 7). Misma base mínima\nque `TipoReservaResponse` sin timestamps/auditoría -- mismo criterio que\n`LaboratorioReservaResponse`/`EspacioReservaResponse`.",
+        "properties": {
+          "estado": {
+            "title": "Estado",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "laboratorio_id",
+          "nombre",
+          "estado"
+        ],
+        "title": "TipoReservaReservaResponse",
+        "type": "object"
+      },
+      "TipoReservaResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "estado": {
+            "enum": [
+              "activo",
+              "inactivo"
+            ],
+            "title": "Estado",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "id",
+          "laboratorio_id",
+          "nombre",
+          "estado",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by"
+        ],
+        "title": "TipoReservaResponse",
+        "type": "object"
+      },
+      "TipoReservaUpdate": {
+        "properties": {
+          "estado": {
+            "anyOf": [
+              {
+                "enum": [
+                  "activo",
+                  "inactivo"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estado"
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          }
+        },
+        "title": "TipoReservaUpdate",
+        "type": "object"
+      },
       "TipoSolicitud": {
-        "description": "Motivo de la solicitud (Fase B), del formulario real de solicitud de\nlaboratorios del ITM. Nombre del campo en `Reserva`: `tipo_solicitud`\n-- concepto DISTINTO de `tipo` (académico: trabajo_investigacion/\ntrabajo_grado/servicio_de_ensayo, `TipoReserva` arriba) y de\n`modalidad_reserva` de `Espacio` (`ModalidadEspacio`): los tres tienen\nnombres parecidos pero responden preguntas distintas.\n\nEl formulario real tiene 4 motivos; solo los 2 primeros viven acá.\nRESERVA_EN_LABORATORIO (dentro del laboratorio, el modelo de siempre) y\nRESERVA_FUERA_LABORATORIO (equipo usado fuera del laboratorio pero\ndentro de la sede) comparten la misma forma -- franja horaria de un\ndía -- así que ambos son ejes de `Reserva`. ORDEN_SALIDA (equipo fuera\nde la sede, rango de días) se agrega acá desde ya para no reabrir este\n`CheckConstraint` en la Fase C, pero solo existirá como fila real en\n`reservas` cuando `services/solicitudes.py` (Fase C) la materialice\ndía por día para lograr el bloqueo automático del calendario -- nunca\nllega directamente desde `ReservaCreate`. El cuarto motivo, MANO_OBRA,\nno usa ningún recurso ni bloquea nada: vive exclusivamente en la tabla\n`solicitudes_especiales` de la Fase C, nunca en `Reserva`.",
+        "description": "Motivo de la solicitud (Fase B), del formulario real de solicitud de\nlaboratorios del ITM. Nombre del campo en `Reserva`: `tipo_solicitud`\n-- concepto DISTINTO de `tipo` (académico: trabajo_investigacion/\ntrabajo_grado/servicio_de_ensayo, `TipoReserva` arriba): los dos tienen\nnombres parecidos pero responden preguntas distintas.\n\nEl formulario real tiene 4 motivos; solo los 2 primeros viven acá.\nRESERVA_EN_LABORATORIO (dentro del laboratorio, el modelo de siempre) y\nRESERVA_FUERA_LABORATORIO (equipo usado fuera del laboratorio pero\ndentro de la sede) comparten la misma forma -- franja horaria de un\ndía -- así que ambos son ejes de `Reserva`. ORDEN_SALIDA (equipo fuera\nde la sede, rango de días) se agrega acá desde ya para no reabrir este\n`CheckConstraint` en la Fase C, pero solo existirá como fila real en\n`reservas` cuando `services/solicitudes.py` (Fase C) la materialice\ndía por día para lograr el bloqueo automático del calendario -- nunca\nllega directamente desde `ReservaCreate`. El cuarto motivo, MANO_OBRA,\nno usa ningún recurso ni bloquea nada: vive exclusivamente en la tabla\n`solicitudes_especiales` de la Fase C, nunca en `Reserva`.",
         "enum": [
           "reserva_en_laboratorio",
           "reserva_fuera_laboratorio",
@@ -2418,7 +2568,7 @@
         "title": "UsuarioCreate",
         "type": "object"
       },
-      "UsuarioEspacioResponse": {
+      "UsuarioLaboratorioResponse": {
         "properties": {
           "id": {
             "title": "Id",
@@ -2438,7 +2588,7 @@
           "nombre",
           "ubicacion"
         ],
-        "title": "UsuarioEspacioResponse",
+        "title": "UsuarioLaboratorioResponse",
         "type": "object"
       },
       "UsuarioReservaResponse": {
@@ -2496,16 +2646,6 @@
             "title": "Email",
             "type": "string"
           },
-          "espacio": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/UsuarioEspacioResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -2520,6 +2660,16 @@
               }
             ],
             "title": "Institucion"
+          },
+          "laboratorio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UsuarioLaboratorioResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rol": {
             "$ref": "#/components/schemas/Rol"
@@ -2700,298 +2850,6 @@
         ],
         "title": "VinculacionUsuario",
         "type": "string"
-      },
-      "ZonaCreate": {
-        "properties": {
-          "capacidad": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
-          },
-          "descripcion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descripcion"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
-          "estado": {
-            "$ref": "#/components/schemas/EstadoEntidad",
-            "default": "activo"
-          },
-          "nombre": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Nombre",
-            "type": "string"
-          }
-        },
-        "required": [
-          "nombre",
-          "espacio_id"
-        ],
-        "title": "ZonaCreate",
-        "type": "object"
-      },
-      "ZonaRecursosResponse": {
-        "description": "Respuesta de PUT /zonas/{zona_id}/recursos. Deliberadamente no\nextiende ZonaResponse (que no incluye `recursos` todavía, ver 12C-2) —\nesta subfase agrega su propio schema mínimo en vez de ampliar el\ncontrato ya aprobado de ZonaResponse sin necesidad.",
-        "properties": {
-          "recurso_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Recurso Ids",
-            "type": "array"
-          },
-          "zona_id": {
-            "title": "Zona Id",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "zona_id",
-          "recurso_ids"
-        ],
-        "title": "ZonaRecursosResponse",
-        "type": "object"
-      },
-      "ZonaRecursosUpdate": {
-        "description": "Fase 12C-3: reemplazo completo de la asociación Zona<->Recurso.",
-        "properties": {
-          "recurso_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Recurso Ids",
-            "type": "array"
-          }
-        },
-        "title": "ZonaRecursosUpdate",
-        "type": "object"
-      },
-      "ZonaReservaResponse": {
-        "description": "Zona asociada a una reserva (Fase 12C-6). Misma base mínima que\n`ZonaResponse` sin timestamps/auditoría — suficiente para la respuesta\nde la reserva y los mensajes de notificación.",
-        "properties": {
-          "capacidad": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
-          },
-          "descripcion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descripcion"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
-          "estado": {
-            "$ref": "#/components/schemas/EstadoEntidad"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "nombre": {
-            "title": "Nombre",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "nombre",
-          "espacio_id",
-          "descripcion",
-          "capacidad",
-          "estado"
-        ],
-        "title": "ZonaReservaResponse",
-        "type": "object"
-      },
-      "ZonaResponse": {
-        "properties": {
-          "capacidad": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "created_by": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created By"
-          },
-          "descripcion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descripcion"
-          },
-          "espacio_id": {
-            "title": "Espacio Id",
-            "type": "integer"
-          },
-          "estado": {
-            "$ref": "#/components/schemas/EstadoEntidad"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "nombre": {
-            "title": "Nombre",
-            "type": "string"
-          },
-          "recurso_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Recurso Ids",
-            "type": "array"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          },
-          "updated_by": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated By"
-          }
-        },
-        "required": [
-          "id",
-          "nombre",
-          "espacio_id",
-          "descripcion",
-          "capacidad",
-          "estado",
-          "created_at",
-          "updated_at",
-          "created_by",
-          "updated_by"
-        ],
-        "title": "ZonaResponse",
-        "type": "object"
-      },
-      "ZonaUpdate": {
-        "properties": {
-          "capacidad": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Capacidad"
-          },
-          "descripcion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descripcion"
-          },
-          "espacio_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Espacio Id"
-          },
-          "estado": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EstadoEntidad"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "nombre": {
-            "anyOf": [
-              {
-                "maxLength": 100,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Nombre"
-          }
-        },
-        "title": "ZonaUpdate",
-        "type": "object"
       }
     },
     "securitySchemes": {
@@ -3145,7 +3003,7 @@
     },
     "/admin/dashboard/export": {
       "get": {
-        "description": "Exporta el mismo resumen de `/summary` (todos los espacios) a CSV o Excel.",
+        "description": "Exporta el mismo resumen de `/summary` (todos los laboratorios) a CSV o Excel.",
         "operationId": "exportar_dashboard_admin_admin_dashboard_export_get",
         "parameters": [
           {
@@ -3195,7 +3053,7 @@
     },
     "/admin/dashboard/summary": {
       "get": {
-        "description": "Resumen global de reservas de recursos para todos los espacios.",
+        "description": "Resumen global de reservas de recursos para todos los laboratorios.",
         "operationId": "obtener_resumen_dashboard_admin_admin_dashboard_summary_get",
         "parameters": [
           {
@@ -3406,14 +3264,14 @@
         ]
       }
     },
-    "/ensayos": {
+    "/espacios": {
       "get": {
-        "description": "Listar ensayos. No requiere autenticación (mismo criterio RN-005 que\nGET /zonas): anónimo/usuario solo ven ensayos activos de zonas activas\nde espacios activos; gestor/admin ven todo.",
-        "operationId": "listar_ensayos_ensayos_get",
+        "description": "Listar espacios. No requiere autenticacion (mismo criterio RN-005 que\nGET /laboratorios): anonimo/usuario solo ven espacios activos de\nlaboratorios activos; gestor/admin ven todo.",
+        "operationId": "listar_espacios_espacios_get",
         "parameters": [
           {
             "in": "query",
-            "name": "zona_id",
+            "name": "laboratorio_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3424,204 +3282,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Zona Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/EnsayoResponse"
-                  },
-                  "title": "Response Listar Ensayos Ensayos Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Listar Ensayos",
-        "tags": [
-          "ensayos"
-        ]
-      },
-      "post": {
-        "operationId": "crear_ensayo_endpoint_ensayos_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnsayoCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EnsayoResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Crear Ensayo Endpoint",
-        "tags": [
-          "ensayos"
-        ]
-      }
-    },
-    "/ensayos/{ensayo_id}": {
-      "delete": {
-        "operationId": "eliminar_ensayo_endpoint_ensayos__ensayo_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "ensayo_id",
-            "required": true,
-            "schema": {
-              "title": "Ensayo Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Eliminar Ensayo Endpoint",
-        "tags": [
-          "ensayos"
-        ]
-      },
-      "put": {
-        "operationId": "actualizar_ensayo_endpoint_ensayos__ensayo_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "ensayo_id",
-            "required": true,
-            "schema": {
-              "title": "Ensayo Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnsayoUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EnsayoResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Actualizar Ensayo Endpoint",
-        "tags": [
-          "ensayos"
-        ]
-      }
-    },
-    "/espacios": {
-      "get": {
-        "description": "Listar espacios públicos. No requiere autenticación.",
-        "operationId": "listar_espacios_espacios_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "title": "Skip",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "title": "Limit",
-              "type": "integer"
+              "title": "Laboratorio Id"
             }
           }
         ],
@@ -3657,7 +3318,6 @@
         ]
       },
       "post": {
-        "description": "Crear un espacio. Solo admin.",
         "operationId": "crear_espacio_espacios_post",
         "requestBody": {
           "content": {
@@ -3702,79 +3362,8 @@
         ]
       }
     },
-    "/espacios/gestion/configuracion": {
-      "get": {
-        "operationId": "obtener_configuracion_gestion_espacios_gestion_configuracion_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfiguracionEspacioResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Obtener Configuracion Gestion",
-        "tags": [
-          "espacios"
-        ]
-      },
-      "put": {
-        "operationId": "actualizar_configuracion_gestion_espacios_gestion_configuracion_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfiguracionEspacioUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfiguracionEspacioResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Actualizar Configuracion Gestion",
-        "tags": [
-          "espacios"
-        ]
-      }
-    },
     "/espacios/{espacio_id}": {
       "delete": {
-        "description": "Eliminar un espacio. Solo admin.",
         "operationId": "eliminar_espacio_espacios__espacio_id__delete",
         "parameters": [
           {
@@ -3812,49 +3401,7 @@
           "espacios"
         ]
       },
-      "get": {
-        "description": "Obtener un espacio por ID.",
-        "operationId": "obtener_espacio_espacios__espacio_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "espacio_id",
-            "required": true,
-            "schema": {
-              "title": "Espacio Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EspacioResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Obtener Espacio",
-        "tags": [
-          "espacios"
-        ]
-      },
       "put": {
-        "description": "Actualizar un espacio. Solo admin.",
         "operationId": "actualizar_espacio_espacios__espacio_id__put",
         "parameters": [
           {
@@ -3910,10 +3457,10 @@
         ]
       }
     },
-    "/espacios/{espacio_id}/disponibilidad": {
-      "get": {
-        "description": "Obtener disponibilidad horaria de un espacio para una fecha dada. No requiere autenticación.",
-        "operationId": "obtener_disponibilidad_espacios__espacio_id__disponibilidad_get",
+    "/espacios/{espacio_id}/recursos": {
+      "put": {
+        "description": "Reemplazo completo de la asociación Espacio<->Recurso (Fase 12C-3):\nla lista recibida sustituye por completo a la actual -- lo ausente se\nelimina, lo nuevo se inserta. Unicidad funcional: un recurso ya\nasociado a OTRO espacio responde 409 sin dejar cambios parciales (todas\nlas validaciones se resuelven antes de tocar la base de datos).",
+        "operationId": "actualizar_recursos_de_espacio_espacios__espacio_id__recursos_put",
         "parameters": [
           {
             "in": "path",
@@ -3923,30 +3470,24 @@
               "title": "Espacio Id",
               "type": "integer"
             }
-          },
-          {
-            "description": "Fecha en formato YYYY-MM-DD",
-            "in": "query",
-            "name": "fecha",
-            "required": true,
-            "schema": {
-              "description": "Fecha en formato YYYY-MM-DD",
-              "format": "date",
-              "title": "Fecha",
-              "type": "string"
-            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EspacioRecursosUpdate"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/DisponibilidadSlot"
-                  },
-                  "title": "Response Obtener Disponibilidad Espacios  Espacio Id  Disponibilidad Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/EspacioRecursosResponse"
                 }
               }
             },
@@ -3963,7 +3504,12 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Obtener Disponibilidad",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Recursos De Espacio",
         "tags": [
           "espacios"
         ]
@@ -3971,7 +3517,7 @@
     },
     "/gestion/dashboard/export": {
       "get": {
-        "description": "Exporta el mismo resumen de `/summary` (espacio del gestor) a CSV o Excel.",
+        "description": "Exporta el mismo resumen de `/summary` (laboratorio del gestor) a CSV o Excel.",
         "operationId": "exportar_dashboard_gestor_gestion_dashboard_export_get",
         "parameters": [
           {
@@ -4093,6 +3639,376 @@
         "summary": "Health Check",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/laboratorios": {
+      "get": {
+        "description": "Listar laboratorios públicos. No requiere autenticación.",
+        "operationId": "listar_laboratorios_laboratorios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LaboratorioResponse"
+                  },
+                  "title": "Response Listar Laboratorios Laboratorios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Laboratorios",
+        "tags": [
+          "laboratorios"
+        ]
+      },
+      "post": {
+        "description": "Crear un laboratorio. Solo admin.",
+        "operationId": "crear_laboratorio_laboratorios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LaboratorioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaboratorioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear Laboratorio",
+        "tags": [
+          "laboratorios"
+        ]
+      }
+    },
+    "/laboratorios/gestion/configuracion": {
+      "get": {
+        "operationId": "obtener_configuracion_gestion_laboratorios_gestion_configuracion_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionLaboratorioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Obtener Configuracion Gestion",
+        "tags": [
+          "laboratorios"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_configuracion_gestion_laboratorios_gestion_configuracion_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfiguracionLaboratorioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionLaboratorioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Configuracion Gestion",
+        "tags": [
+          "laboratorios"
+        ]
+      }
+    },
+    "/laboratorios/{laboratorio_id}": {
+      "delete": {
+        "description": "Eliminar un laboratorio. Solo admin.",
+        "operationId": "eliminar_laboratorio_laboratorios__laboratorio_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "laboratorio_id",
+            "required": true,
+            "schema": {
+              "title": "Laboratorio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Eliminar Laboratorio",
+        "tags": [
+          "laboratorios"
+        ]
+      },
+      "get": {
+        "description": "Obtener un laboratorio por ID.",
+        "operationId": "obtener_laboratorio_laboratorios__laboratorio_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "laboratorio_id",
+            "required": true,
+            "schema": {
+              "title": "Laboratorio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaboratorioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Obtener Laboratorio",
+        "tags": [
+          "laboratorios"
+        ]
+      },
+      "put": {
+        "description": "Actualizar un laboratorio. Solo admin.",
+        "operationId": "actualizar_laboratorio_laboratorios__laboratorio_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "laboratorio_id",
+            "required": true,
+            "schema": {
+              "title": "Laboratorio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LaboratorioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaboratorioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Laboratorio",
+        "tags": [
+          "laboratorios"
+        ]
+      }
+    },
+    "/laboratorios/{laboratorio_id}/disponibilidad": {
+      "get": {
+        "description": "Obtener disponibilidad horaria de un laboratorio para una fecha dada. No requiere autenticación.",
+        "operationId": "obtener_disponibilidad_laboratorios__laboratorio_id__disponibilidad_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "laboratorio_id",
+            "required": true,
+            "schema": {
+              "title": "Laboratorio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Fecha en formato YYYY-MM-DD",
+            "in": "query",
+            "name": "fecha",
+            "required": true,
+            "schema": {
+              "description": "Fecha en formato YYYY-MM-DD",
+              "format": "date",
+              "title": "Fecha",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DisponibilidadSlot"
+                  },
+                  "title": "Response Obtener Disponibilidad Laboratorios  Laboratorio Id  Disponibilidad Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Obtener Disponibilidad",
+        "tags": [
+          "laboratorios"
         ]
       }
     },
@@ -4621,7 +4537,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "espacio_id",
+            "name": "laboratorio_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -4632,7 +4548,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Espacio Id"
+              "title": "Laboratorio Id"
             }
           },
           {
@@ -5006,15 +4922,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/ReservaResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/ReservaSerieResponse"
-                    }
-                  ],
-                  "title": "Response Crear Reserva Endpoint Reservas Post"
+                  "$ref": "#/components/schemas/ReservaResponse"
                 }
               }
             },
@@ -5116,106 +5024,6 @@
           }
         ],
         "summary": "Exportar Mis Reservas Endpoint",
-        "tags": [
-          "reservas"
-        ]
-      }
-    },
-    "/reservas/serie/{serie_id}": {
-      "get": {
-        "operationId": "listar_serie_endpoint_reservas_serie__serie_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serie_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Serie Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ReservaResponse"
-                  },
-                  "title": "Response Listar Serie Endpoint Reservas Serie  Serie Id  Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Listar Serie Endpoint",
-        "tags": [
-          "reservas"
-        ]
-      }
-    },
-    "/reservas/serie/{serie_id}/cancelar": {
-      "put": {
-        "operationId": "cancelar_serie_endpoint_reservas_serie__serie_id__cancelar_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serie_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Serie Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReservaSerieCancelResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Cancelar Serie Endpoint",
         "tags": [
           "reservas"
         ]
@@ -5474,6 +5282,199 @@
         "summary": "Cambiar Estado Endpoint",
         "tags": [
           "reservas"
+        ]
+      }
+    },
+    "/tipos-reserva": {
+      "get": {
+        "description": "Listar tipos de reserva. No requiere autenticacion (mismo criterio\nRN-005 que GET /laboratorios y GET /espacios): anonimo/usuario solo ven\ntipos activos; gestor/admin ven todos, para poder gestionarlos.",
+        "operationId": "listar_tipos_reserva_tipos_reserva_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "laboratorio_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Laboratorio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TipoReservaResponse"
+                  },
+                  "title": "Response Listar Tipos Reserva Tipos Reserva Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listar Tipos Reserva",
+        "tags": [
+          "tipos-reserva"
+        ]
+      },
+      "post": {
+        "operationId": "crear_tipo_reserva_tipos_reserva_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TipoReservaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TipoReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear Tipo Reserva",
+        "tags": [
+          "tipos-reserva"
+        ]
+      }
+    },
+    "/tipos-reserva/{tipo_reserva_id}": {
+      "delete": {
+        "operationId": "eliminar_tipo_reserva_tipos_reserva__tipo_reserva_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tipo_reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Tipo Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Eliminar Tipo Reserva",
+        "tags": [
+          "tipos-reserva"
+        ]
+      },
+      "put": {
+        "operationId": "actualizar_tipo_reserva_tipos_reserva__tipo_reserva_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tipo_reserva_id",
+            "required": true,
+            "schema": {
+              "title": "Tipo Reserva Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TipoReservaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TipoReservaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Actualizar Tipo Reserva",
+        "tags": [
+          "tipos-reserva"
         ]
       }
     },
@@ -5763,257 +5764,6 @@
         "summary": "Reenviar Invitacion Endpoint",
         "tags": [
           "usuarios"
-        ]
-      }
-    },
-    "/zonas": {
-      "get": {
-        "description": "Listar zonas. No requiere autenticacion (mismo criterio RN-005 que\nGET /espacios): anonimo/usuario solo ven zonas activas de espacios\nactivos; gestor/admin ven todo.",
-        "operationId": "listar_zonas_zonas_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "espacio_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Espacio Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ZonaResponse"
-                  },
-                  "title": "Response Listar Zonas Zonas Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Listar Zonas",
-        "tags": [
-          "zonas"
-        ]
-      },
-      "post": {
-        "operationId": "crear_zona_zonas_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ZonaCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ZonaResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Crear Zona",
-        "tags": [
-          "zonas"
-        ]
-      }
-    },
-    "/zonas/{zona_id}": {
-      "delete": {
-        "operationId": "eliminar_zona_zonas__zona_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "zona_id",
-            "required": true,
-            "schema": {
-              "title": "Zona Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Eliminar Zona",
-        "tags": [
-          "zonas"
-        ]
-      },
-      "put": {
-        "operationId": "actualizar_zona_zonas__zona_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "zona_id",
-            "required": true,
-            "schema": {
-              "title": "Zona Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ZonaUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ZonaResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Actualizar Zona",
-        "tags": [
-          "zonas"
-        ]
-      }
-    },
-    "/zonas/{zona_id}/recursos": {
-      "put": {
-        "description": "Reemplazo completo de la asociación Zona<->Recurso (Fase 12C-3):\nla lista recibida sustituye por completo a la actual -- lo ausente se\nelimina, lo nuevo se inserta. Unicidad funcional: un recurso ya\nasociado a OTRA zona responde 409 sin dejar cambios parciales (todas\nlas validaciones se resuelven antes de tocar la base de datos).",
-        "operationId": "actualizar_recursos_de_zona_zonas__zona_id__recursos_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "zona_id",
-            "required": true,
-            "schema": {
-              "title": "Zona Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ZonaRecursosUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ZonaRecursosResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Actualizar Recursos De Zona",
-        "tags": [
-          "zonas"
         ]
       }
     }

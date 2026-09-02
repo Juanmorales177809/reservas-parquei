@@ -13,7 +13,7 @@ import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../../shell/app_shell.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../espacios/application/espacios_providers.dart';
+import '../../laboratorios/application/laboratorios_providers.dart';
 import '../application/recursos_providers.dart';
 import '../data/recursos_repository.dart';
 import '../domain/recurso.dart';
@@ -45,7 +45,7 @@ class _GestionRecursosScreenState extends ConsumerState<GestionRecursosScreen> {
           .where((r) =>
               r.nombre.toLowerCase().contains(consulta) ||
               r.tipo.nombre.toLowerCase().contains(consulta) ||
-              r.espacio.nombre.toLowerCase().contains(consulta))
+              r.laboratorio.nombre.toLowerCase().contains(consulta))
           .toList();
     }
     if (_sortColumnIndex != null) {
@@ -54,7 +54,7 @@ class _GestionRecursosScreenState extends ConsumerState<GestionRecursosScreen> {
           final cmp = switch (_sortColumnIndex) {
             0 => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()),
             1 => a.tipo.nombre.toLowerCase().compareTo(b.tipo.nombre.toLowerCase()),
-            2 => a.espacio.nombre.toLowerCase().compareTo(b.espacio.nombre.toLowerCase()),
+            2 => a.laboratorio.nombre.toLowerCase().compareTo(b.laboratorio.nombre.toLowerCase()),
             3 => a.capacidad.compareTo(b.capacidad),
             4 => a.estado.name.compareTo(b.estado.name),
             _ => 0,
@@ -97,7 +97,7 @@ class _GestionRecursosScreenState extends ConsumerState<GestionRecursosScreen> {
                 padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
                 child: TextField(
                   decoration: const InputDecoration(
-                    hintText: 'Buscar por nombre, tipo o espacio',
+                    hintText: 'Buscar por nombre, tipo o laboratorio',
                     prefixIcon: Icon(LucideIcons.search, size: 18),
                     isDense: true,
                     border: OutlineInputBorder(),
@@ -191,7 +191,7 @@ class _RecursosTabla extends StatelessWidget {
               cells: [
                 DataCell(Text(r.nombre)),
                 DataCell(Text(r.tipo.nombre)),
-                DataCell(Text(r.espacio.nombre)),
+                DataCell(Text(r.laboratorio.nombre)),
                 DataCell(Text('${r.capacidad}')),
                 DataCell(EstadoBadge(estado: r.estado)),
                 DataCell(_AccionesRecurso(recurso: r)),
@@ -348,7 +348,7 @@ class _RecursoCardState extends ConsumerState<_RecursoCard> {
               runSpacing: AppSpacing.xs,
               children: [
                 _Info(icon: LucideIcons.tag, text: r.tipo.nombre),
-                _Info(icon: LucideIcons.building2, text: r.espacio.nombre),
+                _Info(icon: LucideIcons.building2, text: r.laboratorio.nombre),
                 _Info(icon: LucideIcons.users, text: '${r.capacidad} capacidad'),
                 if (r.esPrestacionServicio) const _Info(icon: LucideIcons.wrench, text: 'Prestación de servicio'),
               ],
@@ -414,7 +414,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
   late int _capacidad;
   late EstadoEntidad _estado;
   int? _tipoRecursoId;
-  int? _espacioId;
+  int? _laboratorioId;
   bool _esPrestacion = false;
   bool _guardando = false;
   String? _error;
@@ -430,7 +430,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
     _capacidad = r?.capacidad ?? 1;
     _estado = r?.estado ?? EstadoEntidad.activo;
     _tipoRecursoId = r?.tipoRecursoId;
-    _espacioId = r?.espacioId;
+    _laboratorioId = r?.laboratorioId;
     _esPrestacion = r?.esPrestacionServicio ?? false;
   }
 
@@ -455,7 +455,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
           descripcion: _descripcion.isEmpty ? null : _descripcion,
           capacidad: _capacidad,
           estado: _estado.name,
-          espacioId: _espacioId,
+          laboratorioId: _laboratorioId,
           esPrestacionServicio: _esPrestacion,
         );
       } else {
@@ -465,7 +465,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
           descripcion: _descripcion.isEmpty ? null : _descripcion,
           capacidad: _capacidad,
           estado: _estado.name,
-          espacioId: _espacioId,
+          laboratorioId: _laboratorioId,
           esPrestacionServicio: _esPrestacion,
         );
       }
@@ -482,7 +482,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
   @override
   Widget build(BuildContext context) {
     final tiposAsync = ref.watch(tiposRecursosProvider);
-    final espaciosAsync = ref.watch(espaciosListProvider);
+    final laboratoriosAsync = ref.watch(laboratoriosListProvider);
     final auth = ref.watch(authProvider).value;
     final esAdmin = auth?.rol == RolUsuario.admin;
 
@@ -515,15 +515,15 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
               ),
               if (esAdmin) ...[
                 const SizedBox(height: AppSpacing.md),
-                espaciosAsync.when(
+                laboratoriosAsync.when(
                   loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los espacios.')),
-                  data: (espacios) => DropdownButtonFormField<int>(
-                  initialValue: _espacioId ?? (espacios.isNotEmpty ? espacios.first.id : null),
-                    decoration: const InputDecoration(labelText: 'Espacio'),
-                    items: espacios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
-                    onChanged: (v) => setState(() => _espacioId = v),
-                    onSaved: (v) => _espacioId = v,
+                  error: (e, _) => Text(apiErrorMessage(e, fallback: 'No se pudieron cargar los laboratorios.')),
+                  data: (laboratorios) => DropdownButtonFormField<int>(
+                  initialValue: _laboratorioId ?? (laboratorios.isNotEmpty ? laboratorios.first.id : null),
+                    decoration: const InputDecoration(labelText: 'Laboratorio'),
+                    items: laboratorios.map((e) => DropdownMenuItem(value: e.id, child: Text(e.nombre))).toList(),
+                    onChanged: (v) => setState(() => _laboratorioId = v),
+                    onSaved: (v) => _laboratorioId = v,
                   ),
                 ),
               ],

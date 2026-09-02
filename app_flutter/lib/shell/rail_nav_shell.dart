@@ -54,7 +54,7 @@ class RailNavShell extends ConsumerWidget {
           if (destinos.isNotEmpty)
             NavigationRail(
               // `selectedIndex` no admite un índice fuera de rango; en una
-              // ruta empujada (p. ej. el detalle de un espacio) ningún
+              // ruta empujada (p. ej. el detalle de un laboratorio) ningún
               // destino coincide, y en ese caso no debe marcarse ninguno.
               selectedIndex: indiceActual < 0 ? null : indiceActual,
               labelType: NavigationRailLabelType.all,

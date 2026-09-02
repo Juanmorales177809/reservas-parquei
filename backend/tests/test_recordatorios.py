@@ -14,7 +14,7 @@ from app.models import CorreoSaliente, Reserva
 from app.services.actores import columnas_actor
 from app.services.recordatorios import enviar_recordatorios_pendientes
 
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario
 
 
 class _RelojFijo:
@@ -25,10 +25,10 @@ class _RelojFijo:
         return self._valor
 
 
-def _reserva_aprobada(db, usuario, espacio, recurso, *, fecha, hora_inicio, hora_fin=time(10, 0), recordatorio_enviado_en=None):
+def _reserva_aprobada(db, usuario, laboratorio, recurso, *, fecha, hora_inicio, hora_fin=time(10, 0), recordatorio_enviado_en=None):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=fecha,
         hora_inicio=hora_inicio,
@@ -44,16 +44,16 @@ def _reserva_aprobada(db, usuario, espacio, recurso, *, fecha, hora_inicio, hora
 
 
 def _setup(db, *, username="recordatorio_user"):
-    espacio = crear_espacio(db, nombre=f"Espacio {username}")
+    laboratorio = crear_laboratorio(db, nombre=f"Laboratorio {username}")
     usuario = crear_usuario(db, username=username, email=f"{username}@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario, nombre=f"Recurso {username}")
-    return usuario, espacio, recurso
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre=f"Recurso {username}")
+    return usuario, laboratorio, recurso
 
 
 def test_envia_recordatorio_dentro_de_la_ventana(db):
-    usuario, espacio, recurso = _setup(db)
+    usuario, laboratorio, recurso = _setup(db)
     ahora = datetime(2026, 8, 29, 9, 0)
-    reserva = _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
+    reserva = _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
 
     enviados = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
 
@@ -67,9 +67,9 @@ def test_envia_recordatorio_dentro_de_la_ventana(db):
 
 
 def test_no_envia_si_falta_mas_de_una_hora(db):
-    usuario, espacio, recurso = _setup(db, username="recordatorio_lejos")
+    usuario, laboratorio, recurso = _setup(db, username="recordatorio_lejos")
     ahora = datetime(2026, 8, 29, 9, 0)
-    _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(11, 0), hora_fin=time(12, 0))
+    _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(11, 0), hora_fin=time(12, 0))
 
     enviados = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
 
@@ -78,9 +78,9 @@ def test_no_envia_si_falta_mas_de_una_hora(db):
 
 
 def test_no_envia_si_ya_paso_la_hora_de_inicio(db):
-    usuario, espacio, recurso = _setup(db, username="recordatorio_pasado")
+    usuario, laboratorio, recurso = _setup(db, username="recordatorio_pasado")
     ahora = datetime(2026, 8, 29, 9, 0)
-    _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(8, 0), hora_fin=time(10, 0))
+    _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(8, 0), hora_fin=time(10, 0))
 
     enviados = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
 
@@ -88,9 +88,9 @@ def test_no_envia_si_ya_paso_la_hora_de_inicio(db):
 
 
 def test_no_envia_para_reserva_esperando(db):
-    usuario, espacio, recurso = _setup(db, username="recordatorio_esperando")
+    usuario, laboratorio, recurso = _setup(db, username="recordatorio_esperando")
     ahora = datetime(2026, 8, 29, 9, 0)
-    reserva = _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
+    reserva = _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
     reserva.estado = "esperando"
     db.commit()
 
@@ -100,9 +100,9 @@ def test_no_envia_para_reserva_esperando(db):
 
 
 def test_idempotente_no_reenvia_dos_veces(db):
-    usuario, espacio, recurso = _setup(db, username="recordatorio_idempotente")
+    usuario, laboratorio, recurso = _setup(db, username="recordatorio_idempotente")
     ahora = datetime(2026, 8, 29, 9, 0)
-    _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
+    _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
 
     primero = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
     segundo = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
@@ -113,9 +113,9 @@ def test_idempotente_no_reenvia_dos_veces(db):
 
 
 def test_respeta_horas_antes_personalizado(db):
-    usuario, espacio, recurso = _setup(db, username="recordatorio_custom")
+    usuario, laboratorio, recurso = _setup(db, username="recordatorio_custom")
     ahora = datetime(2026, 8, 29, 9, 0)
-    _reserva_aprobada(db, usuario, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(11, 30), hora_fin=time(12, 30))
+    _reserva_aprobada(db, usuario, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(11, 30), hora_fin=time(12, 30))
 
     enviados = enviar_recordatorios_pendientes(db, horas_antes=3, reloj=_RelojFijo(ahora))
 
@@ -123,11 +123,11 @@ def test_respeta_horas_antes_personalizado(db):
 
 
 def test_gestor_dueno_de_su_propia_reserva_tambien_recibe(db):
-    espacio = crear_espacio(db, nombre="Espacio Gestor Recordatorio")
-    gestor = crear_usuario(db, username="gestor_recordatorio", email="gestor_recordatorio@example.com", rol="gestor", espacio_id=espacio.id)
-    recurso = crear_recurso(db, espacio=espacio, usuario=gestor, nombre="Recurso Gestor Recordatorio")
+    laboratorio = crear_laboratorio(db, nombre="Laboratorio Gestor Recordatorio")
+    gestor = crear_usuario(db, username="gestor_recordatorio", email="gestor_recordatorio@example.com", rol="gestor", laboratorio_id=laboratorio.id)
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=gestor, nombre="Recurso Gestor Recordatorio")
     ahora = datetime(2026, 8, 29, 9, 0)
-    _reserva_aprobada(db, gestor, espacio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
+    _reserva_aprobada(db, gestor, laboratorio, recurso, fecha=date(2026, 8, 29), hora_inicio=time(9, 30))
 
     enviados = enviar_recordatorios_pendientes(db, reloj=_RelojFijo(ahora))
 

@@ -8,7 +8,7 @@ import '../core/theme/app_spacing.dart';
 import '../features/auth/application/auth_provider.dart';
 import 'app_shell.dart';
 
-/// Zona de sesión de la `AppBar`: "Iniciar sesión" si no hay sesión, o el
+/// Espacio de sesión de la `AppBar`: "Iniciar sesión" si no hay sesión, o el
 /// avatar con el menú (identidad + "Cerrar sesión") si la hay.
 ///
 /// **Las dos mitades viven en el mismo widget a propósito.** Este archivo ya

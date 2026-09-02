@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Pruebas del backfill idempotente de reserva_recursos (Fase 12C-4b) y de
-las constraints EXCLUDE de reserva_recursos/reserva_zonas (Fase 12C-4c).
+las constraints EXCLUDE de reserva_recursos/reserva_espacios (Fase 12C-4c).
 
 Alcance de 12C-4b: `migrate_resource_reservations()` puebla
 `reserva_recursos` a partir de `Reserva.recurso_id` para toda reserva
@@ -8,7 +8,7 @@ existente, y aborta con una excepción real de PostgreSQL si detecta
 alguna reserva sin fila asociada tras el backfill.
 
 Alcance de 12C-4c: la misma función agrega `reserva_recursos_sin_solapamiento`
-y `reserva_zonas_sin_solapamiento` (EXCLUDE USING gist, mismo patrón que
+y `reserva_espacios_sin_solapamiento` (EXCLUDE USING gist, mismo patrón que
 `reservas_sin_solapamiento`). NINGÚN consumidor lee todavía desde estas
 tablas (sin doble escritura, sin lectura desde servicios/CRUD);
 `Reserva.recurso_id`, sus índices y `reservas_sin_solapamiento` no se
@@ -37,24 +37,24 @@ from sqlalchemy.orm import Session
 from app.migrations import _GATE_RESERVA_RECURSOS_COMPLETO, migrate_resource_reservations
 from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
-from app.models.reserva_zona import ReservaZona
-from app.models.zona import Zona
+from app.models.reserva_espacio import ReservaEspacio
+from app.models.espacio import Espacio
 from app.services.actores import columnas_actor
-from tests.conftest import crear_espacio, crear_recurso, crear_usuario
+from tests.conftest import crear_laboratorio, crear_recurso, crear_usuario
 
 
-def _crear_zona(db: Session, *, espacio, usuario, nombre="Zona de pruebas"):
-    zona = Zona(nombre=nombre, espacio_id=espacio.id, created_by=usuario.id, updated_by=usuario.id)
-    db.add(zona)
+def _crear_espacio(db: Session, *, laboratorio, usuario, nombre="Espacio de pruebas"):
+    espacio = Espacio(nombre=nombre, laboratorio_id=laboratorio.id, created_by=usuario.id, updated_by=usuario.id)
+    db.add(espacio)
     db.commit()
-    db.refresh(zona)
-    return zona
+    db.refresh(espacio)
+    return espacio
 
 
-def _crear_reserva(db: Session, *, usuario, espacio, recurso, fecha=None, estado="esperando"):
+def _crear_reserva(db: Session, *, usuario, laboratorio, recurso, fecha=None, estado="esperando"):
     reserva = Reserva(
         **columnas_actor(usuario),
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
         recurso_id=recurso.id,
         fecha=fecha or date(2026, 9, 1),
         hora_inicio=time(8, 0),
@@ -73,10 +73,10 @@ class TestBackfillPueblaReservaRecursos:
         """Una reserva creada directamente (sin pasar por ningún backfill
         todavía) no tiene fila en reserva_recursos hasta que se ejecuta
         migrate_resource_reservations()."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf1", email="admin_bf1@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         assert db.query(ReservaRecurso).filter(ReservaRecurso.reserva_id == reserva.id).count() == 0
 
@@ -92,11 +92,11 @@ class TestBackfillPueblaReservaRecursos:
         assert filas[0].estado == reserva.estado
 
     def test_conserva_fecha_hora_estado_exactamente_para_varias_reservas(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf2", email="admin_bf2@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 1), estado="esperando")
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 2), estado="aprobada")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, 1), estado="esperando")
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, 2), estado="aprobada")
 
         db.commit()
         migrate_resource_reservations()
@@ -112,11 +112,11 @@ class TestBackfillPueblaReservaRecursos:
             )
 
     def test_correspondencia_exacta_una_fila_por_reserva_ni_mas_ni_menos(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf3", email="admin_bf3@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         reservas = [
-            _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, dia))
+            _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, dia))
             for dia in (1, 2, 3)
         ]
 
@@ -132,10 +132,10 @@ class TestBackfillPueblaReservaRecursos:
     def test_no_modifica_la_tabla_reservas(self, db):
         """El backfill es puramente aditivo hacia reserva_recursos --
         Reserva conserva sus valores exactos (recurso_id incluido)."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf4", email="admin_bf4@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
         antes = (reserva.recurso_id, reserva.fecha, reserva.hora_inicio, reserva.hora_fin, reserva.estado, reserva.asistentes)
 
         db.commit()
@@ -148,10 +148,10 @@ class TestBackfillPueblaReservaRecursos:
 
 class TestIdempotencia:
     def test_ejecutar_dos_veces_no_duplica_filas(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf5", email="admin_bf5@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()
@@ -165,11 +165,11 @@ class TestIdempotencia:
         assert segunda_cuenta == 1
 
     def test_ejecutar_tres_veces_conserva_conteo_total_estable(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf6", email="admin_bf6@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
         for dia in (1, 2, 3, 4):
-            _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, dia))
+            _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, dia))
 
         db.commit()
         migrate_resource_reservations()
@@ -186,10 +186,10 @@ class TestIdempotencia:
 
 class TestGateDeCobertura:
     def test_gate_pasa_cuando_el_backfill_esta_completo(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf7", email="admin_bf7@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         # No debe lanzar: migrate_resource_reservations() ya deja el
@@ -204,10 +204,10 @@ class TestGateDeCobertura:
         ejecuta el gate de forma AISLADA (no la función completa, que lo
         sanaría de inmediato al re-insertar la fila antes de llegar al
         gate)."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf8", email="admin_bf8@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()
@@ -221,10 +221,10 @@ class TestGateDeCobertura:
 
 class TestNoAfectaElEsquemaHistorico:
     def test_recurso_id_indices_y_exclusion_siguen_intactos(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf9", email="admin_bf9@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()
@@ -260,10 +260,10 @@ class TestNoAfectaElEsquemaHistorico:
         reserva_recursos en esta subfase es el backfill de
         migrate_resource_reservations(), nunca services/reservas.py
         (que no fue tocado)."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_bf10", email="admin_bf10@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        reserva = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        reserva = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()
@@ -276,7 +276,7 @@ class TestNoAfectaElEsquemaHistorico:
 
 class TestConstraintsExcludeSolapamiento:
     """Fase 12C-4c: reserva_recursos_sin_solapamiento y
-    reserva_zonas_sin_solapamiento. Las filas de prueba se insertan
+    reserva_espacios_sin_solapamiento. Las filas de prueba se insertan
     directamente en las tablas de asociación (no vía backfill) para
     controlar con precisión los escenarios de solapamiento -- consistente
     con que estas tablas siguen desnormalizadas y sin sincronizar (ver
@@ -293,12 +293,12 @@ class TestConstraintsExcludeSolapamiento:
     ejercitar."""
 
     def test_constraint_de_recurso_bloquea_solapamiento(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex1", email="admin_ex1@example.com", rol="admin")
-        recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 1")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 1")
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
+        recurso_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Ancla 1")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Bajo Prueba 1")
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
@@ -318,12 +318,12 @@ class TestConstraintsExcludeSolapamiento:
         db.rollback()
 
     def test_constraint_de_recurso_permite_intervalos_adyacentes(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex2", email="admin_ex2@example.com", rol="admin")
-        recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 2")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 2")
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
+        recurso_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Ancla 2")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Bajo Prueba 2")
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
@@ -342,12 +342,12 @@ class TestConstraintsExcludeSolapamiento:
         assert total == 2
 
     def test_constraint_de_recurso_ignora_estados_no_bloqueantes(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex3", email="admin_ex3@example.com", rol="admin")
-        recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 3")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 3")
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
+        recurso_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Ancla 3")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Bajo Prueba 3")
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
@@ -366,13 +366,13 @@ class TestConstraintsExcludeSolapamiento:
         assert total == 2
 
     def test_constraint_de_recurso_permite_recursos_distintos(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex4", email="admin_ex4@example.com", rol="admin")
-        recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 4")
-        recurso_a = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso A")
-        recurso_b = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso B")
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
+        recurso_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Ancla 4")
+        recurso_a = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso A")
+        recurso_b = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso B")
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
@@ -390,70 +390,70 @@ class TestConstraintsExcludeSolapamiento:
         total = db.query(ReservaRecurso).filter(ReservaRecurso.fecha == date(2026, 9, 13)).count()
         assert total == 2
 
-    def test_constraint_de_zona_bloquea_solapamiento(self, db):
-        espacio = crear_espacio(db)
+    def test_constraint_de_espacio_bloquea_solapamiento(self, db):
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex5", email="admin_ex5@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        zona = _crear_zona(db, espacio=espacio, usuario=admin)
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 5))
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        espacio = _crear_espacio(db, laboratorio=laboratorio, usuario=admin)
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
 
-        db.add(ReservaZona(
-            reserva_id=r1.id, zona_id=zona.id, fecha=date(2026, 9, 14),
+        db.add(ReservaEspacio(
+            reserva_id=r1.id, espacio_id=espacio.id, fecha=date(2026, 9, 14),
             hora_inicio=time(8, 0), hora_fin=time(9, 0), estado="esperando",
         ))
         db.commit()
 
-        db.add(ReservaZona(
-            reserva_id=r2.id, zona_id=zona.id, fecha=date(2026, 9, 14),
+        db.add(ReservaEspacio(
+            reserva_id=r2.id, espacio_id=espacio.id, fecha=date(2026, 9, 14),
             hora_inicio=time(8, 30), hora_fin=time(9, 30), estado="aprobada",
         ))
         with pytest.raises(IntegrityError):
             db.commit()
         db.rollback()
 
-    def test_constraint_de_zona_permite_zonas_distintas(self, db):
-        espacio = crear_espacio(db)
+    def test_constraint_de_espacio_permite_espacios_distintas(self, db):
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex6", email="admin_ex6@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        zona_a = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona A")
-        zona_b = _crear_zona(db, espacio=espacio, usuario=admin, nombre="Zona B")
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso, fecha=date(2026, 9, 5))
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        espacio_a = _crear_espacio(db, laboratorio=laboratorio, usuario=admin, nombre="Espacio A")
+        espacio_b = _crear_espacio(db, laboratorio=laboratorio, usuario=admin, nombre="Espacio B")
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
 
-        db.add(ReservaZona(
-            reserva_id=r1.id, zona_id=zona_a.id, fecha=date(2026, 9, 15),
+        db.add(ReservaEspacio(
+            reserva_id=r1.id, espacio_id=espacio_a.id, fecha=date(2026, 9, 15),
             hora_inicio=time(8, 0), hora_fin=time(9, 0), estado="esperando",
         ))
-        db.add(ReservaZona(
-            reserva_id=r2.id, zona_id=zona_b.id, fecha=date(2026, 9, 15),
+        db.add(ReservaEspacio(
+            reserva_id=r2.id, espacio_id=espacio_b.id, fecha=date(2026, 9, 15),
             hora_inicio=time(8, 0), hora_fin=time(9, 0), estado="esperando",
         ))
-        db.commit()  # no debe lanzar: zonas distintas
+        db.commit()  # no debe lanzar: espacios distintas
 
-        total = db.query(ReservaZona).filter(ReservaZona.fecha == date(2026, 9, 15)).count()
+        total = db.query(ReservaEspacio).filter(ReservaEspacio.fecha == date(2026, 9, 15)).count()
         assert total == 2
 
-    def test_reserva_zona_y_reserva_recurso_coexisten_sin_validacion_cruzada(self, db):
+    def test_reserva_espacio_y_reserva_recurso_coexisten_sin_validacion_cruzada(self, db):
         """Según las reglas actuales (12C-4c): reserva_recursos y
-        reserva_zonas tienen cada una su propia EXCLUDE, independiente de
+        reserva_espacios tienen cada una su propia EXCLUDE, independiente de
         la otra tabla. No existe todavía ninguna regla que bloquee un
-        recurso porque su zona esté reservada (o viceversa) -- esa
+        recurso porque su espacio esté reservada (o viceversa) -- esa
         transitividad es una decisión de una fase posterior (12C-5),
         aprobada conceptualmente pero no implementada aquí."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex7", email="admin_ex7@example.com", rol="admin")
-        recurso_ancla = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Ancla 7")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin, nombre="Recurso Bajo Prueba 7")
-        zona = _crear_zona(db, espacio=espacio, usuario=admin)
-        r1 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla)
-        r2 = _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
+        recurso_ancla = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Ancla 7")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Bajo Prueba 7")
+        espacio = _crear_espacio(db, laboratorio=laboratorio, usuario=admin)
+        r1 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla)
+        r2 = _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso_ancla, fecha=date(2026, 9, 5))
 
         db.commit()
         migrate_resource_reservations()
@@ -462,20 +462,20 @@ class TestConstraintsExcludeSolapamiento:
             reserva_id=r1.id, recurso_id=recurso.id, fecha=date(2026, 9, 16),
             hora_inicio=time(8, 0), hora_fin=time(9, 0), estado="esperando",
         ))
-        db.add(ReservaZona(
-            reserva_id=r2.id, zona_id=zona.id, fecha=date(2026, 9, 16),
+        db.add(ReservaEspacio(
+            reserva_id=r2.id, espacio_id=espacio.id, fecha=date(2026, 9, 16),
             hora_inicio=time(8, 0), hora_fin=time(9, 0), estado="esperando",
         ))
         db.commit()  # no debe lanzar: tablas distintas, sin validacion cruzada todavia
 
         assert db.query(ReservaRecurso).filter(ReservaRecurso.fecha == date(2026, 9, 16)).count() == 1
-        assert db.query(ReservaZona).filter(ReservaZona.fecha == date(2026, 9, 16)).count() == 1
+        assert db.query(ReservaEspacio).filter(ReservaEspacio.fecha == date(2026, 9, 16)).count() == 1
 
     def test_migracion_completa_ejecutada_dos_veces_sin_error(self, db):
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex8", email="admin_ex8@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()
@@ -486,20 +486,20 @@ class TestConstraintsExcludeSolapamiento:
             fila[0]
             for fila in db.execute(text(
                 "SELECT conname FROM pg_constraint "
-                "WHERE conname IN ('reserva_recursos_sin_solapamiento', 'reserva_zonas_sin_solapamiento')"
+                "WHERE conname IN ('reserva_recursos_sin_solapamiento', 'reserva_espacios_sin_solapamiento')"
             )).fetchall()
         }
-        assert constraints == {"reserva_recursos_sin_solapamiento", "reserva_zonas_sin_solapamiento"}
+        assert constraints == {"reserva_recursos_sin_solapamiento", "reserva_espacios_sin_solapamiento"}
 
     def test_migracion_no_deja_sesiones_bloqueadas(self, db):
         """Verificacion directa de pg_stat_activity: tras ejecutar la
         migracion, ninguna conexion queda 'idle in transaction' ni
         esperando un lock -- mismo tipo de deadlock ya diagnosticado y
         corregido en 12C-4b, ahora verificado explicitamente."""
-        espacio = crear_espacio(db)
+        laboratorio = crear_laboratorio(db)
         admin = crear_usuario(db, username="admin_ex9", email="admin_ex9@example.com", rol="admin")
-        recurso = crear_recurso(db, espacio=espacio, usuario=admin)
-        _crear_reserva(db, usuario=admin, espacio=espacio, recurso=recurso)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+        _crear_reserva(db, usuario=admin, laboratorio=laboratorio, recurso=recurso)
 
         db.commit()
         migrate_resource_reservations()

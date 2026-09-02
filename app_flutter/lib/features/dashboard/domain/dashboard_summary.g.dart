@@ -31,19 +31,21 @@ _ReservasPorFecha _$ReservasPorFechaFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ReservasPorFechaToJson(_ReservasPorFecha instance) =>
     <String, dynamic>{'fecha': instance.fecha, 'cantidad': instance.cantidad};
 
-_ReservasPorEspacio _$ReservasPorEspacioFromJson(Map<String, dynamic> json) =>
-    _ReservasPorEspacio(
-      espacioId: (json['espacio_id'] as num).toInt(),
-      nombre: json['nombre'] as String,
-      cantidad: (json['cantidad'] as num).toInt(),
-    );
+_ReservasPorLaboratorio _$ReservasPorLaboratorioFromJson(
+  Map<String, dynamic> json,
+) => _ReservasPorLaboratorio(
+  laboratorioId: (json['laboratorio_id'] as num).toInt(),
+  nombre: json['nombre'] as String,
+  cantidad: (json['cantidad'] as num).toInt(),
+);
 
-Map<String, dynamic> _$ReservasPorEspacioToJson(_ReservasPorEspacio instance) =>
-    <String, dynamic>{
-      'espacio_id': instance.espacioId,
-      'nombre': instance.nombre,
-      'cantidad': instance.cantidad,
-    };
+Map<String, dynamic> _$ReservasPorLaboratorioToJson(
+  _ReservasPorLaboratorio instance,
+) => <String, dynamic>{
+  'laboratorio_id': instance.laboratorioId,
+  'nombre': instance.nombre,
+  'cantidad': instance.cantidad,
+};
 
 _RecursoMasReservado _$RecursoMasReservadoFromJson(Map<String, dynamic> json) =>
     _RecursoMasReservado(
@@ -154,35 +156,36 @@ Map<String, dynamic> _$DashboardDeltasToJson(_DashboardDeltas instance) =>
       'ocupacion_porcentaje': instance.ocupacionPorcentaje,
     };
 
-_DashboardSummary _$DashboardSummaryFromJson(Map<String, dynamic> json) =>
-    _DashboardSummary(
-      totalReservas: (json['total_reservas'] as num).toInt(),
-      reservasPendientes: (json['reservas_pendientes'] as num).toInt(),
-      recursosActivos: (json['recursos_activos'] as num).toInt(),
-      usuarios: (json['usuarios'] as num).toInt(),
-      espacioNombre: json['espacio_nombre'] as String?,
-      reservasPorEstado: ReservasPorEstado.fromJson(
-        json['reservas_por_estado'] as Map<String, dynamic>,
-      ),
-      reservasPorFecha: (json['reservas_por_fecha'] as List<dynamic>)
-          .map((e) => ReservasPorFecha.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      reservasPorEspacio: (json['reservas_por_espacio'] as List<dynamic>)
-          .map((e) => ReservasPorEspacio.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      recursosMasReservados: (json['recursos_mas_reservados'] as List<dynamic>)
-          .map((e) => RecursoMasReservado.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      ocupacionPorDiaHora: (json['ocupacion_por_dia_hora'] as List<dynamic>)
-          .map((e) => OcupacionDiaHora.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      ocupacionGlobal: OcupacionGlobal.fromJson(
-        json['ocupacion_global'] as Map<String, dynamic>,
-      ),
-      deltas: json['deltas'] == null
-          ? null
-          : DashboardDeltas.fromJson(json['deltas'] as Map<String, dynamic>),
-    );
+_DashboardSummary _$DashboardSummaryFromJson(
+  Map<String, dynamic> json,
+) => _DashboardSummary(
+  totalReservas: (json['total_reservas'] as num).toInt(),
+  reservasPendientes: (json['reservas_pendientes'] as num).toInt(),
+  recursosActivos: (json['recursos_activos'] as num).toInt(),
+  usuarios: (json['usuarios'] as num).toInt(),
+  laboratorioNombre: json['laboratorio_nombre'] as String?,
+  reservasPorEstado: ReservasPorEstado.fromJson(
+    json['reservas_por_estado'] as Map<String, dynamic>,
+  ),
+  reservasPorFecha: (json['reservas_por_fecha'] as List<dynamic>)
+      .map((e) => ReservasPorFecha.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  reservasPorLaboratorio: (json['reservas_por_laboratorio'] as List<dynamic>)
+      .map((e) => ReservasPorLaboratorio.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  recursosMasReservados: (json['recursos_mas_reservados'] as List<dynamic>)
+      .map((e) => RecursoMasReservado.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  ocupacionPorDiaHora: (json['ocupacion_por_dia_hora'] as List<dynamic>)
+      .map((e) => OcupacionDiaHora.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  ocupacionGlobal: OcupacionGlobal.fromJson(
+    json['ocupacion_global'] as Map<String, dynamic>,
+  ),
+  deltas: json['deltas'] == null
+      ? null
+      : DashboardDeltas.fromJson(json['deltas'] as Map<String, dynamic>),
+);
 
 Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
     <String, dynamic>{
@@ -190,10 +193,10 @@ Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
       'reservas_pendientes': instance.reservasPendientes,
       'recursos_activos': instance.recursosActivos,
       'usuarios': instance.usuarios,
-      'espacio_nombre': instance.espacioNombre,
+      'laboratorio_nombre': instance.laboratorioNombre,
       'reservas_por_estado': instance.reservasPorEstado,
       'reservas_por_fecha': instance.reservasPorFecha,
-      'reservas_por_espacio': instance.reservasPorEspacio,
+      'reservas_por_laboratorio': instance.reservasPorLaboratorio,
       'recursos_mas_reservados': instance.recursosMasReservados,
       'ocupacion_por_dia_hora': instance.ocupacionPorDiaHora,
       'ocupacion_global': instance.ocupacionGlobal,

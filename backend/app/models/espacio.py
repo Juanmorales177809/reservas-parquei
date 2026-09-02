@@ -1,7 +1,6 @@
-from datetime import time
-
-from sqlalchemy import Boolean, JSON, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, Time, func
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
+
 from app.db import Base
 
 
@@ -10,39 +9,42 @@ class Espacio(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
-    ubicacion = Column(String(200), nullable=False, default="Principal")
-    capacidad = Column(Integer, nullable=False)
-    estado = Column(String(20), nullable=False, default="activo")
+    laboratorio_id = Column(Integer, ForeignKey("laboratorios.id"), nullable=False, index=True)
     descripcion = Column(Text, nullable=True)
-    dias_atencion = Column(JSON, nullable=False, default=lambda: [0, 1, 2, 3, 4, 5])
-    hora_apertura = Column(Time, nullable=False, default=lambda: time(7, 0))
-    hora_cierre = Column(Time, nullable=False, default=lambda: time(20, 0))
-    horario_atencion = Column(
-        JSON,
-        nullable=False,
-        default=lambda: {str(dia): list(range(7, 20)) for dia in range(6)},
-    )
-    horas_antelacion = Column(Integer, nullable=False, default=24)
-    aprobacion_automatica = Column(Boolean, nullable=False, default=False)
-    modalidad_reserva = Column(String(20), nullable=False, default="equipos")
-    correo = Column(String(255), nullable=True)
-    create_at = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
+    capacidad = Column(Integer, nullable=True)
+    estado = Column(String(20), nullable=False, default="activo")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    # Nullable desde 2026-08-29 (bug real de producción, ver
+    # backend/CLAUDE.md): un created_by/updated_by huérfano se limpia a
+    # NULL en vez de romper la migración.
     created_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
     updated_by = Column(Integer, ForeignKey("personal.id"), nullable=True)
 
-    reservas = relationship("Reserva", back_populates="espacio", cascade="all, delete-orphan")
-    recursos = relationship("Recurso", back_populates="espacio", cascade="all, delete-orphan")
-    gestores = relationship("UsuarioEspacio", back_populates="espacio", cascade="all, delete-orphan")
+    laboratorio = relationship("Laboratorio")
+    creador = relationship("Personal", foreign_keys=[created_by])
+    actualizador = relationship("Personal", foreign_keys=[updated_by])
+
+    # viewonly: la escritura de la asociación sigue pasando exclusivamente
+    # por `reemplazar_recursos_de_espacio` (PUT /espacios/{id}/recursos),
+    # esto es solo para poder exponer `recurso_ids` en EspacioResponse sin
+    # duplicar esa lógica de reemplazo completo.
+    recursos = relationship(
+        "Recurso",
+        secondary="espacio_recursos",
+        primaryjoin="Espacio.id == EspacioRecurso.espacio_id",
+        secondaryjoin="EspacioRecurso.recurso_id == Recurso.id",
+        uselist=True,
+        viewonly=True,
+    )
 
     __table_args__ = (
-        CheckConstraint("hora_apertura < hora_cierre", name="ck_espacios_horario_atencion"),
-        CheckConstraint("horas_antelacion >= 0", name="ck_espacios_horas_antelacion"),
-        CheckConstraint(
-            "modalidad_reserva IN ('equipos', 'zonas', 'mixto')",
-            name="ck_espacios_modalidad_reserva",
-        ),
+        CheckConstraint("estado IN ('activo', 'inactivo', 'mantenimiento')", name="ck_espacios_estado"),
     )
 
     def __repr__(self):
         return f"<Espacio {self.nombre}>"
+
+    @property
+    def recurso_ids(self) -> list[int]:
+        return [r.id for r in self.recursos]

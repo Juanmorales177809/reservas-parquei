@@ -28,15 +28,15 @@ const _$RolUsuarioEnumMap = {
   RolUsuario.admin: 'admin',
 };
 
-_EspacioReserva _$EspacioReservaFromJson(Map<String, dynamic> json) =>
-    _EspacioReserva(
+_LaboratorioReserva _$LaboratorioReservaFromJson(Map<String, dynamic> json) =>
+    _LaboratorioReserva(
       id: (json['id'] as num).toInt(),
       nombre: json['nombre'] as String,
       capacidad: (json['capacidad'] as num?)?.toInt(),
       estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
     );
 
-Map<String, dynamic> _$EspacioReservaToJson(_EspacioReserva instance) =>
+Map<String, dynamic> _$LaboratorioReservaToJson(_LaboratorioReserva instance) =>
     <String, dynamic>{
       'id': instance.id,
       'nombre': instance.nombre,
@@ -56,7 +56,9 @@ _RecursoReserva _$RecursoReservaFromJson(Map<String, dynamic> json) =>
       nombre: json['nombre'] as String,
       capacidad: (json['capacidad'] as num?)?.toInt(),
       estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
-      espacio: EspacioReserva.fromJson(json['espacio'] as Map<String, dynamic>),
+      laboratorio: LaboratorioReserva.fromJson(
+        json['laboratorio'] as Map<String, dynamic>,
+      ),
     );
 
 Map<String, dynamic> _$RecursoReservaToJson(_RecursoReserva instance) =>
@@ -65,42 +67,43 @@ Map<String, dynamic> _$RecursoReservaToJson(_RecursoReserva instance) =>
       'nombre': instance.nombre,
       'capacidad': instance.capacidad,
       'estado': _$EstadoEntidadEnumMap[instance.estado]!,
-      'espacio': instance.espacio,
+      'laboratorio': instance.laboratorio,
     };
 
-_ZonaReserva _$ZonaReservaFromJson(Map<String, dynamic> json) => _ZonaReserva(
-  id: (json['id'] as num).toInt(),
-  nombre: json['nombre'] as String,
-  espacioId: (json['espacio_id'] as num).toInt(),
-  descripcion: json['descripcion'] as String?,
-  capacidad: (json['capacidad'] as num?)?.toInt(),
-  estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
-);
+_EspacioReserva _$EspacioReservaFromJson(Map<String, dynamic> json) =>
+    _EspacioReserva(
+      id: (json['id'] as num).toInt(),
+      nombre: json['nombre'] as String,
+      laboratorioId: (json['laboratorio_id'] as num).toInt(),
+      descripcion: json['descripcion'] as String?,
+      capacidad: (json['capacidad'] as num?)?.toInt(),
+      estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
+    );
 
-Map<String, dynamic> _$ZonaReservaToJson(_ZonaReserva instance) =>
+Map<String, dynamic> _$EspacioReservaToJson(_EspacioReserva instance) =>
     <String, dynamic>{
       'id': instance.id,
       'nombre': instance.nombre,
-      'espacio_id': instance.espacioId,
+      'laboratorio_id': instance.laboratorioId,
       'descripcion': instance.descripcion,
       'capacidad': instance.capacidad,
       'estado': _$EstadoEntidadEnumMap[instance.estado]!,
     };
 
-_EnsayoReserva _$EnsayoReservaFromJson(Map<String, dynamic> json) =>
-    _EnsayoReserva(
+_TipoReservaReserva _$TipoReservaReservaFromJson(Map<String, dynamic> json) =>
+    _TipoReservaReserva(
       id: (json['id'] as num).toInt(),
+      laboratorioId: (json['laboratorio_id'] as num).toInt(),
       nombre: json['nombre'] as String,
-      zonaId: (json['zona_id'] as num).toInt(),
-      estado: $enumDecode(_$EstadoEntidadEnumMap, json['estado']),
+      estado: json['estado'] as String,
     );
 
-Map<String, dynamic> _$EnsayoReservaToJson(_EnsayoReserva instance) =>
+Map<String, dynamic> _$TipoReservaReservaToJson(_TipoReservaReserva instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'laboratorio_id': instance.laboratorioId,
       'nombre': instance.nombre,
-      'zona_id': instance.zonaId,
-      'estado': _$EstadoEntidadEnumMap[instance.estado]!,
+      'estado': instance.estado,
     };
 
 _ReservaAcompanante _$ReservaAcompananteFromJson(Map<String, dynamic> json) =>
@@ -120,13 +123,19 @@ Map<String, dynamic> _$ReservaAcompananteToJson(_ReservaAcompanante instance) =>
 _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
   id: (json['id'] as num).toInt(),
   usuarioId: (json['usuario_id'] as num).toInt(),
-  espacioId: (json['espacio_id'] as num).toInt(),
+  laboratorioId: (json['laboratorio_id'] as num).toInt(),
   fecha: json['fecha'] as String,
   horaInicio: json['hora_inicio'] as String,
   horaFin: json['hora_fin'] as String,
   estado: $enumDecode(_$EstadoReservaEnumMap, json['estado']),
   asistentes: (json['asistentes'] as num).toInt(),
   tipo: $enumDecodeNullable(_$TipoReservaEnumMap, json['tipo']),
+  tipoReservaId: (json['tipo_reserva_id'] as num?)?.toInt(),
+  tipoReserva: json['tipo_reserva'] == null
+      ? null
+      : TipoReservaReserva.fromJson(
+          json['tipo_reserva'] as Map<String, dynamic>,
+        ),
   asistio: json['asistio'] as bool?,
   motivoRechazo: json['motivo_rechazo'] as String?,
   descripcion: json['descripcion'] as String?,
@@ -138,8 +147,9 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
   createdAt: json['created_at'] as String,
   updatedAt: json['updated_at'] as String,
   usuario: UsuarioReserva.fromJson(json['usuario'] as Map<String, dynamic>),
-  espacio: EspacioReserva.fromJson(json['espacio'] as Map<String, dynamic>),
-  serieId: json['serie_id'] as String?,
+  laboratorio: LaboratorioReserva.fromJson(
+    json['laboratorio'] as Map<String, dynamic>,
+  ),
   recursoIds:
       (json['recurso_ids'] as List<dynamic>?)
           ?.map((e) => (e as num).toInt())
@@ -150,24 +160,14 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
           ?.map((e) => RecursoReserva.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
-  zonaIds:
-      (json['zona_ids'] as List<dynamic>?)
+  espacioIds:
+      (json['espacio_ids'] as List<dynamic>?)
           ?.map((e) => (e as num).toInt())
           .toList() ??
       const [],
-  zonas:
-      (json['zonas'] as List<dynamic>?)
-          ?.map((e) => ZonaReserva.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-  ensayoIds:
-      (json['ensayo_ids'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList() ??
-      const [],
-  ensayos:
-      (json['ensayos'] as List<dynamic>?)
-          ?.map((e) => EnsayoReserva.fromJson(e as Map<String, dynamic>))
+  espacios:
+      (json['espacios'] as List<dynamic>?)
+          ?.map((e) => EspacioReserva.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
   acompanantes:
@@ -180,13 +180,15 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
 Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
   'id': instance.id,
   'usuario_id': instance.usuarioId,
-  'espacio_id': instance.espacioId,
+  'laboratorio_id': instance.laboratorioId,
   'fecha': instance.fecha,
   'hora_inicio': instance.horaInicio,
   'hora_fin': instance.horaFin,
   'estado': _$EstadoReservaEnumMap[instance.estado]!,
   'asistentes': instance.asistentes,
   'tipo': _$TipoReservaEnumMap[instance.tipo],
+  'tipo_reserva_id': instance.tipoReservaId,
+  'tipo_reserva': instance.tipoReserva,
   'asistio': instance.asistio,
   'motivo_rechazo': instance.motivoRechazo,
   'descripcion': instance.descripcion,
@@ -196,14 +198,11 @@ Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
   'created_at': instance.createdAt,
   'updated_at': instance.updatedAt,
   'usuario': instance.usuario,
-  'espacio': instance.espacio,
-  'serie_id': instance.serieId,
+  'laboratorio': instance.laboratorio,
   'recurso_ids': instance.recursoIds,
   'recursos': instance.recursos,
-  'zona_ids': instance.zonaIds,
-  'zonas': instance.zonas,
-  'ensayo_ids': instance.ensayoIds,
-  'ensayos': instance.ensayos,
+  'espacio_ids': instance.espacioIds,
+  'espacios': instance.espacios,
   'acompanantes': instance.acompanantes,
 };
 
@@ -224,63 +223,4 @@ const _$TipoSolicitudEnumMap = {
   TipoSolicitud.reservaEnLaboratorio: 'reserva_en_laboratorio',
   TipoSolicitud.reservaFueraLaboratorio: 'reserva_fuera_laboratorio',
   TipoSolicitud.ordenSalida: 'orden_salida',
-};
-
-_OcurrenciaOmitida _$OcurrenciaOmitidaFromJson(Map<String, dynamic> json) =>
-    _OcurrenciaOmitida(
-      fecha: json['fecha'] as String,
-      motivo: json['motivo'] as String,
-    );
-
-Map<String, dynamic> _$OcurrenciaOmitidaToJson(_OcurrenciaOmitida instance) =>
-    <String, dynamic>{'fecha': instance.fecha, 'motivo': instance.motivo};
-
-_ReservaSerieResultado _$ReservaSerieResultadoFromJson(
-  Map<String, dynamic> json,
-) => _ReservaSerieResultado(
-  creadas: (json['creadas'] as List<dynamic>)
-      .map((e) => Reserva.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  omitidas: (json['omitidas'] as List<dynamic>)
-      .map((e) => OcurrenciaOmitida.fromJson(e as Map<String, dynamic>))
-      .toList(),
-);
-
-Map<String, dynamic> _$ReservaSerieResultadoToJson(
-  _ReservaSerieResultado instance,
-) => <String, dynamic>{
-  'creadas': instance.creadas,
-  'omitidas': instance.omitidas,
-};
-
-_OcurrenciaCancelOmitida _$OcurrenciaCancelOmitidaFromJson(
-  Map<String, dynamic> json,
-) => _OcurrenciaCancelOmitida(
-  reservaId: (json['reserva_id'] as num).toInt(),
-  motivo: json['motivo'] as String,
-);
-
-Map<String, dynamic> _$OcurrenciaCancelOmitidaToJson(
-  _OcurrenciaCancelOmitida instance,
-) => <String, dynamic>{
-  'reserva_id': instance.reservaId,
-  'motivo': instance.motivo,
-};
-
-_ReservaSerieCancelResultado _$ReservaSerieCancelResultadoFromJson(
-  Map<String, dynamic> json,
-) => _ReservaSerieCancelResultado(
-  canceladas: (json['canceladas'] as List<dynamic>)
-      .map((e) => Reserva.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  omitidas: (json['omitidas'] as List<dynamic>)
-      .map((e) => OcurrenciaCancelOmitida.fromJson(e as Map<String, dynamic>))
-      .toList(),
-);
-
-Map<String, dynamic> _$ReservaSerieCancelResultadoToJson(
-  _ReservaSerieCancelResultado instance,
-) => <String, dynamic>{
-  'canceladas': instance.canceladas,
-  'omitidas': instance.omitidas,
 };

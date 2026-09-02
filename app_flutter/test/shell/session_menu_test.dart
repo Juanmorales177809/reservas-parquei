@@ -31,7 +31,7 @@ const _gestor = AuthUser(
   username: 'gestor_flutter',
   email: 'gestor_flutter@example.com',
   rol: RolUsuario.gestor,
-  espacio: EspacioResumen(id: 1, nombre: 'Auditorio Principal', ubicacion: 'Bloque A'),
+  laboratorio: LaboratorioResumen(id: 1, nombre: 'Auditorio Principal', ubicacion: 'Bloque A'),
 );
 
 /// Anchos representativos de cada `ClaseVentana`.
@@ -50,7 +50,7 @@ Future<void> _montar(WidgetTester tester, {required AuthUser? usuario, required 
     ProviderScope(
       overrides: [authProvider.overrideWith(() => _AuthFalsa(usuario))],
       child: const MaterialApp(
-        home: AppShell(currentPath: '/espacios', child: SizedBox.shrink()),
+        home: AppShell(currentPath: '/laboratorios', child: SizedBox.shrink()),
       ),
     ),
   );

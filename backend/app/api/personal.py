@@ -9,7 +9,7 @@ from app.crud.usuarios import get_usuario
 from app.db import get_db
 from app.deps import require_admin
 from app.domain.enums import Rol
-from app.models.espacio import Espacio
+from app.models.laboratorio import Laboratorio
 from app.models.personal import Personal
 from app.schemas.personal import PersonalCreate, PersonalUpdate
 from app.schemas.usuario import ReenviarInvitacionResponse, UsuarioResponse
@@ -80,10 +80,10 @@ def create_personal_admin(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado")
 
     if payload.rol == Rol.GESTOR:
-        if payload.espacio_id is None:
-            raise HTTPException(status_code=400, detail="Debes asignar un espacio al gestor")
-        if db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
-            raise HTTPException(status_code=404, detail="Espacio no encontrado")
+        if payload.laboratorio_id is None:
+            raise HTTPException(status_code=400, detail="Debes asignar un laboratorio al gestor")
+        if db.query(Laboratorio).filter(Laboratorio.id == payload.laboratorio_id).first() is None:
+            raise HTTPException(status_code=404, detail="Laboratorio no encontrado")
 
     try:
         supabase_id, link = crear_usuario_y_generar_link(payload.email)
@@ -124,12 +124,12 @@ def promover_usuario_a_personal(
     if not db_usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     if payload.rol == Rol.GESTOR:
-        if payload.espacio_id is None:
-            raise HTTPException(status_code=400, detail="Debes asignar un espacio al gestor")
-        if db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
-            raise HTTPException(status_code=404, detail="Espacio no encontrado")
+        if payload.laboratorio_id is None:
+            raise HTTPException(status_code=400, detail="Debes asignar un laboratorio al gestor")
+        if db.query(Laboratorio).filter(Laboratorio.id == payload.laboratorio_id).first() is None:
+            raise HTTPException(status_code=404, detail="Laboratorio no encontrado")
 
-    personal = promover_a_personal(db, db_usuario, payload.rol.value, payload.espacio_id)
+    personal = promover_a_personal(db, db_usuario, payload.rol.value, payload.laboratorio_id)
     registrar_cambio(
         db, current_user, "promover", "personal", personal.id, f"Ascendió a {personal.username} a rol {personal.rol}"
     )
@@ -204,7 +204,7 @@ def update_personal_endpoint(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="No se puede degradar: esta persona todavía figura como creador/actualizador de "
-                "recursos, zonas, ensayos o espacios.",
+                "recursos, espacios o laboratorios.",
             ) from exc
         registrar_cambio(db, current_user, "degradar", "usuario", usuario.id, f"Degradó a {usuario.username} a rol usuario")
         db.commit()
@@ -213,11 +213,11 @@ def update_personal_endpoint(
     rol_final = payload.rol.value if payload.rol is not None else db_personal.rol
     proteger_administradores(db, db_personal, current_user, rol_final=rol_final)
     if rol_final == "gestor":
-        espacio_actual = db_personal.espacio.id if db_personal.espacio else None
-        if payload.espacio_id is None and espacio_actual is None:
-            raise HTTPException(status_code=400, detail="Debes asignar un espacio al gestor")
-        if payload.espacio_id is not None and db.query(Espacio).filter(Espacio.id == payload.espacio_id).first() is None:
-            raise HTTPException(status_code=404, detail="Espacio no encontrado")
+        laboratorio_actual = db_personal.laboratorio.id if db_personal.laboratorio else None
+        if payload.laboratorio_id is None and laboratorio_actual is None:
+            raise HTTPException(status_code=400, detail="Debes asignar un laboratorio al gestor")
+        if payload.laboratorio_id is not None and db.query(Laboratorio).filter(Laboratorio.id == payload.laboratorio_id).first() is None:
+            raise HTTPException(status_code=404, detail="Laboratorio no encontrado")
 
     personal = actualizar_personal(db, db_personal, payload)
     registrar_cambio(db, current_user, "actualizar", "personal", personal.id, f"Actualizó el personal {personal.username}")

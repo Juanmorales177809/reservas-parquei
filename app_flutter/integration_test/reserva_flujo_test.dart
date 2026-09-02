@@ -38,7 +38,7 @@ void main() {
     // 1) El usuario crea la reserva.
     await login(tester, usuario: usuarioE2eUsername, clave: usuarioE2ePassword);
 
-    await irA(tester, AppRoutes.espacioDetalle(espacioE2eId));
+    await irA(tester, AppRoutes.laboratorioDetalle(laboratorioE2eId));
 
     await tester.tap(find.text(recursoE2eNombre));
     await tester.pumpAndSettle();
@@ -50,13 +50,13 @@ void main() {
       reason: 'No hay franjas libres hoy para "$recursoE2eNombre". Puede ser que una '
           'corrida anterior de este archivo haya quedado a mitad de camino (revisar '
           'reservas "esperando" en reservas_test), o que se esté corriendo después de '
-          'las 19:00 (última franja del espacio de pruebas) — ver asegurarFixturesE2e().',
+          'las 19:00 (última franja del laboratorio de pruebas) — ver asegurarFixturesE2e().',
     );
     await tester.tap(franja.first);
     await tester.pumpAndSettle();
 
     // El botón "Reservar" del sheet de confirmación comparte texto con el
-    // botón "Reservar" de la cabecera del espacio (flujo multi-eje) — se
+    // botón "Reservar" de la cabecera del laboratorio (flujo multi-eje) — se
     // busca específicamente dentro de `RecursoDisponibilidadSheet` para no
     // matchear ambos.
     await tester.tap(find.descendant(

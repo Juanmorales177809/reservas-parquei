@@ -7,7 +7,7 @@ fila `ControlCambio` en la sesión inyectada. El commit sigue siendo
 responsabilidad del flujo que la usa (igual que antes).
 
 `registrar_cambio()` se conserva como wrapper compatible para los módulos
-que ya lo importan (`api/usuarios.py`, `api/espacios.py`, `api/recursos.py`,
+que ya lo importan (`api/usuarios.py`, `api/laboratorios.py`, `api/recursos.py`,
 `services/reservas.py`).
 """
 

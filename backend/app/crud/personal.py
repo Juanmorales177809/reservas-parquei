@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.models.personal import Personal
-from app.models.usuario_espacio import UsuarioEspacio
+from app.models.usuario_laboratorio import UsuarioLaboratorio
 from app.schemas.personal import PersonalCreate, PersonalUpdate
 
 
@@ -36,8 +36,8 @@ def crear_personal(db: Session, data: PersonalCreate, supabase_id: uuid.UUID) ->
     )
     db.add(db_personal)
     db.flush()
-    if db_personal.rol == "gestor" and data.espacio_id is not None:
-        db.add(UsuarioEspacio(usuario_id=db_personal.id, espacio_id=data.espacio_id))
+    if db_personal.rol == "gestor" and data.laboratorio_id is not None:
+        db.add(UsuarioLaboratorio(usuario_id=db_personal.id, laboratorio_id=data.laboratorio_id))
     db.commit()
     db.refresh(db_personal)
     return db_personal
@@ -48,23 +48,23 @@ def actualizar_personal(db: Session, db_personal: Personal, data: PersonalUpdate
     (`services/migrar_actor.py::degradar_a_usuario`), resuelta en
     `api/personal.py` ANTES de llegar acá. Esta función solo cubre
     ediciones que se quedan dentro de `personal` (admin<->gestor, perfil,
-    espacio)."""
+    laboratorio)."""
     update_data = data.model_dump(exclude_unset=True)
-    espacio_id = update_data.pop("espacio_id", None)
+    laboratorio_id = update_data.pop("laboratorio_id", None)
     if "rol" in update_data and update_data["rol"] is not None:
         update_data["rol"] = update_data["rol"].value if hasattr(update_data["rol"], "value") else update_data["rol"]
     for field, value in update_data.items():
         setattr(db_personal, field, value)
 
-    asignacion = db.query(UsuarioEspacio).filter(UsuarioEspacio.usuario_id == db_personal.id).first()
+    asignacion = db.query(UsuarioLaboratorio).filter(UsuarioLaboratorio.usuario_id == db_personal.id).first()
     if db_personal.rol != "gestor":
         if asignacion is not None:
             db.delete(asignacion)
-    elif espacio_id is not None:
+    elif laboratorio_id is not None:
         if asignacion is None:
-            db.add(UsuarioEspacio(usuario_id=db_personal.id, espacio_id=espacio_id))
+            db.add(UsuarioLaboratorio(usuario_id=db_personal.id, laboratorio_id=laboratorio_id))
         else:
-            asignacion.espacio_id = espacio_id
+            asignacion.laboratorio_id = laboratorio_id
 
     db.add(db_personal)
     db.commit()

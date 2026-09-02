@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.domain.enums import Rol, VinculacionUsuario
 
 
-class UsuarioEspacioResponse(BaseModel):
+class UsuarioLaboratorioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -81,7 +81,7 @@ class UsuarioResponse(BaseModel):
     username: str
     email: str
     rol: Rol
-    espacio: UsuarioEspacioResponse | None = None
+    laboratorio: UsuarioLaboratorioResponse | None = None
     documento_identificacion: str | None = None
     telefono: str | None = None
     institucion: str | None = None

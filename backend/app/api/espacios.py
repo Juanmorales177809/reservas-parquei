@@ -1,241 +1,149 @@
-from datetime import date, datetime, time, timedelta, timezone
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.crud.espacios import create_espacio, get_espacio_by_nombre, update_espacio
+from app.crud.espacios import create_espacio, get_espacio, reemplazar_recursos_de_espacio, update_espacio
 from app.db import get_db
-from app.deps import get_current_user, get_current_user_optional, get_managed_space_id, require_admin
-from app.domain.enums import EstadoEntidad, Rol
-from app.models import Espacio, Personal, Recurso, Reserva, UsuarioEspacio
-from app.models.reserva import ESTADOS_BLOQUEANTES
-from app.models.usuario import Usuario
-from app.schemas.disponibilidad import DisponibilidadSlot
+from app.deps import get_current_user_optional, get_managed_laboratory_id, require_resource_manager
+from app.domain.enums import Rol
+from app.models import Laboratorio, Personal, Recurso, Usuario
+from app.models.espacio import Espacio
+from app.models.espacio_recurso import EspacioRecurso
 from app.schemas.espacio import (
-    ConfiguracionEspacioResponse,
-    ConfiguracionEspacioUpdate,
     EspacioCreate,
+    EspacioRecursosResponse,
+    EspacioRecursosUpdate,
     EspacioResponse,
     EspacioUpdate,
 )
-from app.services.auditoria import registrar_cambio
-from app.services.horarios import horas_atencion_dia
-from app.services.reloj import ahora_local
-
 
 router = APIRouter(prefix="/espacios", tags=["espacios"])
 
 
-def _configuracion_response(espacio: Espacio) -> ConfiguracionEspacioResponse:
-    return ConfiguracionEspacioResponse(
-        espacio_id=espacio.id,
-        espacio_nombre=espacio.nombre,
-        dias_atencion=espacio.dias_atencion,
-        hora_apertura=espacio.hora_apertura,
-        hora_cierre=espacio.hora_cierre,
-        horario_atencion=espacio.horario_atencion,
-        horas_antelacion=espacio.horas_antelacion,
-        aprobacion_automatica=espacio.aprobacion_automatica,
-    )
-
-
 @router.get("", response_model=list[EspacioResponse])
 def listar_espacios(
+    laboratorio_id: int | None = None,
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
     usuario: Usuario | None = Depends(get_current_user_optional),
 ):
-    """Listar espacios públicos. No requiere autenticación."""
-    query = db.query(Espacio).order_by(Espacio.nombre.asc())
+    """Listar espacios. No requiere autenticacion (mismo criterio RN-005 que
+    GET /laboratorios): anonimo/usuario solo ven espacios activos de
+    laboratorios activos; gestor/admin ven todo."""
+    query = db.query(Espacio).join(Laboratorio, Espacio.laboratorio_id == Laboratorio.id)
+    if laboratorio_id is not None:
+        query = query.filter(Espacio.laboratorio_id == laboratorio_id)
     if usuario is None or usuario.rol == Rol.USUARIO.value:
-        query = query.filter(Espacio.estado == EstadoEntidad.ACTIVO.value)
-    return query.offset(skip).limit(limit).all()
-
-
-@router.get("/gestion/configuracion", response_model=ConfiguracionEspacioResponse)
-def obtener_configuracion_gestion(
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if current_user.rol != "gestor":
-        raise HTTPException(status_code=403, detail="Solo un gestor puede configurar su espacio")
-    espacio_id = get_managed_space_id(db, current_user)
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if espacio is None:
-        raise HTTPException(status_code=404, detail="Espacio no encontrado")
-    return _configuracion_response(espacio)
-
-
-@router.put("/gestion/configuracion", response_model=ConfiguracionEspacioResponse)
-def actualizar_configuracion_gestion(
-    payload: ConfiguracionEspacioUpdate,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if current_user.rol != "gestor":
-        raise HTTPException(status_code=403, detail="Solo un gestor puede configurar su espacio")
-    espacio_id = get_managed_space_id(db, current_user)
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if espacio is None:
-        raise HTTPException(status_code=404, detail="Espacio no encontrado")
-
-    horario = {str(dia): horas for dia, horas in payload.horario_atencion.items() if horas}
-    horas = [hora for horas_dia in horario.values() for hora in horas_dia]
-    espacio.horario_atencion = horario
-    espacio.dias_atencion = sorted(int(dia) for dia in horario)
-    espacio.hora_apertura = time(min(horas), 0)
-    espacio.hora_cierre = time(max(horas) + 1, 0)
-    espacio.horas_antelacion = payload.horas_antelacion
-    espacio.aprobacion_automatica = payload.aprobacion_automatica
-    espacio.updated_at = datetime.now(timezone.utc)
-    espacio.updated_by = current_user.id
-    registrar_cambio(
-        db,
-        current_user,
-        "configurar",
-        "espacio",
-        espacio.id,
-        f"Actualizó las reglas de reserva de {espacio.nombre}",
-    )
-    db.commit()
-    db.refresh(espacio)
-    return _configuracion_response(espacio)
-
-
-@router.get("/{espacio_id}", response_model=EspacioResponse)
-def obtener_espacio(
-    espacio_id: int,
-    db: Session = Depends(get_db),
-):
-    """Obtener un espacio por ID."""
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if not espacio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Espacio no encontrado",
-        )
-    return espacio
-
-
-@router.get("/{espacio_id}/disponibilidad", response_model=list[DisponibilidadSlot])
-def obtener_disponibilidad(
-    espacio_id: int,
-    fecha: date = Query(..., description="Fecha en formato YYYY-MM-DD"),
-    db: Session = Depends(get_db),
-):
-    """Obtener disponibilidad horaria de un espacio para una fecha dada. No requiere autenticación."""
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if not espacio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Espacio no encontrado",
-        )
-
-    slots: list[DisponibilidadSlot] = []
-    fecha_minima = ahora_local() + timedelta(hours=espacio.horas_antelacion)
-
-    for hora in horas_atencion_dia(espacio, fecha.weekday()):
-        cursor = datetime.combine(fecha, time(hora, 0))
-        siguiente = cursor + timedelta(hours=1)
-        slot_inicio = cursor.time()
-        slot_fin = siguiente.time()
-
-        if espacio.estado != "activo":
-            estado = "mantenimiento"
-        elif cursor < fecha_minima:
-            continue
-        else:
-            bloqueantes = db.query(Reserva).filter(
-                Reserva.espacio_id == espacio_id,
-                Reserva.fecha == fecha,
-                Reserva.estado.in_(ESTADOS_BLOQUEANTES),
-                Reserva.hora_inicio < slot_fin,
-                Reserva.hora_fin > slot_inicio,
-            ).first()
-            estado = "ocupado" if bloqueantes else "libre"
-
-        slots.append(
-            DisponibilidadSlot(
-                hora_inicio=slot_inicio.strftime("%H:%M"),
-                hora_fin=slot_fin.strftime("%H:%M"),
-                estado=estado,
-            )
-        )
-
-    return slots
+        query = query.filter(Espacio.estado == "activo", Laboratorio.estado == "activo")
+    return query.order_by(Espacio.nombre.asc()).all()
 
 
 @router.post("", response_model=EspacioResponse, status_code=status.HTTP_201_CREATED)
 def crear_espacio(
     payload: EspacioCreate,
-    current_user: Personal = Depends(require_admin),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
-    """Crear un espacio. Solo admin."""
-    if get_espacio_by_nombre(db, payload.nombre) is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="El nombre del espacio ya existe",
-        )
-    espacio = create_espacio(db, payload)
-    registrar_cambio(db, current_user, "crear", "espacio", espacio.id, f"Creó el espacio {espacio.nombre}")
-    db.commit()
-    return espacio
+    laboratorio_gestionado = get_managed_laboratory_id(db, current_user)
+    if laboratorio_gestionado is not None and payload.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=403, detail="Solo puedes gestionar espacios de tu laboratorio")
+    if db.query(Laboratorio).filter(Laboratorio.id == payload.laboratorio_id).first() is None:
+        raise HTTPException(status_code=404, detail="Laboratorio no encontrado")
+    return create_espacio(db, payload, current_user.id)
 
 
 @router.put("/{espacio_id}", response_model=EspacioResponse)
 def actualizar_espacio(
     espacio_id: int,
     payload: EspacioUpdate,
-    current_user: Personal = Depends(require_admin),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
-    """Actualizar un espacio. Solo admin."""
-    espacio = update_espacio(db, espacio_id, payload)
+    espacio = get_espacio(db, espacio_id)
     if espacio is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Espacio no encontrado",
+        raise HTTPException(status_code=404, detail="Espacio no encontrado")
+    laboratorio_gestionado = get_managed_laboratory_id(db, current_user)
+    if laboratorio_gestionado is not None and espacio.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=403, detail="Solo puedes gestionar espacios de tu laboratorio")
+
+    cambios = payload.model_dump(exclude_unset=True)
+    if laboratorio_gestionado is not None:
+        # Un gestor no puede mover un espacio fuera de su propio
+        # laboratorio, igual que ya rige para Recurso (api/recursos.py).
+        cambios.pop("laboratorio_id", None)
+    nuevo_laboratorio_id = cambios.get("laboratorio_id", espacio.laboratorio_id)
+    if db.query(Laboratorio).filter(Laboratorio.id == nuevo_laboratorio_id).first() is None:
+        raise HTTPException(status_code=404, detail="Laboratorio no encontrado")
+
+    return update_espacio(db, espacio, cambios, current_user.id)
+
+
+@router.put("/{espacio_id}/recursos", response_model=EspacioRecursosResponse)
+def actualizar_recursos_de_espacio(
+    espacio_id: int,
+    payload: EspacioRecursosUpdate,
+    current_user: Personal = Depends(require_resource_manager),
+    db: Session = Depends(get_db),
+):
+    """Reemplazo completo de la asociación Espacio<->Recurso (Fase 12C-3):
+    la lista recibida sustituye por completo a la actual -- lo ausente se
+    elimina, lo nuevo se inserta. Unicidad funcional: un recurso ya
+    asociado a OTRO espacio responde 409 sin dejar cambios parciales (todas
+    las validaciones se resuelven antes de tocar la base de datos)."""
+    espacio = get_espacio(db, espacio_id)
+    if espacio is None:
+        raise HTTPException(status_code=404, detail="Espacio no encontrado")
+    laboratorio_gestionado = get_managed_laboratory_id(db, current_user)
+    if laboratorio_gestionado is not None and espacio.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=403, detail="Solo puedes gestionar espacios de tu laboratorio")
+
+    recurso_ids = set(payload.recurso_ids)
+    if recurso_ids:
+        recursos = db.query(Recurso).filter(Recurso.id.in_(recurso_ids)).all()
+        encontrados = {r.id for r in recursos}
+        faltantes = recurso_ids - encontrados
+        if faltantes:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Recurso(s) no encontrado(s): {sorted(faltantes)}",
+            )
+        fuera_de_laboratorio = sorted(r.id for r in recursos if r.laboratorio_id != espacio.laboratorio_id)
+        if fuera_de_laboratorio:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Los recursos {fuera_de_laboratorio} no pertenecen al laboratorio del espacio",
+            )
+        conflictivos = sorted(
+            er.recurso_id
+            for er in db.query(EspacioRecurso)
+            .filter(EspacioRecurso.recurso_id.in_(recurso_ids), EspacioRecurso.espacio_id != espacio_id)
+            .all()
         )
-    registrar_cambio(db, current_user, "actualizar", "espacio", espacio.id, f"Actualizó el espacio {espacio.nombre}")
-    db.commit()
-    return espacio
+        if conflictivos:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Los recursos {conflictivos} ya pertenecen a otro espacio",
+            )
+
+    resultado = reemplazar_recursos_de_espacio(db, espacio_id, recurso_ids)
+    return EspacioRecursosResponse(espacio_id=espacio_id, recurso_ids=sorted(resultado))
 
 
 @router.delete("/{espacio_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_espacio(
     espacio_id: int,
-    current_user: Personal = Depends(require_admin),
+    current_user: Personal = Depends(require_resource_manager),
     db: Session = Depends(get_db),
 ):
-    """Eliminar un espacio. Solo admin."""
-    espacio = db.query(Espacio).filter(Espacio.id == espacio_id).first()
-    if not espacio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Espacio no encontrado",
-        )
-    dependencias = {
-        "reservas": db.query(Reserva).filter(Reserva.espacio_id == espacio_id).count(),
-        "recursos": db.query(Recurso).filter(Recurso.espacio_id == espacio_id).count(),
-        "gestores": db.query(UsuarioEspacio).filter(UsuarioEspacio.espacio_id == espacio_id).count(),
-    }
-    if any(dependencias.values()):
-        detalle = ", ".join(
-            f"{cantidad} {tipo}"
-            for tipo, cantidad in dependencias.items()
-            if cantidad
-        )
+    espacio = get_espacio(db, espacio_id)
+    if espacio is None:
+        raise HTTPException(status_code=404, detail="Espacio no encontrado")
+    laboratorio_gestionado = get_managed_laboratory_id(db, current_user)
+    if laboratorio_gestionado is not None and espacio.laboratorio_id != laboratorio_gestionado:
+        raise HTTPException(status_code=403, detail="Solo puedes gestionar espacios de tu laboratorio")
+    if db.query(EspacioRecurso).filter(EspacioRecurso.espacio_id == espacio_id).first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"No se puede eliminar el espacio porque tiene {detalle}. "
-                "Cambia su estado a inactivo para conservar el historial."
-            ),
+            detail="No se puede eliminar un espacio con recursos asociados",
         )
-    descripcion = f"Eliminó el espacio {espacio.nombre}"
     db.delete(espacio)
-    registrar_cambio(db, current_user, "eliminar", "espacio", espacio_id, descripcion)
     db.commit()
     return None

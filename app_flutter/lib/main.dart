@@ -14,8 +14,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // No-op fuera de Web. En Web, evita URLs con "#" (http://host/#/espacios)
-  // para que las rutas limpias (http://host/espacios/3) funcionen al
+  // No-op fuera de Web. En Web, evita URLs con "#" (http://host/#/laboratorios)
+  // para que las rutas limpias (http://host/laboratorios/3) funcionen al
   // compartirlas o recargar la página — depende de que el proxy same-origin
   // sirva index.html como fallback de SPA (ver Fase 6-Web).
   usePathUrlStrategy();

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_flutter/core/domain/enums.dart';
-import 'package:app_flutter/features/espacios/domain/disponibilidad_slot.dart';
+import 'package:app_flutter/features/laboratorios/domain/disponibilidad_slot.dart';
 import 'package:app_flutter/features/reservas/presentation/selectable_slot_grid.dart';
 
 DisponibilidadSlot _slot(String inicio, String fin, EstadoSlot estado) =>

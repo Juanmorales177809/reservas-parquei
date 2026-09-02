@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../core/domain/enums.dart';
+// `TipoReserva`/`tipoReservaLabel` ocultos: este sheet ya no usa el enum
+// viejo para crear reservas (Fase 7, ver `features/tipos_reserva/`) -- sin
+// el `hide`, colisionaría con la clase del catálogo real importada abajo.
+import '../../../core/domain/enums.dart' hide TipoReserva, tipoReservaLabel, tipoReservaToJson;
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,20 +16,21 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_spinner.dart';
 import '../../../core/widgets/success_burst.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../espacios/domain/disponibilidad_slot.dart';
-import '../../espacios/presentation/disponibilidad_slot_grid.dart';
-import '../../espacios/presentation/slot_chip.dart';
+import '../../laboratorios/domain/disponibilidad_slot.dart';
+import '../../laboratorios/presentation/disponibilidad_slot_grid.dart';
+import '../../laboratorios/presentation/slot_chip.dart';
 import '../../recursos/application/recursos_providers.dart';
 import '../../recursos/domain/recurso.dart';
+import '../../tipos_reserva/application/tipos_reserva_providers.dart';
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
 import 'selectable_slot_grid.dart';
 
-/// Abierto al tocar un recurso en `EspacioDetalleScreen`. Anónimo: solo
+/// Abierto al tocar un recurso en `LaboratorioDetalleScreen`. Anónimo: solo
 /// lectura (Fase 1) + botón "Iniciá sesión para reservar". Autenticado
 /// (Fase 2): selección de un rango de franjas `libre` consecutivas +
 /// formulario mínimo (asistentes, tipo opcional) + `POST /reservas`.
-/// Alcance acotado a `recurso_ids` (modalidad "equipos") — zonas/ensayos/
+/// Alcance acotado a `recurso_ids` (modalidad "equipos") — espacios/
 /// acompañantes quedan fuera, ver plan de migración.
 class RecursoDisponibilidadSheet extends ConsumerStatefulWidget {
   const RecursoDisponibilidadSheet({required this.recurso, super.key});
@@ -41,7 +45,9 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
   late DateTime _fecha;
   Set<int> _seleccion = {};
   int _asistentes = 1;
-  TipoReserva? _tipo;
+  // Fase 7: catálogo real por laboratorio (reemplaza el enum fijo viejo,
+  // ver `features/tipos_reserva/`) -- `null` si no se elige ninguno.
+  int? _tipoReservaId;
   bool _enviando = false;
   String? _error;
 
@@ -118,7 +124,7 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
             horaInicio: slots[minIdx].horaInicio,
             horaFin: slots[maxIdx].horaFin,
             asistentes: _asistentes,
-            tipo: _tipo,
+            tipoReservaId: _tipoReservaId,
           );
       ref.invalidate(recursoDisponibilidadProvider(widget.recurso.id, _fecha));
       ref.invalidate(misReservasProvider);
@@ -142,6 +148,7 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
   @override
   Widget build(BuildContext context) {
     final disponibilidadAsync = ref.watch(recursoDisponibilidadProvider(widget.recurso.id, _fecha));
+    final tiposReserva = ref.watch(tiposReservaProvider(widget.recurso.laboratorioId)).value ?? const [];
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
     final scheme = Theme.of(context).colorScheme;
 
@@ -210,13 +217,14 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
                   seleccion: _seleccion,
                   recurso: widget.recurso,
                   asistentes: _asistentes,
-                  tipo: _tipo,
+                  tiposReserva: tiposReserva,
+                  tipoReservaId: _tipoReservaId,
                   enviando: _enviando,
                   error: _error,
                   onToggle: (i) => _alternarSlot(slots, i),
                   onRango: _seleccionarRango,
                   onAsistentesChanged: (v) => setState(() => _asistentes = v),
-                  onTipoChanged: (v) => setState(() => _tipo = v),
+                  onTipoReservaIdChanged: (v) => setState(() => _tipoReservaId = v),
                   onConfirmar: () => _reservar(slots),
                 );
               },
@@ -234,13 +242,14 @@ class _FormularioReserva extends StatelessWidget {
     required this.seleccion,
     required this.recurso,
     required this.asistentes,
-    required this.tipo,
+    required this.tiposReserva,
+    required this.tipoReservaId,
     required this.enviando,
     required this.error,
     required this.onToggle,
     required this.onRango,
     required this.onAsistentesChanged,
-    required this.onTipoChanged,
+    required this.onTipoReservaIdChanged,
     required this.onConfirmar,
   });
 
@@ -248,13 +257,14 @@ class _FormularioReserva extends StatelessWidget {
   final Set<int> seleccion;
   final Recurso recurso;
   final int asistentes;
-  final TipoReserva? tipo;
+  final List<TipoReserva> tiposReserva;
+  final int? tipoReservaId;
   final bool enviando;
   final String? error;
   final ValueChanged<int> onToggle;
   final void Function(int desde, int hasta) onRango;
   final ValueChanged<int> onAsistentesChanged;
-  final ValueChanged<TipoReserva?> onTipoChanged;
+  final ValueChanged<int?> onTipoReservaIdChanged;
   final VoidCallback onConfirmar;
 
   @override
@@ -305,16 +315,20 @@ class _FormularioReserva extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          DropdownButtonFormField<TipoReserva?>(
-            initialValue: tipo,
-            decoration: const InputDecoration(labelText: 'Tipo de reserva (opcional)'),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('Sin especificar')),
-              for (final t in TipoReserva.values) DropdownMenuItem(value: t, child: Text(tipoReservaLabel(t))),
-            ],
-            onChanged: onTipoChanged,
-          ),
+          // Fase 7: catálogo real por laboratorio -- si no definió ninguno,
+          // el campo no se muestra (es opcional, sin valores fijos que ofrecer).
+          if (tiposReserva.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            DropdownButtonFormField<int?>(
+              initialValue: tipoReservaId,
+              decoration: const InputDecoration(labelText: 'Tipo de reserva (opcional)'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Sin especificar')),
+                for (final t in tiposReserva) DropdownMenuItem(value: t.id, child: Text(t.nombre)),
+              ],
+              onChanged: onTipoReservaIdChanged,
+            ),
+          ],
         ],
         if (error != null) ...[
           const SizedBox(height: AppSpacing.md),

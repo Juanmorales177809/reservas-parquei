@@ -8,16 +8,16 @@ part of 'recursos_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Carga una sola vez todos los recursos activos (sin filtrar por espacio)
-/// y se agrupa client-side por `espacioId` — evita N+1 llamadas al abrir
-/// cada espacio, igual que hoy hace `frontend/src/app/espacios/page.tsx`.
+/// Carga una sola vez todos los recursos activos (sin filtrar por laboratorio)
+/// y se agrupa client-side por `laboratorioId` — evita N+1 llamadas al abrir
+/// cada laboratorio, igual que hoy hace `frontend/src/app/laboratorios/page.tsx`.
 
 @ProviderFor(recursosActivos)
 final recursosActivosProvider = RecursosActivosProvider._();
 
-/// Carga una sola vez todos los recursos activos (sin filtrar por espacio)
-/// y se agrupa client-side por `espacioId` — evita N+1 llamadas al abrir
-/// cada espacio, igual que hoy hace `frontend/src/app/espacios/page.tsx`.
+/// Carga una sola vez todos los recursos activos (sin filtrar por laboratorio)
+/// y se agrupa client-side por `laboratorioId` — evita N+1 llamadas al abrir
+/// cada laboratorio, igual que hoy hace `frontend/src/app/laboratorios/page.tsx`.
 
 final class RecursosActivosProvider
     extends
@@ -27,9 +27,9 @@ final class RecursosActivosProvider
           FutureOr<List<Recurso>>
         >
     with $FutureModifier<List<Recurso>>, $FutureProvider<List<Recurso>> {
-  /// Carga una sola vez todos los recursos activos (sin filtrar por espacio)
-  /// y se agrupa client-side por `espacioId` — evita N+1 llamadas al abrir
-  /// cada espacio, igual que hoy hace `frontend/src/app/espacios/page.tsx`.
+  /// Carga una sola vez todos los recursos activos (sin filtrar por laboratorio)
+  /// y se agrupa client-side por `laboratorioId` — evita N+1 llamadas al abrir
+  /// cada laboratorio, igual que hoy hace `frontend/src/app/laboratorios/page.tsx`.
   RecursosActivosProvider._()
     : super(
         from: null,
@@ -58,29 +58,29 @@ final class RecursosActivosProvider
 
 String _$recursosActivosHash() => r'e7848e14830e007211eea30fa19ecc8bcef928f2';
 
-@ProviderFor(recursosPorEspacio)
-final recursosPorEspacioProvider = RecursosPorEspacioFamily._();
+@ProviderFor(recursosPorLaboratorio)
+final recursosPorLaboratorioProvider = RecursosPorLaboratorioFamily._();
 
-final class RecursosPorEspacioProvider
+final class RecursosPorLaboratorioProvider
     extends $FunctionalProvider<List<Recurso>, List<Recurso>, List<Recurso>>
     with $Provider<List<Recurso>> {
-  RecursosPorEspacioProvider._({
-    required RecursosPorEspacioFamily super.from,
+  RecursosPorLaboratorioProvider._({
+    required RecursosPorLaboratorioFamily super.from,
     required int super.argument,
   }) : super(
          retry: null,
-         name: r'recursosPorEspacioProvider',
+         name: r'recursosPorLaboratorioProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$recursosPorEspacioHash();
+  String debugGetCreateSourceHash() => _$recursosPorLaboratorioHash();
 
   @override
   String toString() {
-    return r'recursosPorEspacioProvider'
+    return r'recursosPorLaboratorioProvider'
         ''
         '($argument)';
   }
@@ -93,7 +93,7 @@ final class RecursosPorEspacioProvider
   @override
   List<Recurso> create(Ref ref) {
     final argument = this.argument as int;
-    return recursosPorEspacio(ref, argument);
+    return recursosPorLaboratorio(ref, argument);
   }
 
   /// {@macro riverpod.override_with_value}
@@ -106,7 +106,8 @@ final class RecursosPorEspacioProvider
 
   @override
   bool operator ==(Object other) {
-    return other is RecursosPorEspacioProvider && other.argument == argument;
+    return other is RecursosPorLaboratorioProvider &&
+        other.argument == argument;
   }
 
   @override
@@ -115,25 +116,25 @@ final class RecursosPorEspacioProvider
   }
 }
 
-String _$recursosPorEspacioHash() =>
-    r'3e2ab4f712cdbf768f9708d8e84b2986da43960e';
+String _$recursosPorLaboratorioHash() =>
+    r'64c8844de3db9244098be9020e424147d2a85e0c';
 
-final class RecursosPorEspacioFamily extends $Family
+final class RecursosPorLaboratorioFamily extends $Family
     with $FunctionalFamilyOverride<List<Recurso>, int> {
-  RecursosPorEspacioFamily._()
+  RecursosPorLaboratorioFamily._()
     : super(
         retry: null,
-        name: r'recursosPorEspacioProvider',
+        name: r'recursosPorLaboratorioProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  RecursosPorEspacioProvider call(int espacioId) =>
-      RecursosPorEspacioProvider._(argument: espacioId, from: this);
+  RecursosPorLaboratorioProvider call(int laboratorioId) =>
+      RecursosPorLaboratorioProvider._(argument: laboratorioId, from: this);
 
   @override
-  String toString() => r'recursosPorEspacioProvider';
+  String toString() => r'recursosPorLaboratorioProvider';
 }
 
 @ProviderFor(recursoDisponibilidad)

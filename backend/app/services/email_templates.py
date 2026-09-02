@@ -542,7 +542,7 @@ def plantilla_reserva_estado(
 def plantilla_reserva_actualizada(
     *, nombre_saludo: str, reserva_id: int, espacio: str, fecha: str, hora_inicio: str, hora_fin: str, detalle: str
 ) -> str:
-    """Aviso al solicitante: un gestor le agregó recursos/zonas a una
+    """Aviso al solicitante: un gestor le agregó recursos/espacios a una
     reserva ya aprobada (Feature B, ver services/reservas.py::actualizar_reserva)."""
     tarjeta = _tarjeta_reserva(estado="actualizada", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
     cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu reserva #{reserva_id} fue actualizada. Se agregaron {_esc(detalle)}:</p>

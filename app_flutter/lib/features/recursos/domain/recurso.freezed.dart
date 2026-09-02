@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Recurso {
 
- int get id; String get nombre; int get espacioId; int get tipoRecursoId; String? get descripcion; int get capacidad; EstadoEntidad get estado; Espacio get espacio; TipoRecurso get tipo; bool get esPrestacionServicio;
+ int get id; String get nombre; int get laboratorioId; int get tipoRecursoId; String? get descripcion; int get capacidad; EstadoEntidad get estado; Laboratorio get laboratorio; TipoRecurso get tipo; bool get esPrestacionServicio;
 /// Create a copy of Recurso
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $RecursoCopyWith<Recurso> get copyWith => _$RecursoCopyWithImpl<Recurso>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recurso&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.tipoRecursoId, tipoRecursoId) || other.tipoRecursoId == tipoRecursoId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.esPrestacionServicio, esPrestacionServicio) || other.esPrestacionServicio == esPrestacionServicio));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recurso&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.tipoRecursoId, tipoRecursoId) || other.tipoRecursoId == tipoRecursoId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.esPrestacionServicio, esPrestacionServicio) || other.esPrestacionServicio == esPrestacionServicio));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,espacioId,tipoRecursoId,descripcion,capacidad,estado,espacio,tipo,esPrestacionServicio);
+int get hashCode => Object.hash(runtimeType,id,nombre,laboratorioId,tipoRecursoId,descripcion,capacidad,estado,laboratorio,tipo,esPrestacionServicio);
 
 @override
 String toString() {
-  return 'Recurso(id: $id, nombre: $nombre, espacioId: $espacioId, tipoRecursoId: $tipoRecursoId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado, espacio: $espacio, tipo: $tipo, esPrestacionServicio: $esPrestacionServicio)';
+  return 'Recurso(id: $id, nombre: $nombre, laboratorioId: $laboratorioId, tipoRecursoId: $tipoRecursoId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado, laboratorio: $laboratorio, tipo: $tipo, esPrestacionServicio: $esPrestacionServicio)';
 }
 
 
@@ -49,11 +49,11 @@ abstract mixin class $RecursoCopyWith<$Res>  {
   factory $RecursoCopyWith(Recurso value, $Res Function(Recurso) _then) = _$RecursoCopyWithImpl;
 @useResult
 $Res call({
- int id, String nombre, int espacioId, int tipoRecursoId, String? descripcion, int capacidad, EstadoEntidad estado, Espacio espacio, TipoRecurso tipo, bool esPrestacionServicio
+ int id, String nombre, int laboratorioId, int tipoRecursoId, String? descripcion, int capacidad, EstadoEntidad estado, Laboratorio laboratorio, TipoRecurso tipo, bool esPrestacionServicio
 });
 
 
-$EspacioCopyWith<$Res> get espacio;$TipoRecursoCopyWith<$Res> get tipo;
+$LaboratorioCopyWith<$Res> get laboratorio;$TipoRecursoCopyWith<$Res> get tipo;
 
 }
 /// @nodoc
@@ -66,17 +66,17 @@ class _$RecursoCopyWithImpl<$Res>
 
 /// Create a copy of Recurso
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? tipoRecursoId = null,Object? descripcion = freezed,Object? capacidad = null,Object? estado = null,Object? espacio = null,Object? tipo = null,Object? esPrestacionServicio = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? laboratorioId = null,Object? tipoRecursoId = null,Object? descripcion = freezed,Object? capacidad = null,Object? estado = null,Object? laboratorio = null,Object? tipo = null,Object? esPrestacionServicio = null,}) {
   return _then(Recurso(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+as String,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,tipoRecursoId: null == tipoRecursoId ? _self.tipoRecursoId : tipoRecursoId // ignore: cast_nullable_to_non_nullable
 as int,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,capacidad: null == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
 as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as Espacio,tipo: null == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as Laboratorio,tipo: null == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
 as TipoRecurso,esPrestacionServicio: null == esPrestacionServicio ? _self.esPrestacionServicio : esPrestacionServicio // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -85,10 +85,10 @@ as bool,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioCopyWith<$Res> get espacio {
+$LaboratorioCopyWith<$Res> get laboratorio {
   
-  return $EspacioCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }/// Create a copy of Recurso
 /// with the given fields replaced by the non-null parameter values.
@@ -181,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Espacio espacio,  TipoRecurso tipo,  bool esPrestacionServicio)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int laboratorioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Laboratorio laboratorio,  TipoRecurso tipo,  bool esPrestacionServicio)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Recurso() when $default != null:
-return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.espacio,_that.tipo,_that.esPrestacionServicio);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.laboratorio,_that.tipo,_that.esPrestacionServicio);case _:
   return orElse();
 
 }
@@ -202,10 +202,10 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Espacio espacio,  TipoRecurso tipo,  bool esPrestacionServicio)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int laboratorioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Laboratorio laboratorio,  TipoRecurso tipo,  bool esPrestacionServicio)  $default,) {final _that = this;
 switch (_that) {
 case _Recurso():
-return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.espacio,_that.tipo,_that.esPrestacionServicio);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.laboratorio,_that.tipo,_that.esPrestacionServicio);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -222,10 +222,10 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int espacioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Espacio espacio,  TipoRecurso tipo,  bool esPrestacionServicio)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int laboratorioId,  int tipoRecursoId,  String? descripcion,  int capacidad,  EstadoEntidad estado,  Laboratorio laboratorio,  TipoRecurso tipo,  bool esPrestacionServicio)?  $default,) {final _that = this;
 switch (_that) {
 case _Recurso() when $default != null:
-return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.espacio,_that.tipo,_that.esPrestacionServicio);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.tipoRecursoId,_that.descripcion,_that.capacidad,_that.estado,_that.laboratorio,_that.tipo,_that.esPrestacionServicio);case _:
   return null;
 
 }
@@ -237,17 +237,17 @@ return $default(_that.id,_that.nombre,_that.espacioId,_that.tipoRecursoId,_that.
 @JsonSerializable()
 
 class _Recurso implements Recurso {
-  const _Recurso({required this.id, required this.nombre, required this.espacioId, required this.tipoRecursoId, this.descripcion, required this.capacidad, required this.estado, required this.espacio, required this.tipo, required this.esPrestacionServicio});
+  const _Recurso({required this.id, required this.nombre, required this.laboratorioId, required this.tipoRecursoId, this.descripcion, required this.capacidad, required this.estado, required this.laboratorio, required this.tipo, required this.esPrestacionServicio});
   factory _Recurso.fromJson(Map<String, dynamic> json) => _$RecursoFromJson(json);
 
 @override final  int id;
 @override final  String nombre;
-@override final  int espacioId;
+@override final  int laboratorioId;
 @override final  int tipoRecursoId;
 @override final  String? descripcion;
 @override final  int capacidad;
 @override final  EstadoEntidad estado;
-@override final  Espacio espacio;
+@override final  Laboratorio laboratorio;
 @override final  TipoRecurso tipo;
 @override final  bool esPrestacionServicio;
 
@@ -264,16 +264,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recurso&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.tipoRecursoId, tipoRecursoId) || other.tipoRecursoId == tipoRecursoId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.esPrestacionServicio, esPrestacionServicio) || other.esPrestacionServicio == esPrestacionServicio));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recurso&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.tipoRecursoId, tipoRecursoId) || other.tipoRecursoId == tipoRecursoId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.esPrestacionServicio, esPrestacionServicio) || other.esPrestacionServicio == esPrestacionServicio));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,espacioId,tipoRecursoId,descripcion,capacidad,estado,espacio,tipo,esPrestacionServicio);
+int get hashCode => Object.hash(runtimeType,id,nombre,laboratorioId,tipoRecursoId,descripcion,capacidad,estado,laboratorio,tipo,esPrestacionServicio);
 
 @override
 String toString() {
-  return 'Recurso(id: $id, nombre: $nombre, espacioId: $espacioId, tipoRecursoId: $tipoRecursoId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado, espacio: $espacio, tipo: $tipo, esPrestacionServicio: $esPrestacionServicio)';
+  return 'Recurso(id: $id, nombre: $nombre, laboratorioId: $laboratorioId, tipoRecursoId: $tipoRecursoId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado, laboratorio: $laboratorio, tipo: $tipo, esPrestacionServicio: $esPrestacionServicio)';
 }
 
 
@@ -284,11 +284,11 @@ abstract mixin class _$RecursoCopyWith<$Res> implements $RecursoCopyWith<$Res> {
   factory _$RecursoCopyWith(_Recurso value, $Res Function(_Recurso) _then) = __$RecursoCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String nombre, int espacioId, int tipoRecursoId, String? descripcion, int capacidad, EstadoEntidad estado, Espacio espacio, TipoRecurso tipo, bool esPrestacionServicio
+ int id, String nombre, int laboratorioId, int tipoRecursoId, String? descripcion, int capacidad, EstadoEntidad estado, Laboratorio laboratorio, TipoRecurso tipo, bool esPrestacionServicio
 });
 
 
-@override $EspacioCopyWith<$Res> get espacio;@override $TipoRecursoCopyWith<$Res> get tipo;
+@override $LaboratorioCopyWith<$Res> get laboratorio;@override $TipoRecursoCopyWith<$Res> get tipo;
 
 }
 /// @nodoc
@@ -301,17 +301,17 @@ class __$RecursoCopyWithImpl<$Res>
 
 /// Create a copy of Recurso
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? tipoRecursoId = null,Object? descripcion = freezed,Object? capacidad = null,Object? estado = null,Object? espacio = null,Object? tipo = null,Object? esPrestacionServicio = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? laboratorioId = null,Object? tipoRecursoId = null,Object? descripcion = freezed,Object? capacidad = null,Object? estado = null,Object? laboratorio = null,Object? tipo = null,Object? esPrestacionServicio = null,}) {
   return _then(_Recurso(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+as String,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,tipoRecursoId: null == tipoRecursoId ? _self.tipoRecursoId : tipoRecursoId // ignore: cast_nullable_to_non_nullable
 as int,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,capacidad: null == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
 as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as Espacio,tipo: null == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as Laboratorio,tipo: null == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
 as TipoRecurso,esPrestacionServicio: null == esPrestacionServicio ? _self.esPrestacionServicio : esPrestacionServicio // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -321,10 +321,10 @@ as bool,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioCopyWith<$Res> get espacio {
+$LaboratorioCopyWith<$Res> get laboratorio {
   
-  return $EspacioCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }/// Create a copy of Recurso
 /// with the given fields replaced by the non-null parameter values.

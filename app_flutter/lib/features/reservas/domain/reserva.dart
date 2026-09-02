@@ -20,18 +20,18 @@ abstract class UsuarioReserva with _$UsuarioReserva {
   factory UsuarioReserva.fromJson(Map<String, dynamic> json) => _$UsuarioReservaFromJson(json);
 }
 
-/// Espejo de `EspacioReservaResponse` — subset mínimo, no el `Espacio`
-/// completo de la feature `espacios` (sin `ubicacion`/`horario_atencion`).
+/// Espejo de `LaboratorioReservaResponse` — subset mínimo, no el `Laboratorio`
+/// completo de la feature `laboratorios` (sin `ubicacion`/`horario_atencion`).
 @freezed
-abstract class EspacioReserva with _$EspacioReserva {
-  const factory EspacioReserva({
+abstract class LaboratorioReserva with _$LaboratorioReserva {
+  const factory LaboratorioReserva({
     required int id,
     required String nombre,
     int? capacidad,
     required EstadoEntidad estado,
-  }) = _EspacioReserva;
+  }) = _LaboratorioReserva;
 
-  factory EspacioReserva.fromJson(Map<String, dynamic> json) => _$EspacioReservaFromJson(json);
+  factory LaboratorioReserva.fromJson(Map<String, dynamic> json) => _$LaboratorioReservaFromJson(json);
 }
 
 /// Espejo de `RecursoReservaResponse` — subset mínimo.
@@ -42,42 +42,43 @@ abstract class RecursoReserva with _$RecursoReserva {
     required String nombre,
     int? capacidad,
     required EstadoEntidad estado,
-    required EspacioReserva espacio,
+    required LaboratorioReserva laboratorio,
   }) = _RecursoReserva;
 
   factory RecursoReserva.fromJson(Map<String, dynamic> json) => _$RecursoReservaFromJson(json);
 }
 
-/// Espejo de `ZonaReservaResponse`. La Fase 2 no expone selección de zonas
+/// Espejo de `EspacioReservaResponse`. La Fase 2 no expone selección de espacios
 /// en el formulario todavía (ver alcance documentado en el plan) — este
 /// modelo existe para poder parsear reservas existentes que sí las tengan
 /// sin romper.
 @freezed
-abstract class ZonaReserva with _$ZonaReserva {
-  const factory ZonaReserva({
+abstract class EspacioReserva with _$EspacioReserva {
+  const factory EspacioReserva({
     required int id,
     required String nombre,
-    required int espacioId,
+    required int laboratorioId,
     String? descripcion,
     int? capacidad,
     required EstadoEntidad estado,
-  }) = _ZonaReserva;
+  }) = _EspacioReserva;
 
-  factory ZonaReserva.fromJson(Map<String, dynamic> json) => _$ZonaReservaFromJson(json);
+  factory EspacioReserva.fromJson(Map<String, dynamic> json) => _$EspacioReservaFromJson(json);
 }
 
-/// Espejo de `EnsayoReservaResponse`. Mismo motivo que `ZonaReserva`: solo
-/// para parseo, sin UI de selección todavía.
+/// Espejo de `TipoReservaReservaResponse` (Fase 7) -- subset mínimo del
+/// catálogo real `tipos_reserva`, no confundir con el enum viejo
+/// [TipoReserva] (campo `tipo`, conservado por compatibilidad histórica).
 @freezed
-abstract class EnsayoReserva with _$EnsayoReserva {
-  const factory EnsayoReserva({
+abstract class TipoReservaReserva with _$TipoReservaReserva {
+  const factory TipoReservaReserva({
     required int id,
+    required int laboratorioId,
     required String nombre,
-    required int zonaId,
-    required EstadoEntidad estado,
-  }) = _EnsayoReserva;
+    required String estado,
+  }) = _TipoReservaReserva;
 
-  factory EnsayoReserva.fromJson(Map<String, dynamic> json) => _$EnsayoReservaFromJson(json);
+  factory TipoReservaReserva.fromJson(Map<String, dynamic> json) => _$TipoReservaReservaFromJson(json);
 }
 
 /// Espejo de `ReservaAcompananteResponse`.
@@ -93,8 +94,8 @@ abstract class ReservaAcompanante with _$ReservaAcompanante {
 }
 
 /// Espejo de `ReservaResponse`. `fecha`/`horaInicio`/`horaFin`/`createdAt`/
-/// `updatedAt` quedan como texto crudo (mismo criterio que `Espacio` en la
-/// Fase 1) — nunca se parsean a `DateTime` por el riesgo de zona horaria
+/// `updatedAt` quedan como texto crudo (mismo criterio que `Laboratorio` en la
+/// Fase 1) — nunca se parsean a `DateTime` por el riesgo de espacio horaria
 /// documentado en el plan de migración (el backend devuelve naive en
 /// `America/Bogota`).
 @freezed
@@ -102,13 +103,18 @@ abstract class Reserva with _$Reserva {
   const factory Reserva({
     required int id,
     required int usuarioId,
-    required int espacioId,
+    required int laboratorioId,
     required String fecha,
     required String horaInicio,
     required String horaFin,
     required EstadoReserva estado,
     required int asistentes,
     TipoReserva? tipo,
+    // Fase 7: catálogo real por laboratorio, reemplaza `tipo` hacia
+    // adelante (ver backend/CLAUDE.md) -- `tipo` se conserva sin tocar por
+    // compatibilidad de lectura de reservas históricas.
+    int? tipoReservaId,
+    TipoReservaReserva? tipoReserva,
     bool? asistio,
     String? motivoRechazo,
     // Fase A3: texto libre opcional -- "Actividad a realizar".
@@ -120,16 +126,11 @@ abstract class Reserva with _$Reserva {
     required String createdAt,
     required String updatedAt,
     required UsuarioReserva usuario,
-    required EspacioReserva espacio,
-    // Fase 2026-08-29 (gestión de serie completa): `null` para cualquier
-    // reserva no recurrente.
-    String? serieId,
+    required LaboratorioReserva laboratorio,
     @Default([]) List<int> recursoIds,
     @Default([]) List<RecursoReserva> recursos,
-    @Default([]) List<int> zonaIds,
-    @Default([]) List<ZonaReserva> zonas,
-    @Default([]) List<int> ensayoIds,
-    @Default([]) List<EnsayoReserva> ensayos,
+    @Default([]) List<int> espacioIds,
+    @Default([]) List<EspacioReserva> espacios,
     @Default([]) List<ReservaAcompanante> acompanantes,
   }) = _Reserva;
 
@@ -146,52 +147,4 @@ abstract class Reserva with _$Reserva {
   /// del backend, que es una regla no relacionada — de solapamiento, no de
   /// cancelación.)
   bool get puedeCancelarse => estado == EstadoReserva.aprobada;
-}
-
-/// Espejo de `OcurrenciaOmitida` (`backend/app/schemas/reserva.py`) --
-/// una fecha de una reserva recurrente que no se pudo crear (2026-08-29).
-@freezed
-abstract class OcurrenciaOmitida with _$OcurrenciaOmitida {
-  const factory OcurrenciaOmitida({
-    required String fecha,
-    required String motivo,
-  }) = _OcurrenciaOmitida;
-
-  factory OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
-}
-
-/// Espejo de `ReservaSerieResponse` -- solo la respuesta de `POST /reservas`
-/// cuando se pidió `repetirSemanas` (ver `ReservasRepository.crearRecurrente`).
-@freezed
-abstract class ReservaSerieResultado with _$ReservaSerieResultado {
-  const factory ReservaSerieResultado({
-    required List<Reserva> creadas,
-    required List<OcurrenciaOmitida> omitidas,
-  }) = _ReservaSerieResultado;
-
-  factory ReservaSerieResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieResultadoFromJson(json);
-}
-
-/// Espejo de `OcurrenciaCancelOmitida` -- una ocurrencia de la serie que no
-/// se pudo cancelar (2026-08-29, gestión de serie completa).
-@freezed
-abstract class OcurrenciaCancelOmitida with _$OcurrenciaCancelOmitida {
-  const factory OcurrenciaCancelOmitida({
-    required int reservaId,
-    required String motivo,
-  }) = _OcurrenciaCancelOmitida;
-
-  factory OcurrenciaCancelOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaCancelOmitidaFromJson(json);
-}
-
-/// Espejo de `ReservaSerieCancelResponse` -- respuesta de
-/// `PUT /reservas/serie/{serieId}/cancelar`.
-@freezed
-abstract class ReservaSerieCancelResultado with _$ReservaSerieCancelResultado {
-  const factory ReservaSerieCancelResultado({
-    required List<Reserva> canceladas,
-    required List<OcurrenciaCancelOmitida> omitidas,
-  }) = _ReservaSerieCancelResultado;
-
-  factory ReservaSerieCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieCancelResultadoFromJson(json);
 }

@@ -30,7 +30,7 @@ const usuarioE2eUsername = 'usuario_e2e';
 const usuarioE2ePassword = 'ClaveUsuario123';
 const gestorE2eUsername = 'gestor_flutter';
 const gestorE2ePassword = 'ClaveGestor123';
-const espacioE2eId = 1;
+const laboratorioE2eId = 1;
 const recursoE2eNombre = 'Proyector E2E';
 
 Dio _dioConCookies() {
@@ -65,7 +65,7 @@ Future<void> asegurarFixturesE2e() async {
     email: '$gestorE2eUsername@example.com',
     password: gestorE2ePassword,
     rol: 'gestor',
-    espacioId: espacioE2eId,
+    laboratorioId: laboratorioE2eId,
   );
   await _asegurarUsuario(
     admin,
@@ -81,17 +81,17 @@ Future<void> asegurarFixturesE2e() async {
     data: {'username': gestorE2eUsername, 'password': gestorE2ePassword},
   );
 
-  // Antelación 0 en el espacio de pruebas: sin esto, "hoy" casi nunca
-  // tiene franjas reservables (el espacio real pide 24h) y el flujo de
+  // Antelación 0 en el laboratorio de pruebas: sin esto, "hoy" casi nunca
+  // tiene franjas reservables (el laboratorio real pide 24h) y el flujo de
   // reserva tendría que manejar el selector de fecha de Material —
   // bastante más frágil de automatizar de forma determinista que asumir
   // esta config conocida. `aprobacion_automatica` se deja en `false` a
   // propósito: el flujo de reserva prueba justamente la transición
   // esperando -> aprobada -> cancelada.
-  final config = await gestor.get<dynamic>('/espacios/gestion/configuracion');
+  final config = await gestor.get<dynamic>('/laboratorios/gestion/configuracion');
   if (config.statusCode == 200 &&
       (config.data['horas_antelacion'] != 0 || config.data['aprobacion_automatica'] != false)) {
-    await gestor.put<dynamic>('/espacios/gestion/configuracion', data: {
+    await gestor.put<dynamic>('/laboratorios/gestion/configuracion', data: {
       'horario_atencion': config.data['horario_atencion'],
       'horas_antelacion': 0,
       'aprobacion_automatica': false,
@@ -107,7 +107,7 @@ Future<void> _asegurarUsuario(
   required String email,
   required String password,
   required String rol,
-  int? espacioId,
+  int? laboratorioId,
 }) async {
   final existentes = await admin.get<List<dynamic>>('/usuarios');
   final yaExiste = (existentes.data ?? const []).any((u) => (u as Map)['username'] == username);
@@ -117,11 +117,11 @@ Future<void> _asegurarUsuario(
     'email': email,
     'password': password,
     'rol': rol,
-    // `?'espacio_id': espacioId` (la forma que sugiere el linter) no
+    // `?'laboratorio_id': laboratorioId` (la forma que sugiere el linter) no
     // compila en este SDK (`invalid_null_aware_operator`) — el `if`
     // explícito es más verboso pero es el que sí funciona.
     // ignore: use_null_aware_elements
-    if (espacioId != null) 'espacio_id': espacioId,
+    if (laboratorioId != null) 'laboratorio_id': laboratorioId,
   });
   if (resp.statusCode != 201) {
     throw StateError('No se pudo crear el usuario de fixtures "$username" (${resp.statusCode}): ${resp.data}');
@@ -131,7 +131,7 @@ Future<void> _asegurarUsuario(
 Future<void> _asegurarRecurso(Dio gestor) async {
   final existentes = await gestor.get<List<dynamic>>(
     '/recursos',
-    queryParameters: {'espacio_id': espacioE2eId},
+    queryParameters: {'laboratorio_id': laboratorioE2eId},
   );
   final yaExiste = (existentes.data ?? const []).any((r) => (r as Map)['nombre'] == recursoE2eNombre);
   if (yaExiste) return;
@@ -140,7 +140,7 @@ Future<void> _asegurarRecurso(Dio gestor) async {
     'tipo_recurso_id': 1,
     'capacidad': 1,
     'estado': 'activo',
-    'espacio_id': espacioE2eId,
+    'laboratorio_id': laboratorioE2eId,
     'es_prestacion_servicio': false,
   });
   if (resp.statusCode != 201) {

@@ -8,13 +8,13 @@ CRUD de `app/api/lista_espera.py` -- la notificación al liberarse un cupo
 
 from app.models import ListaEspera
 
-from tests.conftest import cookies_para, crear_espacio, crear_recurso, crear_usuario, fecha_habilitada
+from tests.conftest import cookies_para, crear_laboratorio, crear_recurso, crear_usuario, fecha_habilitada
 
 
 def _usuario_y_recurso(db, *, username="lista_espera_user"):
-    espacio = crear_espacio(db, nombre=f"Espacio {username}")
+    laboratorio = crear_laboratorio(db, nombre=f"Laboratorio {username}")
     usuario = crear_usuario(db, username=username, email=f"{username}@example.com", rol="usuario")
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario, nombre=f"Recurso {username}")
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre=f"Recurso {username}")
     return usuario, recurso
 
 

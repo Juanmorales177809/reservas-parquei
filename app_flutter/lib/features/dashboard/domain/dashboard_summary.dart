@@ -27,14 +27,14 @@ abstract class ReservasPorFecha with _$ReservasPorFecha {
 }
 
 @freezed
-abstract class ReservasPorEspacio with _$ReservasPorEspacio {
-  const factory ReservasPorEspacio({
-    required int espacioId,
+abstract class ReservasPorLaboratorio with _$ReservasPorLaboratorio {
+  const factory ReservasPorLaboratorio({
+    required int laboratorioId,
     required String nombre,
     required int cantidad,
-  }) = _ReservasPorEspacio;
+  }) = _ReservasPorLaboratorio;
 
-  factory ReservasPorEspacio.fromJson(Map<String, dynamic> json) => _$ReservasPorEspacioFromJson(json);
+  factory ReservasPorLaboratorio.fromJson(Map<String, dynamic> json) => _$ReservasPorLaboratorioFromJson(json);
 }
 
 @freezed
@@ -125,10 +125,10 @@ abstract class DashboardSummary with _$DashboardSummary {
     required int reservasPendientes,
     required int recursosActivos,
     required int usuarios,
-    String? espacioNombre,
+    String? laboratorioNombre,
     required ReservasPorEstado reservasPorEstado,
     required List<ReservasPorFecha> reservasPorFecha,
-    required List<ReservasPorEspacio> reservasPorEspacio,
+    required List<ReservasPorLaboratorio> reservasPorLaboratorio,
     required List<RecursoMasReservado> recursosMasReservados,
     required List<OcupacionDiaHora> ocupacionPorDiaHora,
     required OcupacionGlobal ocupacionGlobal,

@@ -16,7 +16,7 @@ from app.services import email as email_service
 
 from tests.conftest import (
     cookies_para,
-    crear_espacio,
+    crear_laboratorio,
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
@@ -66,7 +66,7 @@ def email_habilitado(monkeypatch):
 
 
 def _setup(db, *, nombre_espacio="Sala Correo"):
-    espacio = crear_espacio(db, nombre=nombre_espacio)
+    laboratorio = crear_laboratorio(db, nombre=nombre_espacio)
     usuario = crear_usuario(
         db,
         username=f"user_{nombre_espacio.replace(' ', '')}",
@@ -77,10 +77,10 @@ def _setup(db, *, nombre_espacio="Sala Correo"):
         username=f"gestor_{nombre_espacio.replace(' ', '')}",
         email=f"gestor-{nombre_espacio.replace(' ', '')}@example.com",
         rol="gestor",
-        espacio_id=espacio.id,
+        laboratorio_id=laboratorio.id,
     )
-    recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
-    return usuario, gestor, espacio, recurso
+    recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
+    return usuario, gestor, laboratorio, recurso
 
 
 class TestOutbox:
@@ -213,14 +213,14 @@ class TestEnganchesDeReserva:
         assert usuario.username in correo.cuerpo
 
     def test_crear_reserva_con_aprobacion_automatica_confirma_directamente_aprobada(self, client, db, email_habilitado):
-        """Cuando el espacio aprueba automáticamente (o el gestor reserva su
-        propio espacio) no hay nada 'pendiente' que confirmar -- el
+        """Cuando el laboratorio aprueba automáticamente (o el gestor reserva su
+        propio laboratorio) no hay nada 'pendiente' que confirmar -- el
         solicitante recibe directo el correo de aprobación."""
-        espacio = crear_espacio(db, nombre="Sala Auto")
-        espacio.aprobacion_automatica = True
+        laboratorio = crear_laboratorio(db, nombre="Sala Auto")
+        laboratorio.aprobacion_automatica = True
         db.commit()
         usuario = crear_usuario(db, username="user_auto", email="user_auto@example.com")
-        recurso = crear_recurso(db, espacio=espacio, usuario=usuario)
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario)
 
         respuesta = client.post(
             "/reservas",
@@ -338,8 +338,8 @@ class TestEnganchesDeReserva:
         assert "eliminada" in correo.cuerpo.lower()
 
     def test_gestor_elimina_su_propia_reserva_no_se_autonotifica(self, client, db, email_habilitado):
-        usuario, gestor, espacio, _ = _setup(db, nombre_espacio="Sala Correo Self Delete")
-        recurso_gestor = crear_recurso(db, espacio=espacio, usuario=gestor)
+        usuario, gestor, laboratorio, _ = _setup(db, nombre_espacio="Sala Correo Self Delete")
+        recurso_gestor = crear_recurso(db, laboratorio=laboratorio, usuario=gestor)
         creada = client.post(
             "/reservas",
             json=payload_reserva(recurso_gestor.id, fecha_habilitada()),

@@ -286,9 +286,574 @@ as RolUsuario,
 
 
 /// @nodoc
-mixin _$EspacioReserva {
+mixin _$LaboratorioReserva {
 
  int get id; String get nombre; int? get capacidad; EstadoEntidad get estado;
+/// Create a copy of LaboratorioReserva
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LaboratorioReservaCopyWith<LaboratorioReserva> get copyWith => _$LaboratorioReservaCopyWithImpl<LaboratorioReserva>(this as LaboratorioReserva, _$identity);
+
+  /// Serializes this LaboratorioReserva to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LaboratorioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado);
+
+@override
+String toString() {
+  return 'LaboratorioReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $LaboratorioReservaCopyWith<$Res>  {
+  factory $LaboratorioReservaCopyWith(LaboratorioReserva value, $Res Function(LaboratorioReserva) _then) = _$LaboratorioReservaCopyWithImpl;
+@useResult
+$Res call({
+ int id, String nombre, int? capacidad, EstadoEntidad estado
+});
+
+
+
+
+}
+/// @nodoc
+class _$LaboratorioReservaCopyWithImpl<$Res>
+    implements $LaboratorioReservaCopyWith<$Res> {
+  _$LaboratorioReservaCopyWithImpl(this._self, this._then);
+
+  final LaboratorioReserva _self;
+  final $Res Function(LaboratorioReserva) _then;
+
+/// Create a copy of LaboratorioReserva
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,}) {
+  return _then(LaboratorioReserva(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
+as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [LaboratorioReserva].
+extension LaboratorioReservaPatterns on LaboratorioReserva {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LaboratorioReserva value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _LaboratorioReserva() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LaboratorioReserva value)  $default,){
+final _that = this;
+switch (_that) {
+case _LaboratorioReserva():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LaboratorioReserva value)?  $default,){
+final _that = this;
+switch (_that) {
+case _LaboratorioReserva() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _LaboratorioReserva() when $default != null:
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)  $default,) {final _that = this;
+switch (_that) {
+case _LaboratorioReserva():
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)?  $default,) {final _that = this;
+switch (_that) {
+case _LaboratorioReserva() when $default != null:
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _LaboratorioReserva implements LaboratorioReserva {
+  const _LaboratorioReserva({required this.id, required this.nombre, this.capacidad, required this.estado});
+  factory _LaboratorioReserva.fromJson(Map<String, dynamic> json) => _$LaboratorioReservaFromJson(json);
+
+@override final  int id;
+@override final  String nombre;
+@override final  int? capacidad;
+@override final  EstadoEntidad estado;
+
+/// Create a copy of LaboratorioReserva
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$LaboratorioReservaCopyWith<_LaboratorioReserva> get copyWith => __$LaboratorioReservaCopyWithImpl<_LaboratorioReserva>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$LaboratorioReservaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LaboratorioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado);
+
+@override
+String toString() {
+  return 'LaboratorioReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$LaboratorioReservaCopyWith<$Res> implements $LaboratorioReservaCopyWith<$Res> {
+  factory _$LaboratorioReservaCopyWith(_LaboratorioReserva value, $Res Function(_LaboratorioReserva) _then) = __$LaboratorioReservaCopyWithImpl;
+@override @useResult
+$Res call({
+ int id, String nombre, int? capacidad, EstadoEntidad estado
+});
+
+
+
+
+}
+/// @nodoc
+class __$LaboratorioReservaCopyWithImpl<$Res>
+    implements _$LaboratorioReservaCopyWith<$Res> {
+  __$LaboratorioReservaCopyWithImpl(this._self, this._then);
+
+  final _LaboratorioReserva _self;
+  final $Res Function(_LaboratorioReserva) _then;
+
+/// Create a copy of LaboratorioReserva
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,}) {
+  return _then(_LaboratorioReserva(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
+as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$RecursoReserva {
+
+ int get id; String get nombre; int? get capacidad; EstadoEntidad get estado; LaboratorioReserva get laboratorio;
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$RecursoReservaCopyWith<RecursoReserva> get copyWith => _$RecursoReservaCopyWithImpl<RecursoReserva>(this as RecursoReserva, _$identity);
+
+  /// Serializes this RecursoReserva to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecursoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado,laboratorio);
+
+@override
+String toString() {
+  return 'RecursoReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado, laboratorio: $laboratorio)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $RecursoReservaCopyWith<$Res>  {
+  factory $RecursoReservaCopyWith(RecursoReserva value, $Res Function(RecursoReserva) _then) = _$RecursoReservaCopyWithImpl;
+@useResult
+$Res call({
+ int id, String nombre, int? capacidad, EstadoEntidad estado, LaboratorioReserva laboratorio
+});
+
+
+$LaboratorioReservaCopyWith<$Res> get laboratorio;
+
+}
+/// @nodoc
+class _$RecursoReservaCopyWithImpl<$Res>
+    implements $RecursoReservaCopyWith<$Res> {
+  _$RecursoReservaCopyWithImpl(this._self, this._then);
+
+  final RecursoReserva _self;
+  final $Res Function(RecursoReserva) _then;
+
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,Object? laboratorio = null,}) {
+  return _then(RecursoReserva(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
+as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioReserva,
+  ));
+}
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$LaboratorioReservaCopyWith<$Res> get laboratorio {
+  
+  return $LaboratorioReservaCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [RecursoReserva].
+extension RecursoReservaPatterns on RecursoReserva {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _RecursoReserva value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _RecursoReserva() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _RecursoReserva value)  $default,){
+final _that = this;
+switch (_that) {
+case _RecursoReserva():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _RecursoReserva value)?  $default,){
+final _that = this;
+switch (_that) {
+case _RecursoReserva() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  LaboratorioReserva laboratorio)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _RecursoReserva() when $default != null:
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.laboratorio);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  LaboratorioReserva laboratorio)  $default,) {final _that = this;
+switch (_that) {
+case _RecursoReserva():
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.laboratorio);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  LaboratorioReserva laboratorio)?  $default,) {final _that = this;
+switch (_that) {
+case _RecursoReserva() when $default != null:
+return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.laboratorio);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _RecursoReserva implements RecursoReserva {
+  const _RecursoReserva({required this.id, required this.nombre, this.capacidad, required this.estado, required this.laboratorio});
+  factory _RecursoReserva.fromJson(Map<String, dynamic> json) => _$RecursoReservaFromJson(json);
+
+@override final  int id;
+@override final  String nombre;
+@override final  int? capacidad;
+@override final  EstadoEntidad estado;
+@override final  LaboratorioReserva laboratorio;
+
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$RecursoReservaCopyWith<_RecursoReserva> get copyWith => __$RecursoReservaCopyWithImpl<_RecursoReserva>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$RecursoReservaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecursoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado,laboratorio);
+
+@override
+String toString() {
+  return 'RecursoReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado, laboratorio: $laboratorio)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$RecursoReservaCopyWith<$Res> implements $RecursoReservaCopyWith<$Res> {
+  factory _$RecursoReservaCopyWith(_RecursoReserva value, $Res Function(_RecursoReserva) _then) = __$RecursoReservaCopyWithImpl;
+@override @useResult
+$Res call({
+ int id, String nombre, int? capacidad, EstadoEntidad estado, LaboratorioReserva laboratorio
+});
+
+
+@override $LaboratorioReservaCopyWith<$Res> get laboratorio;
+
+}
+/// @nodoc
+class __$RecursoReservaCopyWithImpl<$Res>
+    implements _$RecursoReservaCopyWith<$Res> {
+  __$RecursoReservaCopyWithImpl(this._self, this._then);
+
+  final _RecursoReserva _self;
+  final $Res Function(_RecursoReserva) _then;
+
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,Object? laboratorio = null,}) {
+  return _then(_RecursoReserva(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
+as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as EstadoEntidad,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioReserva,
+  ));
+}
+
+/// Create a copy of RecursoReserva
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$LaboratorioReservaCopyWith<$Res> get laboratorio {
+  
+  return $LaboratorioReservaCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$EspacioReserva {
+
+ int get id; String get nombre; int get laboratorioId; String? get descripcion; int? get capacidad; EstadoEntidad get estado;
 /// Create a copy of EspacioReserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -301,16 +866,16 @@ $EspacioReservaCopyWith<EspacioReserva> get copyWith => _$EspacioReservaCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EspacioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EspacioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado);
+int get hashCode => Object.hash(runtimeType,id,nombre,laboratorioId,descripcion,capacidad,estado);
 
 @override
 String toString() {
-  return 'EspacioReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado)';
+  return 'EspacioReserva(id: $id, nombre: $nombre, laboratorioId: $laboratorioId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado)';
 }
 
 
@@ -321,7 +886,7 @@ abstract mixin class $EspacioReservaCopyWith<$Res>  {
   factory $EspacioReservaCopyWith(EspacioReserva value, $Res Function(EspacioReserva) _then) = _$EspacioReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, String nombre, int? capacidad, EstadoEntidad estado
+ int id, String nombre, int laboratorioId, String? descripcion, int? capacidad, EstadoEntidad estado
 });
 
 
@@ -338,11 +903,13 @@ class _$EspacioReservaCopyWithImpl<$Res>
 
 /// Create a copy of EspacioReserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? laboratorioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,}) {
   return _then(EspacioReserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
+as String,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
+as int,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
+as String?,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
 as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoEntidad,
   ));
@@ -429,10 +996,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int laboratorioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EspacioReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.descripcion,_that.capacidad,_that.estado);case _:
   return orElse();
 
 }
@@ -450,10 +1017,10 @@ return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int laboratorioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)  $default,) {final _that = this;
 switch (_that) {
 case _EspacioReserva():
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.descripcion,_that.capacidad,_that.estado);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -470,10 +1037,10 @@ return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int laboratorioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)?  $default,) {final _that = this;
 switch (_that) {
 case _EspacioReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
+return $default(_that.id,_that.nombre,_that.laboratorioId,_that.descripcion,_that.capacidad,_that.estado);case _:
   return null;
 
 }
@@ -485,11 +1052,13 @@ return $default(_that.id,_that.nombre,_that.capacidad,_that.estado);case _:
 @JsonSerializable()
 
 class _EspacioReserva implements EspacioReserva {
-  const _EspacioReserva({required this.id, required this.nombre, this.capacidad, required this.estado});
+  const _EspacioReserva({required this.id, required this.nombre, required this.laboratorioId, this.descripcion, this.capacidad, required this.estado});
   factory _EspacioReserva.fromJson(Map<String, dynamic> json) => _$EspacioReservaFromJson(json);
 
 @override final  int id;
 @override final  String nombre;
+@override final  int laboratorioId;
+@override final  String? descripcion;
 @override final  int? capacidad;
 @override final  EstadoEntidad estado;
 
@@ -506,16 +1075,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EspacioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EspacioReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado);
+int get hashCode => Object.hash(runtimeType,id,nombre,laboratorioId,descripcion,capacidad,estado);
 
 @override
 String toString() {
-  return 'EspacioReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado)';
+  return 'EspacioReserva(id: $id, nombre: $nombre, laboratorioId: $laboratorioId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado)';
 }
 
 
@@ -526,7 +1095,7 @@ abstract mixin class _$EspacioReservaCopyWith<$Res> implements $EspacioReservaCo
   factory _$EspacioReservaCopyWith(_EspacioReserva value, $Res Function(_EspacioReserva) _then) = __$EspacioReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String nombre, int? capacidad, EstadoEntidad estado
+ int id, String nombre, int laboratorioId, String? descripcion, int? capacidad, EstadoEntidad estado
 });
 
 
@@ -543,580 +1112,11 @@ class __$EspacioReservaCopyWithImpl<$Res>
 
 /// Create a copy of EspacioReserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? laboratorioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,}) {
   return _then(_EspacioReserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
-as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$RecursoReserva {
-
- int get id; String get nombre; int? get capacidad; EstadoEntidad get estado; EspacioReserva get espacio;
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$RecursoReservaCopyWith<RecursoReserva> get copyWith => _$RecursoReservaCopyWithImpl<RecursoReserva>(this as RecursoReserva, _$identity);
-
-  /// Serializes this RecursoReserva to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecursoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.espacio, espacio) || other.espacio == espacio));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado,espacio);
-
-@override
-String toString() {
-  return 'RecursoReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado, espacio: $espacio)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $RecursoReservaCopyWith<$Res>  {
-  factory $RecursoReservaCopyWith(RecursoReserva value, $Res Function(RecursoReserva) _then) = _$RecursoReservaCopyWithImpl;
-@useResult
-$Res call({
- int id, String nombre, int? capacidad, EstadoEntidad estado, EspacioReserva espacio
-});
-
-
-$EspacioReservaCopyWith<$Res> get espacio;
-
-}
-/// @nodoc
-class _$RecursoReservaCopyWithImpl<$Res>
-    implements $RecursoReservaCopyWith<$Res> {
-  _$RecursoReservaCopyWithImpl(this._self, this._then);
-
-  final RecursoReserva _self;
-  final $Res Function(RecursoReserva) _then;
-
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,Object? espacio = null,}) {
-  return _then(RecursoReserva(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
-as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,
-  ));
-}
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$EspacioReservaCopyWith<$Res> get espacio {
-  
-  return $EspacioReservaCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
-  });
-}
-}
-
-
-/// Adds pattern-matching-related methods to [RecursoReserva].
-extension RecursoReservaPatterns on RecursoReserva {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _RecursoReserva value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _RecursoReserva() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _RecursoReserva value)  $default,){
-final _that = this;
-switch (_that) {
-case _RecursoReserva():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _RecursoReserva value)?  $default,){
-final _that = this;
-switch (_that) {
-case _RecursoReserva() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  EspacioReserva espacio)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _RecursoReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.espacio);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  EspacioReserva espacio)  $default,) {final _that = this;
-switch (_that) {
-case _RecursoReserva():
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.espacio);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int? capacidad,  EstadoEntidad estado,  EspacioReserva espacio)?  $default,) {final _that = this;
-switch (_that) {
-case _RecursoReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.capacidad,_that.estado,_that.espacio);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _RecursoReserva implements RecursoReserva {
-  const _RecursoReserva({required this.id, required this.nombre, this.capacidad, required this.estado, required this.espacio});
-  factory _RecursoReserva.fromJson(Map<String, dynamic> json) => _$RecursoReservaFromJson(json);
-
-@override final  int id;
-@override final  String nombre;
-@override final  int? capacidad;
-@override final  EstadoEntidad estado;
-@override final  EspacioReserva espacio;
-
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$RecursoReservaCopyWith<_RecursoReserva> get copyWith => __$RecursoReservaCopyWithImpl<_RecursoReserva>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$RecursoReservaToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecursoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.espacio, espacio) || other.espacio == espacio));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,nombre,capacidad,estado,espacio);
-
-@override
-String toString() {
-  return 'RecursoReserva(id: $id, nombre: $nombre, capacidad: $capacidad, estado: $estado, espacio: $espacio)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$RecursoReservaCopyWith<$Res> implements $RecursoReservaCopyWith<$Res> {
-  factory _$RecursoReservaCopyWith(_RecursoReserva value, $Res Function(_RecursoReserva) _then) = __$RecursoReservaCopyWithImpl;
-@override @useResult
-$Res call({
- int id, String nombre, int? capacidad, EstadoEntidad estado, EspacioReserva espacio
-});
-
-
-@override $EspacioReservaCopyWith<$Res> get espacio;
-
-}
-/// @nodoc
-class __$RecursoReservaCopyWithImpl<$Res>
-    implements _$RecursoReservaCopyWith<$Res> {
-  __$RecursoReservaCopyWithImpl(this._self, this._then);
-
-  final _RecursoReserva _self;
-  final $Res Function(_RecursoReserva) _then;
-
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? capacidad = freezed,Object? estado = null,Object? espacio = null,}) {
-  return _then(_RecursoReserva(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
-as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,
-  ));
-}
-
-/// Create a copy of RecursoReserva
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$EspacioReservaCopyWith<$Res> get espacio {
-  
-  return $EspacioReservaCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
-  });
-}
-}
-
-
-/// @nodoc
-mixin _$ZonaReserva {
-
- int get id; String get nombre; int get espacioId; String? get descripcion; int? get capacidad; EstadoEntidad get estado;
-/// Create a copy of ZonaReserva
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ZonaReservaCopyWith<ZonaReserva> get copyWith => _$ZonaReservaCopyWithImpl<ZonaReserva>(this as ZonaReserva, _$identity);
-
-  /// Serializes this ZonaReserva to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ZonaReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,nombre,espacioId,descripcion,capacidad,estado);
-
-@override
-String toString() {
-  return 'ZonaReserva(id: $id, nombre: $nombre, espacioId: $espacioId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ZonaReservaCopyWith<$Res>  {
-  factory $ZonaReservaCopyWith(ZonaReserva value, $Res Function(ZonaReserva) _then) = _$ZonaReservaCopyWithImpl;
-@useResult
-$Res call({
- int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado
-});
-
-
-
-
-}
-/// @nodoc
-class _$ZonaReservaCopyWithImpl<$Res>
-    implements $ZonaReservaCopyWith<$Res> {
-  _$ZonaReservaCopyWithImpl(this._self, this._then);
-
-  final ZonaReserva _self;
-  final $Res Function(ZonaReserva) _then;
-
-/// Create a copy of ZonaReserva
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,}) {
-  return _then(ZonaReserva(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
-as int,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
-as String?,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
-as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ZonaReserva].
-extension ZonaReservaPatterns on ZonaReserva {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ZonaReserva value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ZonaReserva() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ZonaReserva value)  $default,){
-final _that = this;
-switch (_that) {
-case _ZonaReserva():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ZonaReserva value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ZonaReserva() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ZonaReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)  $default,) {final _that = this;
-switch (_that) {
-case _ZonaReserva():
-return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int espacioId,  String? descripcion,  int? capacidad,  EstadoEntidad estado)?  $default,) {final _that = this;
-switch (_that) {
-case _ZonaReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.espacioId,_that.descripcion,_that.capacidad,_that.estado);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _ZonaReserva implements ZonaReserva {
-  const _ZonaReserva({required this.id, required this.nombre, required this.espacioId, this.descripcion, this.capacidad, required this.estado});
-  factory _ZonaReserva.fromJson(Map<String, dynamic> json) => _$ZonaReservaFromJson(json);
-
-@override final  int id;
-@override final  String nombre;
-@override final  int espacioId;
-@override final  String? descripcion;
-@override final  int? capacidad;
-@override final  EstadoEntidad estado;
-
-/// Create a copy of ZonaReserva
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ZonaReservaCopyWith<_ZonaReserva> get copyWith => __$ZonaReservaCopyWithImpl<_ZonaReserva>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ZonaReservaToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ZonaReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.capacidad, capacidad) || other.capacidad == capacidad)&&(identical(other.estado, estado) || other.estado == estado));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,nombre,espacioId,descripcion,capacidad,estado);
-
-@override
-String toString() {
-  return 'ZonaReserva(id: $id, nombre: $nombre, espacioId: $espacioId, descripcion: $descripcion, capacidad: $capacidad, estado: $estado)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ZonaReservaCopyWith<$Res> implements $ZonaReservaCopyWith<$Res> {
-  factory _$ZonaReservaCopyWith(_ZonaReserva value, $Res Function(_ZonaReserva) _then) = __$ZonaReservaCopyWithImpl;
-@override @useResult
-$Res call({
- int id, String nombre, int espacioId, String? descripcion, int? capacidad, EstadoEntidad estado
-});
-
-
-
-
-}
-/// @nodoc
-class __$ZonaReservaCopyWithImpl<$Res>
-    implements _$ZonaReservaCopyWith<$Res> {
-  __$ZonaReservaCopyWithImpl(this._self, this._then);
-
-  final _ZonaReserva _self;
-  final $Res Function(_ZonaReserva) _then;
-
-/// Create a copy of ZonaReserva
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? espacioId = null,Object? descripcion = freezed,Object? capacidad = freezed,Object? estado = null,}) {
-  return _then(_ZonaReserva(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+as String,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,capacidad: freezed == capacidad ? _self.capacidad : capacidad // ignore: cast_nullable_to_non_nullable
 as int?,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
@@ -1129,42 +1129,42 @@ as EstadoEntidad,
 
 
 /// @nodoc
-mixin _$EnsayoReserva {
+mixin _$TipoReservaReserva {
 
- int get id; String get nombre; int get zonaId; EstadoEntidad get estado;
-/// Create a copy of EnsayoReserva
+ int get id; int get laboratorioId; String get nombre; String get estado;
+/// Create a copy of TipoReservaReserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$EnsayoReservaCopyWith<EnsayoReserva> get copyWith => _$EnsayoReservaCopyWithImpl<EnsayoReserva>(this as EnsayoReserva, _$identity);
+$TipoReservaReservaCopyWith<TipoReservaReserva> get copyWith => _$TipoReservaReservaCopyWithImpl<TipoReservaReserva>(this as TipoReservaReserva, _$identity);
 
-  /// Serializes this EnsayoReserva to a JSON map.
+  /// Serializes this TipoReservaReserva to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnsayoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.zonaId, zonaId) || other.zonaId == zonaId)&&(identical(other.estado, estado) || other.estado == estado));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TipoReservaReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.estado, estado) || other.estado == estado));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,zonaId,estado);
+int get hashCode => Object.hash(runtimeType,id,laboratorioId,nombre,estado);
 
 @override
 String toString() {
-  return 'EnsayoReserva(id: $id, nombre: $nombre, zonaId: $zonaId, estado: $estado)';
+  return 'TipoReservaReserva(id: $id, laboratorioId: $laboratorioId, nombre: $nombre, estado: $estado)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $EnsayoReservaCopyWith<$Res>  {
-  factory $EnsayoReservaCopyWith(EnsayoReserva value, $Res Function(EnsayoReserva) _then) = _$EnsayoReservaCopyWithImpl;
+abstract mixin class $TipoReservaReservaCopyWith<$Res>  {
+  factory $TipoReservaReservaCopyWith(TipoReservaReserva value, $Res Function(TipoReservaReserva) _then) = _$TipoReservaReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, String nombre, int zonaId, EstadoEntidad estado
+ int id, int laboratorioId, String nombre, String estado
 });
 
 
@@ -1172,30 +1172,30 @@ $Res call({
 
 }
 /// @nodoc
-class _$EnsayoReservaCopyWithImpl<$Res>
-    implements $EnsayoReservaCopyWith<$Res> {
-  _$EnsayoReservaCopyWithImpl(this._self, this._then);
+class _$TipoReservaReservaCopyWithImpl<$Res>
+    implements $TipoReservaReservaCopyWith<$Res> {
+  _$TipoReservaReservaCopyWithImpl(this._self, this._then);
 
-  final EnsayoReserva _self;
-  final $Res Function(EnsayoReserva) _then;
+  final TipoReservaReserva _self;
+  final $Res Function(TipoReservaReserva) _then;
 
-/// Create a copy of EnsayoReserva
+/// Create a copy of TipoReservaReserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,}) {
-  return _then(EnsayoReserva(
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? laboratorioId = null,Object? nombre = null,Object? estado = null,}) {
+  return _then(TipoReservaReserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,zonaId: null == zonaId ? _self.zonaId : zonaId // ignore: cast_nullable_to_non_nullable
-as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,
+as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
 }
 
 
-/// Adds pattern-matching-related methods to [EnsayoReserva].
-extension EnsayoReservaPatterns on EnsayoReserva {
+/// Adds pattern-matching-related methods to [TipoReservaReserva].
+extension TipoReservaReservaPatterns on TipoReservaReserva {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -1208,10 +1208,10 @@ extension EnsayoReservaPatterns on EnsayoReserva {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _EnsayoReserva value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TipoReservaReserva value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _EnsayoReserva() when $default != null:
+case _TipoReservaReserva() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -1230,10 +1230,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _EnsayoReserva value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TipoReservaReserva value)  $default,){
 final _that = this;
 switch (_that) {
-case _EnsayoReserva():
+case _TipoReservaReserva():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -1251,10 +1251,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _EnsayoReserva value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TipoReservaReserva value)?  $default,){
 final _that = this;
 switch (_that) {
-case _EnsayoReserva() when $default != null:
+case _TipoReservaReserva() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -1272,10 +1272,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int laboratorioId,  String nombre,  String estado)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _EnsayoReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
+case _TipoReservaReserva() when $default != null:
+return $default(_that.id,_that.laboratorioId,_that.nombre,_that.estado);case _:
   return orElse();
 
 }
@@ -1293,10 +1293,10 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int laboratorioId,  String nombre,  String estado)  $default,) {final _that = this;
 switch (_that) {
-case _EnsayoReserva():
-return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
+case _TipoReservaReserva():
+return $default(_that.id,_that.laboratorioId,_that.nombre,_that.estado);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1313,10 +1313,10 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String nombre,  int zonaId,  EstadoEntidad estado)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int laboratorioId,  String nombre,  String estado)?  $default,) {final _that = this;
 switch (_that) {
-case _EnsayoReserva() when $default != null:
-return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
+case _TipoReservaReserva() when $default != null:
+return $default(_that.id,_that.laboratorioId,_that.nombre,_that.estado);case _:
   return null;
 
 }
@@ -1327,49 +1327,49 @@ return $default(_that.id,_that.nombre,_that.zonaId,_that.estado);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _EnsayoReserva implements EnsayoReserva {
-  const _EnsayoReserva({required this.id, required this.nombre, required this.zonaId, required this.estado});
-  factory _EnsayoReserva.fromJson(Map<String, dynamic> json) => _$EnsayoReservaFromJson(json);
+class _TipoReservaReserva implements TipoReservaReserva {
+  const _TipoReservaReserva({required this.id, required this.laboratorioId, required this.nombre, required this.estado});
+  factory _TipoReservaReserva.fromJson(Map<String, dynamic> json) => _$TipoReservaReservaFromJson(json);
 
 @override final  int id;
+@override final  int laboratorioId;
 @override final  String nombre;
-@override final  int zonaId;
-@override final  EstadoEntidad estado;
+@override final  String estado;
 
-/// Create a copy of EnsayoReserva
+/// Create a copy of TipoReservaReserva
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$EnsayoReservaCopyWith<_EnsayoReserva> get copyWith => __$EnsayoReservaCopyWithImpl<_EnsayoReserva>(this, _$identity);
+_$TipoReservaReservaCopyWith<_TipoReservaReserva> get copyWith => __$TipoReservaReservaCopyWithImpl<_TipoReservaReserva>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$EnsayoReservaToJson(this, );
+  return _$TipoReservaReservaToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EnsayoReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.zonaId, zonaId) || other.zonaId == zonaId)&&(identical(other.estado, estado) || other.estado == estado));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TipoReservaReserva&&(identical(other.id, id) || other.id == id)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.estado, estado) || other.estado == estado));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,nombre,zonaId,estado);
+int get hashCode => Object.hash(runtimeType,id,laboratorioId,nombre,estado);
 
 @override
 String toString() {
-  return 'EnsayoReserva(id: $id, nombre: $nombre, zonaId: $zonaId, estado: $estado)';
+  return 'TipoReservaReserva(id: $id, laboratorioId: $laboratorioId, nombre: $nombre, estado: $estado)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$EnsayoReservaCopyWith<$Res> implements $EnsayoReservaCopyWith<$Res> {
-  factory _$EnsayoReservaCopyWith(_EnsayoReserva value, $Res Function(_EnsayoReserva) _then) = __$EnsayoReservaCopyWithImpl;
+abstract mixin class _$TipoReservaReservaCopyWith<$Res> implements $TipoReservaReservaCopyWith<$Res> {
+  factory _$TipoReservaReservaCopyWith(_TipoReservaReserva value, $Res Function(_TipoReservaReserva) _then) = __$TipoReservaReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String nombre, int zonaId, EstadoEntidad estado
+ int id, int laboratorioId, String nombre, String estado
 });
 
 
@@ -1377,22 +1377,22 @@ $Res call({
 
 }
 /// @nodoc
-class __$EnsayoReservaCopyWithImpl<$Res>
-    implements _$EnsayoReservaCopyWith<$Res> {
-  __$EnsayoReservaCopyWithImpl(this._self, this._then);
+class __$TipoReservaReservaCopyWithImpl<$Res>
+    implements _$TipoReservaReservaCopyWith<$Res> {
+  __$TipoReservaReservaCopyWithImpl(this._self, this._then);
 
-  final _EnsayoReserva _self;
-  final $Res Function(_EnsayoReserva) _then;
+  final _TipoReservaReserva _self;
+  final $Res Function(_TipoReservaReserva) _then;
 
-/// Create a copy of EnsayoReserva
+/// Create a copy of TipoReservaReserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nombre = null,Object? zonaId = null,Object? estado = null,}) {
-  return _then(_EnsayoReserva(
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? laboratorioId = null,Object? nombre = null,Object? estado = null,}) {
+  return _then(_TipoReservaReserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
-as String,zonaId: null == zonaId ? _self.zonaId : zonaId // ignore: cast_nullable_to_non_nullable
-as int,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as EstadoEntidad,
+as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -1672,7 +1672,7 @@ as String,
 /// @nodoc
 mixin _$Reserva {
 
- int get id; int get usuarioId; int get espacioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; bool? get asistio; String? get motivoRechazo; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; EspacioReserva get espacio; String? get serieId; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get zonaIds; List<ZonaReserva> get zonas; List<int> get ensayoIds; List<EnsayoReserva> get ensayos; List<ReservaAcompanante> get acompanantes;
+ int get id; int get usuarioId; int get laboratorioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; int? get tipoReservaId; TipoReservaReserva? get tipoReserva; bool? get asistio; String? get motivoRechazo; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; LaboratorioReserva get laboratorio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get espacioIds; List<EspacioReserva> get espacios; List<ReservaAcompanante> get acompanantes;
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1685,16 +1685,16 @@ $ReservaCopyWith<Reserva> get copyWith => _$ReservaCopyWithImpl<Reserva>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.serieId, serieId) || other.serieId == serieId)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.zonaIds, zonaIds)&&const DeepCollectionEquality().equals(other.zonas, zonas)&&const DeepCollectionEquality().equals(other.ensayoIds, ensayoIds)&&const DeepCollectionEquality().equals(other.ensayos, ensayos)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.espacioIds, espacioIds)&&const DeepCollectionEquality().equals(other.espacios, espacios)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,serieId,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(zonaIds),const DeepCollectionEquality().hash(zonas),const DeepCollectionEquality().hash(ensayoIds),const DeepCollectionEquality().hash(ensayos),const DeepCollectionEquality().hash(acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(espacioIds),const DeepCollectionEquality().hash(espacios),const DeepCollectionEquality().hash(acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, serieId: $serieId, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes)';
 }
 
 
@@ -1705,11 +1705,11 @@ abstract mixin class $ReservaCopyWith<$Res>  {
   factory $ReservaCopyWith(Reserva value, $Res Function(Reserva) _then) = _$ReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, String? serieId, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes
 });
 
 
-$UsuarioReservaCopyWith<$Res> get usuario;$EspacioReservaCopyWith<$Res> get espacio;
+$TipoReservaReservaCopyWith<$Res>? get tipoReserva;$UsuarioReservaCopyWith<$Res> get usuario;$LaboratorioReservaCopyWith<$Res> get laboratorio;
 
 }
 /// @nodoc
@@ -1722,18 +1722,20 @@ class _$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? serieId = freezed,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,}) {
   return _then(Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
-as int,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+as int,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
 as String,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
 as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
 as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoReserva,asistentes: null == asistentes ? _self.asistentes : asistentes // ignore: cast_nullable_to_non_nullable
 as int,tipo: freezed == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
-as TipoReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
+as TipoReserva?,tipoReservaId: freezed == tipoReservaId ? _self.tipoReservaId : tipoReservaId // ignore: cast_nullable_to_non_nullable
+as int?,tipoReserva: freezed == tipoReserva ? _self.tipoReserva : tipoReserva // ignore: cast_nullable_to_non_nullable
+as TipoReservaReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
 as bool?,motivoRechazo: freezed == motivoRechazo ? _self.motivoRechazo : motivoRechazo // ignore: cast_nullable_to_non_nullable
 as String?,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,tipoSolicitud: null == tipoSolicitud ? _self.tipoSolicitud : tipoSolicitud // ignore: cast_nullable_to_non_nullable
@@ -1742,19 +1744,28 @@ as String?,requiereApoyoAuxiliar: null == requiereApoyoAuxiliar ? _self.requiere
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable
-as UsuarioReserva,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,serieId: freezed == serieId ? _self.serieId : serieId // ignore: cast_nullable_to_non_nullable
-as String?,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as UsuarioReserva,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioReserva,recursoIds: null == recursoIds ? _self.recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,recursos: null == recursos ? _self.recursos : recursos // ignore: cast_nullable_to_non_nullable
-as List<RecursoReserva>,zonaIds: null == zonaIds ? _self.zonaIds : zonaIds // ignore: cast_nullable_to_non_nullable
-as List<int>,zonas: null == zonas ? _self.zonas : zonas // ignore: cast_nullable_to_non_nullable
-as List<ZonaReserva>,ensayoIds: null == ensayoIds ? _self.ensayoIds : ensayoIds // ignore: cast_nullable_to_non_nullable
-as List<int>,ensayos: null == ensayos ? _self.ensayos : ensayos // ignore: cast_nullable_to_non_nullable
-as List<EnsayoReserva>,acompanantes: null == acompanantes ? _self.acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
+as List<RecursoReserva>,espacioIds: null == espacioIds ? _self.espacioIds : espacioIds // ignore: cast_nullable_to_non_nullable
+as List<int>,espacios: null == espacios ? _self.espacios : espacios // ignore: cast_nullable_to_non_nullable
+as List<EspacioReserva>,acompanantes: null == acompanantes ? _self.acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
 as List<ReservaAcompanante>,
   ));
 }
 /// Create a copy of Reserva
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TipoReservaReservaCopyWith<$Res>? get tipoReserva {
+    if (_self.tipoReserva == null) {
+    return null;
+  }
+
+  return $TipoReservaReservaCopyWith<$Res>(_self.tipoReserva!, (value) {
+    return _then(_self.copyWith(tipoReserva: value));
+  });
+}/// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -1767,10 +1778,10 @@ $UsuarioReservaCopyWith<$Res> get usuario {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioReservaCopyWith<$Res> get espacio {
+$LaboratorioReservaCopyWith<$Res> get laboratorio {
   
-  return $EspacioReservaCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioReservaCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }
 }
@@ -1854,10 +1865,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
   return orElse();
 
 }
@@ -1875,10 +1886,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
 switch (_that) {
 case _Reserva():
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1895,10 +1906,10 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int espacioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  EspacioReserva espacio,  String? serieId,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> zonaIds,  List<ZonaReserva> zonas,  List<int> ensayoIds,  List<EnsayoReserva> ensayos,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  bool? asistio,  String? motivoRechazo,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.espacio,_that.serieId,_that.recursoIds,_that.recursos,_that.zonaIds,_that.zonas,_that.ensayoIds,_that.ensayos,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.asistio,_that.motivoRechazo,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
   return null;
 
 }
@@ -1910,18 +1921,20 @@ return $default(_that.id,_that.usuarioId,_that.espacioId,_that.fecha,_that.horaI
 @JsonSerializable()
 
 class _Reserva extends Reserva {
-  const _Reserva({required this.id, required this.usuarioId, required this.espacioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.asistio, this.motivoRechazo, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.espacio, this.serieId,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> zonaIds = const [],  List<ZonaReserva> zonas = const [],  List<int> ensayoIds = const [],  List<EnsayoReserva> ensayos = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_zonaIds = zonaIds,_zonas = zonas,_ensayoIds = ensayoIds,_ensayos = ensayos,_acompanantes = acompanantes,super._();
+  const _Reserva({required this.id, required this.usuarioId, required this.laboratorioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.tipoReservaId, this.tipoReserva, this.asistio, this.motivoRechazo, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.laboratorio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> espacioIds = const [],  List<EspacioReserva> espacios = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_espacioIds = espacioIds,_espacios = espacios,_acompanantes = acompanantes,super._();
   factory _Reserva.fromJson(Map<String, dynamic> json) => _$ReservaFromJson(json);
 
 @override final  int id;
 @override final  int usuarioId;
-@override final  int espacioId;
+@override final  int laboratorioId;
 @override final  String fecha;
 @override final  String horaInicio;
 @override final  String horaFin;
 @override final  EstadoReserva estado;
 @override final  int asistentes;
 @override final  TipoReserva? tipo;
+@override final  int? tipoReservaId;
+@override final  TipoReservaReserva? tipoReserva;
 @override final  bool? asistio;
 @override final  String? motivoRechazo;
 @override final  String? descripcion;
@@ -1931,8 +1944,7 @@ class _Reserva extends Reserva {
 @override final  String createdAt;
 @override final  String updatedAt;
 @override final  UsuarioReserva usuario;
-@override final  EspacioReserva espacio;
-@override final  String? serieId;
+@override final  LaboratorioReserva laboratorio;
  final  List<int> _recursoIds;
 @override@JsonKey() List<int> get recursoIds {
   if (_recursoIds is EqualUnmodifiableListView) return _recursoIds;
@@ -1947,32 +1959,18 @@ class _Reserva extends Reserva {
   return EqualUnmodifiableListView(_recursos);
 }
 
- final  List<int> _zonaIds;
-@override@JsonKey() List<int> get zonaIds {
-  if (_zonaIds is EqualUnmodifiableListView) return _zonaIds;
+ final  List<int> _espacioIds;
+@override@JsonKey() List<int> get espacioIds {
+  if (_espacioIds is EqualUnmodifiableListView) return _espacioIds;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_zonaIds);
+  return EqualUnmodifiableListView(_espacioIds);
 }
 
- final  List<ZonaReserva> _zonas;
-@override@JsonKey() List<ZonaReserva> get zonas {
-  if (_zonas is EqualUnmodifiableListView) return _zonas;
+ final  List<EspacioReserva> _espacios;
+@override@JsonKey() List<EspacioReserva> get espacios {
+  if (_espacios is EqualUnmodifiableListView) return _espacios;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_zonas);
-}
-
- final  List<int> _ensayoIds;
-@override@JsonKey() List<int> get ensayoIds {
-  if (_ensayoIds is EqualUnmodifiableListView) return _ensayoIds;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_ensayoIds);
-}
-
- final  List<EnsayoReserva> _ensayos;
-@override@JsonKey() List<EnsayoReserva> get ensayos {
-  if (_ensayos is EqualUnmodifiableListView) return _ensayos;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_ensayos);
+  return EqualUnmodifiableListView(_espacios);
 }
 
  final  List<ReservaAcompanante> _acompanantes;
@@ -1996,16 +1994,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.espacioId, espacioId) || other.espacioId == espacioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.espacio, espacio) || other.espacio == espacio)&&(identical(other.serieId, serieId) || other.serieId == serieId)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._zonaIds, _zonaIds)&&const DeepCollectionEquality().equals(other._zonas, _zonas)&&const DeepCollectionEquality().equals(other._ensayoIds, _ensayoIds)&&const DeepCollectionEquality().equals(other._ensayos, _ensayos)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._espacioIds, _espacioIds)&&const DeepCollectionEquality().equals(other._espacios, _espacios)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,espacioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,espacio,serieId,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_zonaIds),const DeepCollectionEquality().hash(_zonas),const DeepCollectionEquality().hash(_ensayoIds),const DeepCollectionEquality().hash(_ensayos),const DeepCollectionEquality().hash(_acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,asistio,motivoRechazo,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_espacioIds),const DeepCollectionEquality().hash(_espacios),const DeepCollectionEquality().hash(_acompanantes)]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, espacioId: $espacioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, espacio: $espacio, serieId: $serieId, recursoIds: $recursoIds, recursos: $recursos, zonaIds: $zonaIds, zonas: $zonas, ensayoIds: $ensayoIds, ensayos: $ensayos, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, asistio: $asistio, motivoRechazo: $motivoRechazo, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes)';
 }
 
 
@@ -2016,11 +2014,11 @@ abstract mixin class _$ReservaCopyWith<$Res> implements $ReservaCopyWith<$Res> {
   factory _$ReservaCopyWith(_Reserva value, $Res Function(_Reserva) _then) = __$ReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int usuarioId, int espacioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, EspacioReserva espacio, String? serieId, List<int> recursoIds, List<RecursoReserva> recursos, List<int> zonaIds, List<ZonaReserva> zonas, List<int> ensayoIds, List<EnsayoReserva> ensayos, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, bool? asistio, String? motivoRechazo, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes
 });
 
 
-@override $UsuarioReservaCopyWith<$Res> get usuario;@override $EspacioReservaCopyWith<$Res> get espacio;
+@override $TipoReservaReservaCopyWith<$Res>? get tipoReserva;@override $UsuarioReservaCopyWith<$Res> get usuario;@override $LaboratorioReservaCopyWith<$Res> get laboratorio;
 
 }
 /// @nodoc
@@ -2033,18 +2031,20 @@ class __$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? espacioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? espacio = null,Object? serieId = freezed,Object? recursoIds = null,Object? recursos = null,Object? zonaIds = null,Object? zonas = null,Object? ensayoIds = null,Object? ensayos = null,Object? acompanantes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,}) {
   return _then(_Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
-as int,espacioId: null == espacioId ? _self.espacioId : espacioId // ignore: cast_nullable_to_non_nullable
+as int,laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
 as String,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
 as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
 as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
 as EstadoReserva,asistentes: null == asistentes ? _self.asistentes : asistentes // ignore: cast_nullable_to_non_nullable
 as int,tipo: freezed == tipo ? _self.tipo : tipo // ignore: cast_nullable_to_non_nullable
-as TipoReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
+as TipoReserva?,tipoReservaId: freezed == tipoReservaId ? _self.tipoReservaId : tipoReservaId // ignore: cast_nullable_to_non_nullable
+as int?,tipoReserva: freezed == tipoReserva ? _self.tipoReserva : tipoReserva // ignore: cast_nullable_to_non_nullable
+as TipoReservaReserva?,asistio: freezed == asistio ? _self.asistio : asistio // ignore: cast_nullable_to_non_nullable
 as bool?,motivoRechazo: freezed == motivoRechazo ? _self.motivoRechazo : motivoRechazo // ignore: cast_nullable_to_non_nullable
 as String?,descripcion: freezed == descripcion ? _self.descripcion : descripcion // ignore: cast_nullable_to_non_nullable
 as String?,tipoSolicitud: null == tipoSolicitud ? _self.tipoSolicitud : tipoSolicitud // ignore: cast_nullable_to_non_nullable
@@ -2053,20 +2053,29 @@ as String?,requiereApoyoAuxiliar: null == requiereApoyoAuxiliar ? _self.requiere
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as String,usuario: null == usuario ? _self.usuario : usuario // ignore: cast_nullable_to_non_nullable
-as UsuarioReserva,espacio: null == espacio ? _self.espacio : espacio // ignore: cast_nullable_to_non_nullable
-as EspacioReserva,serieId: freezed == serieId ? _self.serieId : serieId // ignore: cast_nullable_to_non_nullable
-as String?,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
+as UsuarioReserva,laboratorio: null == laboratorio ? _self.laboratorio : laboratorio // ignore: cast_nullable_to_non_nullable
+as LaboratorioReserva,recursoIds: null == recursoIds ? _self._recursoIds : recursoIds // ignore: cast_nullable_to_non_nullable
 as List<int>,recursos: null == recursos ? _self._recursos : recursos // ignore: cast_nullable_to_non_nullable
-as List<RecursoReserva>,zonaIds: null == zonaIds ? _self._zonaIds : zonaIds // ignore: cast_nullable_to_non_nullable
-as List<int>,zonas: null == zonas ? _self._zonas : zonas // ignore: cast_nullable_to_non_nullable
-as List<ZonaReserva>,ensayoIds: null == ensayoIds ? _self._ensayoIds : ensayoIds // ignore: cast_nullable_to_non_nullable
-as List<int>,ensayos: null == ensayos ? _self._ensayos : ensayos // ignore: cast_nullable_to_non_nullable
-as List<EnsayoReserva>,acompanantes: null == acompanantes ? _self._acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
+as List<RecursoReserva>,espacioIds: null == espacioIds ? _self._espacioIds : espacioIds // ignore: cast_nullable_to_non_nullable
+as List<int>,espacios: null == espacios ? _self._espacios : espacios // ignore: cast_nullable_to_non_nullable
+as List<EspacioReserva>,acompanantes: null == acompanantes ? _self._acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
 as List<ReservaAcompanante>,
   ));
 }
 
 /// Create a copy of Reserva
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TipoReservaReservaCopyWith<$Res>? get tipoReserva {
+    if (_self.tipoReserva == null) {
+    return null;
+  }
+
+  return $TipoReservaReservaCopyWith<$Res>(_self.tipoReserva!, (value) {
+    return _then(_self.copyWith(tipoReserva: value));
+  });
+}/// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -2079,1100 +2088,12 @@ $UsuarioReservaCopyWith<$Res> get usuario {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$EspacioReservaCopyWith<$Res> get espacio {
+$LaboratorioReservaCopyWith<$Res> get laboratorio {
   
-  return $EspacioReservaCopyWith<$Res>(_self.espacio, (value) {
-    return _then(_self.copyWith(espacio: value));
+  return $LaboratorioReservaCopyWith<$Res>(_self.laboratorio, (value) {
+    return _then(_self.copyWith(laboratorio: value));
   });
 }
-}
-
-
-/// @nodoc
-mixin _$OcurrenciaOmitida {
-
- String get fecha; String get motivo;
-/// Create a copy of OcurrenciaOmitida
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$OcurrenciaOmitidaCopyWith<OcurrenciaOmitida> get copyWith => _$OcurrenciaOmitidaCopyWithImpl<OcurrenciaOmitida>(this as OcurrenciaOmitida, _$identity);
-
-  /// Serializes this OcurrenciaOmitida to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.motivo, motivo) || other.motivo == motivo));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,fecha,motivo);
-
-@override
-String toString() {
-  return 'OcurrenciaOmitida(fecha: $fecha, motivo: $motivo)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $OcurrenciaOmitidaCopyWith<$Res>  {
-  factory $OcurrenciaOmitidaCopyWith(OcurrenciaOmitida value, $Res Function(OcurrenciaOmitida) _then) = _$OcurrenciaOmitidaCopyWithImpl;
-@useResult
-$Res call({
- String fecha, String motivo
-});
-
-
-
-
-}
-/// @nodoc
-class _$OcurrenciaOmitidaCopyWithImpl<$Res>
-    implements $OcurrenciaOmitidaCopyWith<$Res> {
-  _$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
-
-  final OcurrenciaOmitida _self;
-  final $Res Function(OcurrenciaOmitida) _then;
-
-/// Create a copy of OcurrenciaOmitida
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? fecha = null,Object? motivo = null,}) {
-  return _then(OcurrenciaOmitida(
-fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
-as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [OcurrenciaOmitida].
-extension OcurrenciaOmitidaPatterns on OcurrenciaOmitida {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)  $default,){
-final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaOmitida value)?  $default,){
-final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fecha,  String motivo)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida() when $default != null:
-return $default(_that.fecha,_that.motivo);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fecha,  String motivo)  $default,) {final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida():
-return $default(_that.fecha,_that.motivo);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fecha,  String motivo)?  $default,) {final _that = this;
-switch (_that) {
-case _OcurrenciaOmitida() when $default != null:
-return $default(_that.fecha,_that.motivo);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _OcurrenciaOmitida implements OcurrenciaOmitida {
-  const _OcurrenciaOmitida({required this.fecha, required this.motivo});
-  factory _OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
-
-@override final  String fecha;
-@override final  String motivo;
-
-/// Create a copy of OcurrenciaOmitida
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$OcurrenciaOmitidaCopyWith<_OcurrenciaOmitida> get copyWith => __$OcurrenciaOmitidaCopyWithImpl<_OcurrenciaOmitida>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$OcurrenciaOmitidaToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.motivo, motivo) || other.motivo == motivo));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,fecha,motivo);
-
-@override
-String toString() {
-  return 'OcurrenciaOmitida(fecha: $fecha, motivo: $motivo)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$OcurrenciaOmitidaCopyWith<$Res> implements $OcurrenciaOmitidaCopyWith<$Res> {
-  factory _$OcurrenciaOmitidaCopyWith(_OcurrenciaOmitida value, $Res Function(_OcurrenciaOmitida) _then) = __$OcurrenciaOmitidaCopyWithImpl;
-@override @useResult
-$Res call({
- String fecha, String motivo
-});
-
-
-
-
-}
-/// @nodoc
-class __$OcurrenciaOmitidaCopyWithImpl<$Res>
-    implements _$OcurrenciaOmitidaCopyWith<$Res> {
-  __$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
-
-  final _OcurrenciaOmitida _self;
-  final $Res Function(_OcurrenciaOmitida) _then;
-
-/// Create a copy of OcurrenciaOmitida
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? fecha = null,Object? motivo = null,}) {
-  return _then(_OcurrenciaOmitida(
-fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
-as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$ReservaSerieResultado {
-
- List<Reserva> get creadas; List<OcurrenciaOmitida> get omitidas;
-/// Create a copy of ReservaSerieResultado
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ReservaSerieResultadoCopyWith<ReservaSerieResultado> get copyWith => _$ReservaSerieResultadoCopyWithImpl<ReservaSerieResultado>(this as ReservaSerieResultado, _$identity);
-
-  /// Serializes this ReservaSerieResultado to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaSerieResultado&&const DeepCollectionEquality().equals(other.creadas, creadas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(creadas),const DeepCollectionEquality().hash(omitidas));
-
-@override
-String toString() {
-  return 'ReservaSerieResultado(creadas: $creadas, omitidas: $omitidas)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ReservaSerieResultadoCopyWith<$Res>  {
-  factory $ReservaSerieResultadoCopyWith(ReservaSerieResultado value, $Res Function(ReservaSerieResultado) _then) = _$ReservaSerieResultadoCopyWithImpl;
-@useResult
-$Res call({
- List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
-});
-
-
-
-
-}
-/// @nodoc
-class _$ReservaSerieResultadoCopyWithImpl<$Res>
-    implements $ReservaSerieResultadoCopyWith<$Res> {
-  _$ReservaSerieResultadoCopyWithImpl(this._self, this._then);
-
-  final ReservaSerieResultado _self;
-  final $Res Function(ReservaSerieResultado) _then;
-
-/// Create a copy of ReservaSerieResultado
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? creadas = null,Object? omitidas = null,}) {
-  return _then(ReservaSerieResultado(
-creadas: null == creadas ? _self.creadas : creadas // ignore: cast_nullable_to_non_nullable
-as List<Reserva>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
-as List<OcurrenciaOmitida>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ReservaSerieResultado].
-extension ReservaSerieResultadoPatterns on ReservaSerieResultado {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaSerieResultado value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ReservaSerieResultado() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaSerieResultado value)  $default,){
-final _that = this;
-switch (_that) {
-case _ReservaSerieResultado():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaSerieResultado value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ReservaSerieResultado() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ReservaSerieResultado() when $default != null:
-return $default(_that.creadas,_that.omitidas);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)  $default,) {final _that = this;
-switch (_that) {
-case _ReservaSerieResultado():
-return $default(_that.creadas,_that.omitidas);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,) {final _that = this;
-switch (_that) {
-case _ReservaSerieResultado() when $default != null:
-return $default(_that.creadas,_that.omitidas);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _ReservaSerieResultado implements ReservaSerieResultado {
-  const _ReservaSerieResultado({required  List<Reserva> creadas, required  List<OcurrenciaOmitida> omitidas}): _creadas = creadas,_omitidas = omitidas;
-  factory _ReservaSerieResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieResultadoFromJson(json);
-
- final  List<Reserva> _creadas;
-@override List<Reserva> get creadas {
-  if (_creadas is EqualUnmodifiableListView) return _creadas;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_creadas);
-}
-
- final  List<OcurrenciaOmitida> _omitidas;
-@override List<OcurrenciaOmitida> get omitidas {
-  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_omitidas);
-}
-
-
-/// Create a copy of ReservaSerieResultado
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ReservaSerieResultadoCopyWith<_ReservaSerieResultado> get copyWith => __$ReservaSerieResultadoCopyWithImpl<_ReservaSerieResultado>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ReservaSerieResultadoToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaSerieResultado&&const DeepCollectionEquality().equals(other._creadas, _creadas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_creadas),const DeepCollectionEquality().hash(_omitidas));
-
-@override
-String toString() {
-  return 'ReservaSerieResultado(creadas: $creadas, omitidas: $omitidas)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ReservaSerieResultadoCopyWith<$Res> implements $ReservaSerieResultadoCopyWith<$Res> {
-  factory _$ReservaSerieResultadoCopyWith(_ReservaSerieResultado value, $Res Function(_ReservaSerieResultado) _then) = __$ReservaSerieResultadoCopyWithImpl;
-@override @useResult
-$Res call({
- List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
-});
-
-
-
-
-}
-/// @nodoc
-class __$ReservaSerieResultadoCopyWithImpl<$Res>
-    implements _$ReservaSerieResultadoCopyWith<$Res> {
-  __$ReservaSerieResultadoCopyWithImpl(this._self, this._then);
-
-  final _ReservaSerieResultado _self;
-  final $Res Function(_ReservaSerieResultado) _then;
-
-/// Create a copy of ReservaSerieResultado
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? creadas = null,Object? omitidas = null,}) {
-  return _then(_ReservaSerieResultado(
-creadas: null == creadas ? _self._creadas : creadas // ignore: cast_nullable_to_non_nullable
-as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
-as List<OcurrenciaOmitida>,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$OcurrenciaCancelOmitida {
-
- int get reservaId; String get motivo;
-/// Create a copy of OcurrenciaCancelOmitida
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$OcurrenciaCancelOmitidaCopyWith<OcurrenciaCancelOmitida> get copyWith => _$OcurrenciaCancelOmitidaCopyWithImpl<OcurrenciaCancelOmitida>(this as OcurrenciaCancelOmitida, _$identity);
-
-  /// Serializes this OcurrenciaCancelOmitida to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaCancelOmitida&&(identical(other.reservaId, reservaId) || other.reservaId == reservaId)&&(identical(other.motivo, motivo) || other.motivo == motivo));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,reservaId,motivo);
-
-@override
-String toString() {
-  return 'OcurrenciaCancelOmitida(reservaId: $reservaId, motivo: $motivo)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $OcurrenciaCancelOmitidaCopyWith<$Res>  {
-  factory $OcurrenciaCancelOmitidaCopyWith(OcurrenciaCancelOmitida value, $Res Function(OcurrenciaCancelOmitida) _then) = _$OcurrenciaCancelOmitidaCopyWithImpl;
-@useResult
-$Res call({
- int reservaId, String motivo
-});
-
-
-
-
-}
-/// @nodoc
-class _$OcurrenciaCancelOmitidaCopyWithImpl<$Res>
-    implements $OcurrenciaCancelOmitidaCopyWith<$Res> {
-  _$OcurrenciaCancelOmitidaCopyWithImpl(this._self, this._then);
-
-  final OcurrenciaCancelOmitida _self;
-  final $Res Function(OcurrenciaCancelOmitida) _then;
-
-/// Create a copy of OcurrenciaCancelOmitida
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? reservaId = null,Object? motivo = null,}) {
-  return _then(OcurrenciaCancelOmitida(
-reservaId: null == reservaId ? _self.reservaId : reservaId // ignore: cast_nullable_to_non_nullable
-as int,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [OcurrenciaCancelOmitida].
-extension OcurrenciaCancelOmitidaPatterns on OcurrenciaCancelOmitida {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaCancelOmitida value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaCancelOmitida value)  $default,){
-final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaCancelOmitida value)?  $default,){
-final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int reservaId,  String motivo)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida() when $default != null:
-return $default(_that.reservaId,_that.motivo);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int reservaId,  String motivo)  $default,) {final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida():
-return $default(_that.reservaId,_that.motivo);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int reservaId,  String motivo)?  $default,) {final _that = this;
-switch (_that) {
-case _OcurrenciaCancelOmitida() when $default != null:
-return $default(_that.reservaId,_that.motivo);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _OcurrenciaCancelOmitida implements OcurrenciaCancelOmitida {
-  const _OcurrenciaCancelOmitida({required this.reservaId, required this.motivo});
-  factory _OcurrenciaCancelOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaCancelOmitidaFromJson(json);
-
-@override final  int reservaId;
-@override final  String motivo;
-
-/// Create a copy of OcurrenciaCancelOmitida
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$OcurrenciaCancelOmitidaCopyWith<_OcurrenciaCancelOmitida> get copyWith => __$OcurrenciaCancelOmitidaCopyWithImpl<_OcurrenciaCancelOmitida>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$OcurrenciaCancelOmitidaToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaCancelOmitida&&(identical(other.reservaId, reservaId) || other.reservaId == reservaId)&&(identical(other.motivo, motivo) || other.motivo == motivo));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,reservaId,motivo);
-
-@override
-String toString() {
-  return 'OcurrenciaCancelOmitida(reservaId: $reservaId, motivo: $motivo)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$OcurrenciaCancelOmitidaCopyWith<$Res> implements $OcurrenciaCancelOmitidaCopyWith<$Res> {
-  factory _$OcurrenciaCancelOmitidaCopyWith(_OcurrenciaCancelOmitida value, $Res Function(_OcurrenciaCancelOmitida) _then) = __$OcurrenciaCancelOmitidaCopyWithImpl;
-@override @useResult
-$Res call({
- int reservaId, String motivo
-});
-
-
-
-
-}
-/// @nodoc
-class __$OcurrenciaCancelOmitidaCopyWithImpl<$Res>
-    implements _$OcurrenciaCancelOmitidaCopyWith<$Res> {
-  __$OcurrenciaCancelOmitidaCopyWithImpl(this._self, this._then);
-
-  final _OcurrenciaCancelOmitida _self;
-  final $Res Function(_OcurrenciaCancelOmitida) _then;
-
-/// Create a copy of OcurrenciaCancelOmitida
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? reservaId = null,Object? motivo = null,}) {
-  return _then(_OcurrenciaCancelOmitida(
-reservaId: null == reservaId ? _self.reservaId : reservaId // ignore: cast_nullable_to_non_nullable
-as int,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$ReservaSerieCancelResultado {
-
- List<Reserva> get canceladas; List<OcurrenciaCancelOmitida> get omitidas;
-/// Create a copy of ReservaSerieCancelResultado
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ReservaSerieCancelResultadoCopyWith<ReservaSerieCancelResultado> get copyWith => _$ReservaSerieCancelResultadoCopyWithImpl<ReservaSerieCancelResultado>(this as ReservaSerieCancelResultado, _$identity);
-
-  /// Serializes this ReservaSerieCancelResultado to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaSerieCancelResultado&&const DeepCollectionEquality().equals(other.canceladas, canceladas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(canceladas),const DeepCollectionEquality().hash(omitidas));
-
-@override
-String toString() {
-  return 'ReservaSerieCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ReservaSerieCancelResultadoCopyWith<$Res>  {
-  factory $ReservaSerieCancelResultadoCopyWith(ReservaSerieCancelResultado value, $Res Function(ReservaSerieCancelResultado) _then) = _$ReservaSerieCancelResultadoCopyWithImpl;
-@useResult
-$Res call({
- List<Reserva> canceladas, List<OcurrenciaCancelOmitida> omitidas
-});
-
-
-
-
-}
-/// @nodoc
-class _$ReservaSerieCancelResultadoCopyWithImpl<$Res>
-    implements $ReservaSerieCancelResultadoCopyWith<$Res> {
-  _$ReservaSerieCancelResultadoCopyWithImpl(this._self, this._then);
-
-  final ReservaSerieCancelResultado _self;
-  final $Res Function(ReservaSerieCancelResultado) _then;
-
-/// Create a copy of ReservaSerieCancelResultado
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? canceladas = null,Object? omitidas = null,}) {
-  return _then(ReservaSerieCancelResultado(
-canceladas: null == canceladas ? _self.canceladas : canceladas // ignore: cast_nullable_to_non_nullable
-as List<Reserva>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
-as List<OcurrenciaCancelOmitida>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ReservaSerieCancelResultado].
-extension ReservaSerieCancelResultadoPatterns on ReservaSerieCancelResultado {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaSerieCancelResultado value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaSerieCancelResultado value)  $default,){
-final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaSerieCancelResultado value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado() when $default != null:
-return $default(_that.canceladas,_that.omitidas);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)  $default,) {final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado():
-return $default(_that.canceladas,_that.omitidas);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Reserva> canceladas,  List<OcurrenciaCancelOmitida> omitidas)?  $default,) {final _that = this;
-switch (_that) {
-case _ReservaSerieCancelResultado() when $default != null:
-return $default(_that.canceladas,_that.omitidas);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _ReservaSerieCancelResultado implements ReservaSerieCancelResultado {
-  const _ReservaSerieCancelResultado({required  List<Reserva> canceladas, required  List<OcurrenciaCancelOmitida> omitidas}): _canceladas = canceladas,_omitidas = omitidas;
-  factory _ReservaSerieCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaSerieCancelResultadoFromJson(json);
-
- final  List<Reserva> _canceladas;
-@override List<Reserva> get canceladas {
-  if (_canceladas is EqualUnmodifiableListView) return _canceladas;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_canceladas);
-}
-
- final  List<OcurrenciaCancelOmitida> _omitidas;
-@override List<OcurrenciaCancelOmitida> get omitidas {
-  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_omitidas);
-}
-
-
-/// Create a copy of ReservaSerieCancelResultado
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ReservaSerieCancelResultadoCopyWith<_ReservaSerieCancelResultado> get copyWith => __$ReservaSerieCancelResultadoCopyWithImpl<_ReservaSerieCancelResultado>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ReservaSerieCancelResultadoToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaSerieCancelResultado&&const DeepCollectionEquality().equals(other._canceladas, _canceladas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_canceladas),const DeepCollectionEquality().hash(_omitidas));
-
-@override
-String toString() {
-  return 'ReservaSerieCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ReservaSerieCancelResultadoCopyWith<$Res> implements $ReservaSerieCancelResultadoCopyWith<$Res> {
-  factory _$ReservaSerieCancelResultadoCopyWith(_ReservaSerieCancelResultado value, $Res Function(_ReservaSerieCancelResultado) _then) = __$ReservaSerieCancelResultadoCopyWithImpl;
-@override @useResult
-$Res call({
- List<Reserva> canceladas, List<OcurrenciaCancelOmitida> omitidas
-});
-
-
-
-
-}
-/// @nodoc
-class __$ReservaSerieCancelResultadoCopyWithImpl<$Res>
-    implements _$ReservaSerieCancelResultadoCopyWith<$Res> {
-  __$ReservaSerieCancelResultadoCopyWithImpl(this._self, this._then);
-
-  final _ReservaSerieCancelResultado _self;
-  final $Res Function(_ReservaSerieCancelResultado) _then;
-
-/// Create a copy of ReservaSerieCancelResultado
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? canceladas = null,Object? omitidas = null,}) {
-  return _then(_ReservaSerieCancelResultado(
-canceladas: null == canceladas ? _self._canceladas : canceladas // ignore: cast_nullable_to_non_nullable
-as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
-as List<OcurrenciaCancelOmitida>,
-  ));
-}
-
-
 }
 
 // dart format on
