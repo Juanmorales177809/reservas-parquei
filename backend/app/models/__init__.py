@@ -10,6 +10,7 @@ from app.models.recurso import Recurso, TipoRecurso
 from app.models.reserva import Reserva
 from app.models.reserva_recurso import ReservaRecurso
 from app.models.reserva_espacio import ReservaEspacio
+from app.models.motivo_solicitud import MotivoSolicitud
 from app.models.tipo_reserva import TipoReserva
 from app.models.usuario import Usuario
 from app.models.usuario_laboratorio import UsuarioLaboratorio
@@ -22,6 +23,7 @@ __all__ = [
     "EspacioRecurso",
     "Laboratorio",
     "ListaEspera",
+    "MotivoSolicitud",
     "Notificacion",
     "Personal",
     "Recurso",

@@ -41,6 +41,19 @@ _SKY = "#56acde"
 
 SOPORTE_EMAIL = "reservaslabparquei@correo.itm.edu.co"
 
+try:
+    from app.config import settings as _settings
+
+    FRONTEND_URL = _settings.frontend_url.rstrip("/")
+except Exception:
+    FRONTEND_URL = "http://localhost:8091"
+
+
+def _link_reserva(reserva_id: int | None = None) -> str:
+    if reserva_id is None:
+        return f"{FRONTEND_URL}/reservas/mis-reservas"
+    return f"{FRONTEND_URL}/reservas/mis-reservas#{reserva_id}"
+
 # (borde, tinte de fondo, texto del título dentro de la tarjeta) -- mismos
 # hex que TipoNotificacion en notificaciones_sheet.dart. Sin relación con
 # los 3 azules de Ingeniería de arriba (ver docstring del módulo).
@@ -452,11 +465,12 @@ def plantilla_recordatorio_reserva(
     )
 
 
-def plantilla_reserva_pendiente(*, nombre_saludo: str, espacio: str, fecha: str, hora_inicio: str, hora_fin: str) -> str:
+def plantilla_reserva_pendiente(*, nombre_saludo: str, espacio: str, fecha: str, hora_inicio: str, hora_fin: str, reserva_id: int | None = None) -> str:
     """Aviso al gestor: hay una reserva nueva esperando su aprobación."""
     tarjeta = _tarjeta_reserva(estado="pendiente", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    boton = f'<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>' if reserva_id is not None else ""
     cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Hay una nueva reserva pendiente de tu aprobación:</p>
-{tarjeta}"""
+{tarjeta}{boton}"""
     contenido = _contenido_simple(
         nombre_saludo=nombre_saludo,
         heading="Tenés una reserva<br>por aprobar",
@@ -470,7 +484,7 @@ def plantilla_reserva_pendiente(*, nombre_saludo: str, espacio: str, fecha: str,
     )
 
 
-def plantilla_reserva_recibida(*, nombre_saludo: str, espacio: str, fecha: str, hora_inicio: str, hora_fin: str) -> str:
+def plantilla_reserva_recibida(*, nombre_saludo: str, espacio: str, fecha: str, hora_inicio: str, hora_fin: str, reserva_id: int | None = None) -> str:
     """Confirmación al solicitante de que su reserva quedó registrada y
     pendiente de aprobación del gestor -- contraparte de
     `plantilla_reserva_pendiente` (que avisa al gestor), pero dirigida a
@@ -480,8 +494,9 @@ def plantilla_reserva_recibida(*, nombre_saludo: str, espacio: str, fecha: str, 
     `plantilla_reserva_estado(estado="aprobada")`, porque en ese caso ya no
     hay nada "pendiente" que confirmar."""
     tarjeta = _tarjeta_reserva(estado="pendiente", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    boton = f'<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>' if reserva_id is not None else ""
     cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Recibimos tu solicitud de reserva y quedó pendiente de aprobación:</p>
-{tarjeta}"""
+{tarjeta}{boton}"""
     contenido = _contenido_simple(
         nombre_saludo=nombre_saludo,
         heading="Recibimos tu<br>solicitud",
@@ -523,9 +538,10 @@ def plantilla_reserva_estado(
 </tr>
 </table>
 """
+    boton = f'<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>'
     cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu reserva #{reserva_id} fue <strong>{verbo}</strong>:</p>
 {tarjeta}
-{motivo_html}"""
+{motivo_html}{boton}"""
     contenido = _contenido_simple(
         nombre_saludo=nombre_saludo,
         heading=f"Tu reserva fue<br>{verbo}",
@@ -571,7 +587,8 @@ def plantilla_propuesta_horarios(
 {tarjeta}
 {motivo_html}
 {horarios_html}
-<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Mis reservas</strong> para aceptar uno de los horarios o contraproponer otros. La reserva sigue pendiente con su horario original hasta que elijas.</p>"""
+<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Mis reservas</strong> para aceptar uno de los horarios o contraproponer otros. La reserva sigue pendiente con su horario original hasta que elijas.</p>
+<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>"""
     cierre = "Si ninguno te sirve, podés contraproponer otros horarios desde la app."
     return _envoltorio(preheader=pre, contenido_html=_contenido_simple(nombre_saludo=nombre_saludo, heading=titulo, cuerpo_html=cuerpo, cierre=cierre), disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.")
 
@@ -595,7 +612,8 @@ def plantilla_contrapropuesta_tecnico(
 {tarjeta}
 {motivo_html}
 {horarios_html}
-<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Gestión de reservas</strong> para aceptar la contrapropuesta, rechazarla o proponer otros horarios.</p>"""
+<p style="margin:0 0 10px 0;font-family:'Montserrat',Arial,sans-serif;font-size:14px;color:#4a4f58;">Entrá a <strong>Gestión de reservas</strong> para aceptar la contrapropuesta, rechazarla o proponer otros horarios.</p>
+<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>"""
     return _envoltorio(preheader=f"Contrapropuesta para reserva #{reserva_id} de {espacio}", contenido_html=_contenido_simple(nombre_saludo=nombre_saludo, heading="Nueva<br>contrapropuesta", cuerpo_html=cuerpo, cierre="Ingresá al sistema para gestionarla."), disclaimer="Este es un correo automático del Sistema de Reservas de Laboratorios.")
 
 
@@ -605,8 +623,9 @@ def plantilla_reserva_actualizada(
     """Aviso al solicitante: un gestor le agregó recursos/espacios a una
     reserva ya aprobada (Feature B, ver services/reservas.py::actualizar_reserva)."""
     tarjeta = _tarjeta_reserva(estado="actualizada", titulo=espacio, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)
+    boton = f'<div style="margin:16px 0 0 0;">{_boton(texto="Ver reserva", link=_link_reserva(reserva_id))}</div>'
     cuerpo = f"""<p style="margin:0 0 20px 0;font-family:'Montserrat',Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a4f58;">Tu reserva #{reserva_id} fue actualizada. Se agregaron {_esc(detalle)}:</p>
-{tarjeta}"""
+{tarjeta}{boton}"""
     contenido = _contenido_simple(
         nombre_saludo=nombre_saludo,
         heading="Tu reserva tiene<br>equipo nuevo",

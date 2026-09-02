@@ -26,6 +26,7 @@ from app.models import (
     Espacio,
     EspacioRecurso,
     Laboratorio,
+    MotivoSolicitud,
     Notificacion,
     Personal,
     Recurso,
@@ -544,6 +545,16 @@ def _validar_tipo_reserva(db: Session, tipo_reserva_id: int | None, laboratorio_
         )
 
 
+def _validar_motivo_solicitud(db: Session, motivo_solicitud_id: int | None, laboratorio_id: int) -> None:
+    if motivo_solicitud_id is None:
+        return
+    motivo = db.query(MotivoSolicitud).filter(MotivoSolicitud.id == motivo_solicitud_id).first()
+    if motivo is None:
+        raise HTTPException(status_code=404, detail="Motivo de solicitud no encontrado")
+    if motivo.laboratorio_id != laboratorio_id:
+        raise HTTPException(status_code=400, detail="El motivo no pertenece al laboratorio de la reserva")
+
+
 def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
@@ -562,6 +573,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
     laboratorio_gestionado = get_managed_laboratory_id(db, usuario) if usuario.rol == Rol.GESTOR.value else None
     aprobacion_automatica = objetivo.laboratorio.aprobacion_automatica or laboratorio_gestionado == objetivo.laboratorio.id
     _validar_tipo_reserva(db, data.tipo_reserva_id, objetivo.laboratorio.id)
+    _validar_motivo_solicitud(db, data.motivo_solicitud_id, objetivo.laboratorio.id)
 
     reserva = Reserva(
         **columnas_actor(usuario),
@@ -575,6 +587,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
         tipo_reserva_id=data.tipo_reserva_id,
         descripcion=data.descripcion,
         tipo_solicitud=data.tipo_solicitud,
+        motivo_solicitud_id=data.motivo_solicitud_id,
         ubicacion_uso=data.ubicacion_uso,
         requiere_apoyo_auxiliar=data.requiere_apoyo_auxiliar,
         estado=(
@@ -613,6 +626,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
                     fecha=str(data.fecha),
                     hora_inicio=str(data.hora_inicio),
                     hora_fin=str(data.hora_fin),
+                    reserva_id=reserva.id,
                 ),
                 es_html=True,
             )
@@ -626,6 +640,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
                 fecha=str(data.fecha),
                 hora_inicio=str(data.hora_inicio),
                 hora_fin=str(data.hora_fin),
+                reserva_id=reserva.id,
             ),
             es_html=True,
         )
@@ -1244,6 +1259,9 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
     nuevo_tipo_reserva_id = cambios.get("tipo_reserva_id", reserva.tipo_reserva_id)
     _validar_tipo_reserva(db, nuevo_tipo_reserva_id, reserva.laboratorio_id)
     reserva.tipo_reserva_id = nuevo_tipo_reserva_id
+    nuevo_motivo_solicitud_id = cambios.get("motivo_solicitud_id", reserva.motivo_solicitud_id)
+    _validar_motivo_solicitud(db, nuevo_motivo_solicitud_id, reserva.laboratorio_id)
+    reserva.motivo_solicitud_id = nuevo_motivo_solicitud_id
     reserva.descripcion = cambios.get("descripcion", reserva.descripcion)
     nuevo_tipo_solicitud = cambios.get("tipo_solicitud", reserva.tipo_solicitud)
     nueva_ubicacion_uso = cambios.get("ubicacion_uso", reserva.ubicacion_uso)

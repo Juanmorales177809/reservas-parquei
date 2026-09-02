@@ -39,6 +39,7 @@ class ReservaCreate(BaseModel):
     # validado más abajo, no es opcional-y-listo para cualquier tipo.
     ubicacion_uso: str | None = Field(default=None, max_length=200)
     requiere_apoyo_auxiliar: bool = False
+    motivo_solicitud_id: int | None = None
     fecha: date
     hora_inicio: time
     hora_fin: time
@@ -94,6 +95,7 @@ class ReservaUpdate(BaseModel):
     # de validación en vez de romper el NOT NULL en el servicio.
     tipo_solicitud: TipoSolicitud = TipoSolicitud.RESERVA_EN_LABORATORIO
     requiere_apoyo_auxiliar: bool = False
+    motivo_solicitud_id: int | None = None
     # Sigue siendo nullable de verdad -- `null` explícito limpia
     # `ubicacion_uso` si la reserva deja de ser `reserva_fuera_laboratorio`.
     ubicacion_uso: str | None = Field(default=None, max_length=200)
@@ -253,6 +255,18 @@ class TipoReservaReservaResponse(BaseModel):
     estado: str
 
 
+class MotivoSolicitudResponse(BaseModel):
+    """Motivo de solicitud asociado a una reserva (Fase 2, motivos en tabla)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    laboratorio_id: int
+    nombre: str
+    codigo: str
+    estado: str
+
+
 class AcompananteInput(BaseModel):
     """Fase 12E: acompañante nombrado (N:1 Reserva). Sin cuenta de usuario
     propia; responde a la pregunta abierta 6 de la Fase 12A (nombre+correo).
@@ -343,6 +357,9 @@ class ReservaResponse(BaseModel):
     descripcion: str | None = None
     # Fase B: siempre tiene valor (NOT NULL con default en la columna).
     tipo_solicitud: TipoSolicitud
+    # Fase 2: FK a motivos_solicitud, reemplaza progresivamente tipo_solicitud
+    motivo_solicitud_id: int | None = None
+    motivo_solicitud: MotivoSolicitudResponse | None = None
     ubicacion_uso: str | None = None
     requiere_apoyo_auxiliar: bool
     created_at: datetime

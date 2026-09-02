@@ -28,6 +28,7 @@ import '../../lista_espera/data/lista_espera_repository.dart';
 import '../../recursos/application/recursos_providers.dart';
 import '../../espacios/application/espacios_providers.dart';
 import '../../tipos_reserva/application/tipos_reserva_providers.dart';
+import '../../motivos_solicitud/application/motivos_solicitud_providers.dart';
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
 import 'selectable_slot_grid.dart';
@@ -64,6 +65,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
   // Fase 7: catálogo real por laboratorio (reemplaza el enum fijo viejo,
   // ver `features/tipos_reserva/`) -- `null` si no se elige ninguno.
   int? _tipoReservaId;
+  int? _motivoSolicitudId;
   bool _requiereApoyoAuxiliar = false;
   bool _enviando = false;
   String? _error;
@@ -118,7 +120,10 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
 
   Future<void> _reservar(List<DisponibilidadSlot> slots) async {
     if (_recursoIds.isEmpty && _espacioIds.isEmpty) { setState(() => _error = 'Seleccioná al menos un recurso o un espacio.'); return; }
-    if (widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio && _ubicacionUsoCtrl.text.trim().isEmpty) {
+    final tipoSolicitudActual = _motivoSolicitudId != null ? widget.tipoSolicitud : widget.tipoSolicitud;
+    // Si hay motivo seleccionado, usar su codigo para determinar si requiere ubicacion
+    // Por ahora mantenemos la validacion original con el enum del widget
+    if (tipoSolicitudActual == TipoSolicitud.reservaFueraLaboratorio && _ubicacionUsoCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Indicá dónde se va a usar el equipo.');
       return;
     }
@@ -135,6 +140,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
             horaFin: slots[maxIdx].horaFin,
             asistentes: _asistentes,
             tipoReservaId: _tipoReservaId,
+            motivoSolicitudId: _motivoSolicitudId,
             descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
             tipoSolicitud: widget.tipoSolicitud,
             ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio

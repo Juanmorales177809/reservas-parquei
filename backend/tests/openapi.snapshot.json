@@ -1854,6 +1854,17 @@
             "title": "Hora Inicio",
             "type": "string"
           },
+          "motivo_solicitud_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo Solicitud Id"
+          },
           "recurso_ids": {
             "items": {
               "type": "integer"
@@ -2060,6 +2071,27 @@
               }
             ],
             "title": "Motivo Rechazo"
+          },
+          "motivo_solicitud": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__schemas__reserva__MotivoSolicitudResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "motivo_solicitud_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo Solicitud Id"
           },
           "propuesta_en": {
             "anyOf": [
@@ -2290,6 +2322,17 @@
               }
             ],
             "title": "Hora Inicio"
+          },
+          "motivo_solicitud_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo Solicitud Id"
           },
           "recurso_ids": {
             "anyOf": [
@@ -2971,6 +3014,107 @@
         ],
         "title": "VinculacionUsuario",
         "type": "string"
+      },
+      "app__schemas__motivo_solicitud__MotivoSolicitudResponse": {
+        "properties": {
+          "codigo": {
+            "title": "Codigo",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "estado": {
+            "title": "Estado",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "id",
+          "laboratorio_id",
+          "nombre",
+          "codigo",
+          "estado",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MotivoSolicitudResponse",
+        "type": "object"
+      },
+      "app__schemas__reserva__MotivoSolicitudResponse": {
+        "description": "Motivo de solicitud asociado a una reserva (Fase 2, motivos en tabla).",
+        "properties": {
+          "codigo": {
+            "title": "Codigo",
+            "type": "string"
+          },
+          "estado": {
+            "title": "Estado",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "laboratorio_id": {
+            "title": "Laboratorio Id",
+            "type": "integer"
+          },
+          "nombre": {
+            "title": "Nombre",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "laboratorio_id",
+          "nombre",
+          "codigo",
+          "estado"
+        ],
+        "title": "MotivoSolicitudResponse",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -4246,6 +4390,57 @@
         "summary": "Cancelar Endpoint",
         "tags": [
           "lista-espera"
+        ]
+      }
+    },
+    "/motivos-solicitud": {
+      "get": {
+        "operationId": "listar_motivos_motivos_solicitud_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "laboratorio_id",
+            "required": true,
+            "schema": {
+              "title": "Laboratorio Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/app__schemas__motivo_solicitud__MotivoSolicitudResponse"
+                  },
+                  "title": "Response Listar Motivos Motivos Solicitud Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Listar Motivos",
+        "tags": [
+          "motivos-solicitud"
         ]
       }
     },

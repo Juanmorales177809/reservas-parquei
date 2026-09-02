@@ -52,6 +52,8 @@ class Settings:
     supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     supabase_jwt_secret: str = os.getenv("SUPABASE_JWT_SECRET", "")
 
+    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:8091")
+
     def validate(self) -> None:
         if len(self.secret_key) < 32 or self.secret_key == "change-me-in-production":
             raise RuntimeError(

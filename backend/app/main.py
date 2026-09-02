@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api import admin_dashboard, auth, control_cambios, espacios, laboratorios, lista_espera, notificaciones, personal, recursos, reservas, tipos_reserva, usuarios
+from app.api import admin_dashboard, auth, control_cambios, espacios, laboratorios, lista_espera, motivos_solicitud, notificaciones, personal, recursos, reservas, tipos_reserva, usuarios
 from app.config import settings
 from app.db import Base, engine, SessionLocal
 from app import models  # noqa: F401
@@ -240,6 +240,7 @@ app.include_router(laboratorios.router)
 app.include_router(recursos.router)
 app.include_router(espacios.router)
 app.include_router(tipos_reserva.router)
+app.include_router(motivos_solicitud.router)
 app.include_router(reservas.router)
 app.include_router(notificaciones.router)
 app.include_router(lista_espera.router)

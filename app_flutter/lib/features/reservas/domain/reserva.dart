@@ -115,6 +115,10 @@ abstract class Reserva with _$Reserva {
     // compatibilidad de lectura de reservas históricas.
     int? tipoReservaId,
     TipoReservaReserva? tipoReserva,
+    int? motivoSolicitudId,
+    // MotivoSolicitud denormalizado para mostrar sin JOIN extra
+    String? motivoSolicitudCodigo,
+    String? motivoSolicitudNombre,
     bool? asistio,
     String? motivoRechazo,
     // Fase C: propuesta del técnico/usuario sin cambiar estado (queda

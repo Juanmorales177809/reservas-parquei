@@ -58,6 +58,10 @@ class Reserva(Base):
     # backfill de la migración). Distinto de `tipo` (académico) -- ver el
     # docstring de `TipoSolicitud`.
     tipo_solicitud = Column(String(30), nullable=False, default="reserva_en_laboratorio")
+    # Fase 2 (motivos en tabla): FK a motivos_solicitud, reemplaza progresivamente
+    # el varchar tipo_solicitud hacia adelante. Nullable para filas históricas
+    # y para reservas que no declaran motivo.
+    motivo_solicitud_id = Column(Integer, ForeignKey("motivos_solicitud.id"), nullable=True)
     # Fase B: solo tiene sentido cuando tipo_solicitud == reserva_fuera_laboratorio
     # (validado en el servicio, no acá) -- el resto de las ramas lo dejan null.
     ubicacion_uso = Column(String(200), nullable=True)
@@ -84,6 +88,7 @@ class Reserva(Base):
     laboratorio = relationship("Laboratorio", back_populates="reservas")
     recurso = relationship("Recurso", back_populates="reservas")
     tipo_reserva = relationship("TipoReserva")
+    motivo_solicitud = relationship("MotivoSolicitud")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
 
     # Fase 12C-6: relaciones aditivas de lectura hacia las tablas de

@@ -922,6 +922,37 @@ def migrate_resource_reservations() -> None:
             END IF;
         END $$;
         """,
+        # Fase 2 (motivos en tabla): catálogo real motivos_solicitud por laboratorio
+        # (espejo de tipos_reserva). create_all ya crea la tabla en instalaciones
+        # nuevas; aquí solo se asegura FK en reservas y backfill de motivos base.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS motivo_solicitud_id INTEGER",
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'reservas_motivo_solicitud_id_fkey') THEN
+                ALTER TABLE reservas ADD CONSTRAINT reservas_motivo_solicitud_id_fkey
+                FOREIGN KEY (motivo_solicitud_id) REFERENCES motivos_solicitud(id);
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            -- Backfill motivos base por laboratorio si no existen (idempotente)
+            INSERT INTO motivos_solicitud (laboratorio_id, nombre, codigo, estado)
+            SELECT l.id, v.nombre, v.codigo, 'activo'
+            FROM laboratorios l
+            CROSS JOIN (VALUES
+                ('Reserva en laboratorio', 'reserva_en_laboratorio'),
+                ('Reserva fuera del laboratorio', 'reserva_fuera_laboratorio'),
+                ('Orden de salida', 'orden_salida')
+            ) AS v(nombre, codigo)
+            WHERE NOT EXISTS (
+                SELECT 1 FROM motivos_solicitud m
+                WHERE m.laboratorio_id = l.id AND m.codigo = v.codigo
+            );
+        END $$;
+        """,
     )
 
     with engine.begin() as connection:

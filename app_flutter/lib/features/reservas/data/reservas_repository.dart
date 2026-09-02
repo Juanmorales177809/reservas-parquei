@@ -29,6 +29,7 @@ class ReservasRepository {
     required int asistentes,
     TipoReserva? tipo,
     int? tipoReservaId,
+    int? motivoSolicitudId,
     List<int> espacioIds = const [],
     List<Map<String, String>> acompanantes = const [],
     String? descripcion,
@@ -46,6 +47,7 @@ class ReservasRepository {
         asistentes: asistentes,
         tipo: tipo,
         tipoReservaId: tipoReservaId,
+        motivoSolicitudId: motivoSolicitudId,
         espacioIds: espacioIds,
         acompanantes: acompanantes,
         descripcion: descripcion,
@@ -65,6 +67,7 @@ class ReservasRepository {
     required int asistentes,
     TipoReserva? tipo,
     int? tipoReservaId,
+    int? motivoSolicitudId,
     List<int> espacioIds = const [],
     List<Map<String, String>> acompanantes = const [],
     String? descripcion,
@@ -87,6 +90,7 @@ class ReservasRepository {
       // adelante, ver backend/CLAUDE.md) -- `tipo` se conserva sin tocar
       // por compatibilidad de lectura de reservas históricas.
       'tipo_reserva_id': ?tipoReservaId,
+      'motivo_solicitud_id': ?motivoSolicitudId,
       'descripcion': ?descripcion,
       'tipo_solicitud': ?tipoSolicitudJson,
       'ubicacion_uso': ?ubicacionUso,
