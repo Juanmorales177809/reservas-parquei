@@ -14,12 +14,15 @@ Reglas cubiertas:
 """
 
 from tests.conftest import (
+    asociar_espacio_recurso,
+    crear_espacio,
     crear_laboratorio,
     crear_recurso,
     crear_usuario,
     fecha_habilitada,
     cookies_para,
     payload_reserva,
+    payload_reserva_objetivos,
     proximo_domingo,
 )
 
@@ -583,6 +586,78 @@ class TestMotivoSolicitud:
             headers=cookies_para(usuario),
         )
         assert resp.status_code == 422
+
+
+class TestApoyoAuxiliarForzadoPorRecurso:
+    """Un recurso con `requiere_apoyo_auxiliar=True` (catálogo) fuerza ese
+    campo en la reserva que lo incluye, sin importar lo que mande el
+    cliente -- nunca rechaza, solo lo activa por la persona (mismo criterio
+    silencioso que "recursos cubiertos por un espacio se agregan solos")."""
+
+    def test_crear_reserva_con_recurso_directo_fuerza_el_campo(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Apoyo Auxiliar")
+        usuario = crear_usuario(db, username="user_apoyo_1", email="user_apoyo_1@example.com")
+        recurso = crear_recurso(
+            db, laboratorio=laboratorio, usuario=usuario, nombre="Grúa de estudio",
+            requiere_apoyo_auxiliar=True,
+        )
+        payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
+        payload["requiere_apoyo_auxiliar"] = False
+        respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))
+        assert respuesta.status_code == 201
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+    def test_crear_reserva_con_recurso_cubierto_por_espacio_fuerza_el_campo(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Apoyo Auxiliar Espacio")
+        usuario = crear_usuario(db, username="user_apoyo_2", email="user_apoyo_2@example.com")
+        recurso = crear_recurso(
+            db, laboratorio=laboratorio, usuario=usuario, nombre="Consola de mezcla",
+            requiere_apoyo_auxiliar=True,
+        )
+        espacio = crear_espacio(db, laboratorio=laboratorio, usuario=usuario, nombre="Estudio de grabación")
+        asociar_espacio_recurso(db, espacio, recurso)
+        payload = payload_reserva_objetivos(espacio_ids=[espacio.id], fecha=fecha_habilitada())
+        respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))
+        assert respuesta.status_code == 201
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+    def test_actualizar_reserva_agregando_recurso_obligatorio_fuerza_el_campo(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Apoyo Auxiliar PATCH")
+        usuario = crear_usuario(db, username="user_apoyo_3", email="user_apoyo_3@example.com")
+        recurso_normal = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Proyector")
+        recurso_obligatorio = crear_recurso(
+            db, laboratorio=laboratorio, usuario=usuario, nombre="Torno CNC",
+            requiere_apoyo_auxiliar=True,
+        )
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_normal.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        assert creada["requiere_apoyo_auxiliar"] is False
+
+        respuesta = client.patch(
+            f"/reservas/{creada['id']}",
+            json={"recurso_ids": [recurso_normal.id, recurso_obligatorio.id]},
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 200
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+    def test_sin_recurso_obligatorio_respeta_lo_que_manda_el_cliente(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Sin Apoyo Auxiliar")
+        usuario = crear_usuario(db, username="user_apoyo_4", email="user_apoyo_4@example.com")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=usuario, nombre="Cámara")
+        payload = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada())
+        payload["requiere_apoyo_auxiliar"] = True
+        respuesta = client.post("/reservas", json=payload, headers=cookies_para(usuario))
+        assert respuesta.status_code == 201
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+        payload_false = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada(dias=9))
+        respuesta_false = client.post("/reservas", json=payload_false, headers=cookies_para(usuario))
+        assert respuesta_false.status_code == 201
+        assert respuesta_false.json()["requiere_apoyo_auxiliar"] is False
 
 
 class TestDescripcion:

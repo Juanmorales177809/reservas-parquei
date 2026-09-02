@@ -181,6 +181,55 @@ class TestGestionPS:
         assert cuerpo[0]["es_prestacion_servicio"] is False
 
 
+class TestRequiereApoyoAuxiliar:
+    """Acompañamiento obligatorio del auxiliar/técnico a nivel de catálogo
+    -- ver `services/reservas.py::_apoyo_auxiliar_forzado` para el efecto
+    sobre la reserva (test_api_reservas.py::TestApoyoAuxiliarForzadoPorRecurso)."""
+
+    def test_admin_crea_recurso_con_apoyo_auxiliar_obligatorio(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Crear Apoyo Auxiliar")
+        admin = crear_usuario(db, username="admin_crea_apoyo", email="admin_crea_apoyo@example.com", rol="admin")
+        tipos = client.get("/recursos/tipos").json()
+        if not tipos:
+            crear_recurso(db, laboratorio=laboratorio, usuario=admin)
+            tipos = client.get("/recursos/tipos").json()
+        respuesta = client.post(
+            "/recursos",
+            json={
+                "nombre": "Torno CNC",
+                "tipo_recurso_id": tipos[0]["id"],
+                "capacidad": 1,
+                "estado": "activo",
+                "laboratorio_id": laboratorio.id,
+                "requiere_apoyo_auxiliar": True,
+            },
+            headers=cookies_para(admin),
+        )
+        assert respuesta.status_code == 201
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+    def test_recurso_sin_campo_explicito_nace_false(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Default Apoyo Auxiliar")
+        admin = crear_usuario(db, username="admin_default_apoyo", email="admin_default_apoyo@example.com", rol="admin")
+        crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Recurso Legado Apoyo")
+        respuesta = client.get("/recursos", params={"laboratorio_id": laboratorio.id})
+        cuerpo = [r for r in respuesta.json() if r["nombre"] == "Recurso Legado Apoyo"]
+        assert len(cuerpo) == 1
+        assert cuerpo[0]["requiere_apoyo_auxiliar"] is False
+
+    def test_actualizar_recurso_marca_apoyo_auxiliar_obligatorio(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Actualizar Apoyo Auxiliar")
+        admin = crear_usuario(db, username="admin_act_apoyo", email="admin_act_apoyo@example.com", rol="admin")
+        recurso = crear_recurso(db, laboratorio=laboratorio, usuario=admin, nombre="Fresadora")
+        respuesta = client.put(
+            f"/recursos/{recurso.id}",
+            json={"requiere_apoyo_auxiliar": True},
+            headers=cookies_para(admin),
+        )
+        assert respuesta.status_code == 200
+        assert respuesta.json()["requiere_apoyo_auxiliar"] is True
+
+
 class TestGuardConReservaDeEspacio:
     """Fase 12C-6: los guards de mover/eliminar recurso consultan
     `reserva_recursos`, no solo la columna histórica `Reserva.recurso_id`.

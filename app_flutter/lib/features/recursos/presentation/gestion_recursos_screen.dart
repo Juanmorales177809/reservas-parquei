@@ -351,6 +351,7 @@ class _RecursoCardState extends ConsumerState<_RecursoCard> {
                 _Info(icon: LucideIcons.building2, text: r.laboratorio.nombre),
                 _Info(icon: LucideIcons.users, text: '${r.capacidad} capacidad'),
                 if (r.esPrestacionServicio) const _Info(icon: LucideIcons.wrench, text: 'Prestación de servicio'),
+                if (r.requiereApoyoAuxiliar) const _Info(icon: LucideIcons.userCheck, text: 'Requiere apoyo del auxiliar'),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -416,6 +417,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
   int? _tipoRecursoId;
   int? _laboratorioId;
   bool _esPrestacion = false;
+  bool _requiereApoyoAuxiliar = false;
   bool _guardando = false;
   String? _error;
 
@@ -432,6 +434,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
     _tipoRecursoId = r?.tipoRecursoId;
     _laboratorioId = r?.laboratorioId;
     _esPrestacion = r?.esPrestacionServicio ?? false;
+    _requiereApoyoAuxiliar = r?.requiereApoyoAuxiliar ?? false;
   }
 
   Future<void> _guardar() async {
@@ -457,6 +460,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
           estado: _estado.name,
           laboratorioId: _laboratorioId,
           esPrestacionServicio: _esPrestacion,
+          requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
         );
       } else {
         await repo.crear(
@@ -467,6 +471,7 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
           estado: _estado.name,
           laboratorioId: _laboratorioId,
           esPrestacionServicio: _esPrestacion,
+          requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
         );
       }
       widget.onSaved();
@@ -561,6 +566,13 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
                 subtitle: const Text('Solo visible para gestor/admin'),
                 value: _esPrestacion,
                 onChanged: (v) => setState(() => _esPrestacion = v ?? false),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Requiere apoyo del auxiliar del laboratorio'),
+                subtitle: const Text('Toda reserva que incluya este recurso exigirá acompañamiento del auxiliar'),
+                value: _requiereApoyoAuxiliar,
+                onChanged: (v) => setState(() => _requiereApoyoAuxiliar = v ?? false),
               ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),

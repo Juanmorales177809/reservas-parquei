@@ -56,6 +56,7 @@ class RecursosRepository {
     String estado = 'activo',
     int? laboratorioId,
     bool esPrestacionServicio = false,
+    bool requiereApoyoAuxiliar = false,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/recursos',
@@ -67,6 +68,7 @@ class RecursosRepository {
         'estado': estado,
         'laboratorio_id': ?laboratorioId,
         'es_prestacion_servicio': esPrestacionServicio,
+        'requiere_apoyo_auxiliar': requiereApoyoAuxiliar,
       },
     );
     return Recurso.fromJson(response.data!);
@@ -82,6 +84,7 @@ class RecursosRepository {
     String? estado,
     int? laboratorioId,
     bool? esPrestacionServicio,
+    bool? requiereApoyoAuxiliar,
   }) async {
     final data = <String, dynamic>{};
     if (nombre != null) data['nombre'] = nombre;
@@ -91,6 +94,7 @@ class RecursosRepository {
     if (estado != null) data['estado'] = estado;
     if (laboratorioId != null) data['laboratorio_id'] = laboratorioId;
     if (esPrestacionServicio != null) data['es_prestacion_servicio'] = esPrestacionServicio;
+    if (requiereApoyoAuxiliar != null) data['requiere_apoyo_auxiliar'] = requiereApoyoAuxiliar;
     final response = await _dio.put<Map<String, dynamic>>('/recursos/$recursoId', data: data);
     return Recurso.fromJson(response.data!);
   }

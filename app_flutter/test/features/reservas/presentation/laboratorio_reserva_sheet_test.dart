@@ -55,7 +55,7 @@ Espacio _espacio(int id, String nombre, {int laboratorioId = 1, List<int> recurs
       recursoIds: recursoIds,
     );
 
-Recurso _recurso(int id, String nombre, {int laboratorioId = 1}) => Recurso(
+Recurso _recurso(int id, String nombre, {int laboratorioId = 1, bool requiereApoyoAuxiliar = false}) => Recurso(
       id: id,
       nombre: nombre,
       laboratorioId: laboratorioId,
@@ -65,6 +65,7 @@ Recurso _recurso(int id, String nombre, {int laboratorioId = 1}) => Recurso(
       laboratorio: _laboratorio(laboratorioId),
       tipo: const TipoRecurso(id: 1, nombre: 'Equipo', descripcion: '', activo: 'activo'),
       esPrestacionServicio: false,
+      requiereApoyoAuxiliar: requiereApoyoAuxiliar,
     );
 
 Widget _montarSheet({
@@ -232,6 +233,58 @@ void main() {
 
       // Debe decir "espacios Espacio A, Espacio B" en plural
       expect(find.textContaining('espacios Espacio A, Espacio B'), findsOneWidget);
+    });
+  });
+
+  group('LaboratorioReservaSheet — acompañamiento obligatorio del auxiliar', () {
+    testWidgets('recurso directo con requiereApoyoAuxiliar fuerza el toggle y lo deshabilita', (tester) async {
+      final laboratorio = _laboratorio(1);
+      final recursos = [_recurso(1, 'Torno CNC', requiereApoyoAuxiliar: true)];
+      await tester.pumpWidget(
+        _montarSheet(laboratorio: laboratorio, recursos: recursos, espacios: const [], usuario: _usuario(RolUsuario.usuario)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Torno CNC'));
+      await tester.pumpAndSettle();
+
+      final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(toggle.value, isTrue);
+      expect(toggle.onChanged, isNull);
+      expect(find.textContaining('exige acompañamiento del auxiliar'), findsOneWidget);
+    });
+
+    testWidgets('recurso cubierto por un espacio con requiereApoyoAuxiliar también fuerza el toggle', (tester) async {
+      final laboratorio = _laboratorio(1);
+      final recursos = [_recurso(1, 'Consola de mezcla', requiereApoyoAuxiliar: true)];
+      final espacios = [_espacio(10, 'Estudio', recursoIds: [1])];
+      await tester.pumpWidget(
+        _montarSheet(laboratorio: laboratorio, recursos: recursos, espacios: espacios, usuario: _usuario(RolUsuario.usuario)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Estudio'));
+      await tester.pumpAndSettle();
+
+      final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(toggle.value, isTrue);
+      expect(toggle.onChanged, isNull);
+    });
+
+    testWidgets('sin recursos obligatorios el toggle queda libre', (tester) async {
+      final laboratorio = _laboratorio(1);
+      final recursos = [_recurso(1, 'Proyector')];
+      await tester.pumpWidget(
+        _montarSheet(laboratorio: laboratorio, recursos: recursos, espacios: const [], usuario: _usuario(RolUsuario.usuario)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Proyector'));
+      await tester.pumpAndSettle();
+
+      final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(toggle.value, isFalse);
+      expect(toggle.onChanged, isNotNull);
     });
   });
 }

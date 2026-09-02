@@ -236,6 +236,11 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
     final recursoNombrePorId = <int, String>{
       for (final r in recursosAsync) r.id: r.nombre,
     };
+    // Acompañamiento obligatorio: si algún recurso seleccionado (`_recursoIds`
+    // ya es la fuente de verdad única, incluye los cubiertos por un espacio)
+    // lo exige, el toggle de abajo queda forzado y no editable -- el backend
+    // es quien realmente decide el valor guardado, esto solo comunica.
+    final algunoRequiereApoyo = recursosAsync.any((r) => _recursoIds.contains(r.id) && r.requiereApoyoAuxiliar);
 
     return SafeArea(
       child: Padding(
@@ -477,8 +482,11 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('¿Requiere apoyo del auxiliar del laboratorio?'),
-                value: _requiereApoyoAuxiliar,
-                onChanged: (v) => setState(() => _requiereApoyoAuxiliar = v),
+                subtitle: algunoRequiereApoyo
+                    ? const Text('Uno de los equipos seleccionados exige acompañamiento del auxiliar')
+                    : null,
+                value: algunoRequiereApoyo || _requiereApoyoAuxiliar,
+                onChanged: algunoRequiereApoyo ? null : (v) => setState(() => _requiereApoyoAuxiliar = v),
               ),
               const SizedBox(height: AppSpacing.lg),
               // Disponibilidad

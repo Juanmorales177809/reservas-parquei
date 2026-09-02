@@ -555,6 +555,16 @@ def _validar_motivo_solicitud(db: Session, motivo_solicitud_id: int | None, labo
         raise HTTPException(status_code=400, detail="El motivo no pertenece al laboratorio de la reserva")
 
 
+def _apoyo_auxiliar_forzado(objetivo: _ObjetivoReserva) -> bool:
+    """Si algún recurso efectivo (directo o cubierto por un espacio
+    seleccionado) exige acompañamiento del auxiliar/técnico, la reserva
+    hereda esa obligación sin importar lo que haya mandado el cliente --
+    nunca se rechaza con un error, simplemente se activa por la persona
+    (mismo criterio silencioso que "recursos cubiertos por un espacio se
+    agregan solos")."""
+    return any(r.requiere_apoyo_auxiliar for r in objetivo.recursos_efectivos)
+
+
 def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
@@ -594,7 +604,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
         tipo_solicitud=data.tipo_solicitud,
         motivo_solicitud_id=data.motivo_solicitud_id,
         ubicacion_uso=data.ubicacion_uso,
-        requiere_apoyo_auxiliar=data.requiere_apoyo_auxiliar,
+        requiere_apoyo_auxiliar=data.requiere_apoyo_auxiliar or _apoyo_auxiliar_forzado(objetivo),
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
@@ -1277,7 +1287,9 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         )
     reserva.tipo_solicitud = nuevo_tipo_solicitud
     reserva.ubicacion_uso = nueva_ubicacion_uso
-    reserva.requiere_apoyo_auxiliar = cambios.get("requiere_apoyo_auxiliar", reserva.requiere_apoyo_auxiliar)
+    reserva.requiere_apoyo_auxiliar = (
+        cambios.get("requiere_apoyo_auxiliar", reserva.requiere_apoyo_auxiliar) or _apoyo_auxiliar_forzado(objetivo)
+    )
     reserva.recurso_id = _recurso_ancla(db, objetivo.laboratorio, objetivo.recursos_efectivos)
     _reescribir_asociaciones(db, reserva, objetivo)
     if "acompanantes" in cambios:

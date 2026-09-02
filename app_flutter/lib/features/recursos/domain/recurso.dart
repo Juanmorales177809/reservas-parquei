@@ -23,6 +23,11 @@ abstract class Recurso with _$Recurso {
     required Laboratorio laboratorio,
     required TipoRecurso tipo,
     required bool esPrestacionServicio,
+    // Acompañamiento obligatorio del auxiliar/técnico -- mismo concepto que
+    // `Reserva.requiereApoyoAuxiliar`. `@Default(false)`, no `required`
+    // (a diferencia de `esPrestacionServicio`): evita romper cada fixture
+    // de test que construye `Recurso(...)` a mano.
+    @Default(false) bool requiereApoyoAuxiliar,
   }) = _Recurso;
 
   factory Recurso.fromJson(Map<String, dynamic> json) => _$RecursoFromJson(json);

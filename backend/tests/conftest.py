@@ -209,6 +209,7 @@ def crear_recurso(
     capacidad=10,
     estado="activo",
     es_prestacion_servicio=False,
+    requiere_apoyo_auxiliar=False,
 ):
     tipo = db.query(TipoRecurso).first()
     if tipo is None:
@@ -227,6 +228,7 @@ def crear_recurso(
         created_by=creador.id,
         update_by=creador.id,
         es_prestacion_servicio=es_prestacion_servicio,
+        requiere_apoyo_auxiliar=requiere_apoyo_auxiliar,
     )
     db.add(recurso)
     db.commit()

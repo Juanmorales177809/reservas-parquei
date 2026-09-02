@@ -26,6 +26,12 @@ class Recurso(Base):
     capacidad = Column(Integer, nullable=False)
     estado = Column(String(30), nullable=False, default="activo")
     es_prestacion_servicio = Column(Boolean, nullable=False, default=False)
+    # Acompañamiento obligatorio del auxiliar/técnico del laboratorio: mismo
+    # concepto que `Reserva.requiere_apoyo_auxiliar` (Fase B), acá declarado
+    # a nivel de catálogo -- si un recurso lo tiene en `true`, cualquier
+    # reserva que lo incluya (directo o vía un espacio que lo cubre) fuerza
+    # ese campo en `true`, ver `services/reservas.py`.
+    requiere_apoyo_auxiliar = Column(Boolean, nullable=False, default=False)
     # Fase D (import de inventario institucional): identificador de activo
     # físico (ej. "05087964"). Nullable -- solo lo trae el inventario real
     # importado, un recurso creado a mano desde la UI lo deja en null. Sin

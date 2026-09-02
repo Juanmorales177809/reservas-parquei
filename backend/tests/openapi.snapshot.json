@@ -1438,6 +1438,11 @@
             "title": "Nombre",
             "type": "string"
           },
+          "requiere_apoyo_auxiliar": {
+            "default": false,
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
           "tipo_recurso_id": {
             "title": "Tipo Recurso Id",
             "type": "integer"
@@ -1561,6 +1566,10 @@
             ],
             "title": "Placa"
           },
+          "requiere_apoyo_auxiliar": {
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
           "tipo": {
             "$ref": "#/components/schemas/TipoRecursoResponse"
           },
@@ -1579,7 +1588,8 @@
           "estado",
           "laboratorio",
           "tipo",
-          "es_prestacion_servicio"
+          "es_prestacion_servicio",
+          "requiere_apoyo_auxiliar"
         ],
         "title": "RecursoResponse",
         "type": "object"
@@ -1653,6 +1663,17 @@
               }
             ],
             "title": "Nombre"
+          },
+          "requiere_apoyo_auxiliar": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requiere Apoyo Auxiliar"
           },
           "tipo_recurso_id": {
             "anyOf": [

@@ -24,6 +24,9 @@ class RecursoCreate(BaseModel):
     # reserva restringidas a gestor/admin — ver app/api/recursos.py y
     # app/services/reservas.py (Fase 12B).
     es_prestacion_servicio: bool = False
+    # Acompañamiento obligatorio del auxiliar/técnico -- ver
+    # `app/models/recurso.py` y `app/services/reservas.py`.
+    requiere_apoyo_auxiliar: bool = False
 
 
 class RecursoUpdate(BaseModel):
@@ -34,6 +37,7 @@ class RecursoUpdate(BaseModel):
     estado: EstadoEntidad | None = None
     laboratorio_id: int | None = None
     es_prestacion_servicio: bool | None = None
+    requiere_apoyo_auxiliar: bool | None = None
 
 
 class RecursoResponse(BaseModel):
@@ -49,6 +53,7 @@ class RecursoResponse(BaseModel):
     laboratorio: LaboratorioResponse
     tipo: TipoRecursoResponse
     es_prestacion_servicio: bool
+    requiere_apoyo_auxiliar: bool
     # Fase D: identificador de activo físico del inventario institucional
     # (ej. "05087964") -- `null` para un recurso creado a mano desde la UI.
     placa: str | None = None

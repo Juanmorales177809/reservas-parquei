@@ -126,6 +126,7 @@ class _RecursoDisponibilidadSheetState extends ConsumerState<RecursoDisponibilid
             horaFin: slots[maxIdx].horaFin,
             asistentes: _asistentes,
             tipoReservaId: _tipoReservaId,
+            requiereApoyoAuxiliar: widget.recurso.requiereApoyoAuxiliar,
           );
       ref.invalidate(recursoDisponibilidadProvider(widget.recurso.id, _fecha));
       ref.invalidate(misReservasProvider);

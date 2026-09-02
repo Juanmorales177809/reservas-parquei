@@ -19,6 +19,7 @@ _Recurso _$RecursoFromJson(Map<String, dynamic> json) => _Recurso(
   ),
   tipo: TipoRecurso.fromJson(json['tipo'] as Map<String, dynamic>),
   esPrestacionServicio: json['es_prestacion_servicio'] as bool,
+  requiereApoyoAuxiliar: json['requiere_apoyo_auxiliar'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$RecursoToJson(_Recurso instance) => <String, dynamic>{
@@ -32,6 +33,7 @@ Map<String, dynamic> _$RecursoToJson(_Recurso instance) => <String, dynamic>{
   'laboratorio': instance.laboratorio,
   'tipo': instance.tipo,
   'es_prestacion_servicio': instance.esPrestacionServicio,
+  'requiere_apoyo_auxiliar': instance.requiereApoyoAuxiliar,
 };
 
 const _$EstadoEntidadEnumMap = {

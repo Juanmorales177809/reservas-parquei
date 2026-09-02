@@ -126,6 +126,7 @@ def crear_recurso(
         created_by=current_user.id,
         update_by=current_user.id,
         es_prestacion_servicio=payload.es_prestacion_servicio,
+        requiere_apoyo_auxiliar=payload.requiere_apoyo_auxiliar,
     )
     db.add(recurso)
     db.flush()
