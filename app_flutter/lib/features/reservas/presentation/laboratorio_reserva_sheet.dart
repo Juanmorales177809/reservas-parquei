@@ -366,7 +366,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                         '${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${espaciosQueCubren.length == 1 ? "espacio" : "espacios"} $espacioTxt (podés quitarlo)',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
                       ),
-                      value: true,
+                      value: false,
                       onChanged: (v) => setState(() {
                         if (v == true) {
                           _recursoIds.add(r.id);
