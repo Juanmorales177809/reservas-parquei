@@ -31,10 +31,24 @@ _RENOMBRAR_LABORATORIO_Y_ESPACIO = """
             SELECT 1 FROM information_schema.columns
             WHERE table_name = 'espacios' AND column_name = 'laboratorio_id'
         ) THEN
-            EXECUTE 'DROP TABLE IF EXISTS espacio_recursos';
-            EXECUTE 'DROP TABLE IF EXISTS reserva_espacios';
-            EXECUTE 'DROP TABLE IF EXISTS usuarios_laboratorios';
-            EXECUTE 'DROP TABLE IF EXISTS laboratorios';
+            -- Fase 7: tipos_reserva (creada vacía por Base.metadata.create_all()
+            -- antes de esta migración) referencia a laboratorios; sin esto
+            -- DROP TABLE laboratorios falla con DependentObjectsStillExist
+            -- (prod 2026-09-02, ver logs bastion). La tabla está vacía aquí
+            -- (ningún request atendido aún), así que es seguro dropearla y
+            -- dejar que se recree sola más abajo en esta misma transacción
+            -- (o en el próximo create_all si el bloque no llega a recrearla).
+            -- Se usa bloque anidado con EXCEPTION para no fallar si la tabla
+            -- aún no existe en instalaciones muy viejas.
+            BEGIN
+                EXECUTE 'DROP TABLE IF EXISTS tipos_reserva CASCADE';
+            EXCEPTION WHEN undefined_table THEN
+                NULL;
+            END;
+            EXECUTE 'DROP TABLE IF EXISTS espacio_recursos CASCADE';
+            EXECUTE 'DROP TABLE IF EXISTS reserva_espacios CASCADE';
+            EXECUTE 'DROP TABLE IF EXISTS usuarios_laboratorios CASCADE';
+            EXECUTE 'DROP TABLE IF EXISTS laboratorios CASCADE';
 
             -- Orden obligatorio: libera el nombre "espacios" (lo toma
             -- "laboratorios") ANTES de que "zonas" lo reclame -- las dos
@@ -86,6 +100,29 @@ _RENOMBRAR_LABORATORIO_Y_ESPACIO = """
             END IF;
 
             EXECUTE 'ALTER INDEX IF EXISTS ix_recursos_espacio_id RENAME TO ix_recursos_laboratorio_id';
+
+            -- Fase 7: si tipos_reserva fue dropeada por el CASCADE de arriba
+            -- (prod 2026-09-02, DependentObjectsStillExist), recrearla
+            -- idempotente. En instalaciones nuevas create_all ya la creó, así
+            -- que este CREATE es no-op. Se crea aquí dentro del mismo bloque
+            -- IF para que la FK posterior (reservas_tipo_reserva_id_fkey) no
+            -- falle por tabla inexistente en esta misma transacción.
+            EXECUTE '
+                CREATE TABLE IF NOT EXISTS tipos_reserva (
+                    id SERIAL PRIMARY KEY,
+                    laboratorio_id INTEGER NOT NULL REFERENCES laboratorios(id),
+                    nombre VARCHAR(100) NOT NULL,
+                    estado VARCHAR(20) NOT NULL DEFAULT ''activo'',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    created_by INTEGER REFERENCES personal(id),
+                    updated_by INTEGER REFERENCES personal(id),
+                    CONSTRAINT ck_tipos_reserva_estado CHECK (estado IN (''activo'',''inactivo'')),
+                    CONSTRAINT uq_tipos_reserva_laboratorio_nombre UNIQUE (laboratorio_id, nombre)
+                )
+            ';
+            EXECUTE 'CREATE INDEX IF NOT EXISTS ix_tipos_reserva_laboratorio_id ON tipos_reserva (laboratorio_id)';
+            EXECUTE 'CREATE INDEX IF NOT EXISTS ix_tipos_reserva_id ON tipos_reserva (id)';
 
             RAISE NOTICE 'Fase 5 aplicada: espacios->laboratorios, zonas->espacios (y columnas/constraints asociadas)';
         END IF;
