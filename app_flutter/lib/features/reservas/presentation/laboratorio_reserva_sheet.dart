@@ -215,6 +215,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
     final recursosAsync = ref.watch(recursosPorLaboratorioProvider(laboratorio.id));
     final espaciosAsync = ref.watch(espaciosGestionProvider);
     final tiposReserva = ref.watch(tiposReservaProvider(laboratorio.id)).value ?? const [];
+    final motivos = ref.watch(motivosSolicitudProvider(laboratorio.id)).value ?? const [];
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
     final scheme = Theme.of(context).colorScheme;
 
@@ -247,7 +248,19 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
               Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: AppSpacing.lg), decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(999)))),
               Text('Reservar en ${laboratorio.nombre}', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.xs),
-              Text(tipoSolicitudLabel(widget.tipoSolicitud), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+              if (motivos.isNotEmpty) ...[
+                DropdownButtonFormField<int?>(
+                  initialValue: _motivoSolicitudId,
+                  decoration: const InputDecoration(labelText: 'Motivo de solicitud'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Seleccionar motivo')),
+                    for (final m in motivos) DropdownMenuItem(value: m.id, child: Text(m.nombre)),
+                  ],
+                  onChanged: (v) => setState(() => _motivoSolicitudId = v),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ] else
+                Text(tipoSolicitudLabel(widget.tipoSolicitud), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(onPressed: _elegirFecha, icon: const Icon(LucideIcons.calendar, size: 18), label: Text('${_fecha.day}/${_fecha.month}/${_fecha.year}')),
               const SizedBox(height: AppSpacing.lg),
@@ -284,19 +297,30 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                     final incluye = 'Incluye: $nombres';
                     subtitulo = z.capacidad != null ? 'Cap. ${z.capacidad} · $base$incluye' : '$base$incluye';
                   }
-                  return CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(z.nombre as String),
-                    subtitle: Text(subtitulo, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
-                    value: _espacioIds.contains(z.id as int),
-                    onChanged: (v) => setState(() {
-                      if (v == true) {
-                        _espacioIds.add(z.id as int);
-                      } else {
-                        _espacioIds.remove(z.id as int);
-                      }
-                      _seleccion = {};
-                    }),
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(z.nombre as String),
+                      subtitle: Text(subtitulo, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario)),
+                      value: _espacioIds.contains(z.id as int),
+                      onChanged: (v) => setState(() {
+                        final ids = (z.recursoIds as List<int>);
+                        if (v == true) {
+                          _espacioIds.add(z.id as int);
+                          // Pre-seleccionar recursos del espacio pero dejarlos editables
+                          _recursoIds.addAll(ids);
+                        } else {
+                          _espacioIds.remove(z.id as int);
+                          // Al destildar espacio, quitar solo sus recursos si no están compartidos con otro espacio tildado
+                          final otrosRecursos = <int>{};
+                          for (final otro in espaciosDelLaboratorio) {
+                            if (_espacioIds.contains(otro.id as int)) otrosRecursos.addAll(otro.recursoIds as List<int>);
+                          }
+                          for (final rid in ids) {
+                            if (!otrosRecursos.contains(rid)) _recursoIds.remove(rid);
+                          }
+                        }
+                        _seleccion = {};
+                      }),
                   );
                 }),
                 const SizedBox(height: AppSpacing.lg),
@@ -327,7 +351,9 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                 const SizedBox(height: AppSpacing.sm),
                 ...recursosAsync.map((r) {
                   final estaCubierto = recursosCubiertosPorEspacios.contains(r.id);
-                  if (estaCubierto) {
+                  final estaSeleccionado = _recursoIds.contains(r.id);
+                  if (estaCubierto && !estaSeleccionado) {
+                    // Pre-seleccionado por el espacio pero aún no en _recursoIds — mostrar como incluido pero editable
                     final espaciosQueCubren = espaciosDelLaboratorio
                         .where((z) => _espacioIds.contains(z.id as int) && (z.recursoIds as List<int>).contains(r.id))
                         .map((z) => z.nombre as String)
@@ -335,13 +361,46 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                     final espacioTxt = espaciosQueCubren.join(', ');
                     return CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(r.nombre, style: const TextStyle(color: AppColors.textoTerciario)),
+                      title: Text(r.nombre),
+                      subtitle: Text(
+                        '${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${espaciosQueCubren.length == 1 ? "espacio" : "espacios"} $espacioTxt (podés quitarlo)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
+                      ),
+                      value: true,
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _recursoIds.add(r.id);
+                        } else {
+                          _recursoIds.remove(r.id);
+                        }
+                        _seleccion = {};
+                      }),
+                      activeColor: AppEstados.positivo.borde,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }
+                  if (estaCubierto && estaSeleccionado) {
+                    final espaciosQueCubren = espaciosDelLaboratorio
+                        .where((z) => _espacioIds.contains(z.id as int) && (z.recursoIds as List<int>).contains(r.id))
+                        .map((z) => z.nombre as String)
+                        .toList();
+                    final espacioTxt = espaciosQueCubren.join(', ');
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(r.nombre),
                       subtitle: Text(
                         '${r.tipo.nombre} · cap. ${r.capacidad} — Incluido en ${espaciosQueCubren.length == 1 ? "espacio" : "espacios"} $espacioTxt',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoTerciario),
                       ),
                       value: true,
-                      onChanged: null,
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _recursoIds.add(r.id);
+                        } else {
+                          _recursoIds.remove(r.id);
+                        }
+                        _seleccion = {};
+                      }),
                       activeColor: AppEstados.positivo.borde,
                       controlAffinity: ListTileControlAffinity.leading,
                     );

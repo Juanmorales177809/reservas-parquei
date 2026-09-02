@@ -575,6 +575,11 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
     _validar_tipo_reserva(db, data.tipo_reserva_id, objetivo.laboratorio.id)
     _validar_motivo_solicitud(db, data.motivo_solicitud_id, objetivo.laboratorio.id)
 
+    # Validar motivo_solicitud_id y su relación con ubicacion_uso
+    if data.motivo_solicitud_id is not None:
+        motivo_obj = db.query(MotivoSolicitud).filter(MotivoSolicitud.id == data.motivo_solicitud_id).first()
+        if motivo_obj and motivo_obj.codigo == "reserva_fuera_laboratorio" and not data.ubicacion_uso:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ubicacion_uso es requerido para reserva fuera del laboratorio")
     reserva = Reserva(
         **columnas_actor(usuario),
         laboratorio_id=objetivo.laboratorio.id,

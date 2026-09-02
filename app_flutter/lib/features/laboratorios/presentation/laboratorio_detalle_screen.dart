@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:flutter/services.dart';
 
-import '../../../core/domain/enums.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
@@ -18,7 +17,6 @@ import '../../espacios/application/espacios_providers.dart';
 import '../application/laboratorios_providers.dart';
 import '../domain/laboratorio.dart';
 import '../../reservas/presentation/laboratorio_reserva_sheet.dart';
-import '../../reservas/presentation/recurso_disponibilidad_sheet.dart';
 
 class LaboratorioDetalleScreen extends ConsumerWidget {
   const LaboratorioDetalleScreen({required this.laboratorioId, super.key});
@@ -149,7 +147,11 @@ class _LaboratorioDetalleBody extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => _mostrarMotivoSolicitud(context, laboratorio),
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => LaboratorioReservaSheet(laboratorio: laboratorio),
+                  ),
                   icon: const Icon(LucideIcons.calendarPlus, size: 18),
                   label: const Text('Nueva solicitud'),
                 ),
@@ -213,13 +215,13 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _RecursoTile extends StatelessWidget {
+class _RecursoTile extends ConsumerWidget {
   const _RecursoTile({required this.recurso});
 
   final Recurso recurso;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
@@ -231,74 +233,20 @@ class _RecursoTile extends StatelessWidget {
         title: Text(recurso.nombre),
         subtitle: Text('${recurso.tipo.nombre} · capacidad ${recurso.capacidad}'),
         trailing: const Icon(LucideIcons.chevronRight),
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (context) => RecursoDisponibilidadSheet(recurso: recurso),
-        ),
+        onTap: () async {
+          final lab = await ref.read(laboratorioProvider(recurso.laboratorioId).future);
+          if (!context.mounted) return;
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => LaboratorioReservaSheet(laboratorio: lab),
+          );
+        },
       ),
     );
   }
 }
 
-/// Espejo de la pregunta 11 del formulario real de solicitud de
-/// laboratorios: el motivo bifurca el resto del formulario. Motivos 1 y 2
-/// abren el `LaboratorioReservaSheet` de siempre (ya denso: recursos+espacios+
-/// acompañantes+disponibilidad+descripción) con `tipoSolicitud`
-/// prefijado -- no vale la pena convertirlo en un formulario de 4 ramas.
-/// Motivos 3 y 4 (orden de salida, mano de obra) quedan deshabilitados
-/// hasta la Fase C: no encajan en el modelo de "franja horaria de un día"
-/// de `Reserva` (una es un rango de días, la otra no usa ningún recurso).
-void _mostrarMotivoSolicitud(BuildContext context, Laboratorio laboratorio) {
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) => _MotivoSolicitudDialog(laboratorio: laboratorio),
-  );
-}
-
-class _MotivoSolicitudDialog extends StatelessWidget {
-  const _MotivoSolicitudDialog({required this.laboratorio});
-
-  final Laboratorio laboratorio;
-
-  void _elegir(BuildContext context, TipoSolicitud tipoSolicitud) {
-    Navigator.pop(context);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => LaboratorioReservaSheet(laboratorio: laboratorio, tipoSolicitud: tipoSolicitud),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SimpleDialog(
-      title: const Text('Motivo de la solicitud'),
-      children: [
-        ListTile(
-          leading: const Icon(LucideIcons.building2),
-          title: Text(tipoSolicitudLabel(TipoSolicitud.reservaEnLaboratorio)),
-          onTap: () => _elegir(context, TipoSolicitud.reservaEnLaboratorio),
-        ),
-        ListTile(
-          leading: const Icon(LucideIcons.mapPin),
-          title: Text(tipoSolicitudLabel(TipoSolicitud.reservaFueraLaboratorio)),
-          onTap: () => _elegir(context, TipoSolicitud.reservaFueraLaboratorio),
-        ),
-        ListTile(
-          enabled: false,
-          leading: Icon(LucideIcons.truck, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
-          title: const Text('Orden de salida (equipos fuera de la sede)'),
-          subtitle: const Text('Próximamente'),
-        ),
-        ListTile(
-          enabled: false,
-          leading: Icon(LucideIcons.hardHat, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
-          title: const Text('Mano de obra'),
-          subtitle: const Text('Próximamente'),
-        ),
-      ],
-    );
-  }
-}
+/// Motivo de solicitud ahora vive dentro de `LaboratorioReservaSheet` como
+/// dropdown (Fase 3). Este helper se mantiene solo para no romper imports
+/// pero ya no se usa como entry-point previo al sheet.
