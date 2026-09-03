@@ -39,6 +39,7 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
   final _institucionController = TextEditingController();
   final _dependenciaController = TextEditingController();
   VinculacionUsuario? _vinculacion;
+  bool _recibirCorreos = true;
   bool _guardando = false;
   bool _precargado = false;
   String? _error;
@@ -55,6 +56,7 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
     _institucionController.text = usuario.institucion ?? '';
     _dependenciaController.text = usuario.dependencia ?? '';
     _vinculacion = usuario.vinculacion;
+    _recibirCorreos = usuario.recibirCorreos;
     _precargado = true;
   }
 
@@ -86,6 +88,7 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
             institucion: _institucionController.text.trim(),
             vinculacion: _vinculacion,
             dependencia: _dependenciaController.text.trim(),
+            recibirCorreos: _recibirCorreos,
           );
       ref.read(authProvider.notifier).actualizarPerfilLocal(user);
       if (!mounted) return;
@@ -178,6 +181,14 @@ class _MiPerfilScreenState extends ConsumerState<MiPerfilScreen> {
                   controller: _dependenciaController,
                   decoration: const InputDecoration(labelText: 'Dependencia / Facultad'),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Recibir notificaciones por correo'),
+                  subtitle: const Text('Aprobaciones, rechazos y cambios de tus reservas.'),
+                  value: _recibirCorreos,
+                  onChanged: (v) => setState(() => _recibirCorreos = v),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: AppSpacing.md),

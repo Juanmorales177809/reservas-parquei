@@ -158,6 +158,10 @@
           "laboratorio_nombre": {
             "title": "Laboratorio Nombre",
             "type": "string"
+          },
+          "notificar_por_correo": {
+            "title": "Notificar Por Correo",
+            "type": "boolean"
           }
         },
         "required": [
@@ -168,7 +172,8 @@
           "hora_cierre",
           "horario_atencion",
           "horas_antelacion",
-          "aprobacion_automatica"
+          "aprobacion_automatica",
+          "notificar_por_correo"
         ],
         "title": "ConfiguracionLaboratorioResponse",
         "type": "object"
@@ -194,12 +199,17 @@
             "minimum": 0.0,
             "title": "Horas Antelacion",
             "type": "integer"
+          },
+          "notificar_por_correo": {
+            "title": "Notificar Por Correo",
+            "type": "boolean"
           }
         },
         "required": [
           "horario_atencion",
           "horas_antelacion",
-          "aprobacion_automatica"
+          "aprobacion_automatica",
+          "notificar_por_correo"
         ],
         "title": "ConfiguracionLaboratorioUpdate",
         "type": "object"
@@ -1145,6 +1155,66 @@
         "title": "OcupacionGlobal",
         "type": "object"
       },
+      "OcurrenciaInput": {
+        "additionalProperties": false,
+        "description": "Reservas multi-día agrupadas (2026-09-03): una entrada de la lista de\n`ReservaGrupoCreate.ocurrencias` -- cada una con su propia fecha y\nhorario, a diferencia de la feature \"reservas recurrentes\" revertida\n(`repetir_semanas`/`numero_ocurrencias`), que repetía la misma franja\ncada semana.",
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "hora_inicio",
+          "hora_fin"
+        ],
+        "title": "OcurrenciaInput",
+        "type": "object"
+      },
+      "OcurrenciaOmitida": {
+        "description": "Una ocurrencia de un grupo que no se pudo crear/cancelar --\n\"mejor esfuerzo\", mismo criterio que tenía `crear_reserva_serie`\n(revertida): un 409/400 en una ocurrencia no aborta las demás.",
+        "properties": {
+          "fecha": {
+            "format": "date",
+            "title": "Fecha",
+            "type": "string"
+          },
+          "hora_fin": {
+            "format": "time",
+            "title": "Hora Fin",
+            "type": "string"
+          },
+          "hora_inicio": {
+            "format": "time",
+            "title": "Hora Inicio",
+            "type": "string"
+          },
+          "motivo": {
+            "title": "Motivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha",
+          "hora_inicio",
+          "hora_fin",
+          "motivo"
+        ],
+        "title": "OcurrenciaOmitida",
+        "type": "object"
+      },
       "PerfilUpdate": {
         "additionalProperties": false,
         "description": "Body de `PUT /usuarios/me` (self-service, cualquier rol autenticado).\n\nContiene EXCLUSIVAMENTE los campos de perfil -- nunca `rol`,\n`espacio_id`, `username` ni `email`. `extra=\"forbid\"` hace que mandar\ncualquier otro campo (ej. `{\"rol\": \"admin\"}`) sea un 422 de validación,\nno un campo ignorado en silencio: la escalada de privilegios es\nestructuralmente imposible acá, no depende de que el handler se\nacuerde de filtrar. No reusar `UsuarioUpdate` para este endpoint bajo\nninguna circunstancia -- ver `backend/CLAUDE.md`.",
@@ -1184,6 +1254,17 @@
               }
             ],
             "title": "Institucion"
+          },
+          "recibir_correos": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recibir Correos"
           },
           "telefono": {
             "anyOf": [
@@ -1329,6 +1410,17 @@
               }
             ],
             "title": "Laboratorio Id"
+          },
+          "recibir_correos": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recibir Correos"
           },
           "rol": {
             "anyOf": [
@@ -1975,6 +2067,172 @@
         "title": "ReservaEstadoUpdate",
         "type": "object"
       },
+      "ReservaGrupoCancelResponse": {
+        "description": "Respuesta de `PUT /reservas/grupo/{grupo_id}/cancelar` -- mismo\ncriterio \"mejor esfuerzo\": una ocurrencia todavía `esperando` (nunca\naprobada) no es cancelable, queda \"omitida\" con ese motivo.",
+        "properties": {
+          "canceladas": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Canceladas",
+            "type": "array"
+          },
+          "omitidas": {
+            "items": {
+              "$ref": "#/components/schemas/OcurrenciaOmitida"
+            },
+            "title": "Omitidas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canceladas",
+          "omitidas"
+        ],
+        "title": "ReservaGrupoCancelResponse",
+        "type": "object"
+      },
+      "ReservaGrupoCreate": {
+        "additionalProperties": false,
+        "description": "Body de `POST /reservas/grupo`. Mismos ejes compartidos que\n`ReservaCreate` MENOS `fecha`/`hora_inicio`/`hora_fin` -- esos viven en\ncada `OcurrenciaInput`. Todas las ocurrencias del grupo comparten los\nmismos recursos/espacios/acompañantes: no se puede mezclar equipo\ndistinto por día dentro de un mismo grupo.",
+        "properties": {
+          "acompanantes": {
+            "items": {
+              "$ref": "#/components/schemas/AcompananteInput"
+            },
+            "title": "Acompanantes",
+            "type": "array"
+          },
+          "asistentes": {
+            "exclusiveMinimum": 0.0,
+            "title": "Asistentes",
+            "type": "integer"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "espacio_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Espacio Ids",
+            "type": "array"
+          },
+          "motivo_solicitud_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo Solicitud Id"
+          },
+          "ocurrencias": {
+            "items": {
+              "$ref": "#/components/schemas/OcurrenciaInput"
+            },
+            "maxItems": 30,
+            "minItems": 2,
+            "title": "Ocurrencias",
+            "type": "array"
+          },
+          "recurso_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Recurso Ids",
+            "type": "array"
+          },
+          "requiere_apoyo_auxiliar": {
+            "default": false,
+            "title": "Requiere Apoyo Auxiliar",
+            "type": "boolean"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipoReserva"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tipo_reserva_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Reserva Id"
+          },
+          "tipo_solicitud": {
+            "$ref": "#/components/schemas/TipoSolicitud",
+            "default": "reserva_en_laboratorio"
+          },
+          "ubicacion_uso": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ubicacion Uso"
+          }
+        },
+        "required": [
+          "asistentes",
+          "ocurrencias"
+        ],
+        "title": "ReservaGrupoCreate",
+        "type": "object"
+      },
+      "ReservaGrupoResponse": {
+        "properties": {
+          "creadas": {
+            "items": {
+              "$ref": "#/components/schemas/ReservaResponse"
+            },
+            "title": "Creadas",
+            "type": "array"
+          },
+          "grupo_id": {
+            "format": "uuid",
+            "title": "Grupo Id",
+            "type": "string"
+          },
+          "omitidas": {
+            "items": {
+              "$ref": "#/components/schemas/OcurrenciaOmitida"
+            },
+            "title": "Omitidas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "grupo_id",
+          "creadas",
+          "omitidas"
+        ],
+        "title": "ReservaGrupoResponse",
+        "type": "object"
+      },
       "ReservaProponerHorarios": {
         "additionalProperties": false,
         "description": "Fase C: el técnico propone horarios alternativos sin cambiar estado\n(queda `esperando` con bloque activo).",
@@ -2060,6 +2318,18 @@
             "format": "date",
             "title": "Fecha",
             "type": "string"
+          },
+          "grupo_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grupo Id"
           },
           "hora_fin": {
             "format": "time",
@@ -2855,6 +3125,11 @@
                 "type": "null"
               }
             ]
+          },
+          "recibir_correos": {
+            "default": true,
+            "title": "Recibir Correos",
+            "type": "boolean"
           },
           "rol": {
             "$ref": "#/components/schemas/Rol"
@@ -5282,6 +5557,152 @@
           }
         ],
         "summary": "Crear Reserva Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/grupo": {
+      "post": {
+        "operationId": "crear_reservas_grupo_endpoint_reservas_grupo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaGrupoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaGrupoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear Reservas Grupo Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/grupo/{grupo_id}": {
+      "get": {
+        "operationId": "listar_reservas_de_grupo_endpoint_reservas_grupo__grupo_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grupo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grupo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReservaResponse"
+                  },
+                  "title": "Response Listar Reservas De Grupo Endpoint Reservas Grupo  Grupo Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Listar Reservas De Grupo Endpoint",
+        "tags": [
+          "reservas"
+        ]
+      }
+    },
+    "/reservas/grupo/{grupo_id}/cancelar": {
+      "put": {
+        "operationId": "cancelar_grupo_endpoint_reservas_grupo__grupo_id__cancelar_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grupo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grupo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaGrupoCancelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Cancelar Grupo Endpoint",
         "tags": [
           "reservas"
         ]

@@ -43,6 +43,9 @@ class Usuario(Base):
     institucion = Column(String(120), nullable=True)
     vinculacion = Column(String(30), nullable=True)
     dependencia = Column(String(150), nullable=True)
+    # Correo opcional (2026-09-03): independiente del toggle de laboratorio
+    # (`Laboratorio.notificar_por_correo`) -- ver `services/preferencias_correo.py`.
+    recibir_correos = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

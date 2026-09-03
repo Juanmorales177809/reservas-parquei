@@ -143,3 +143,35 @@ class TestPerfilEnUsuarioResponse:
         cuerpo = respuesta.json()
         for campo in ("documento_identificacion", "telefono", "institucion", "vinculacion", "dependencia"):
             assert cuerpo[campo] is None
+
+
+class TestRecibirCorreosOpcional:
+    """Correo opcional por persona (2026-09-03) -- roundtrip de
+    `recibir_correos` vía `PUT /usuarios/me` (self-service)."""
+
+    def test_default_true(self, client, db):
+        usuario = crear_usuario(db, username="perfil_correo1", email="perfil_correo1@example.com")
+        respuesta = client.get("/usuarios/me", headers=cookies_para(usuario))
+        assert respuesta.status_code == 200
+        assert respuesta.json()["recibir_correos"] is True
+
+    def test_se_puede_apagar_y_prender(self, client, db):
+        usuario = crear_usuario(db, username="perfil_correo2", email="perfil_correo2@example.com")
+
+        apagar = client.put("/usuarios/me", json={"recibir_correos": False}, headers=cookies_para(usuario))
+        assert apagar.status_code == 200
+        assert apagar.json()["recibir_correos"] is False
+        db.refresh(usuario)
+        assert usuario.recibir_correos is False
+
+        prender = client.put("/usuarios/me", json={"recibir_correos": True}, headers=cookies_para(usuario))
+        assert prender.status_code == 200
+        assert prender.json()["recibir_correos"] is True
+
+    def test_ausente_conserva_el_valor_anterior(self, client, db):
+        usuario = crear_usuario(db, username="perfil_correo3", email="perfil_correo3@example.com")
+        client.put("/usuarios/me", json={"recibir_correos": False}, headers=cookies_para(usuario))
+
+        respuesta = client.put("/usuarios/me", json={"telefono": "3000000002"}, headers=cookies_para(usuario))
+        assert respuesta.status_code == 200
+        assert respuesta.json()["recibir_correos"] is False

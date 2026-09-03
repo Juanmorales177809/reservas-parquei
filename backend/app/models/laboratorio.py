@@ -24,6 +24,7 @@ class Laboratorio(Base):
     )
     horas_antelacion = Column(Integer, nullable=False, default=24)
     aprobacion_automatica = Column(Boolean, nullable=False, default=False)
+    notificar_por_correo = Column(Boolean, nullable=False, default=True)
     correo = Column(String(255), nullable=True)
     create_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())

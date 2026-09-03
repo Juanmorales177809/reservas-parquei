@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, time
 
 from sqlalchemy.orm import Session, joinedload
@@ -78,6 +79,19 @@ def get_mis_reservas(db: Session, actor: Personal | Usuario) -> list[Reserva]:
         .options(*_OPTIONS_CARGA)
         .filter(columna == actor.id)
         .order_by(Reserva.fecha.desc(), Reserva.hora_inicio.desc())
+        .all()
+    )
+
+
+def get_reservas_de_grupo(db: Session, grupo_id: uuid.UUID, actor: Personal | Usuario) -> list[Reserva]:
+    """Reservas multi-día agrupadas (2026-09-03): ownership-only, mismo
+    criterio que `get_mis_reservas` -- nadie ve el grupo de otra persona."""
+    columna = Reserva.personal_id if isinstance(actor, Personal) else Reserva.usuario_id
+    return _enriquecer_con_asociaciones(
+        db.query(Reserva)
+        .options(*_OPTIONS_CARGA)
+        .filter(Reserva.grupo_id == grupo_id, columna == actor.id)
+        .order_by(Reserva.fecha.asc(), Reserva.hora_inicio.asc())
         .all()
     )
 

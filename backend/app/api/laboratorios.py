@@ -36,6 +36,7 @@ def _configuracion_response(laboratorio: Laboratorio) -> ConfiguracionLaboratori
         horario_atencion=laboratorio.horario_atencion,
         horas_antelacion=laboratorio.horas_antelacion,
         aprobacion_automatica=laboratorio.aprobacion_automatica,
+        notificar_por_correo=laboratorio.notificar_por_correo,
     )
 
 
@@ -88,6 +89,7 @@ def actualizar_configuracion_gestion(
     laboratorio.hora_cierre = time(max(horas) + 1, 0)
     laboratorio.horas_antelacion = payload.horas_antelacion
     laboratorio.aprobacion_automatica = payload.aprobacion_automatica
+    laboratorio.notificar_por_correo = payload.notificar_por_correo
     laboratorio.updated_at = datetime.now(timezone.utc)
     laboratorio.updated_by = current_user.id
     registrar_cambio(

@@ -18,6 +18,7 @@ abstract class ConfiguracionLaboratorio with _$ConfiguracionLaboratorio {
     required Map<String, List<int>> horarioAtencion,
     required int horasAntelacion,
     required bool aprobacionAutomatica,
+    required bool notificarPorCorreo,
   }) = _ConfiguracionLaboratorio;
 
   factory ConfiguracionLaboratorio.fromJson(Map<String, dynamic> json) => _$ConfiguracionLaboratorioFromJson(json);

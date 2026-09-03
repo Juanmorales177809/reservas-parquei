@@ -549,6 +549,29 @@ class _ReservaCardState extends ConsumerState<_ReservaCard> {
               const SizedBox(height: AppSpacing.xs),
               Text(nombresRecursos, style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
             ],
+            // Reservas multi-día agrupadas (2026-09-03): esta reserva es una
+            // ocurrencia de un grupo -- ofrece ver/cancelar las demás sin
+            // salir de acá.
+            if (reserva.grupoId != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              InkWell(
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => _GrupoReservaDialog(grupoId: reserva.grupoId!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.calendarRange, size: 14, color: scheme.primary),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Parte de un grupo · Ver todas',
+                      style: textTheme.bodySmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
@@ -822,4 +845,137 @@ class _EncabezadoGrupoReserva extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _EncabezadoGrupoReserva old) => old.grupo != grupo || old.cantidad != cantidad;
+}
+
+/// Reservas multi-día agrupadas (2026-09-03): diálogo abierto desde
+/// "Parte de un grupo · Ver todas" -- lista cada ocurrencia con su propio
+/// botón "Cancelar" individual (mismo `cancelar(id)` que cualquier reserva
+/// suelta) además de "Cancelar todo el grupo" como atajo aparte.
+class _GrupoReservaDialog extends ConsumerStatefulWidget {
+  const _GrupoReservaDialog({required this.grupoId});
+
+  final String grupoId;
+
+  @override
+  ConsumerState<_GrupoReservaDialog> createState() => _GrupoReservaDialogState();
+}
+
+class _GrupoReservaDialogState extends ConsumerState<_GrupoReservaDialog> {
+  List<Reserva>? _reservas;
+  String? _error;
+  bool _cargando = true;
+  bool _cancelandoTodo = false;
+  final Set<int> _cancelandoIndividual = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final reservas = await ref.read(reservasRepositoryProvider).grupo(widget.grupoId);
+      if (mounted) setState(() { _reservas = reservas; _cargando = false; });
+    } on Object catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = apiErrorMessage(e, fallback: 'No se pudo cargar el grupo.');
+          _cargando = false;
+        });
+      }
+    }
+  }
+
+  /// Cancelar una sola ocurrencia no afecta al resto del grupo -- solo
+  /// refresca este diálogo y la lista de "mis reservas" de atrás.
+  Future<void> _cancelarUna(int reservaId) async {
+    setState(() => _cancelandoIndividual.add(reservaId));
+    try {
+      await ref.read(reservasRepositoryProvider).cancelar(reservaId);
+      ref.invalidate(misReservasProvider);
+      await _cargar();
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo cancelar esta reserva.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _cancelandoIndividual.remove(reservaId));
+    }
+  }
+
+  Future<void> _cancelarTodo() async {
+    setState(() => _cancelandoTodo = true);
+    try {
+      final resultado = await ref.read(reservasRepositoryProvider).cancelarGrupo(widget.grupoId);
+      ref.invalidate(misReservasProvider);
+      await _cargar();
+      if (mounted) {
+        final mensaje = resultado.omitidas.isEmpty
+            ? 'Se canceló todo el grupo.'
+            : 'Se cancelaron ${resultado.canceladas.length}. ${resultado.omitidas.length} no se pudieron cancelar (todavía esperando aprobación).';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+      }
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(e, fallback: 'No se pudo cancelar el grupo.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _cancelandoTodo = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reservas = _reservas;
+    final hayCancelables = reservas != null && reservas.any((r) => r.puedeCancelarse);
+    return AlertDialog(
+      title: const Text('Reservas del grupo'),
+      content: SizedBox(
+        width: 360,
+        child: _cargando
+            ? const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()))
+            : _error != null
+                ? Text(_error!)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final r in reservas!)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('${_formatearFecha(r.fecha)} · ${formatearHora(r.horaInicio)}–${formatearHora(r.horaFin)}'),
+                          subtitle: Align(alignment: Alignment.centerLeft, child: EstadoReservaBadge(estado: r.estado)),
+                          trailing: r.puedeCancelarse
+                              ? IconButton(
+                                  icon: _cancelandoIndividual.contains(r.id)
+                                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Icon(LucideIcons.x, size: 18),
+                                  tooltip: 'Cancelar este día',
+                                  onPressed: _cancelandoIndividual.contains(r.id) ? null : () => _cancelarUna(r.id),
+                                )
+                              : null,
+                        ),
+                    ],
+                  ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cerrar')),
+        if (hayCancelables)
+          FilledButton.tonal(
+            onPressed: _cancelandoTodo ? null : _cancelarTodo,
+            child: _cancelandoTodo
+                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Cancelar todo el grupo'),
+          ),
+      ],
+    );
+  }
 }

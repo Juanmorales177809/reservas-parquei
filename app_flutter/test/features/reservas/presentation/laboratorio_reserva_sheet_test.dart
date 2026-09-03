@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/core/domain/enums.dart';
 import 'package:app_flutter/features/auth/application/auth_provider.dart';
 import 'package:app_flutter/features/auth/domain/auth_user.dart';
+import 'package:app_flutter/features/laboratorios/domain/disponibilidad_slot.dart';
 import 'package:app_flutter/features/laboratorios/domain/laboratorio.dart';
 import 'package:app_flutter/features/recursos/application/recursos_providers.dart';
 import 'package:app_flutter/features/recursos/domain/recurso.dart';
@@ -285,6 +286,76 @@ void main() {
       final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
       expect(toggle.value, isFalse);
       expect(toggle.onChanged, isNotNull);
+    });
+  });
+
+  group('LaboratorioReservaSheet — reservas multi-día agrupadas (2026-09-03)', () {
+    testWidgets('agregar un día muestra el chip, abre el selector de fecha, y se puede quitar', (tester) async {
+      final laboratorio = _laboratorio(1);
+      final recurso = _recurso(1, 'Proyector');
+      final hoy = DateTime.now();
+      final fechaInicial = DateTime(hoy.year, hoy.month, hoy.day);
+      final slots = [
+        DisponibilidadSlot(horaInicio: '08:00', horaFin: '09:00', estado: EstadoSlot.libre),
+        DisponibilidadSlot(horaInicio: '09:00', horaFin: '10:00', estado: EstadoSlot.libre),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith(() => _AuthFake(_usuario(RolUsuario.usuario))),
+            recursosActivosProvider.overrideWith((ref) async => [recurso]),
+            espaciosGestionProvider.overrideWith((ref) async => const []),
+            recursoDisponibilidadProvider(1, fechaInicial).overrideWith((ref) async => slots),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(child: LaboratorioReservaSheet(laboratorio: laboratorio)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Sin ocurrencias agregadas todavía: el botón dice "Reservar" a secas.
+      await tester.tap(find.text('Proyector'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Reservar'), findsOneWidget);
+      expect(find.text('Agregar otro día'), findsNothing);
+
+      await tester.tap(find.text('08:00–09:00'));
+      await tester.pumpAndSettle();
+
+      final botonAgregar = find.text('Agregar otro día');
+      expect(botonAgregar, findsOneWidget);
+      await tester.ensureVisible(botonAgregar);
+      await tester.tap(botonAgregar);
+      await tester.pumpAndSettle();
+
+      // Se agregó la ocurrencia (chip visible) y se abrió el selector de
+      // fecha para el día siguiente -- lo cerramos tocando el centro de la
+      // pantalla (cae dentro del diálogo, sobre la grilla de días) sin
+      // depender de qué fecha exacta arme el DatePicker.
+      expect(find.textContaining('08:00–09:00'), findsWidgets);
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await tester.tapAt(tester.getCenter(find.byType(DatePickerDialog)));
+      await tester.pumpAndSettle();
+
+      // Con 1 ocurrencia ya agregada (y ninguna franja elegida todavía para
+      // el día vigente), el botón queda deshabilitado pero ya anticipa el total.
+      final botonReservarDos = find.widgetWithText(FilledButton, 'Reservar 2 días');
+      expect(botonReservarDos, findsOneWidget);
+      expect(tester.widget<FilledButton>(botonReservarDos).onPressed, isNull);
+
+      // Quitar el chip vuelve al estado de una sola reserva. Se invoca
+      // `onDeleted` directo (lo mismo que dispara tocar el ícono de borrar
+      // del chip) en vez de apuntarle a un ícono puntual -- más robusto.
+      expect(find.byType(InputChip), findsOneWidget);
+      tester.widget<InputChip>(find.byType(InputChip)).onDeleted!();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InputChip), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Reservar'), findsOneWidget);
     });
   });
 }

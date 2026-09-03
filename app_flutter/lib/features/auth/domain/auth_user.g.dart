@@ -38,6 +38,7 @@ _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
     json['vinculacion'],
   ),
   dependencia: json['dependencia'] as String?,
+  recibirCorreos: json['recibir_correos'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
@@ -51,6 +52,7 @@ Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{
   'institucion': instance.institucion,
   'vinculacion': _$VinculacionUsuarioEnumMap[instance.vinculacion],
   'dependencia': instance.dependencia,
+  'recibir_correos': instance.recibirCorreos,
 };
 
 const _$RolUsuarioEnumMap = {

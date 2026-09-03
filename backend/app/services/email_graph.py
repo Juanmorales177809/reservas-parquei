@@ -38,6 +38,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import httpx
@@ -52,9 +53,18 @@ logger = logging.getLogger("app.email_graph")
 
 CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
 AUTHORITY = "https://login.microsoftonline.com/common"
-SCOPES = ["Mail.Send"]
+# `Calendars.ReadWrite` (2026-09-03, invitación de Outlook Calendar):
+# ampliado sobre el scope original de solo correo. El token cacheado antes
+# de este cambio SOLO consintió `Mail.Send` -- hace falta correr
+# `python -m scripts.graph_login` de nuevo (a mano, con la contraseña de
+# `settings.graph_mail_sender`) para que el nuevo scope quede consentido;
+# `_token_silencioso()` no lo hace sola. Ver `services/calendario.py`.
+SCOPES = ["Mail.Send", "Calendars.ReadWrite"]
 
 _GRAPH_SEND_MAIL_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
+_GRAPH_EVENTS_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/events"
+_GRAPH_EVENT_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/events/{event_id}"
+_GRAPH_EVENT_CANCEL_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/events/{event_id}/cancel"
 
 
 def _cargar_cache() -> SerializableTokenCache:
@@ -145,3 +155,62 @@ def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = Fa
     )
     if respuesta.status_code >= 400:
         raise RuntimeError(f"Graph sendMail falló ({respuesta.status_code}): {respuesta.text}")
+
+
+def crear_evento_calendario_graph(
+    *,
+    asunto: str,
+    cuerpo: str,
+    inicio: datetime,
+    fin: datetime,
+    ubicacion: str,
+    asistentes: list[tuple[str, str]],
+) -> str:
+    """Crea una reunión organizada por `settings.graph_mail_sender`,
+    invitando a `asistentes` (email, nombre) -- Outlook la agrega sola al
+    calendario de cada uno al recibir la invitación, sin necesitar acceso
+    directo al calendario de nadie más. Devuelve el `id` del evento creado
+    (se guarda en `Reserva.graph_event_id` para poder actualizarlo o
+    cancelarlo después)."""
+    token = _token_silencioso()
+    url = _GRAPH_EVENTS_URL_TEMPLATE.format(sender=settings.graph_mail_sender)
+    payload = {
+        "subject": asunto,
+        "body": {"contentType": "HTML", "content": cuerpo},
+        "start": {"dateTime": inicio.isoformat(), "timeZone": "America/Bogota"},
+        "end": {"dateTime": fin.isoformat(), "timeZone": "America/Bogota"},
+        "location": {"displayName": ubicacion},
+        "attendees": [
+            {"emailAddress": {"address": email, "name": nombre}, "type": "required"}
+            for email, nombre in asistentes
+        ],
+    }
+    respuesta = httpx.post(url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=10)
+    if respuesta.status_code >= 400:
+        raise RuntimeError(f"Graph crear evento falló ({respuesta.status_code}): {respuesta.text}")
+    return respuesta.json()["id"]
+
+
+def actualizar_evento_calendario_graph(event_id: str, *, inicio: datetime, fin: datetime) -> None:
+    """Reprograma un evento ya creado (reserva aprobada que cambió de
+    horario vía `actualizar_reserva`)."""
+    token = _token_silencioso()
+    url = _GRAPH_EVENT_URL_TEMPLATE.format(sender=settings.graph_mail_sender, event_id=event_id)
+    payload = {
+        "start": {"dateTime": inicio.isoformat(), "timeZone": "America/Bogota"},
+        "end": {"dateTime": fin.isoformat(), "timeZone": "America/Bogota"},
+    }
+    respuesta = httpx.patch(url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=10)
+    if respuesta.status_code >= 400:
+        raise RuntimeError(f"Graph actualizar evento falló ({respuesta.status_code}): {respuesta.text}")
+
+
+def cancelar_evento_calendario_graph(event_id: str, *, comentario: str = "") -> None:
+    """`POST .../cancel`, no `DELETE` -- Outlook manda automáticamente el
+    aviso de cancelación a los asistentes (decisión confirmada: ya habían
+    recibido la invitación, deben enterarse de que se retiró)."""
+    token = _token_silencioso()
+    url = _GRAPH_EVENT_CANCEL_URL_TEMPLATE.format(sender=settings.graph_mail_sender, event_id=event_id)
+    respuesta = httpx.post(url, headers={"Authorization": f"Bearer {token}"}, json={"comment": comentario}, timeout=10)
+    if respuesta.status_code >= 400:
+        raise RuntimeError(f"Graph cancelar evento falló ({respuesta.status_code}): {respuesta.text}")

@@ -188,7 +188,7 @@ class TestContratoJsonConservado:
         assert modelo.model_dump_json() == (
             '{"id":1,"username":"u","email":"u@example.com","rol":"gestor","laboratorio":null,'
             '"documento_identificacion":null,"telefono":null,"institucion":null,'
-            '"vinculacion":null,"dependencia":null}'
+            '"vinculacion":null,"dependencia":null,"recibir_correos":true}'
         )
 
     def test_estados_serializan_como_strings_actuales(self):
@@ -362,28 +362,28 @@ def _datos_reserva_response():
 class TestValidacionHorarioConservada:
     def test_normalizacion_orden_y_dedupe(self):
         modelo = ConfiguracionLaboratorioUpdate(
-            horario_atencion={1: [9, 8, 8, 7]}, horas_antelacion=24, aprobacion_automatica=False
+            horario_atencion={1: [9, 8, 8, 7]}, horas_antelacion=24, aprobacion_automatica=False, notificar_por_correo=True
         )
         assert modelo.horario_atencion == {1: [7, 8, 9]}
 
     def test_mensaje_dia_fuera_de_rango(self):
         with pytest.raises(ValidationError) as exc:
             ConfiguracionLaboratorioUpdate(
-                horario_atencion={7: [8]}, horas_antelacion=24, aprobacion_automatica=False
+                horario_atencion={7: [8]}, horas_antelacion=24, aprobacion_automatica=False, notificar_por_correo=True
             )
         assert "Los días de atención deben estar entre 0 y 6" in str(exc.value)
 
     def test_mensaje_hora_fuera_de_rango(self):
         with pytest.raises(ValidationError) as exc:
             ConfiguracionLaboratorioUpdate(
-                horario_atencion={1: [23]}, horas_antelacion=24, aprobacion_automatica=False
+                horario_atencion={1: [23]}, horas_antelacion=24, aprobacion_automatica=False, notificar_por_correo=True
             )
         assert "Las horas deben estar entre 0 y 22" in str(exc.value)
 
     def test_mensaje_sin_franjas(self):
         with pytest.raises(ValidationError) as exc:
             ConfiguracionLaboratorioUpdate(
-                horario_atencion={1: [], 2: []}, horas_antelacion=24, aprobacion_automatica=False
+                horario_atencion={1: [], 2: []}, horas_antelacion=24, aprobacion_automatica=False, notificar_por_correo=True
             )
         assert "Debes seleccionar al menos una franja de atención" in str(exc.value)
 
@@ -392,7 +392,7 @@ class TestValidacionHorarioConservada:
         # de días vacíos con listas []; HorarioAtencion elimina los días vacíos
         # solo en su normalización interna y NO reemplaza la salida pública.
         modelo = ConfiguracionLaboratorioUpdate(
-            horario_atencion={1: [], 2: [9]}, horas_antelacion=24, aprobacion_automatica=False
+            horario_atencion={1: [], 2: [9]}, horas_antelacion=24, aprobacion_automatica=False, notificar_por_correo=True
         )
         assert modelo.horario_atencion == {1: [], 2: [9]}
         from app.domain.valor import HorarioAtencion

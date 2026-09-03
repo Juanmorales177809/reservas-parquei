@@ -55,6 +55,7 @@ class _UsuariosRepositoryFalso extends UsuariosRepository {
     String? institucion,
     VinculacionUsuario? vinculacion,
     String? dependencia,
+    bool? recibirCorreos,
   }) async {
     if (errorParaLanzar != null) throw errorParaLanzar!;
     ultimoEnvio = {
@@ -63,6 +64,7 @@ class _UsuariosRepositoryFalso extends UsuariosRepository {
       'institucion': institucion,
       'vinculacion': vinculacion,
       'dependencia': dependencia,
+      'recibirCorreos': recibirCorreos,
     };
     return _usuario.copyWith(
       documentoIdentificacion: documentoIdentificacion,
@@ -70,6 +72,7 @@ class _UsuariosRepositoryFalso extends UsuariosRepository {
       institucion: institucion,
       vinculacion: vinculacion,
       dependencia: dependencia,
+      recibirCorreos: recibirCorreos ?? _usuario.recibirCorreos,
     );
   }
 }
@@ -132,6 +135,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await llenarCamposObligatorios(tester);
+    await tester.ensureVisible(find.text('Guardar'));
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -153,6 +157,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono/celular'), '3001112222');
+    await tester.ensureVisible(find.text('Guardar'));
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -169,6 +174,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await llenarCamposObligatorios(tester);
+    await tester.ensureVisible(find.text('Guardar'));
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -181,6 +187,7 @@ void main() {
     await tester.pumpWidget(montar(usuario, fake));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Guardar'));
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 

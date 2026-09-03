@@ -21,6 +21,7 @@ const _config = ConfiguracionLaboratorio(
   },
   horasAntelacion: 24,
   aprobacionAutomatica: false,
+  notificarPorCorreo: true,
 );
 
 Future<void> _abrirConfiguracion(WidgetTester tester) async {

@@ -1,4 +1,5 @@
 import html
+import uuid
 from datetime import date, datetime, time, timedelta, timezone
 from dataclasses import dataclass
 
@@ -12,6 +13,7 @@ from app.crud.reservas import (
     get_recurso_ids_reserva,
     get_reserva,
     get_reservas_bloqueantes,
+    get_reservas_de_grupo,
 )
 from app.deps import get_managed_laboratory_id
 from app.domain.enums import (
@@ -38,9 +40,16 @@ from app.models import (
     UsuarioLaboratorio,
 )
 from app.models.reserva import ESTADOS_BLOQUEANTES
-from app.schemas.reserva import ReservaCreate, ReservaUpdate
+from app.schemas.reserva import (
+    OcurrenciaInput,
+    OcurrenciaOmitida,
+    ReservaCreate,
+    ReservaGrupoCreate,
+    ReservaUpdate,
+)
 from app.services.actores import columnas_actor, es_actor
 from app.services.auditoria import registrar_cambio
+from app.services.calendario import encolar_evento_calendario, procesar_eventos_calendario_pendientes
 from app.services.email import Adjunto, encolar_correo, procesar_pendientes
 from app.services.ics import construir_ics
 from app.services.email_templates import (
@@ -55,6 +64,7 @@ from app.services.email_templates import (
 )
 from app.services.horarios import horario_cubre_reserva
 from app.services.lista_espera import notificar_primero_en_espera
+from app.services.preferencias_correo import correo_habilitado
 from app.services.reloj import RelojLocal
 
 
@@ -88,6 +98,40 @@ def _adjunto_ics_reserva(*, reserva_id: int, espacio: str, fecha, hora_inicio, h
         fin=datetime.combine(fecha, hora_fin),
     )
     return Adjunto(nombre=f"reserva-{reserva_id}.ics", contenido=contenido, content_type="text/calendar")
+
+
+def _asistentes_evento_calendario(db: Session, laboratorio_id: int, dueno: Personal | Usuario) -> list[tuple[str, str]]:
+    """Invitación de Outlook Calendar (2026-09-03): técnico(s) + dueño de
+    la reserva, mismo público que ya recibe el correo de "reserva
+    pendiente" (join `Personal`+`UsuarioLaboratorio` filtrando
+    `rol=gestor`)."""
+    gestores = (
+        db.query(Personal.username, Personal.email)
+        .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
+        .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == laboratorio_id)
+        .all()
+    )
+    asistentes = [(email, username) for username, email in gestores]
+    asistentes.append((dueno.email, dueno.username))
+    return asistentes
+
+
+def _encolar_evento_calendario_crear(db: Session, *, reserva: Reserva, laboratorio: Laboratorio, dueno: Personal | Usuario) -> None:
+    """Mismo criterio que `_adjunto_ics_reserva`: solo se encola cuando la
+    reserva queda `aprobada` de una. Independiente del toggle de correo
+    opcional (`services/preferencias_correo.py`) -- decisión confirmada,
+    son dos preferencias separadas."""
+    encolar_evento_calendario(
+        db,
+        reserva_id=reserva.id,
+        accion="crear",
+        asunto=f"Reserva: {laboratorio.nombre}",
+        cuerpo=f"<p>Reserva confirmada en {laboratorio.nombre}, {reserva.fecha} {reserva.hora_inicio}-{reserva.hora_fin}.</p>",
+        ubicacion=laboratorio.nombre,
+        inicio=datetime.combine(reserva.fecha, reserva.hora_inicio),
+        fin=datetime.combine(reserva.fecha, reserva.hora_fin),
+        asistentes=_asistentes_evento_calendario(db, laboratorio.id, dueno),
+    )
 
 
 SOLAPAMIENTO_CONSTRAINT = "reservas_sin_solapamiento"
@@ -565,7 +609,9 @@ def _apoyo_auxiliar_forzado(objetivo: _ObjetivoReserva) -> bool:
     return any(r.requiere_apoyo_auxiliar for r in objetivo.recursos_efectivos)
 
 
-def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario) -> Reserva:
+def crear_reserva(
+    db: Session, data: ReservaCreate, usuario: Personal | Usuario, *, grupo_id: uuid.UUID | None = None
+) -> Reserva:
     objetivo = _resolver_objetivo(
         db,
         recurso_ids=data.recurso_ids,
@@ -608,6 +654,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
         estado=(
             EstadoReserva.APROBADA.value if aprobacion_automatica else EstadoReserva.ESPERANDO.value
         ),
+        grupo_id=grupo_id,
     )
     db.add(reserva)
     preparar_reserva(db)
@@ -615,7 +662,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
     _reescribir_acompanantes(db, reserva, data.acompanantes)
     if not aprobacion_automatica:
         gestores = (
-            db.query(Personal.id, Personal.username, Personal.email)
+            db.query(Personal.id, Personal.username, Personal.email, Personal.recibir_correos)
             .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
             .filter(
                 Personal.rol == Rol.GESTOR.value,
@@ -623,7 +670,7 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
             )
             .all()
         )
-        for gestor_id, gestor_username, gestor_email in gestores:
+        for gestor_id, gestor_username, gestor_email, gestor_recibir_correos in gestores:
             db.add(
                 Notificacion(
                     personal_id=gestor_id,
@@ -631,12 +678,28 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
                     tipo=TipoNotificacion.PENDIENTE.value,
                 )
             )
+            if objetivo.laboratorio.notificar_por_correo and gestor_recibir_correos:
+                encolar_correo(
+                    db,
+                    destinatario=gestor_email,
+                    asunto="Nueva reserva pendiente de aprobación",
+                    cuerpo=plantilla_reserva_pendiente(
+                        nombre_saludo=gestor_username,
+                        espacio=objetivo.laboratorio.nombre,
+                        fecha=str(data.fecha),
+                        hora_inicio=str(data.hora_inicio),
+                        hora_fin=str(data.hora_fin),
+                        reserva_id=reserva.id,
+                    ),
+                    es_html=True,
+                )
+        if correo_habilitado(objetivo.laboratorio, usuario):
             encolar_correo(
                 db,
-                destinatario=gestor_email,
-                asunto="Nueva reserva pendiente de aprobación",
-                cuerpo=plantilla_reserva_pendiente(
-                    nombre_saludo=gestor_username,
+                destinatario=usuario.email,
+                asunto="Recibimos tu solicitud de reserva",
+                cuerpo=plantilla_reserva_recibida(
+                    nombre_saludo=usuario.username,
                     espacio=objetivo.laboratorio.nombre,
                     fecha=str(data.fecha),
                     hora_inicio=str(data.hora_inicio),
@@ -645,43 +708,31 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
                 ),
                 es_html=True,
             )
-        encolar_correo(
-            db,
-            destinatario=usuario.email,
-            asunto="Recibimos tu solicitud de reserva",
-            cuerpo=plantilla_reserva_recibida(
-                nombre_saludo=usuario.username,
-                espacio=objetivo.laboratorio.nombre,
-                fecha=str(data.fecha),
-                hora_inicio=str(data.hora_inicio),
-                hora_fin=str(data.hora_fin),
-                reserva_id=reserva.id,
-            ),
-            es_html=True,
-        )
     else:
-        encolar_correo(
-            db,
-            destinatario=usuario.email,
-            asunto="Tu reserva fue aprobada",
-            cuerpo=plantilla_reserva_estado(
-                nombre_saludo=usuario.username,
-                reserva_id=reserva.id,
-                espacio=objetivo.laboratorio.nombre,
-                fecha=str(data.fecha),
-                hora_inicio=str(data.hora_inicio),
-                hora_fin=str(data.hora_fin),
-                estado="aprobada",
-            ),
-            es_html=True,
-            adjunto=_adjunto_ics_reserva(
-                reserva_id=reserva.id,
-                espacio=objetivo.laboratorio.nombre,
-                fecha=data.fecha,
-                hora_inicio=data.hora_inicio,
-                hora_fin=data.hora_fin,
-            ),
-        )
+        if correo_habilitado(objetivo.laboratorio, usuario):
+            encolar_correo(
+                db,
+                destinatario=usuario.email,
+                asunto="Tu reserva fue aprobada",
+                cuerpo=plantilla_reserva_estado(
+                    nombre_saludo=usuario.username,
+                    reserva_id=reserva.id,
+                    espacio=objetivo.laboratorio.nombre,
+                    fecha=str(data.fecha),
+                    hora_inicio=str(data.hora_inicio),
+                    hora_fin=str(data.hora_fin),
+                    estado="aprobada",
+                ),
+                es_html=True,
+                adjunto=_adjunto_ics_reserva(
+                    reserva_id=reserva.id,
+                    espacio=objetivo.laboratorio.nombre,
+                    fecha=data.fecha,
+                    hora_inicio=data.hora_inicio,
+                    hora_fin=data.hora_fin,
+                ),
+            )
+        _encolar_evento_calendario_crear(db, reserva=reserva, laboratorio=objetivo.laboratorio, dueno=usuario)
     registrar_cambio(
         db,
         usuario,
@@ -692,8 +743,51 @@ def crear_reserva(db: Session, data: ReservaCreate, usuario: Personal | Usuario)
     )
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
+    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
+
+
+def crear_reservas_grupo(
+    db: Session, data: ReservaGrupoCreate, usuario: Personal | Usuario
+) -> tuple[uuid.UUID, list[Reserva], list[OcurrenciaOmitida]]:
+    """Reservas multi-día agrupadas (2026-09-03): "mejor esfuerzo", mismo
+    mecanismo que tenía `crear_reserva_serie` (revertida) -- cada ocurrencia
+    se crea con su propia llamada a `crear_reserva` (que hace su propio
+    commit), así que un 409/400 en una ocurrencia solo revierte esa
+    ocurrencia, nunca las ya confirmadas."""
+    grupo_id = uuid.uuid4()
+    creadas: list[Reserva] = []
+    omitidas: list[OcurrenciaOmitida] = []
+    for ocurrencia in data.ocurrencias:
+        individual = ReservaCreate(
+            recurso_ids=data.recurso_ids,
+            espacio_ids=data.espacio_ids,
+            tipo=data.tipo,
+            tipo_reserva_id=data.tipo_reserva_id,
+            acompanantes=data.acompanantes,
+            descripcion=data.descripcion,
+            tipo_solicitud=data.tipo_solicitud,
+            ubicacion_uso=data.ubicacion_uso,
+            requiere_apoyo_auxiliar=data.requiere_apoyo_auxiliar,
+            motivo_solicitud_id=data.motivo_solicitud_id,
+            fecha=ocurrencia.fecha,
+            hora_inicio=ocurrencia.hora_inicio,
+            hora_fin=ocurrencia.hora_fin,
+            asistentes=data.asistentes,
+        )
+        try:
+            creadas.append(crear_reserva(db, individual, usuario, grupo_id=grupo_id))
+        except HTTPException as exc:
+            omitidas.append(
+                OcurrenciaOmitida(
+                    fecha=ocurrencia.fecha,
+                    hora_inicio=ocurrencia.hora_inicio,
+                    hora_fin=ocurrencia.hora_fin,
+                    motivo=str(exc.detail),
+                )
+            )
+    return grupo_id, creadas, omitidas
 
 
 def cambiar_estado(
@@ -766,33 +860,44 @@ def cambiar_estado(
             EstadoReserva.RECHAZADA: "rechazada",
             EstadoReserva.CANCELADA: "cancelada",
         }[nuevo]
-        encolar_correo(
-            db,
-            destinatario=reserva.actor.email,
-            asunto=f"Tu reserva fue {estado_legible}",
-            cuerpo=plantilla_reserva_estado(
-                nombre_saludo=reserva.actor.username,
-                reserva_id=reserva.id,
-                espacio=reserva.laboratorio.nombre,
-                fecha=str(reserva.fecha),
-                hora_inicio=str(reserva.hora_inicio),
-                hora_fin=str(reserva.hora_fin),
-                estado=estado_legible,
-                motivo=motivo,
-            ),
-            es_html=True,
-            adjunto=(
-                _adjunto_ics_reserva(
+        if correo_habilitado(reserva.laboratorio, reserva.actor):
+            encolar_correo(
+                db,
+                destinatario=reserva.actor.email,
+                asunto=f"Tu reserva fue {estado_legible}",
+                cuerpo=plantilla_reserva_estado(
+                    nombre_saludo=reserva.actor.username,
                     reserva_id=reserva.id,
                     espacio=reserva.laboratorio.nombre,
-                    fecha=reserva.fecha,
-                    hora_inicio=reserva.hora_inicio,
-                    hora_fin=reserva.hora_fin,
-                )
-                if nuevo == EstadoReserva.APROBADA
-                else None
-            ),
-        )
+                    fecha=str(reserva.fecha),
+                    hora_inicio=str(reserva.hora_inicio),
+                    hora_fin=str(reserva.hora_fin),
+                    estado=estado_legible,
+                    motivo=motivo,
+                ),
+                es_html=True,
+                adjunto=(
+                    _adjunto_ics_reserva(
+                        reserva_id=reserva.id,
+                        espacio=reserva.laboratorio.nombre,
+                        fecha=reserva.fecha,
+                        hora_inicio=reserva.hora_inicio,
+                        hora_fin=reserva.hora_fin,
+                    )
+                    if nuevo == EstadoReserva.APROBADA
+                    else None
+                ),
+            )
+        if nuevo == EstadoReserva.APROBADA:
+            _encolar_evento_calendario_crear(db, reserva=reserva, laboratorio=reserva.laboratorio, dueno=reserva.actor)
+        elif nuevo == EstadoReserva.CANCELADA and reserva.graph_event_id is not None:
+            encolar_evento_calendario(
+                db,
+                reserva_id=reserva.id,
+                accion="cancelar",
+                graph_event_id=reserva.graph_event_id,
+                comentario="La reserva fue cancelada.",
+            )
         if nuevo in {EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA} and estado_anterior in ESTADOS_BLOQUEANTES:
             _notificar_lista_espera_liberados(db, reserva)
         mensaje_auditoria = f"Cambió la reserva #{reserva.id} de {estado_anterior} a {nuevo.value}"
@@ -809,6 +914,7 @@ def cambiar_estado(
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
+    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 
@@ -852,23 +958,24 @@ def proponer_horarios(
             tipo=TipoNotificacion.ACTUALIZADA.value,
         )
     )
-    encolar_correo(
-        db,
-        destinatario=reserva.actor.email,
-        asunto=f"Tu reserva #{reserva.id} tiene una propuesta de nuevo horario",
-        cuerpo=plantilla_propuesta_horarios(
-            nombre_saludo=reserva.actor.username,
-            reserva_id=reserva.id,
-            espacio=reserva.laboratorio.nombre,
-            fecha=str(reserva.fecha),
-            hora_inicio=str(reserva.hora_inicio),
-            hora_fin=str(reserva.hora_fin),
-            motivo=motivo,
-            horarios=horarios,
-            es_contrapropuesta=False,
-        ),
-        es_html=True,
-    )
+    if correo_habilitado(reserva.laboratorio, reserva.actor):
+        encolar_correo(
+            db,
+            destinatario=reserva.actor.email,
+            asunto=f"Tu reserva #{reserva.id} tiene una propuesta de nuevo horario",
+            cuerpo=plantilla_propuesta_horarios(
+                nombre_saludo=reserva.actor.username,
+                reserva_id=reserva.id,
+                espacio=reserva.laboratorio.nombre,
+                fecha=str(reserva.fecha),
+                hora_inicio=str(reserva.hora_inicio),
+                hora_fin=str(reserva.hora_fin),
+                motivo=motivo,
+                horarios=horarios,
+                es_contrapropuesta=False,
+            ),
+            es_html=True,
+        )
     registrar_cambio(
         db,
         tecnico,
@@ -903,29 +1010,30 @@ def contraproponer(
     reserva.propuesta_en = datetime.now(timezone.utc)
     # Notificar a gestores del laboratorio
     gestores = (
-        db.query(Personal.id, Personal.username, Personal.email)
+        db.query(Personal.id, Personal.username, Personal.email, Personal.recibir_correos)
         .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
         .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
         .all()
     )
     # También admin ve todo, pero el correo al menos a gestores; admin puede ver en UI
-    for _, _, gestor_email in gestores:
-        encolar_correo(
-            db,
-            destinatario=gestor_email,
-            asunto=f"Contrapropuesta para reserva #{reserva.id}",
-            cuerpo=plantilla_contrapropuesta_tecnico(
-                nombre_saludo=reserva.actor.username,
-                reserva_id=reserva.id,
-                espacio=reserva.laboratorio.nombre,
-                fecha=str(reserva.fecha),
-                hora_inicio=str(reserva.hora_inicio),
-                hora_fin=str(reserva.hora_fin),
-                motivo=motivo,
-                horarios=horarios,
-            ),
-            es_html=True,
-        )
+    for _, _, gestor_email, gestor_recibir_correos in gestores:
+        if reserva.laboratorio.notificar_por_correo and gestor_recibir_correos:
+            encolar_correo(
+                db,
+                destinatario=gestor_email,
+                asunto=f"Contrapropuesta para reserva #{reserva.id}",
+                cuerpo=plantilla_contrapropuesta_tecnico(
+                    nombre_saludo=reserva.actor.username,
+                    reserva_id=reserva.id,
+                    espacio=reserva.laboratorio.nombre,
+                    fecha=str(reserva.fecha),
+                    hora_inicio=str(reserva.hora_inicio),
+                    hora_fin=str(reserva.hora_fin),
+                    motivo=motivo,
+                    horarios=horarios,
+                ),
+                es_html=True,
+            )
     # Notificación al técnico no es directa (no hay actor único), se usa auditoría; el gestor verá en su bandeja si filtramos por laboratorio
     db.add(
         Notificacion(
@@ -1004,50 +1112,52 @@ def aceptar_propuesta(
     if actor_es_dueno := es_actor(reserva, actor):
         # dueño aceptó propuesta del técnico → avisar a gestores
         gestores = (
-            db.query(Personal.email, Personal.username)
+            db.query(Personal.email, Personal.username, Personal.recibir_correos)
             .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
             .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
             .all()
         )
-        for email, username in gestores:
-            encolar_correo(
-                db,
-                destinatario=email,
-                asunto=f"Propuesta aceptada para reserva #{reserva.id}",
-                cuerpo=plantilla_reserva_actualizada(
-                    nombre_saludo=username,
-                    reserva_id=reserva.id,
-                    espacio=reserva.laboratorio.nombre,
-                    fecha=str(fecha),
-                    hora_inicio=str(hora_inicio),
-                    hora_fin=str(hora_fin),
-                    detalle=f"nuevo horario {fecha} {hora_inicio}-{hora_fin}",
-                ),
-                es_html=True,
-            )
+        for email, username, gestor_recibir_correos in gestores:
+            if reserva.laboratorio.notificar_por_correo and gestor_recibir_correos:
+                encolar_correo(
+                    db,
+                    destinatario=email,
+                    asunto=f"Propuesta aceptada para reserva #{reserva.id}",
+                    cuerpo=plantilla_reserva_actualizada(
+                        nombre_saludo=username,
+                        reserva_id=reserva.id,
+                        espacio=reserva.laboratorio.nombre,
+                        fecha=str(fecha),
+                        hora_inicio=str(hora_inicio),
+                        hora_fin=str(hora_fin),
+                        detalle=f"nuevo horario {fecha} {hora_inicio}-{hora_fin}",
+                    ),
+                    es_html=True,
+                )
         # Notificación al dueño ya no hace falta (él aceptó)
         registrar_cambio(db, actor, "aceptar propuesta", "reserva", reserva.id, f"Aceptó propuesta y re-agendó #{reserva.id} a {fecha} {hora_inicio}-{hora_fin}")
     else:
         # técnico aceptó contrapropuesta del usuario → avisar al dueño
         otro_email = reserva.actor.email
         otro_nombre = reserva.actor.username
-        encolar_correo(
-            db,
-            destinatario=otro_email,
-            asunto=f"Tu contrapropuesta para #{reserva.id} fue aceptada",
-            cuerpo=plantilla_propuesta_horarios(
-                nombre_saludo=otro_nombre,
-                reserva_id=reserva.id,
-                espacio=reserva.laboratorio.nombre,
-                fecha=str(fecha),
-                hora_inicio=str(hora_inicio),
-                hora_fin=str(hora_fin),
-                motivo="Tu propuesta fue aceptada",
-                horarios=f"{fecha} {hora_inicio}-{hora_fin}",
-                es_contrapropuesta=True,
-            ),
-            es_html=True,
-        )
+        if correo_habilitado(reserva.laboratorio, reserva.actor):
+            encolar_correo(
+                db,
+                destinatario=otro_email,
+                asunto=f"Tu contrapropuesta para #{reserva.id} fue aceptada",
+                cuerpo=plantilla_propuesta_horarios(
+                    nombre_saludo=otro_nombre,
+                    reserva_id=reserva.id,
+                    espacio=reserva.laboratorio.nombre,
+                    fecha=str(fecha),
+                    hora_inicio=str(hora_inicio),
+                    hora_fin=str(hora_fin),
+                    motivo="Tu propuesta fue aceptada",
+                    horarios=f"{fecha} {hora_inicio}-{hora_fin}",
+                    es_contrapropuesta=True,
+                ),
+                es_html=True,
+            )
         db.add(Notificacion(**columnas_actor(reserva.actor), reserva_id=reserva.id, tipo=TipoNotificacion.ACTUALIZADA.value))
         registrar_cambio(db, actor, "aceptar contrapropuesta", "reserva", reserva.id, f"Aceptó contrapropuesta y re-agendó #{reserva.id} a {fecha} {hora_inicio}-{hora_fin}")
     _sincronizar_campos_asociaciones(db, reserva)
@@ -1086,27 +1196,29 @@ def rechazar_propuesta(
     if es_actor(reserva, actor):
         # dueño rechazó propuesta del técnico → avisar a gestores
         gestores = (
-            db.query(Personal.email, Personal.username)
+            db.query(Personal.email, Personal.username, Personal.recibir_correos)
             .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
             .filter(Personal.rol == Rol.GESTOR.value, UsuarioLaboratorio.laboratorio_id == reserva.laboratorio_id)
             .all()
         )
-        for email, username in gestores:
+        for email, username, gestor_recibir_correos in gestores:
+            if reserva.laboratorio.notificar_por_correo and gestor_recibir_correos:
+                encolar_correo(
+                    db,
+                    destinatario=email,
+                    asunto=f"Propuesta rechazada para reserva #{reserva.id}",
+                    cuerpo=f"<p>{html.escape(actor.username)} rechazó tu propuesta de horarios para la reserva #{reserva.id}. La reserva sigue pendiente con su horario original.</p>",
+                    es_html=True,
+                )
+    else:
+        if correo_habilitado(reserva.laboratorio, reserva.actor):
             encolar_correo(
                 db,
-                destinatario=email,
-                asunto=f"Propuesta rechazada para reserva #{reserva.id}",
-                cuerpo=f"<p>{html.escape(actor.username)} rechazó tu propuesta de horarios para la reserva #{reserva.id}. La reserva sigue pendiente con su horario original.</p>",
+                destinatario=reserva.actor.email,
+                asunto=f"Tu contrapropuesta para #{reserva.id} fue rechazada",
+                cuerpo=f"<p>Tu contrapropuesta para la reserva #{reserva.id} fue rechazada. La reserva sigue pendiente; el técnico podrá proponerte nuevos horarios.</p>",
                 es_html=True,
             )
-    else:
-        encolar_correo(
-            db,
-            destinatario=reserva.actor.email,
-            asunto=f"Tu contrapropuesta para #{reserva.id} fue rechazada",
-            cuerpo=f"<p>Tu contrapropuesta para la reserva #{reserva.id} fue rechazada. La reserva sigue pendiente; el técnico podrá proponerte nuevos horarios.</p>",
-            es_html=True,
-        )
         db.add(Notificacion(**columnas_actor(reserva.actor), reserva_id=reserva.id, tipo=TipoNotificacion.ACTUALIZADA.value))
     registrar_cambio(db, actor, "rechazar propuesta", "reserva", reserva.id, f"Rechazó propuesta {propuesta_previa} para #{reserva.id}")
     confirmar_cambios_reserva(db)
@@ -1165,7 +1277,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
 
     reserva.estado = EstadoReserva.CANCELADA.value
     gestores = (
-        db.query(Personal.id, Personal.username, Personal.email)
+        db.query(Personal.id, Personal.username, Personal.email, Personal.recibir_correos)
         .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
         .filter(
             Personal.rol == Rol.GESTOR.value,
@@ -1173,7 +1285,7 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
         )
         .all()
     )
-    for gestor_id, gestor_username, gestor_email in gestores:
+    for gestor_id, gestor_username, gestor_email, gestor_recibir_correos in gestores:
         db.add(
             Notificacion(
                 personal_id=gestor_id,
@@ -1181,20 +1293,21 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
                 tipo=TipoNotificacion.CANCELADA.value,
             )
         )
-        encolar_correo(
-            db,
-            destinatario=gestor_email,
-            asunto="Se canceló una reserva aprobada",
-            cuerpo=plantilla_reserva_cancelada_por_usuario(
-                nombre_saludo=gestor_username,
-                reserva_id=reserva.id,
-                espacio=reserva.laboratorio.nombre,
-                fecha=str(reserva.fecha),
-                hora_inicio=str(reserva.hora_inicio),
-                hora_fin=str(reserva.hora_fin),
-            ),
-            es_html=True,
-        )
+        if reserva.laboratorio.notificar_por_correo and gestor_recibir_correos:
+            encolar_correo(
+                db,
+                destinatario=gestor_email,
+                asunto="Se canceló una reserva aprobada",
+                cuerpo=plantilla_reserva_cancelada_por_usuario(
+                    nombre_saludo=gestor_username,
+                    reserva_id=reserva.id,
+                    espacio=reserva.laboratorio.nombre,
+                    fecha=str(reserva.fecha),
+                    hora_inicio=str(reserva.hora_inicio),
+                    hora_fin=str(reserva.hora_fin),
+                ),
+                es_html=True,
+            )
     registrar_cambio(
         db,
         usuario,
@@ -1203,12 +1316,49 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
         reserva.id,
         f"Canceló su reserva #{reserva.id}",
     )
+    if reserva.graph_event_id is not None:
+        encolar_evento_calendario(
+            db,
+            reserva_id=reserva.id,
+            accion="cancelar",
+            graph_event_id=reserva.graph_event_id,
+            comentario="La reserva fue cancelada.",
+        )
     _notificar_lista_espera_liberados(db, reserva)
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
+    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
+
+
+def cancelar_grupo(
+    db: Session, grupo_id: uuid.UUID, actor: Personal | Usuario
+) -> tuple[list[int], list[OcurrenciaOmitida]]:
+    """Reservas multi-día agrupadas (2026-09-03): "mejor esfuerzo", mismo
+    molde que `cancelar_serie` (revertida) -- cancelar un solo día del
+    grupo, sin tocar los demás, sigue siendo posible vía
+    `PUT /reservas/{id}/cancelar` (cada ocurrencia es una `Reserva`
+    completa e independiente); esto es solo el atajo de "cancelar todas de
+    una"."""
+    ocurrencias = get_reservas_de_grupo(db, grupo_id, actor)
+    canceladas: list[int] = []
+    omitidas: list[OcurrenciaOmitida] = []
+    for reserva in ocurrencias:
+        try:
+            cancelar_reserva_usuario(db, reserva.id, actor)
+            canceladas.append(reserva.id)
+        except HTTPException as exc:
+            omitidas.append(
+                OcurrenciaOmitida(
+                    fecha=reserva.fecha,
+                    hora_inicio=reserva.hora_inicio,
+                    hora_fin=reserva.hora_fin,
+                    motivo=str(exc.detail),
+                )
+            )
+    return canceladas, omitidas
 
 
 def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuario: Personal | Usuario) -> Reserva:
@@ -1265,6 +1415,16 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
         hora_fin=hora_fin,
         asistentes=asistentes,
         exclude_id=reserva.id,
+    )
+    # Invitación de Outlook Calendar (2026-09-03): capturado ANTES de
+    # reasignar `reserva.fecha`/etc, para comparar contra el horario
+    # previo. Solo una reserva ya `aprobada` con evento ya creado
+    # (`graph_event_id`) necesita reprogramarlo -- una `esperando` todavía
+    # no tiene evento (se crea recién al aprobarse).
+    reprogramar_evento_calendario = (
+        reserva.estado == EstadoReserva.APROBADA.value
+        and reserva.graph_event_id is not None
+        and (fecha != reserva.fecha or hora_inicio != reserva.hora_inicio or hora_fin != reserva.hora_fin)
     )
     reserva.fecha = fecha
     reserva.hora_inicio = hora_inicio
@@ -1323,21 +1483,31 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
             if nombres_espacios:
                 partes.append(f"espacios: {', '.join(nombres_espacios)}")
             detalle = " y ".join(partes) if partes else "nuevos recursos"
-            encolar_correo(
-                db,
-                destinatario=propietario.email,
-                asunto="Tu reserva fue actualizada con nuevos recursos",
-                cuerpo=plantilla_reserva_actualizada(
-                    nombre_saludo=propietario.username,
-                    reserva_id=reserva.id,
-                    espacio=objetivo.laboratorio.nombre,
-                    fecha=str(reserva.fecha),
-                    hora_inicio=str(reserva.hora_inicio),
-                    hora_fin=str(reserva.hora_fin),
-                    detalle=detalle,
-                ),
-                es_html=True,
-            )
+            if correo_habilitado(objetivo.laboratorio, propietario):
+                encolar_correo(
+                    db,
+                    destinatario=propietario.email,
+                    asunto="Tu reserva fue actualizada con nuevos recursos",
+                    cuerpo=plantilla_reserva_actualizada(
+                        nombre_saludo=propietario.username,
+                        reserva_id=reserva.id,
+                        espacio=objetivo.laboratorio.nombre,
+                        fecha=str(reserva.fecha),
+                        hora_inicio=str(reserva.hora_inicio),
+                        hora_fin=str(reserva.hora_fin),
+                        detalle=detalle,
+                    ),
+                    es_html=True,
+                )
+    if reprogramar_evento_calendario:
+        encolar_evento_calendario(
+            db,
+            reserva_id=reserva.id,
+            accion="actualizar",
+            graph_event_id=reserva.graph_event_id,
+            inicio=datetime.combine(fecha, hora_inicio),
+            fin=datetime.combine(fecha, hora_fin),
+        )
     registrar_cambio(db, usuario, "actualizar", "reserva", reserva.id, f"Actualizó la reserva #{reserva.id}")
 
     confirmar_cambios_reserva(db)
@@ -1374,6 +1544,8 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
     # efectivo de recursos ya no se puede leer después.
     fecha, hora_inicio, hora_fin = reserva.fecha, reserva.hora_inicio, reserva.hora_fin
     recurso_ids_liberados = get_recurso_ids_reserva(db, reserva.id) if reserva.estado in ESTADOS_BLOQUEANTES else []
+    laboratorio_obj = reserva.laboratorio
+    graph_event_id = reserva.graph_event_id
     if propietario is not None:
         datos_correo = {
             "email": propietario.email,
@@ -1386,7 +1558,7 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
         }
     db.delete(reserva)
     registrar_cambio(db, usuario, "eliminar", "reserva", reserva_id, descripcion)
-    if propietario is not None:
+    if propietario is not None and correo_habilitado(laboratorio_obj, propietario):
         encolar_correo(
             db,
             destinatario=datos_correo["email"],
@@ -1401,8 +1573,23 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
             ),
             es_html=True,
         )
+    if graph_event_id is not None:
+        # `reserva_id=None` a propósito -- ver el comentario en
+        # `EventoCalendarioSaliente.reserva_id`: esta fila tiene que
+        # sobrevivir al DELETE de la reserva que la origina, y un
+        # `reserva_id` real quedaría alcanzado por el `ondelete=CASCADE`
+        # dentro de la misma transacción.
+        encolar_evento_calendario(
+            db,
+            reserva_id=None,
+            accion="cancelar",
+            graph_event_id=graph_event_id,
+            comentario="La reserva fue eliminada.",
+        )
     db.commit()
     if propietario is not None:
         procesar_pendientes(db)
+    if graph_event_id is not None:
+        procesar_eventos_calendario_pendientes(db)
     for recurso_id in recurso_ids_liberados:
         notificar_primero_en_espera(db, recurso_id=recurso_id, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)

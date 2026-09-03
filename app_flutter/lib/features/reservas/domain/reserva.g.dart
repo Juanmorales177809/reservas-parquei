@@ -182,6 +182,7 @@ _Reserva _$ReservaFromJson(Map<String, dynamic> json) => _Reserva(
           ?.map((e) => ReservaAcompanante.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  grupoId: json['grupo_id'] as String?,
 );
 
 Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
@@ -218,6 +219,7 @@ Map<String, dynamic> _$ReservaToJson(_Reserva instance) => <String, dynamic>{
   'espacio_ids': instance.espacioIds,
   'espacios': instance.espacios,
   'acompanantes': instance.acompanantes,
+  'grupo_id': instance.grupoId,
 };
 
 const _$EstadoReservaEnumMap = {
@@ -237,4 +239,58 @@ const _$TipoSolicitudEnumMap = {
   TipoSolicitud.reservaEnLaboratorio: 'reserva_en_laboratorio',
   TipoSolicitud.reservaFueraLaboratorio: 'reserva_fuera_laboratorio',
   TipoSolicitud.ordenSalida: 'orden_salida',
+};
+
+_OcurrenciaOmitida _$OcurrenciaOmitidaFromJson(Map<String, dynamic> json) =>
+    _OcurrenciaOmitida(
+      fecha: json['fecha'] as String,
+      horaInicio: json['hora_inicio'] as String,
+      horaFin: json['hora_fin'] as String,
+      motivo: json['motivo'] as String,
+    );
+
+Map<String, dynamic> _$OcurrenciaOmitidaToJson(_OcurrenciaOmitida instance) =>
+    <String, dynamic>{
+      'fecha': instance.fecha,
+      'hora_inicio': instance.horaInicio,
+      'hora_fin': instance.horaFin,
+      'motivo': instance.motivo,
+    };
+
+_ReservaGrupoResultado _$ReservaGrupoResultadoFromJson(
+  Map<String, dynamic> json,
+) => _ReservaGrupoResultado(
+  grupoId: json['grupo_id'] as String,
+  creadas: (json['creadas'] as List<dynamic>)
+      .map((e) => Reserva.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  omitidas: (json['omitidas'] as List<dynamic>)
+      .map((e) => OcurrenciaOmitida.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ReservaGrupoResultadoToJson(
+  _ReservaGrupoResultado instance,
+) => <String, dynamic>{
+  'grupo_id': instance.grupoId,
+  'creadas': instance.creadas,
+  'omitidas': instance.omitidas,
+};
+
+_ReservaGrupoCancelResultado _$ReservaGrupoCancelResultadoFromJson(
+  Map<String, dynamic> json,
+) => _ReservaGrupoCancelResultado(
+  canceladas: (json['canceladas'] as List<dynamic>)
+      .map((e) => (e as num).toInt())
+      .toList(),
+  omitidas: (json['omitidas'] as List<dynamic>)
+      .map((e) => OcurrenciaOmitida.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ReservaGrupoCancelResultadoToJson(
+  _ReservaGrupoCancelResultado instance,
+) => <String, dynamic>{
+  'canceladas': instance.canceladas,
+  'omitidas': instance.omitidas,
 };

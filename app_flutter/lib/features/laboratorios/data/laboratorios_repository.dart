@@ -41,6 +41,7 @@ class LaboratoriosRepository {
     required Map<String, List<int>> horarioAtencion,
     required int horasAntelacion,
     required bool aprobacionAutomatica,
+    required bool notificarPorCorreo,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
       '/laboratorios/gestion/configuracion',
@@ -48,6 +49,7 @@ class LaboratoriosRepository {
         'horario_atencion': horarioAtencion,
         'horas_antelacion': horasAntelacion,
         'aprobacion_automatica': aprobacionAutomatica,
+        'notificar_por_correo': notificarPorCorreo,
       },
     );
     return ConfiguracionLaboratorio.fromJson(response.data!);

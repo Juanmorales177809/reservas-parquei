@@ -44,6 +44,9 @@ abstract class AuthUser with _$AuthUser {
     String? institucion,
     VinculacionUsuario? vinculacion,
     String? dependencia,
+    // Correo opcional (2026-09-03): preferencia por persona, independiente
+    // del toggle de laboratorio -- ver `ConfiguracionLaboratorio.notificarPorCorreo`.
+    @Default(true) bool recibirCorreos,
   }) = _AuthUser;
 
   const AuthUser._();

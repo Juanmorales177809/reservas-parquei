@@ -98,6 +98,69 @@ class ReservasRepository {
     };
   }
 
+  /// `POST /reservas/grupo` -- reservas multi-día agrupadas (2026-09-03).
+  /// Mismos ejes compartidos que `crear` MENOS `fecha`/`hora_inicio`/
+  /// `hora_fin` (esos viven en cada `OcurrenciaInput`) -- un solo equipo/
+  /// espacio para todas las ocurrencias del grupo. Método separado, no una
+  /// sobrecarga de `crear`: Dart no tiene equivalente ergonómico a la unión
+  /// de tipos que usaría Pydantic acá.
+  Future<ReservaGrupoResultado> crearGrupo({
+    required List<int> recursoIds,
+    required List<OcurrenciaInput> ocurrencias,
+    required int asistentes,
+    TipoReserva? tipo,
+    int? tipoReservaId,
+    int? motivoSolicitudId,
+    List<int> espacioIds = const [],
+    List<Map<String, String>> acompanantes = const [],
+    String? descripcion,
+    TipoSolicitud? tipoSolicitud,
+    String? ubicacionUso,
+    bool? requiereApoyoAuxiliar,
+  }) async {
+    final tipoJson = tipo == null ? null : tipoReservaToJson(tipo);
+    final tipoSolicitudJson = tipoSolicitud == null ? null : tipoSolicitudToJson(tipoSolicitud);
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/reservas/grupo',
+      data: {
+        'recurso_ids': recursoIds,
+        'espacio_ids': espacioIds,
+        'acompanantes': acompanantes,
+        'asistentes': asistentes,
+        'ocurrencias': ocurrencias
+            .map((o) => {
+                  'fecha': _formatoFecha.format(o.fecha),
+                  'hora_inicio': o.horaInicio,
+                  'hora_fin': o.horaFin,
+                })
+            .toList(),
+        'tipo': ?tipoJson,
+        'tipo_reserva_id': ?tipoReservaId,
+        'motivo_solicitud_id': ?motivoSolicitudId,
+        'descripcion': ?descripcion,
+        'tipo_solicitud': ?tipoSolicitudJson,
+        'ubicacion_uso': ?ubicacionUso,
+        'requiere_apoyo_auxiliar': ?requiereApoyoAuxiliar,
+      },
+    );
+    return ReservaGrupoResultado.fromJson(response.data!);
+  }
+
+  /// `GET /reservas/grupo/{grupoId}` -- ownership-only, nadie ve el grupo
+  /// de otra persona (el backend devuelve una lista vacía, no 403).
+  Future<List<Reserva>> grupo(String grupoId) async {
+    final response = await _dio.get<List<dynamic>>('/reservas/grupo/$grupoId');
+    return response.data!.map((json) => Reserva.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
+  /// `PUT /reservas/grupo/{grupoId}/cancelar` -- atajo de "cancelar todas
+  /// de una". Una ocurrencia individual se puede seguir cancelando con
+  /// [cancelar] sin afectar al resto del grupo.
+  Future<ReservaGrupoCancelResultado> cancelarGrupo(String grupoId) async {
+    final response = await _dio.put<Map<String, dynamic>>('/reservas/grupo/$grupoId/cancelar');
+    return ReservaGrupoCancelResultado.fromJson(response.data!);
+  }
+
   /// `GET /reservas/mis-reservas`.
   Future<List<Reserva>> misReservas() async {
     final response = await _dio.get<List<dynamic>>('/reservas/mis-reservas');

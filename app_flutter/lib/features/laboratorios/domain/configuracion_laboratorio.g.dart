@@ -24,6 +24,7 @@ _ConfiguracionLaboratorio _$ConfiguracionLaboratorioFromJson(
   ),
   horasAntelacion: (json['horas_antelacion'] as num).toInt(),
   aprobacionAutomatica: json['aprobacion_automatica'] as bool,
+  notificarPorCorreo: json['notificar_por_correo'] as bool,
 );
 
 Map<String, dynamic> _$ConfiguracionLaboratorioToJson(
@@ -37,4 +38,5 @@ Map<String, dynamic> _$ConfiguracionLaboratorioToJson(
   'horario_atencion': instance.horarioAtencion,
   'horas_antelacion': instance.horasAntelacion,
   'aprobacion_automatica': instance.aprobacionAutomatica,
+  'notificar_por_correo': instance.notificarPorCorreo,
 };

@@ -60,6 +60,7 @@ class UsuariosRepository {
     String? institucion,
     VinculacionUsuario? vinculacion,
     String? dependencia,
+    bool? recibirCorreos,
   }) async {
     final vinculacionJson = vinculacion == null ? null : vinculacionUsuarioToJson(vinculacion);
     final data = <String, dynamic>{
@@ -68,6 +69,7 @@ class UsuariosRepository {
       'institucion': ?institucion,
       'vinculacion': ?vinculacionJson,
       'dependencia': ?dependencia,
+      'recibir_correos': ?recibirCorreos,
     };
     final response = await _dio.put<Map<String, dynamic>>('/usuarios/me', data: data);
     return AuthUser.fromJson(response.data!);

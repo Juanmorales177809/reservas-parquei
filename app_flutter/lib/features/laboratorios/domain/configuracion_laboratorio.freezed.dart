@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ConfiguracionLaboratorio {
 
- int get laboratorioId; String get laboratorioNombre; List<int> get diasAtencion; String get horaApertura; String get horaCierre; Map<String, List<int>> get horarioAtencion; int get horasAntelacion; bool get aprobacionAutomatica;
+ int get laboratorioId; String get laboratorioNombre; List<int> get diasAtencion; String get horaApertura; String get horaCierre; Map<String, List<int>> get horarioAtencion; int get horasAntelacion; bool get aprobacionAutomatica; bool get notificarPorCorreo;
 /// Create a copy of ConfiguracionLaboratorio
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $ConfiguracionLaboratorioCopyWith<ConfiguracionLaboratorio> get copyWith => _$Co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfiguracionLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&const DeepCollectionEquality().equals(other.diasAtencion, diasAtencion)&&(identical(other.horaApertura, horaApertura) || other.horaApertura == horaApertura)&&(identical(other.horaCierre, horaCierre) || other.horaCierre == horaCierre)&&const DeepCollectionEquality().equals(other.horarioAtencion, horarioAtencion)&&(identical(other.horasAntelacion, horasAntelacion) || other.horasAntelacion == horasAntelacion)&&(identical(other.aprobacionAutomatica, aprobacionAutomatica) || other.aprobacionAutomatica == aprobacionAutomatica));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfiguracionLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&const DeepCollectionEquality().equals(other.diasAtencion, diasAtencion)&&(identical(other.horaApertura, horaApertura) || other.horaApertura == horaApertura)&&(identical(other.horaCierre, horaCierre) || other.horaCierre == horaCierre)&&const DeepCollectionEquality().equals(other.horarioAtencion, horarioAtencion)&&(identical(other.horasAntelacion, horasAntelacion) || other.horasAntelacion == horasAntelacion)&&(identical(other.aprobacionAutomatica, aprobacionAutomatica) || other.aprobacionAutomatica == aprobacionAutomatica)&&(identical(other.notificarPorCorreo, notificarPorCorreo) || other.notificarPorCorreo == notificarPorCorreo));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,laboratorioId,laboratorioNombre,const DeepCollectionEquality().hash(diasAtencion),horaApertura,horaCierre,const DeepCollectionEquality().hash(horarioAtencion),horasAntelacion,aprobacionAutomatica);
+int get hashCode => Object.hash(runtimeType,laboratorioId,laboratorioNombre,const DeepCollectionEquality().hash(diasAtencion),horaApertura,horaCierre,const DeepCollectionEquality().hash(horarioAtencion),horasAntelacion,aprobacionAutomatica,notificarPorCorreo);
 
 @override
 String toString() {
-  return 'ConfiguracionLaboratorio(laboratorioId: $laboratorioId, laboratorioNombre: $laboratorioNombre, diasAtencion: $diasAtencion, horaApertura: $horaApertura, horaCierre: $horaCierre, horarioAtencion: $horarioAtencion, horasAntelacion: $horasAntelacion, aprobacionAutomatica: $aprobacionAutomatica)';
+  return 'ConfiguracionLaboratorio(laboratorioId: $laboratorioId, laboratorioNombre: $laboratorioNombre, diasAtencion: $diasAtencion, horaApertura: $horaApertura, horaCierre: $horaCierre, horarioAtencion: $horarioAtencion, horasAntelacion: $horasAntelacion, aprobacionAutomatica: $aprobacionAutomatica, notificarPorCorreo: $notificarPorCorreo)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $ConfiguracionLaboratorioCopyWith<$Res>  {
   factory $ConfiguracionLaboratorioCopyWith(ConfiguracionLaboratorio value, $Res Function(ConfiguracionLaboratorio) _then) = _$ConfiguracionLaboratorioCopyWithImpl;
 @useResult
 $Res call({
- int laboratorioId, String laboratorioNombre, List<int> diasAtencion, String horaApertura, String horaCierre, Map<String, List<int>> horarioAtencion, int horasAntelacion, bool aprobacionAutomatica
+ int laboratorioId, String laboratorioNombre, List<int> diasAtencion, String horaApertura, String horaCierre, Map<String, List<int>> horarioAtencion, int horasAntelacion, bool aprobacionAutomatica, bool notificarPorCorreo
 });
 
 
@@ -66,7 +66,7 @@ class _$ConfiguracionLaboratorioCopyWithImpl<$Res>
 
 /// Create a copy of ConfiguracionLaboratorio
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? laboratorioId = null,Object? laboratorioNombre = null,Object? diasAtencion = null,Object? horaApertura = null,Object? horaCierre = null,Object? horarioAtencion = null,Object? horasAntelacion = null,Object? aprobacionAutomatica = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? laboratorioId = null,Object? laboratorioNombre = null,Object? diasAtencion = null,Object? horaApertura = null,Object? horaCierre = null,Object? horarioAtencion = null,Object? horasAntelacion = null,Object? aprobacionAutomatica = null,Object? notificarPorCorreo = null,}) {
   return _then(ConfiguracionLaboratorio(
 laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,laboratorioNombre: null == laboratorioNombre ? _self.laboratorioNombre : laboratorioNombre // ignore: cast_nullable_to_non_nullable
@@ -76,6 +76,7 @@ as String,horaCierre: null == horaCierre ? _self.horaCierre : horaCierre // igno
 as String,horarioAtencion: null == horarioAtencion ? _self.horarioAtencion : horarioAtencion // ignore: cast_nullable_to_non_nullable
 as Map<String, List<int>>,horasAntelacion: null == horasAntelacion ? _self.horasAntelacion : horasAntelacion // ignore: cast_nullable_to_non_nullable
 as int,aprobacionAutomatica: null == aprobacionAutomatica ? _self.aprobacionAutomatica : aprobacionAutomatica // ignore: cast_nullable_to_non_nullable
+as bool,notificarPorCorreo: null == notificarPorCorreo ? _self.notificarPorCorreo : notificarPorCorreo // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -161,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica,  bool notificarPorCorreo)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ConfiguracionLaboratorio() when $default != null:
-return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica);case _:
+return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica,_that.notificarPorCorreo);case _:
   return orElse();
 
 }
@@ -182,10 +183,10 @@ return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica,  bool notificarPorCorreo)  $default,) {final _that = this;
 switch (_that) {
 case _ConfiguracionLaboratorio():
-return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica);case _:
+return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica,_that.notificarPorCorreo);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +203,10 @@ return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int laboratorioId,  String laboratorioNombre,  List<int> diasAtencion,  String horaApertura,  String horaCierre,  Map<String, List<int>> horarioAtencion,  int horasAntelacion,  bool aprobacionAutomatica,  bool notificarPorCorreo)?  $default,) {final _that = this;
 switch (_that) {
 case _ConfiguracionLaboratorio() when $default != null:
-return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica);case _:
+return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_that.horaApertura,_that.horaCierre,_that.horarioAtencion,_that.horasAntelacion,_that.aprobacionAutomatica,_that.notificarPorCorreo);case _:
   return null;
 
 }
@@ -217,7 +218,7 @@ return $default(_that.laboratorioId,_that.laboratorioNombre,_that.diasAtencion,_
 @JsonSerializable()
 
 class _ConfiguracionLaboratorio implements ConfiguracionLaboratorio {
-  const _ConfiguracionLaboratorio({required this.laboratorioId, required this.laboratorioNombre, required  List<int> diasAtencion, required this.horaApertura, required this.horaCierre, required  Map<String, List<int>> horarioAtencion, required this.horasAntelacion, required this.aprobacionAutomatica}): _diasAtencion = diasAtencion,_horarioAtencion = horarioAtencion;
+  const _ConfiguracionLaboratorio({required this.laboratorioId, required this.laboratorioNombre, required  List<int> diasAtencion, required this.horaApertura, required this.horaCierre, required  Map<String, List<int>> horarioAtencion, required this.horasAntelacion, required this.aprobacionAutomatica, required this.notificarPorCorreo}): _diasAtencion = diasAtencion,_horarioAtencion = horarioAtencion;
   factory _ConfiguracionLaboratorio.fromJson(Map<String, dynamic> json) => _$ConfiguracionLaboratorioFromJson(json);
 
 @override final  int laboratorioId;
@@ -240,6 +241,7 @@ class _ConfiguracionLaboratorio implements ConfiguracionLaboratorio {
 
 @override final  int horasAntelacion;
 @override final  bool aprobacionAutomatica;
+@override final  bool notificarPorCorreo;
 
 /// Create a copy of ConfiguracionLaboratorio
 /// with the given fields replaced by the non-null parameter values.
@@ -254,16 +256,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfiguracionLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&const DeepCollectionEquality().equals(other._diasAtencion, _diasAtencion)&&(identical(other.horaApertura, horaApertura) || other.horaApertura == horaApertura)&&(identical(other.horaCierre, horaCierre) || other.horaCierre == horaCierre)&&const DeepCollectionEquality().equals(other._horarioAtencion, _horarioAtencion)&&(identical(other.horasAntelacion, horasAntelacion) || other.horasAntelacion == horasAntelacion)&&(identical(other.aprobacionAutomatica, aprobacionAutomatica) || other.aprobacionAutomatica == aprobacionAutomatica));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfiguracionLaboratorio&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.laboratorioNombre, laboratorioNombre) || other.laboratorioNombre == laboratorioNombre)&&const DeepCollectionEquality().equals(other._diasAtencion, _diasAtencion)&&(identical(other.horaApertura, horaApertura) || other.horaApertura == horaApertura)&&(identical(other.horaCierre, horaCierre) || other.horaCierre == horaCierre)&&const DeepCollectionEquality().equals(other._horarioAtencion, _horarioAtencion)&&(identical(other.horasAntelacion, horasAntelacion) || other.horasAntelacion == horasAntelacion)&&(identical(other.aprobacionAutomatica, aprobacionAutomatica) || other.aprobacionAutomatica == aprobacionAutomatica)&&(identical(other.notificarPorCorreo, notificarPorCorreo) || other.notificarPorCorreo == notificarPorCorreo));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,laboratorioId,laboratorioNombre,const DeepCollectionEquality().hash(_diasAtencion),horaApertura,horaCierre,const DeepCollectionEquality().hash(_horarioAtencion),horasAntelacion,aprobacionAutomatica);
+int get hashCode => Object.hash(runtimeType,laboratorioId,laboratorioNombre,const DeepCollectionEquality().hash(_diasAtencion),horaApertura,horaCierre,const DeepCollectionEquality().hash(_horarioAtencion),horasAntelacion,aprobacionAutomatica,notificarPorCorreo);
 
 @override
 String toString() {
-  return 'ConfiguracionLaboratorio(laboratorioId: $laboratorioId, laboratorioNombre: $laboratorioNombre, diasAtencion: $diasAtencion, horaApertura: $horaApertura, horaCierre: $horaCierre, horarioAtencion: $horarioAtencion, horasAntelacion: $horasAntelacion, aprobacionAutomatica: $aprobacionAutomatica)';
+  return 'ConfiguracionLaboratorio(laboratorioId: $laboratorioId, laboratorioNombre: $laboratorioNombre, diasAtencion: $diasAtencion, horaApertura: $horaApertura, horaCierre: $horaCierre, horarioAtencion: $horarioAtencion, horasAntelacion: $horasAntelacion, aprobacionAutomatica: $aprobacionAutomatica, notificarPorCorreo: $notificarPorCorreo)';
 }
 
 
@@ -274,7 +276,7 @@ abstract mixin class _$ConfiguracionLaboratorioCopyWith<$Res> implements $Config
   factory _$ConfiguracionLaboratorioCopyWith(_ConfiguracionLaboratorio value, $Res Function(_ConfiguracionLaboratorio) _then) = __$ConfiguracionLaboratorioCopyWithImpl;
 @override @useResult
 $Res call({
- int laboratorioId, String laboratorioNombre, List<int> diasAtencion, String horaApertura, String horaCierre, Map<String, List<int>> horarioAtencion, int horasAntelacion, bool aprobacionAutomatica
+ int laboratorioId, String laboratorioNombre, List<int> diasAtencion, String horaApertura, String horaCierre, Map<String, List<int>> horarioAtencion, int horasAntelacion, bool aprobacionAutomatica, bool notificarPorCorreo
 });
 
 
@@ -291,7 +293,7 @@ class __$ConfiguracionLaboratorioCopyWithImpl<$Res>
 
 /// Create a copy of ConfiguracionLaboratorio
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? laboratorioId = null,Object? laboratorioNombre = null,Object? diasAtencion = null,Object? horaApertura = null,Object? horaCierre = null,Object? horarioAtencion = null,Object? horasAntelacion = null,Object? aprobacionAutomatica = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? laboratorioId = null,Object? laboratorioNombre = null,Object? diasAtencion = null,Object? horaApertura = null,Object? horaCierre = null,Object? horarioAtencion = null,Object? horasAntelacion = null,Object? aprobacionAutomatica = null,Object? notificarPorCorreo = null,}) {
   return _then(_ConfiguracionLaboratorio(
 laboratorioId: null == laboratorioId ? _self.laboratorioId : laboratorioId // ignore: cast_nullable_to_non_nullable
 as int,laboratorioNombre: null == laboratorioNombre ? _self.laboratorioNombre : laboratorioNombre // ignore: cast_nullable_to_non_nullable
@@ -301,6 +303,7 @@ as String,horaCierre: null == horaCierre ? _self.horaCierre : horaCierre // igno
 as String,horarioAtencion: null == horarioAtencion ? _self._horarioAtencion : horarioAtencion // ignore: cast_nullable_to_non_nullable
 as Map<String, List<int>>,horasAntelacion: null == horasAntelacion ? _self.horasAntelacion : horasAntelacion // ignore: cast_nullable_to_non_nullable
 as int,aprobacionAutomatica: null == aprobacionAutomatica ? _self.aprobacionAutomatica : aprobacionAutomatica // ignore: cast_nullable_to_non_nullable
+as bool,notificarPorCorreo: null == notificarPorCorreo ? _self.notificarPorCorreo : notificarPorCorreo // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

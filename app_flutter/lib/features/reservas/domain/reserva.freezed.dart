@@ -1672,7 +1672,7 @@ as String,
 /// @nodoc
 mixin _$Reserva {
 
- int get id; int get usuarioId; int get laboratorioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; int? get tipoReservaId; TipoReservaReserva? get tipoReserva; int? get motivoSolicitudId; String? get motivoSolicitudCodigo; String? get motivoSolicitudNombre; bool? get asistio; String? get motivoRechazo; String? get propuestaMotivo; String? get propuestaHorarios; String? get propuestaPor; String? get propuestaEn; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; LaboratorioReserva get laboratorio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get espacioIds; List<EspacioReserva> get espacios; List<ReservaAcompanante> get acompanantes;
+ int get id; int get usuarioId; int get laboratorioId; String get fecha; String get horaInicio; String get horaFin; EstadoReserva get estado; int get asistentes; TipoReserva? get tipo; int? get tipoReservaId; TipoReservaReserva? get tipoReserva; int? get motivoSolicitudId; String? get motivoSolicitudCodigo; String? get motivoSolicitudNombre; bool? get asistio; String? get motivoRechazo; String? get propuestaMotivo; String? get propuestaHorarios; String? get propuestaPor; String? get propuestaEn; String? get descripcion; TipoSolicitud get tipoSolicitud; String? get ubicacionUso; bool get requiereApoyoAuxiliar; String get createdAt; String get updatedAt; UsuarioReserva get usuario; LaboratorioReserva get laboratorio; List<int> get recursoIds; List<RecursoReserva> get recursos; List<int> get espacioIds; List<EspacioReserva> get espacios; List<ReservaAcompanante> get acompanantes; String? get grupoId;
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1685,16 +1685,16 @@ $ReservaCopyWith<Reserva> get copyWith => _$ReservaCopyWithImpl<Reserva>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.motivoSolicitudId, motivoSolicitudId) || other.motivoSolicitudId == motivoSolicitudId)&&(identical(other.motivoSolicitudCodigo, motivoSolicitudCodigo) || other.motivoSolicitudCodigo == motivoSolicitudCodigo)&&(identical(other.motivoSolicitudNombre, motivoSolicitudNombre) || other.motivoSolicitudNombre == motivoSolicitudNombre)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.propuestaMotivo, propuestaMotivo) || other.propuestaMotivo == propuestaMotivo)&&(identical(other.propuestaHorarios, propuestaHorarios) || other.propuestaHorarios == propuestaHorarios)&&(identical(other.propuestaPor, propuestaPor) || other.propuestaPor == propuestaPor)&&(identical(other.propuestaEn, propuestaEn) || other.propuestaEn == propuestaEn)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.espacioIds, espacioIds)&&const DeepCollectionEquality().equals(other.espacios, espacios)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.motivoSolicitudId, motivoSolicitudId) || other.motivoSolicitudId == motivoSolicitudId)&&(identical(other.motivoSolicitudCodigo, motivoSolicitudCodigo) || other.motivoSolicitudCodigo == motivoSolicitudCodigo)&&(identical(other.motivoSolicitudNombre, motivoSolicitudNombre) || other.motivoSolicitudNombre == motivoSolicitudNombre)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.propuestaMotivo, propuestaMotivo) || other.propuestaMotivo == propuestaMotivo)&&(identical(other.propuestaHorarios, propuestaHorarios) || other.propuestaHorarios == propuestaHorarios)&&(identical(other.propuestaPor, propuestaPor) || other.propuestaPor == propuestaPor)&&(identical(other.propuestaEn, propuestaEn) || other.propuestaEn == propuestaEn)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other.recursoIds, recursoIds)&&const DeepCollectionEquality().equals(other.recursos, recursos)&&const DeepCollectionEquality().equals(other.espacioIds, espacioIds)&&const DeepCollectionEquality().equals(other.espacios, espacios)&&const DeepCollectionEquality().equals(other.acompanantes, acompanantes)&&(identical(other.grupoId, grupoId) || other.grupoId == grupoId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,motivoSolicitudId,motivoSolicitudCodigo,motivoSolicitudNombre,asistio,motivoRechazo,propuestaMotivo,propuestaHorarios,propuestaPor,propuestaEn,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(espacioIds),const DeepCollectionEquality().hash(espacios),const DeepCollectionEquality().hash(acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,motivoSolicitudId,motivoSolicitudCodigo,motivoSolicitudNombre,asistio,motivoRechazo,propuestaMotivo,propuestaHorarios,propuestaPor,propuestaEn,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(recursoIds),const DeepCollectionEquality().hash(recursos),const DeepCollectionEquality().hash(espacioIds),const DeepCollectionEquality().hash(espacios),const DeepCollectionEquality().hash(acompanantes),grupoId]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, motivoSolicitudId: $motivoSolicitudId, motivoSolicitudCodigo: $motivoSolicitudCodigo, motivoSolicitudNombre: $motivoSolicitudNombre, asistio: $asistio, motivoRechazo: $motivoRechazo, propuestaMotivo: $propuestaMotivo, propuestaHorarios: $propuestaHorarios, propuestaPor: $propuestaPor, propuestaEn: $propuestaEn, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, motivoSolicitudId: $motivoSolicitudId, motivoSolicitudCodigo: $motivoSolicitudCodigo, motivoSolicitudNombre: $motivoSolicitudNombre, asistio: $asistio, motivoRechazo: $motivoRechazo, propuestaMotivo: $propuestaMotivo, propuestaHorarios: $propuestaHorarios, propuestaPor: $propuestaPor, propuestaEn: $propuestaEn, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes, grupoId: $grupoId)';
 }
 
 
@@ -1705,7 +1705,7 @@ abstract mixin class $ReservaCopyWith<$Res>  {
   factory $ReservaCopyWith(Reserva value, $Res Function(Reserva) _then) = _$ReservaCopyWithImpl;
 @useResult
 $Res call({
- int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, int? motivoSolicitudId, String? motivoSolicitudCodigo, String? motivoSolicitudNombre, bool? asistio, String? motivoRechazo, String? propuestaMotivo, String? propuestaHorarios, String? propuestaPor, String? propuestaEn, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, int? motivoSolicitudId, String? motivoSolicitudCodigo, String? motivoSolicitudNombre, bool? asistio, String? motivoRechazo, String? propuestaMotivo, String? propuestaHorarios, String? propuestaPor, String? propuestaEn, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes, String? grupoId
 });
 
 
@@ -1722,7 +1722,7 @@ class _$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? motivoSolicitudId = freezed,Object? motivoSolicitudCodigo = freezed,Object? motivoSolicitudNombre = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? propuestaMotivo = freezed,Object? propuestaHorarios = freezed,Object? propuestaPor = freezed,Object? propuestaEn = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? motivoSolicitudId = freezed,Object? motivoSolicitudCodigo = freezed,Object? motivoSolicitudNombre = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? propuestaMotivo = freezed,Object? propuestaHorarios = freezed,Object? propuestaPor = freezed,Object? propuestaEn = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,Object? grupoId = freezed,}) {
   return _then(Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -1757,7 +1757,8 @@ as List<int>,recursos: null == recursos ? _self.recursos : recursos // ignore: c
 as List<RecursoReserva>,espacioIds: null == espacioIds ? _self.espacioIds : espacioIds // ignore: cast_nullable_to_non_nullable
 as List<int>,espacios: null == espacios ? _self.espacios : espacios // ignore: cast_nullable_to_non_nullable
 as List<EspacioReserva>,acompanantes: null == acompanantes ? _self.acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
-as List<ReservaAcompanante>,
+as List<ReservaAcompanante>,grupoId: freezed == grupoId ? _self.grupoId : grupoId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of Reserva
@@ -1872,10 +1873,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes,  String? grupoId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes,_that.grupoId);case _:
   return orElse();
 
 }
@@ -1893,10 +1894,10 @@ return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.h
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes,  String? grupoId)  $default,) {final _that = this;
 switch (_that) {
 case _Reserva():
-return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes,_that.grupoId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1913,10 +1914,10 @@ return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.h
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int usuarioId,  int laboratorioId,  String fecha,  String horaInicio,  String horaFin,  EstadoReserva estado,  int asistentes,  TipoReserva? tipo,  int? tipoReservaId,  TipoReservaReserva? tipoReserva,  int? motivoSolicitudId,  String? motivoSolicitudCodigo,  String? motivoSolicitudNombre,  bool? asistio,  String? motivoRechazo,  String? propuestaMotivo,  String? propuestaHorarios,  String? propuestaPor,  String? propuestaEn,  String? descripcion,  TipoSolicitud tipoSolicitud,  String? ubicacionUso,  bool requiereApoyoAuxiliar,  String createdAt,  String updatedAt,  UsuarioReserva usuario,  LaboratorioReserva laboratorio,  List<int> recursoIds,  List<RecursoReserva> recursos,  List<int> espacioIds,  List<EspacioReserva> espacios,  List<ReservaAcompanante> acompanantes,  String? grupoId)?  $default,) {final _that = this;
 switch (_that) {
 case _Reserva() when $default != null:
-return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes);case _:
+return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.horaInicio,_that.horaFin,_that.estado,_that.asistentes,_that.tipo,_that.tipoReservaId,_that.tipoReserva,_that.motivoSolicitudId,_that.motivoSolicitudCodigo,_that.motivoSolicitudNombre,_that.asistio,_that.motivoRechazo,_that.propuestaMotivo,_that.propuestaHorarios,_that.propuestaPor,_that.propuestaEn,_that.descripcion,_that.tipoSolicitud,_that.ubicacionUso,_that.requiereApoyoAuxiliar,_that.createdAt,_that.updatedAt,_that.usuario,_that.laboratorio,_that.recursoIds,_that.recursos,_that.espacioIds,_that.espacios,_that.acompanantes,_that.grupoId);case _:
   return null;
 
 }
@@ -1928,7 +1929,7 @@ return $default(_that.id,_that.usuarioId,_that.laboratorioId,_that.fecha,_that.h
 @JsonSerializable()
 
 class _Reserva extends Reserva {
-  const _Reserva({required this.id, required this.usuarioId, required this.laboratorioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.tipoReservaId, this.tipoReserva, this.motivoSolicitudId, this.motivoSolicitudCodigo, this.motivoSolicitudNombre, this.asistio, this.motivoRechazo, this.propuestaMotivo, this.propuestaHorarios, this.propuestaPor, this.propuestaEn, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.laboratorio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> espacioIds = const [],  List<EspacioReserva> espacios = const [],  List<ReservaAcompanante> acompanantes = const []}): _recursoIds = recursoIds,_recursos = recursos,_espacioIds = espacioIds,_espacios = espacios,_acompanantes = acompanantes,super._();
+  const _Reserva({required this.id, required this.usuarioId, required this.laboratorioId, required this.fecha, required this.horaInicio, required this.horaFin, required this.estado, required this.asistentes, this.tipo, this.tipoReservaId, this.tipoReserva, this.motivoSolicitudId, this.motivoSolicitudCodigo, this.motivoSolicitudNombre, this.asistio, this.motivoRechazo, this.propuestaMotivo, this.propuestaHorarios, this.propuestaPor, this.propuestaEn, this.descripcion, this.tipoSolicitud = TipoSolicitud.reservaEnLaboratorio, this.ubicacionUso, this.requiereApoyoAuxiliar = false, required this.createdAt, required this.updatedAt, required this.usuario, required this.laboratorio,  List<int> recursoIds = const [],  List<RecursoReserva> recursos = const [],  List<int> espacioIds = const [],  List<EspacioReserva> espacios = const [],  List<ReservaAcompanante> acompanantes = const [], this.grupoId}): _recursoIds = recursoIds,_recursos = recursos,_espacioIds = espacioIds,_espacios = espacios,_acompanantes = acompanantes,super._();
   factory _Reserva.fromJson(Map<String, dynamic> json) => _$ReservaFromJson(json);
 
 @override final  int id;
@@ -1994,6 +1995,7 @@ class _Reserva extends Reserva {
   return EqualUnmodifiableListView(_acompanantes);
 }
 
+@override final  String? grupoId;
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
@@ -2008,16 +2010,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.motivoSolicitudId, motivoSolicitudId) || other.motivoSolicitudId == motivoSolicitudId)&&(identical(other.motivoSolicitudCodigo, motivoSolicitudCodigo) || other.motivoSolicitudCodigo == motivoSolicitudCodigo)&&(identical(other.motivoSolicitudNombre, motivoSolicitudNombre) || other.motivoSolicitudNombre == motivoSolicitudNombre)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.propuestaMotivo, propuestaMotivo) || other.propuestaMotivo == propuestaMotivo)&&(identical(other.propuestaHorarios, propuestaHorarios) || other.propuestaHorarios == propuestaHorarios)&&(identical(other.propuestaPor, propuestaPor) || other.propuestaPor == propuestaPor)&&(identical(other.propuestaEn, propuestaEn) || other.propuestaEn == propuestaEn)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._espacioIds, _espacioIds)&&const DeepCollectionEquality().equals(other._espacios, _espacios)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reserva&&(identical(other.id, id) || other.id == id)&&(identical(other.usuarioId, usuarioId) || other.usuarioId == usuarioId)&&(identical(other.laboratorioId, laboratorioId) || other.laboratorioId == laboratorioId)&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.estado, estado) || other.estado == estado)&&(identical(other.asistentes, asistentes) || other.asistentes == asistentes)&&(identical(other.tipo, tipo) || other.tipo == tipo)&&(identical(other.tipoReservaId, tipoReservaId) || other.tipoReservaId == tipoReservaId)&&(identical(other.tipoReserva, tipoReserva) || other.tipoReserva == tipoReserva)&&(identical(other.motivoSolicitudId, motivoSolicitudId) || other.motivoSolicitudId == motivoSolicitudId)&&(identical(other.motivoSolicitudCodigo, motivoSolicitudCodigo) || other.motivoSolicitudCodigo == motivoSolicitudCodigo)&&(identical(other.motivoSolicitudNombre, motivoSolicitudNombre) || other.motivoSolicitudNombre == motivoSolicitudNombre)&&(identical(other.asistio, asistio) || other.asistio == asistio)&&(identical(other.motivoRechazo, motivoRechazo) || other.motivoRechazo == motivoRechazo)&&(identical(other.propuestaMotivo, propuestaMotivo) || other.propuestaMotivo == propuestaMotivo)&&(identical(other.propuestaHorarios, propuestaHorarios) || other.propuestaHorarios == propuestaHorarios)&&(identical(other.propuestaPor, propuestaPor) || other.propuestaPor == propuestaPor)&&(identical(other.propuestaEn, propuestaEn) || other.propuestaEn == propuestaEn)&&(identical(other.descripcion, descripcion) || other.descripcion == descripcion)&&(identical(other.tipoSolicitud, tipoSolicitud) || other.tipoSolicitud == tipoSolicitud)&&(identical(other.ubicacionUso, ubicacionUso) || other.ubicacionUso == ubicacionUso)&&(identical(other.requiereApoyoAuxiliar, requiereApoyoAuxiliar) || other.requiereApoyoAuxiliar == requiereApoyoAuxiliar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.usuario, usuario) || other.usuario == usuario)&&(identical(other.laboratorio, laboratorio) || other.laboratorio == laboratorio)&&const DeepCollectionEquality().equals(other._recursoIds, _recursoIds)&&const DeepCollectionEquality().equals(other._recursos, _recursos)&&const DeepCollectionEquality().equals(other._espacioIds, _espacioIds)&&const DeepCollectionEquality().equals(other._espacios, _espacios)&&const DeepCollectionEquality().equals(other._acompanantes, _acompanantes)&&(identical(other.grupoId, grupoId) || other.grupoId == grupoId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,motivoSolicitudId,motivoSolicitudCodigo,motivoSolicitudNombre,asistio,motivoRechazo,propuestaMotivo,propuestaHorarios,propuestaPor,propuestaEn,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_espacioIds),const DeepCollectionEquality().hash(_espacios),const DeepCollectionEquality().hash(_acompanantes)]);
+int get hashCode => Object.hashAll([runtimeType,id,usuarioId,laboratorioId,fecha,horaInicio,horaFin,estado,asistentes,tipo,tipoReservaId,tipoReserva,motivoSolicitudId,motivoSolicitudCodigo,motivoSolicitudNombre,asistio,motivoRechazo,propuestaMotivo,propuestaHorarios,propuestaPor,propuestaEn,descripcion,tipoSolicitud,ubicacionUso,requiereApoyoAuxiliar,createdAt,updatedAt,usuario,laboratorio,const DeepCollectionEquality().hash(_recursoIds),const DeepCollectionEquality().hash(_recursos),const DeepCollectionEquality().hash(_espacioIds),const DeepCollectionEquality().hash(_espacios),const DeepCollectionEquality().hash(_acompanantes),grupoId]);
 
 @override
 String toString() {
-  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, motivoSolicitudId: $motivoSolicitudId, motivoSolicitudCodigo: $motivoSolicitudCodigo, motivoSolicitudNombre: $motivoSolicitudNombre, asistio: $asistio, motivoRechazo: $motivoRechazo, propuestaMotivo: $propuestaMotivo, propuestaHorarios: $propuestaHorarios, propuestaPor: $propuestaPor, propuestaEn: $propuestaEn, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes)';
+  return 'Reserva(id: $id, usuarioId: $usuarioId, laboratorioId: $laboratorioId, fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, estado: $estado, asistentes: $asistentes, tipo: $tipo, tipoReservaId: $tipoReservaId, tipoReserva: $tipoReserva, motivoSolicitudId: $motivoSolicitudId, motivoSolicitudCodigo: $motivoSolicitudCodigo, motivoSolicitudNombre: $motivoSolicitudNombre, asistio: $asistio, motivoRechazo: $motivoRechazo, propuestaMotivo: $propuestaMotivo, propuestaHorarios: $propuestaHorarios, propuestaPor: $propuestaPor, propuestaEn: $propuestaEn, descripcion: $descripcion, tipoSolicitud: $tipoSolicitud, ubicacionUso: $ubicacionUso, requiereApoyoAuxiliar: $requiereApoyoAuxiliar, createdAt: $createdAt, updatedAt: $updatedAt, usuario: $usuario, laboratorio: $laboratorio, recursoIds: $recursoIds, recursos: $recursos, espacioIds: $espacioIds, espacios: $espacios, acompanantes: $acompanantes, grupoId: $grupoId)';
 }
 
 
@@ -2028,7 +2030,7 @@ abstract mixin class _$ReservaCopyWith<$Res> implements $ReservaCopyWith<$Res> {
   factory _$ReservaCopyWith(_Reserva value, $Res Function(_Reserva) _then) = __$ReservaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, int? motivoSolicitudId, String? motivoSolicitudCodigo, String? motivoSolicitudNombre, bool? asistio, String? motivoRechazo, String? propuestaMotivo, String? propuestaHorarios, String? propuestaPor, String? propuestaEn, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes
+ int id, int usuarioId, int laboratorioId, String fecha, String horaInicio, String horaFin, EstadoReserva estado, int asistentes, TipoReserva? tipo, int? tipoReservaId, TipoReservaReserva? tipoReserva, int? motivoSolicitudId, String? motivoSolicitudCodigo, String? motivoSolicitudNombre, bool? asistio, String? motivoRechazo, String? propuestaMotivo, String? propuestaHorarios, String? propuestaPor, String? propuestaEn, String? descripcion, TipoSolicitud tipoSolicitud, String? ubicacionUso, bool requiereApoyoAuxiliar, String createdAt, String updatedAt, UsuarioReserva usuario, LaboratorioReserva laboratorio, List<int> recursoIds, List<RecursoReserva> recursos, List<int> espacioIds, List<EspacioReserva> espacios, List<ReservaAcompanante> acompanantes, String? grupoId
 });
 
 
@@ -2045,7 +2047,7 @@ class __$ReservaCopyWithImpl<$Res>
 
 /// Create a copy of Reserva
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? motivoSolicitudId = freezed,Object? motivoSolicitudCodigo = freezed,Object? motivoSolicitudNombre = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? propuestaMotivo = freezed,Object? propuestaHorarios = freezed,Object? propuestaPor = freezed,Object? propuestaEn = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? usuarioId = null,Object? laboratorioId = null,Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? estado = null,Object? asistentes = null,Object? tipo = freezed,Object? tipoReservaId = freezed,Object? tipoReserva = freezed,Object? motivoSolicitudId = freezed,Object? motivoSolicitudCodigo = freezed,Object? motivoSolicitudNombre = freezed,Object? asistio = freezed,Object? motivoRechazo = freezed,Object? propuestaMotivo = freezed,Object? propuestaHorarios = freezed,Object? propuestaPor = freezed,Object? propuestaEn = freezed,Object? descripcion = freezed,Object? tipoSolicitud = null,Object? ubicacionUso = freezed,Object? requiereApoyoAuxiliar = null,Object? createdAt = null,Object? updatedAt = null,Object? usuario = null,Object? laboratorio = null,Object? recursoIds = null,Object? recursos = null,Object? espacioIds = null,Object? espacios = null,Object? acompanantes = null,Object? grupoId = freezed,}) {
   return _then(_Reserva(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,usuarioId: null == usuarioId ? _self.usuarioId : usuarioId // ignore: cast_nullable_to_non_nullable
@@ -2080,7 +2082,8 @@ as List<int>,recursos: null == recursos ? _self._recursos : recursos // ignore: 
 as List<RecursoReserva>,espacioIds: null == espacioIds ? _self._espacioIds : espacioIds // ignore: cast_nullable_to_non_nullable
 as List<int>,espacios: null == espacios ? _self._espacios : espacios // ignore: cast_nullable_to_non_nullable
 as List<EspacioReserva>,acompanantes: null == acompanantes ? _self._acompanantes : acompanantes // ignore: cast_nullable_to_non_nullable
-as List<ReservaAcompanante>,
+as List<ReservaAcompanante>,grupoId: freezed == grupoId ? _self.grupoId : grupoId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -2115,6 +2118,1100 @@ $LaboratorioReservaCopyWith<$Res> get laboratorio {
     return _then(_self.copyWith(laboratorio: value));
   });
 }
+}
+
+/// @nodoc
+mixin _$OcurrenciaInput {
+
+ DateTime get fecha; String get horaInicio; String get horaFin;
+/// Create a copy of OcurrenciaInput
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OcurrenciaInputCopyWith<OcurrenciaInput> get copyWith => _$OcurrenciaInputCopyWithImpl<OcurrenciaInput>(this as OcurrenciaInput, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaInput&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,fecha,horaInicio,horaFin);
+
+@override
+String toString() {
+  return 'OcurrenciaInput(fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OcurrenciaInputCopyWith<$Res>  {
+  factory $OcurrenciaInputCopyWith(OcurrenciaInput value, $Res Function(OcurrenciaInput) _then) = _$OcurrenciaInputCopyWithImpl;
+@useResult
+$Res call({
+ DateTime fecha, String horaInicio, String horaFin
+});
+
+
+
+
+}
+/// @nodoc
+class _$OcurrenciaInputCopyWithImpl<$Res>
+    implements $OcurrenciaInputCopyWith<$Res> {
+  _$OcurrenciaInputCopyWithImpl(this._self, this._then);
+
+  final OcurrenciaInput _self;
+  final $Res Function(OcurrenciaInput) _then;
+
+/// Create a copy of OcurrenciaInput
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,}) {
+  return _then(OcurrenciaInput(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as DateTime,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
+as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OcurrenciaInput].
+extension OcurrenciaInputPatterns on OcurrenciaInput {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaInput value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OcurrenciaInput() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaInput value)  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaInput():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaInput value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaInput() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime fecha,  String horaInicio,  String horaFin)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OcurrenciaInput() when $default != null:
+return $default(_that.fecha,_that.horaInicio,_that.horaFin);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime fecha,  String horaInicio,  String horaFin)  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaInput():
+return $default(_that.fecha,_that.horaInicio,_that.horaFin);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime fecha,  String horaInicio,  String horaFin)?  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaInput() when $default != null:
+return $default(_that.fecha,_that.horaInicio,_that.horaFin);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _OcurrenciaInput implements OcurrenciaInput {
+  const _OcurrenciaInput({required this.fecha, required this.horaInicio, required this.horaFin});
+  
+
+@override final  DateTime fecha;
+@override final  String horaInicio;
+@override final  String horaFin;
+
+/// Create a copy of OcurrenciaInput
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OcurrenciaInputCopyWith<_OcurrenciaInput> get copyWith => __$OcurrenciaInputCopyWithImpl<_OcurrenciaInput>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaInput&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,fecha,horaInicio,horaFin);
+
+@override
+String toString() {
+  return 'OcurrenciaInput(fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OcurrenciaInputCopyWith<$Res> implements $OcurrenciaInputCopyWith<$Res> {
+  factory _$OcurrenciaInputCopyWith(_OcurrenciaInput value, $Res Function(_OcurrenciaInput) _then) = __$OcurrenciaInputCopyWithImpl;
+@override @useResult
+$Res call({
+ DateTime fecha, String horaInicio, String horaFin
+});
+
+
+
+
+}
+/// @nodoc
+class __$OcurrenciaInputCopyWithImpl<$Res>
+    implements _$OcurrenciaInputCopyWith<$Res> {
+  __$OcurrenciaInputCopyWithImpl(this._self, this._then);
+
+  final _OcurrenciaInput _self;
+  final $Res Function(_OcurrenciaInput) _then;
+
+/// Create a copy of OcurrenciaInput
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,}) {
+  return _then(_OcurrenciaInput(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as DateTime,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
+as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$OcurrenciaOmitida {
+
+ String get fecha; String get horaInicio; String get horaFin; String get motivo;
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OcurrenciaOmitidaCopyWith<OcurrenciaOmitida> get copyWith => _$OcurrenciaOmitidaCopyWithImpl<OcurrenciaOmitida>(this as OcurrenciaOmitida, _$identity);
+
+  /// Serializes this OcurrenciaOmitida to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fecha,horaInicio,horaFin,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaOmitida(fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OcurrenciaOmitidaCopyWith<$Res>  {
+  factory $OcurrenciaOmitidaCopyWith(OcurrenciaOmitida value, $Res Function(OcurrenciaOmitida) _then) = _$OcurrenciaOmitidaCopyWithImpl;
+@useResult
+$Res call({
+ String fecha, String horaInicio, String horaFin, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class _$OcurrenciaOmitidaCopyWithImpl<$Res>
+    implements $OcurrenciaOmitidaCopyWith<$Res> {
+  _$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
+
+  final OcurrenciaOmitida _self;
+  final $Res Function(OcurrenciaOmitida) _then;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? motivo = null,}) {
+  return _then(OcurrenciaOmitida(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as String,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
+as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
+as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OcurrenciaOmitida].
+extension OcurrenciaOmitidaPatterns on OcurrenciaOmitida {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OcurrenciaOmitida value)  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OcurrenciaOmitida value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fecha,  String horaInicio,  String horaFin,  String motivo)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that.fecha,_that.horaInicio,_that.horaFin,_that.motivo);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fecha,  String horaInicio,  String horaFin,  String motivo)  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida():
+return $default(_that.fecha,_that.horaInicio,_that.horaFin,_that.motivo);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fecha,  String horaInicio,  String horaFin,  String motivo)?  $default,) {final _that = this;
+switch (_that) {
+case _OcurrenciaOmitida() when $default != null:
+return $default(_that.fecha,_that.horaInicio,_that.horaFin,_that.motivo);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OcurrenciaOmitida implements OcurrenciaOmitida {
+  const _OcurrenciaOmitida({required this.fecha, required this.horaInicio, required this.horaFin, required this.motivo});
+  factory _OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
+
+@override final  String fecha;
+@override final  String horaInicio;
+@override final  String horaFin;
+@override final  String motivo;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OcurrenciaOmitidaCopyWith<_OcurrenciaOmitida> get copyWith => __$OcurrenciaOmitidaCopyWithImpl<_OcurrenciaOmitida>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OcurrenciaOmitidaToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OcurrenciaOmitida&&(identical(other.fecha, fecha) || other.fecha == fecha)&&(identical(other.horaInicio, horaInicio) || other.horaInicio == horaInicio)&&(identical(other.horaFin, horaFin) || other.horaFin == horaFin)&&(identical(other.motivo, motivo) || other.motivo == motivo));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fecha,horaInicio,horaFin,motivo);
+
+@override
+String toString() {
+  return 'OcurrenciaOmitida(fecha: $fecha, horaInicio: $horaInicio, horaFin: $horaFin, motivo: $motivo)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OcurrenciaOmitidaCopyWith<$Res> implements $OcurrenciaOmitidaCopyWith<$Res> {
+  factory _$OcurrenciaOmitidaCopyWith(_OcurrenciaOmitida value, $Res Function(_OcurrenciaOmitida) _then) = __$OcurrenciaOmitidaCopyWithImpl;
+@override @useResult
+$Res call({
+ String fecha, String horaInicio, String horaFin, String motivo
+});
+
+
+
+
+}
+/// @nodoc
+class __$OcurrenciaOmitidaCopyWithImpl<$Res>
+    implements _$OcurrenciaOmitidaCopyWith<$Res> {
+  __$OcurrenciaOmitidaCopyWithImpl(this._self, this._then);
+
+  final _OcurrenciaOmitida _self;
+  final $Res Function(_OcurrenciaOmitida) _then;
+
+/// Create a copy of OcurrenciaOmitida
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? fecha = null,Object? horaInicio = null,Object? horaFin = null,Object? motivo = null,}) {
+  return _then(_OcurrenciaOmitida(
+fecha: null == fecha ? _self.fecha : fecha // ignore: cast_nullable_to_non_nullable
+as String,horaInicio: null == horaInicio ? _self.horaInicio : horaInicio // ignore: cast_nullable_to_non_nullable
+as String,horaFin: null == horaFin ? _self.horaFin : horaFin // ignore: cast_nullable_to_non_nullable
+as String,motivo: null == motivo ? _self.motivo : motivo // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ReservaGrupoResultado {
+
+ String get grupoId; List<Reserva> get creadas; List<OcurrenciaOmitida> get omitidas;
+/// Create a copy of ReservaGrupoResultado
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ReservaGrupoResultadoCopyWith<ReservaGrupoResultado> get copyWith => _$ReservaGrupoResultadoCopyWithImpl<ReservaGrupoResultado>(this as ReservaGrupoResultado, _$identity);
+
+  /// Serializes this ReservaGrupoResultado to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaGrupoResultado&&(identical(other.grupoId, grupoId) || other.grupoId == grupoId)&&const DeepCollectionEquality().equals(other.creadas, creadas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,grupoId,const DeepCollectionEquality().hash(creadas),const DeepCollectionEquality().hash(omitidas));
+
+@override
+String toString() {
+  return 'ReservaGrupoResultado(grupoId: $grupoId, creadas: $creadas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ReservaGrupoResultadoCopyWith<$Res>  {
+  factory $ReservaGrupoResultadoCopyWith(ReservaGrupoResultado value, $Res Function(ReservaGrupoResultado) _then) = _$ReservaGrupoResultadoCopyWithImpl;
+@useResult
+$Res call({
+ String grupoId, List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class _$ReservaGrupoResultadoCopyWithImpl<$Res>
+    implements $ReservaGrupoResultadoCopyWith<$Res> {
+  _$ReservaGrupoResultadoCopyWithImpl(this._self, this._then);
+
+  final ReservaGrupoResultado _self;
+  final $Res Function(ReservaGrupoResultado) _then;
+
+/// Create a copy of ReservaGrupoResultado
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? grupoId = null,Object? creadas = null,Object? omitidas = null,}) {
+  return _then(ReservaGrupoResultado(
+grupoId: null == grupoId ? _self.grupoId : grupoId // ignore: cast_nullable_to_non_nullable
+as String,creadas: null == creadas ? _self.creadas : creadas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ReservaGrupoResultado].
+extension ReservaGrupoResultadoPatterns on ReservaGrupoResultado {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaGrupoResultado value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaGrupoResultado value)  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaGrupoResultado value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String grupoId,  List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado() when $default != null:
+return $default(_that.grupoId,_that.creadas,_that.omitidas);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String grupoId,  List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)  $default,) {final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado():
+return $default(_that.grupoId,_that.creadas,_that.omitidas);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String grupoId,  List<Reserva> creadas,  List<OcurrenciaOmitida> omitidas)?  $default,) {final _that = this;
+switch (_that) {
+case _ReservaGrupoResultado() when $default != null:
+return $default(_that.grupoId,_that.creadas,_that.omitidas);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ReservaGrupoResultado implements ReservaGrupoResultado {
+  const _ReservaGrupoResultado({required this.grupoId, required  List<Reserva> creadas, required  List<OcurrenciaOmitida> omitidas}): _creadas = creadas,_omitidas = omitidas;
+  factory _ReservaGrupoResultado.fromJson(Map<String, dynamic> json) => _$ReservaGrupoResultadoFromJson(json);
+
+@override final  String grupoId;
+ final  List<Reserva> _creadas;
+@override List<Reserva> get creadas {
+  if (_creadas is EqualUnmodifiableListView) return _creadas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_creadas);
+}
+
+ final  List<OcurrenciaOmitida> _omitidas;
+@override List<OcurrenciaOmitida> get omitidas {
+  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_omitidas);
+}
+
+
+/// Create a copy of ReservaGrupoResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ReservaGrupoResultadoCopyWith<_ReservaGrupoResultado> get copyWith => __$ReservaGrupoResultadoCopyWithImpl<_ReservaGrupoResultado>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ReservaGrupoResultadoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaGrupoResultado&&(identical(other.grupoId, grupoId) || other.grupoId == grupoId)&&const DeepCollectionEquality().equals(other._creadas, _creadas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,grupoId,const DeepCollectionEquality().hash(_creadas),const DeepCollectionEquality().hash(_omitidas));
+
+@override
+String toString() {
+  return 'ReservaGrupoResultado(grupoId: $grupoId, creadas: $creadas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ReservaGrupoResultadoCopyWith<$Res> implements $ReservaGrupoResultadoCopyWith<$Res> {
+  factory _$ReservaGrupoResultadoCopyWith(_ReservaGrupoResultado value, $Res Function(_ReservaGrupoResultado) _then) = __$ReservaGrupoResultadoCopyWithImpl;
+@override @useResult
+$Res call({
+ String grupoId, List<Reserva> creadas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class __$ReservaGrupoResultadoCopyWithImpl<$Res>
+    implements _$ReservaGrupoResultadoCopyWith<$Res> {
+  __$ReservaGrupoResultadoCopyWithImpl(this._self, this._then);
+
+  final _ReservaGrupoResultado _self;
+  final $Res Function(_ReservaGrupoResultado) _then;
+
+/// Create a copy of ReservaGrupoResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? grupoId = null,Object? creadas = null,Object? omitidas = null,}) {
+  return _then(_ReservaGrupoResultado(
+grupoId: null == grupoId ? _self.grupoId : grupoId // ignore: cast_nullable_to_non_nullable
+as String,creadas: null == creadas ? _self._creadas : creadas // ignore: cast_nullable_to_non_nullable
+as List<Reserva>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ReservaGrupoCancelResultado {
+
+ List<int> get canceladas; List<OcurrenciaOmitida> get omitidas;
+/// Create a copy of ReservaGrupoCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ReservaGrupoCancelResultadoCopyWith<ReservaGrupoCancelResultado> get copyWith => _$ReservaGrupoCancelResultadoCopyWithImpl<ReservaGrupoCancelResultado>(this as ReservaGrupoCancelResultado, _$identity);
+
+  /// Serializes this ReservaGrupoCancelResultado to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReservaGrupoCancelResultado&&const DeepCollectionEquality().equals(other.canceladas, canceladas)&&const DeepCollectionEquality().equals(other.omitidas, omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(canceladas),const DeepCollectionEquality().hash(omitidas));
+
+@override
+String toString() {
+  return 'ReservaGrupoCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ReservaGrupoCancelResultadoCopyWith<$Res>  {
+  factory $ReservaGrupoCancelResultadoCopyWith(ReservaGrupoCancelResultado value, $Res Function(ReservaGrupoCancelResultado) _then) = _$ReservaGrupoCancelResultadoCopyWithImpl;
+@useResult
+$Res call({
+ List<int> canceladas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class _$ReservaGrupoCancelResultadoCopyWithImpl<$Res>
+    implements $ReservaGrupoCancelResultadoCopyWith<$Res> {
+  _$ReservaGrupoCancelResultadoCopyWithImpl(this._self, this._then);
+
+  final ReservaGrupoCancelResultado _self;
+  final $Res Function(ReservaGrupoCancelResultado) _then;
+
+/// Create a copy of ReservaGrupoCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? canceladas = null,Object? omitidas = null,}) {
+  return _then(ReservaGrupoCancelResultado(
+canceladas: null == canceladas ? _self.canceladas : canceladas // ignore: cast_nullable_to_non_nullable
+as List<int>,omitidas: null == omitidas ? _self.omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ReservaGrupoCancelResultado].
+extension ReservaGrupoCancelResultadoPatterns on ReservaGrupoCancelResultado {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReservaGrupoCancelResultado value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReservaGrupoCancelResultado value)  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReservaGrupoCancelResultado value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<int> canceladas,  List<OcurrenciaOmitida> omitidas)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado() when $default != null:
+return $default(_that.canceladas,_that.omitidas);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<int> canceladas,  List<OcurrenciaOmitida> omitidas)  $default,) {final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado():
+return $default(_that.canceladas,_that.omitidas);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<int> canceladas,  List<OcurrenciaOmitida> omitidas)?  $default,) {final _that = this;
+switch (_that) {
+case _ReservaGrupoCancelResultado() when $default != null:
+return $default(_that.canceladas,_that.omitidas);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ReservaGrupoCancelResultado implements ReservaGrupoCancelResultado {
+  const _ReservaGrupoCancelResultado({required  List<int> canceladas, required  List<OcurrenciaOmitida> omitidas}): _canceladas = canceladas,_omitidas = omitidas;
+  factory _ReservaGrupoCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaGrupoCancelResultadoFromJson(json);
+
+ final  List<int> _canceladas;
+@override List<int> get canceladas {
+  if (_canceladas is EqualUnmodifiableListView) return _canceladas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_canceladas);
+}
+
+ final  List<OcurrenciaOmitida> _omitidas;
+@override List<OcurrenciaOmitida> get omitidas {
+  if (_omitidas is EqualUnmodifiableListView) return _omitidas;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_omitidas);
+}
+
+
+/// Create a copy of ReservaGrupoCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ReservaGrupoCancelResultadoCopyWith<_ReservaGrupoCancelResultado> get copyWith => __$ReservaGrupoCancelResultadoCopyWithImpl<_ReservaGrupoCancelResultado>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ReservaGrupoCancelResultadoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReservaGrupoCancelResultado&&const DeepCollectionEquality().equals(other._canceladas, _canceladas)&&const DeepCollectionEquality().equals(other._omitidas, _omitidas));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_canceladas),const DeepCollectionEquality().hash(_omitidas));
+
+@override
+String toString() {
+  return 'ReservaGrupoCancelResultado(canceladas: $canceladas, omitidas: $omitidas)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ReservaGrupoCancelResultadoCopyWith<$Res> implements $ReservaGrupoCancelResultadoCopyWith<$Res> {
+  factory _$ReservaGrupoCancelResultadoCopyWith(_ReservaGrupoCancelResultado value, $Res Function(_ReservaGrupoCancelResultado) _then) = __$ReservaGrupoCancelResultadoCopyWithImpl;
+@override @useResult
+$Res call({
+ List<int> canceladas, List<OcurrenciaOmitida> omitidas
+});
+
+
+
+
+}
+/// @nodoc
+class __$ReservaGrupoCancelResultadoCopyWithImpl<$Res>
+    implements _$ReservaGrupoCancelResultadoCopyWith<$Res> {
+  __$ReservaGrupoCancelResultadoCopyWithImpl(this._self, this._then);
+
+  final _ReservaGrupoCancelResultado _self;
+  final $Res Function(_ReservaGrupoCancelResultado) _then;
+
+/// Create a copy of ReservaGrupoCancelResultado
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? canceladas = null,Object? omitidas = null,}) {
+  return _then(_ReservaGrupoCancelResultado(
+canceladas: null == canceladas ? _self._canceladas : canceladas // ignore: cast_nullable_to_non_nullable
+as List<int>,omitidas: null == omitidas ? _self._omitidas : omitidas // ignore: cast_nullable_to_non_nullable
+as List<OcurrenciaOmitida>,
+  ));
+}
+
+
 }
 
 // dart format on

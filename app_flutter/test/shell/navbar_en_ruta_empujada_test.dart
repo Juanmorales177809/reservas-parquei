@@ -66,6 +66,7 @@ const _configuracion = ConfiguracionLaboratorio(
   horarioAtencion: {'0': [8, 9, 10]},
   horasAntelacion: 0,
   aprobacionAutomatica: false,
+  notificarPorCorreo: true,
 );
 
 Future<void> _montar(WidgetTester tester, Widget pantalla, String currentPath, {double ancho = 375}) async {

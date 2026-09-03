@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -80,6 +81,21 @@ class Reserva(Base):
     propuesta_horarios = Column(Text, nullable=True)
     propuesta_por = Column(String(20), nullable=True)
     propuesta_en = Column(DateTime(timezone=True), nullable=True)
+    # Reservas multi-día agrupadas (2026-09-03): correlación neutra de "N
+    # reservas creadas juntas en una misma solicitud" -- deliberadamente
+    # llamada `grupo_id`, no `serie_id` (ese campo existió y se revirtió a
+    # pedido explícito del usuario: repetía la misma franja horaria cada
+    # semana, un concepto distinto de este). Nullable: la inmensa mayoría de
+    # las reservas no pertenecen a ningún grupo. Sin CheckConstraint -- la
+    # coherencia del grupo (mismo actor, mismos recursos/espacios) la
+    # garantiza el servicio, no el esquema.
+    grupo_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    # Invitación de Outlook Calendar vía Graph (2026-09-03): `id` del evento
+    # ya creado, se completa recién cuando el outbox
+    # (`EventoCalendarioSaliente`) tiene éxito -- ver
+    # `services/calendario.py`. `null` mientras no haya evento (reserva
+    # nunca aprobada, o Graph todavía no proceso la fila pendiente).
+    graph_event_id = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -90,6 +106,12 @@ class Reserva(Base):
     tipo_reserva = relationship("TipoReserva")
     motivo_solicitud = relationship("MotivoSolicitud")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
+    eventos_calendario = relationship(
+        "EventoCalendarioSaliente",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        overlaps="reserva",
+    )
 
     # Fase 12C-6: relaciones aditivas de lectura hacia las tablas de
     # asociación (sin cambio de esquema). `reserva_recursos`/`reserva_espacios`

@@ -1,10 +1,11 @@
+import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.crud.reservas import get_mis_reservas, get_reservas_gestion
+from app.crud.reservas import get_mis_reservas, get_reservas_de_grupo, get_reservas_gestion
 from app.db import get_db
 from app.deps import get_current_user, get_managed_laboratory_id, require_resource_manager
 from app.models import Personal, Usuario
@@ -14,6 +15,9 @@ from app.schemas.reserva import (
     ReservaContraproponer,
     ReservaCreate,
     ReservaEstadoUpdate,
+    ReservaGrupoCancelResponse,
+    ReservaGrupoCreate,
+    ReservaGrupoResponse,
     ReservaProponerHorarios,
     ReservaResponse,
     ReservaUpdate,
@@ -24,9 +28,11 @@ from app.services.reservas import (
     aceptar_propuesta,
     actualizar_reserva,
     cambiar_estado,
+    cancelar_grupo,
     cancelar_reserva_usuario,
     contraproponer,
     crear_reserva,
+    crear_reservas_grupo,
     eliminar_reserva,
     marcar_asistencia,
     proponer_horarios,
@@ -55,6 +61,35 @@ def listar_reservas_endpoint(
 ):
     laboratorio_id = get_managed_laboratory_id(db, admin_user)
     return get_reservas_gestion(db, laboratorio_id, skip, limit)
+
+
+@router.post("/grupo", response_model=ReservaGrupoResponse, status_code=201)
+def crear_reservas_grupo_endpoint(
+    data: ReservaGrupoCreate,
+    db: Session = Depends(get_db),
+    current_user: Personal | Usuario = Depends(get_current_user),
+):
+    grupo_id, creadas, omitidas = crear_reservas_grupo(db, data, current_user)
+    return ReservaGrupoResponse(grupo_id=grupo_id, creadas=creadas, omitidas=omitidas)
+
+
+@router.get("/grupo/{grupo_id}", response_model=list[ReservaResponse])
+def listar_reservas_de_grupo_endpoint(
+    grupo_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: Personal | Usuario = Depends(get_current_user),
+):
+    return get_reservas_de_grupo(db, grupo_id, current_user)
+
+
+@router.put("/grupo/{grupo_id}/cancelar", response_model=ReservaGrupoCancelResponse)
+def cancelar_grupo_endpoint(
+    grupo_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: Personal | Usuario = Depends(get_current_user),
+):
+    canceladas, omitidas = cancelar_grupo(db, grupo_id, current_user)
+    return ReservaGrupoCancelResponse(canceladas=canceladas, omitidas=omitidas)
 
 
 @router.get("/mis-reservas", response_model=list[ReservaResponse])

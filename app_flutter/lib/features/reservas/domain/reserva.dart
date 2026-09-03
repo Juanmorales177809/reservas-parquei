@@ -142,6 +142,10 @@ abstract class Reserva with _$Reserva {
     @Default([]) List<int> espacioIds,
     @Default([]) List<EspacioReserva> espacios,
     @Default([]) List<ReservaAcompanante> acompanantes,
+    // Reservas multi-día agrupadas (2026-09-03): `null` para la inmensa
+    // mayoría de las reservas (las que no pertenecen a ningún grupo). UUID
+    // como texto crudo, mismo criterio que fecha/hora -- nunca se parsea.
+    String? grupoId,
   }) = _Reserva;
 
   const Reserva._();
@@ -157,4 +161,55 @@ abstract class Reserva with _$Reserva {
   /// del backend, que es una regla no relacionada — de solapamiento, no de
   /// cancelación.)
   bool get puedeCancelarse => estado == EstadoReserva.aprobada;
+}
+
+/// Reservas multi-día agrupadas (2026-09-03): una entrada de la lista que
+/// arma `LaboratorioReservaSheet` antes de confirmar -- espejo de
+/// `OcurrenciaInput` (`backend/app/schemas/reserva.py`). Solo se envía,
+/// nunca se recibe -- sin `fromJson`.
+@freezed
+abstract class OcurrenciaInput with _$OcurrenciaInput {
+  const factory OcurrenciaInput({
+    required DateTime fecha,
+    required String horaInicio,
+    required String horaFin,
+  }) = _OcurrenciaInput;
+}
+
+/// Espejo de `OcurrenciaOmitida` -- una ocurrencia del grupo que no se pudo
+/// crear/cancelar ("mejor esfuerzo"), con el motivo que dio el backend.
+@freezed
+abstract class OcurrenciaOmitida with _$OcurrenciaOmitida {
+  const factory OcurrenciaOmitida({
+    required String fecha,
+    required String horaInicio,
+    required String horaFin,
+    required String motivo,
+  }) = _OcurrenciaOmitida;
+
+  factory OcurrenciaOmitida.fromJson(Map<String, dynamic> json) => _$OcurrenciaOmitidaFromJson(json);
+}
+
+/// Espejo de `ReservaGrupoResponse` -- respuesta de `POST /reservas/grupo`.
+@freezed
+abstract class ReservaGrupoResultado with _$ReservaGrupoResultado {
+  const factory ReservaGrupoResultado({
+    required String grupoId,
+    required List<Reserva> creadas,
+    required List<OcurrenciaOmitida> omitidas,
+  }) = _ReservaGrupoResultado;
+
+  factory ReservaGrupoResultado.fromJson(Map<String, dynamic> json) => _$ReservaGrupoResultadoFromJson(json);
+}
+
+/// Espejo de `ReservaGrupoCancelResponse` -- respuesta de
+/// `PUT /reservas/grupo/{id}/cancelar`.
+@freezed
+abstract class ReservaGrupoCancelResultado with _$ReservaGrupoCancelResultado {
+  const factory ReservaGrupoCancelResultado({
+    required List<int> canceladas,
+    required List<OcurrenciaOmitida> omitidas,
+  }) = _ReservaGrupoCancelResultado;
+
+  factory ReservaGrupoCancelResultado.fromJson(Map<String, dynamic> json) => _$ReservaGrupoCancelResultadoFromJson(json);
 }

@@ -92,6 +92,7 @@ class _ConfiguracionForm extends ConsumerStatefulWidget {
 class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
   late int _horasAntelacion;
   late bool _aprobacionAutomatica;
+  late bool _notificarPorCorreo;
   late Map<int, List<int>> _horario;
   bool _guardando = false;
   String? _error;
@@ -102,6 +103,7 @@ class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
     super.initState();
     _horasAntelacion = widget.config.horasAntelacion;
     _aprobacionAutomatica = widget.config.aprobacionAutomatica;
+    _notificarPorCorreo = widget.config.notificarPorCorreo;
     _horario = horarioFromJson(widget.config.horarioAtencion);
   }
 
@@ -165,6 +167,7 @@ class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
             horarioAtencion: horarioJson,
             horasAntelacion: _horasAntelacion,
             aprobacionAutomatica: _aprobacionAutomatica,
+            notificarPorCorreo: _notificarPorCorreo,
           );
       ref.invalidate(configuracionLaboratorioGestionProvider);
       if (mounted) {
@@ -272,6 +275,15 @@ class _ConfiguracionFormState extends ConsumerState<_ConfiguracionForm> {
             subtitle: const Text('Las reservas nuevas quedan aprobadas sin revisión manual.'),
             value: _aprobacionAutomatica,
             onChanged: (v) => setState(() => _aprobacionAutomatica = v),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: SwitchListTile(
+            title: const Text('Notificar por correo'),
+            subtitle: const Text('Si se apaga, este laboratorio no manda ningún correo de reservas a nadie.'),
+            value: _notificarPorCorreo,
+            onChanged: (v) => setState(() => _notificarPorCorreo = v),
           ),
         ),
         if (_error != null) ...[

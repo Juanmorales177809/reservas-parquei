@@ -51,6 +51,10 @@ class PersonalUpdate(BaseModel):
     institucion: str | None = Field(default=None, max_length=120)
     vinculacion: VinculacionUsuario | None = None
     dependencia: str | None = Field(default=None, max_length=150)
+    # Correo opcional (2026-09-03), independiente del toggle de laboratorio
+    # -- ver `services/preferencias_correo.py`. Permite a un admin ajustar
+    # la preferencia de otro gestor/admin.
+    recibir_correos: bool | None = None
 
     @field_validator("email")
     @classmethod

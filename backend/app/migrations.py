@@ -957,6 +957,32 @@ def migrate_resource_reservations() -> None:
             );
         END $$;
         """,
+        # Correo opcional por laboratorio y por persona (2026-09-03): dos
+        # flags independientes, ambos default `true` para preservar el
+        # comportamiento actual (siempre se manda correo) hasta que alguien
+        # los apague explícitamente. Ver `services/preferencias_correo.py`.
+        "ALTER TABLE laboratorios ADD COLUMN IF NOT EXISTS notificar_por_correo BOOLEAN DEFAULT true",
+        "ALTER TABLE personal ADD COLUMN IF NOT EXISTS recibir_correos BOOLEAN DEFAULT true",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS recibir_correos BOOLEAN DEFAULT true",
+        "UPDATE laboratorios SET notificar_por_correo = true WHERE notificar_por_correo IS NULL",
+        "UPDATE personal SET recibir_correos = true WHERE recibir_correos IS NULL",
+        "UPDATE usuarios SET recibir_correos = true WHERE recibir_correos IS NULL",
+        "ALTER TABLE laboratorios ALTER COLUMN notificar_por_correo SET DEFAULT true",
+        "ALTER TABLE laboratorios ALTER COLUMN notificar_por_correo SET NOT NULL",
+        "ALTER TABLE personal ALTER COLUMN recibir_correos SET DEFAULT true",
+        "ALTER TABLE personal ALTER COLUMN recibir_correos SET NOT NULL",
+        "ALTER TABLE usuarios ALTER COLUMN recibir_correos SET DEFAULT true",
+        "ALTER TABLE usuarios ALTER COLUMN recibir_correos SET NOT NULL",
+        # Reservas multi-día agrupadas (2026-09-03): correlación entre N
+        # filas de `Reserva` creadas juntas en una misma solicitud. Nullable,
+        # sin backfill -- todo lo histórico queda sin grupo.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS grupo_id UUID",
+        "CREATE INDEX IF NOT EXISTS ix_reservas_grupo_id ON reservas (grupo_id)",
+        # Invitación de Outlook Calendar vía Graph (2026-09-03): nullable,
+        # sin backfill -- se completa recién cuando el outbox
+        # (`EventoCalendarioSaliente`, tabla nueva sin datos que migrar)
+        # procesa la fila con éxito.
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS graph_event_id VARCHAR(255)",
     )
 
     with engine.begin() as connection:

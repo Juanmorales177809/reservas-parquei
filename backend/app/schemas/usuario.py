@@ -72,6 +72,10 @@ class PerfilUpdate(BaseModel):
     institucion: str | None = Field(default=None, max_length=120)
     vinculacion: VinculacionUsuario | None = None
     dependencia: str | None = Field(default=None, max_length=150)
+    # Correo opcional (2026-09-03), independiente del toggle de laboratorio
+    # -- ver `services/preferencias_correo.py`. Opcional acá: no bloquea el
+    # guard de perfil incompleto, solo se manda si la persona lo toca.
+    recibir_correos: bool | None = None
 
 
 class UsuarioResponse(BaseModel):
@@ -87,6 +91,7 @@ class UsuarioResponse(BaseModel):
     institucion: str | None = None
     vinculacion: VinculacionUsuario | None = None
     dependencia: str | None = None
+    recibir_correos: bool = True
 
 
 class ReenviarInvitacionResponse(BaseModel):

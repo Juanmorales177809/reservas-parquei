@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime, time
 from typing import Literal
 
@@ -377,3 +378,99 @@ class ReservaResponse(BaseModel):
     espacio_ids: list[int] = Field(default_factory=list)
     espacios: list[EspacioReservaResponse] = Field(default_factory=list)
     acompanantes: list[ReservaAcompananteResponse] = Field(default_factory=list)
+    # Reservas multi-día agrupadas (2026-09-03): `null` para la inmensa
+    # mayoría de las reservas (las que no pertenecen a ningún grupo).
+    # Deliberadamente expuesto desde el día 1 (a diferencia de `serie_id` en
+    # su momento) -- sin el campo acá, el cliente no tiene forma de saber
+    # que una reserva pertenece a un grupo.
+    grupo_id: uuid.UUID | None = None
+
+
+class OcurrenciaInput(BaseModel):
+    """Reservas multi-día agrupadas (2026-09-03): una entrada de la lista de
+    `ReservaGrupoCreate.ocurrencias` -- cada una con su propia fecha y
+    horario, a diferencia de la feature "reservas recurrentes" revertida
+    (`repetir_semanas`/`numero_ocurrencias`), que repetía la misma franja
+    cada semana."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    fecha: date
+    hora_inicio: time
+    hora_fin: time
+
+    @model_validator(mode="after")
+    def _horario_valido(self) -> "OcurrenciaInput":
+        if self.hora_inicio >= self.hora_fin:
+            raise ValueError("La hora de inicio debe ser menor que la hora de fin")
+        return self
+
+
+class ReservaGrupoCreate(BaseModel):
+    """Body de `POST /reservas/grupo`. Mismos ejes compartidos que
+    `ReservaCreate` MENOS `fecha`/`hora_inicio`/`hora_fin` -- esos viven en
+    cada `OcurrenciaInput`. Todas las ocurrencias del grupo comparten los
+    mismos recursos/espacios/acompañantes: no se puede mezclar equipo
+    distinto por día dentro de un mismo grupo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recurso_ids: list[int] = Field(default_factory=list)
+    espacio_ids: list[int] = Field(default_factory=list)
+    tipo: TipoReserva | None = None
+    tipo_reserva_id: int | None = None
+    acompanantes: list[AcompananteInput] = Field(default_factory=list)
+    descripcion: str | None = None
+    tipo_solicitud: TipoSolicitud = TipoSolicitud.RESERVA_EN_LABORATORIO
+    ubicacion_uso: str | None = Field(default=None, max_length=200)
+    requiere_apoyo_auxiliar: bool = False
+    motivo_solicitud_id: int | None = None
+    asistentes: int = Field(gt=0)
+    # Con 1 sola ocurrencia, usar POST /reservas normal -- evita dos caminos
+    # para el mismo caso. 30 es un techo arbitrario razonable.
+    ocurrencias: list[OcurrenciaInput] = Field(min_length=2, max_length=30)
+
+    @field_validator("tipo_solicitud")
+    @classmethod
+    def _tipo_solicitud_no_orden_salida(cls, value: TipoSolicitud) -> TipoSolicitud:
+        if value == TipoSolicitud.ORDEN_SALIDA:
+            raise ValueError("orden_salida no se crea desde este endpoint")
+        return value
+
+    @model_validator(mode="after")
+    def _al_menos_un_recurso_o_espacio(self) -> "ReservaGrupoCreate":
+        if not self.recurso_ids and not self.espacio_ids:
+            raise ValueError("Debes indicar al menos un recurso o un espacio")
+        return self
+
+    @model_validator(mode="after")
+    def _ubicacion_uso_solo_fuera_del_laboratorio(self) -> "ReservaGrupoCreate":
+        if self.ubicacion_uso is not None and self.tipo_solicitud != TipoSolicitud.RESERVA_FUERA_LABORATORIO:
+            raise ValueError("ubicacion_uso solo aplica cuando tipo_solicitud es reserva_fuera_laboratorio")
+        return self
+
+
+class OcurrenciaOmitida(BaseModel):
+    """Una ocurrencia de un grupo que no se pudo crear/cancelar --
+    "mejor esfuerzo", mismo criterio que tenía `crear_reserva_serie`
+    (revertida): un 409/400 en una ocurrencia no aborta las demás."""
+
+    fecha: date
+    hora_inicio: time
+    hora_fin: time
+    motivo: str
+
+
+class ReservaGrupoResponse(BaseModel):
+    grupo_id: uuid.UUID
+    creadas: list[ReservaResponse]
+    omitidas: list[OcurrenciaOmitida]
+
+
+class ReservaGrupoCancelResponse(BaseModel):
+    """Respuesta de `PUT /reservas/grupo/{grupo_id}/cancelar` -- mismo
+    criterio "mejor esfuerzo": una ocurrencia todavía `esperando` (nunca
+    aprobada) no es cancelable, queda "omitida" con ese motivo."""
+
+    canceladas: list[int]
+    omitidas: list[OcurrenciaOmitida]

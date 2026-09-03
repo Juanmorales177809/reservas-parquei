@@ -31,6 +31,7 @@ import '../../tipos_reserva/application/tipos_reserva_providers.dart';
 import '../../motivos_solicitud/application/motivos_solicitud_providers.dart';
 import '../application/reservas_providers.dart';
 import '../data/reservas_repository.dart';
+import '../domain/reserva.dart' show OcurrenciaInput;
 import 'selectable_slot_grid.dart';
 
 /// Sheet multi-eje para crear una reserva completa (Fase P2).
@@ -61,6 +62,12 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
   final _descripcionCtrl = TextEditingController();
   final _ubicacionUsoCtrl = TextEditingController();
   Set<int> _seleccion = {};
+  // Reservas multi-día agrupadas (2026-09-03): días ya confirmados antes
+  // del que está seleccionado ahora mismo en la grilla -- `_reservar` arma
+  // la última ocurrencia con `_fecha`/`_seleccion` vigentes y la suma a
+  // esta lista antes de decidir si llama a `crear` (1 sola) o `crearGrupo`
+  // (2+).
+  final List<OcurrenciaInput> _ocurrencias = [];
   int _asistentes = 1;
   // Fase 7: catálogo real por laboratorio (reemplaza el enum fijo viejo,
   // ver `features/tipos_reserva/`) -- `null` si no se elige ninguno.
@@ -118,6 +125,24 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
     return caps.reduce((a, b) => a < b ? a : b);
   }
 
+  /// Reservas multi-día agrupadas: suma el día actual (`_fecha` +
+  /// `_seleccion`) a la lista y abre el selector de fecha para el
+  /// siguiente -- reusa `_elegirFecha()`, el mismo flujo de siempre, solo
+  /// que ahora hay una lista debajo acumulando lo ya confirmado.
+  Future<void> _agregarDiaActual(List<DisponibilidadSlot> slots) async {
+    if (_seleccion.isEmpty) return;
+    final minIdx = _seleccion.reduce((a, b) => a < b ? a : b);
+    final maxIdx = _seleccion.reduce((a, b) => a > b ? a : b);
+    setState(() {
+      _ocurrencias.add(OcurrenciaInput(fecha: _fecha, horaInicio: slots[minIdx].horaInicio, horaFin: slots[maxIdx].horaFin));
+      _seleccion = {};
+      _error = null;
+    });
+    await _elegirFecha();
+  }
+
+  void _quitarOcurrencia(int index) => setState(() => _ocurrencias.removeAt(index));
+
   Future<void> _reservar(List<DisponibilidadSlot> slots) async {
     if (_recursoIds.isEmpty && _espacioIds.isEmpty) { setState(() => _error = 'Seleccioná al menos un recurso o un espacio.'); return; }
     final tipoSolicitudActual = _motivoSolicitudId != null ? widget.tipoSolicitud : widget.tipoSolicitud;
@@ -129,30 +154,65 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
     }
     final minIdx = _seleccion.reduce((a, b) => a < b ? a : b);
     final maxIdx = _seleccion.reduce((a, b) => a > b ? a : b);
+    // El día vigente en la grilla siempre se suma como la última ocurrencia
+    // -- con `_ocurrencias` vacía, esto es exactamente el caso de siempre
+    // (una sola reserva).
+    final ocurrenciaActual = OcurrenciaInput(fecha: _fecha, horaInicio: slots[minIdx].horaInicio, horaFin: slots[maxIdx].horaFin);
+    final todasLasOcurrencias = [..._ocurrencias, ocurrenciaActual];
     setState(() { _enviando = true; _error = null; });
     try {
-      await ref.read(reservasRepositoryProvider).crear(
-            recursoIds: _recursoIds.toList(),
-            espacioIds: _espacioIds.toList(),
-            acompanantes: List.of(_acompanantes),
-            fecha: _fecha,
-            horaInicio: slots[minIdx].horaInicio,
-            horaFin: slots[maxIdx].horaFin,
-            asistentes: _asistentes,
-            tipoReservaId: _tipoReservaId,
-            motivoSolicitudId: _motivoSolicitudId,
-            descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
-            tipoSolicitud: widget.tipoSolicitud,
-            ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio
-                ? _ubicacionUsoCtrl.text.trim()
-                : null,
-            requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
-          );
-      // invalidar disponibilidades de recursos afectados y mis reservas
-      for (final id in _recursoIds) { ref.invalidate(recursoDisponibilidadProvider(id, _fecha)); }
+      String mensajeExito;
+      if (todasLasOcurrencias.length <= 1) {
+        await ref.read(reservasRepositoryProvider).crear(
+              recursoIds: _recursoIds.toList(),
+              espacioIds: _espacioIds.toList(),
+              acompanantes: List.of(_acompanantes),
+              fecha: _fecha,
+              horaInicio: slots[minIdx].horaInicio,
+              horaFin: slots[maxIdx].horaFin,
+              asistentes: _asistentes,
+              tipoReservaId: _tipoReservaId,
+              motivoSolicitudId: _motivoSolicitudId,
+              descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
+              tipoSolicitud: widget.tipoSolicitud,
+              ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio
+                  ? _ubicacionUsoCtrl.text.trim()
+                  : null,
+              requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
+            );
+        mensajeExito = 'Reserva enviada. Quedó pendiente de aprobación.';
+      } else {
+        final resultado = await ref.read(reservasRepositoryProvider).crearGrupo(
+              recursoIds: _recursoIds.toList(),
+              espacioIds: _espacioIds.toList(),
+              acompanantes: List.of(_acompanantes),
+              ocurrencias: todasLasOcurrencias,
+              asistentes: _asistentes,
+              tipoReservaId: _tipoReservaId,
+              motivoSolicitudId: _motivoSolicitudId,
+              descripcion: _descripcionCtrl.text.trim().isEmpty ? null : _descripcionCtrl.text.trim(),
+              tipoSolicitud: widget.tipoSolicitud,
+              ubicacionUso: widget.tipoSolicitud == TipoSolicitud.reservaFueraLaboratorio
+                  ? _ubicacionUsoCtrl.text.trim()
+                  : null,
+              requiereApoyoAuxiliar: _requiereApoyoAuxiliar,
+            );
+        mensajeExito = resultado.omitidas.isEmpty
+            ? 'Se enviaron las ${resultado.creadas.length} reservas del grupo.'
+            : 'Se enviaron ${resultado.creadas.length} de ${todasLasOcurrencias.length} días. '
+                '${resultado.omitidas.length} no se pudieron crear (horario ya ocupado).';
+      }
+      // invalidar disponibilidades de recursos afectados (todas las fechas
+      // del grupo, no solo la última) y mis reservas
+      final fechasAfectadas = {for (final o in todasLasOcurrencias) o.fecha};
+      for (final id in _recursoIds) {
+        for (final fecha in fechasAfectadas) {
+          ref.invalidate(recursoDisponibilidadProvider(id, fecha));
+        }
+      }
       ref.invalidate(misReservasProvider);
       if (mounted) {
-        await SuccessBurst.show(context, message: 'Reserva enviada. Quedó pendiente de aprobación.');
+        await SuccessBurst.show(context, message: mensajeExito);
         if (mounted) Navigator.of(context).pop();
       }
     } on Object catch (e) {
@@ -268,6 +328,26 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                 Text(tipoSolicitudLabel(widget.tipoSolicitud), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(onPressed: _elegirFecha, icon: const Icon(LucideIcons.calendar, size: 18), label: Text('${_fecha.day}/${_fecha.month}/${_fecha.year}')),
+              // Reservas multi-día agrupadas: días ya confirmados antes del
+              // que se está eligiendo ahora en la grilla de abajo.
+              if (_ocurrencias.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    for (var i = 0; i < _ocurrencias.length; i++)
+                      InputChip(
+                        avatar: const Icon(LucideIcons.calendarPlus, size: 14),
+                        label: Text(
+                          '${_ocurrencias[i].fecha.day}/${_ocurrencias[i].fecha.month} · '
+                          '${_ocurrencias[i].horaInicio}–${_ocurrencias[i].horaFin}',
+                        ),
+                        onDeleted: () => _quitarOcurrencia(i),
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               // ── Feature A: Espacios (incluye sus equipos) ──
               // Sin ModalidadLaboratorio (removido, ver Fase 3 de
@@ -501,7 +581,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                     data: (slots) {
                       if (slots.isEmpty) return const EmptyView(icon: LucideIcons.calendarX, message: 'No hay franjas disponibles para esta fecha.');
                       if (!isAuthenticated) return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [DisponibilidadSlotGrid(slots: slots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
-                      return _FormularioMulti(slots: slots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, espaciosDelLaboratorio), asistentes: _asistentes, tiposReserva: tiposReserva, tipoReservaId: _tipoReservaId, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(slots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoReservaIdChanged: (v) => setState(() => _tipoReservaId = v), onConfirmar: () => _reservar(slots));
+                      return _FormularioMulti(slots: slots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, espaciosDelLaboratorio), asistentes: _asistentes, tiposReserva: tiposReserva, tipoReservaId: _tipoReservaId, enviando: _enviando, error: _error, diasYaAgregados: _ocurrencias.length, onToggle: (i) => _alternarSlot(slots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoReservaIdChanged: (v) => setState(() => _tipoReservaId = v), onAgregarDia: () => _agregarDiaActual(slots), onConfirmar: () => _reservar(slots));
                     },
                   );
                 }
@@ -510,7 +590,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
                   // horario local: usar slotsDesdeHorario si existiera, por ahora mostrar mensaje y permitir seleccionar horario fijo 08-10 como demo
                   final fakeSlots = List.generate(12, (i) => DisponibilidadSlot(horaInicio: '${7 + i}:00'.padLeft(5,'0'), horaFin: '${8 + i}:00'.padLeft(5,'0'), estado: EstadoSlot.libre));
                   if (!isAuthenticated) return Column(children: [DisponibilidadSlotGrid(slots: fakeSlots), const SizedBox(height: AppSpacing.lg), FilledButton.icon(onPressed: () { Navigator.of(context).pop(); context.go(AppRoutes.login); }, icon: const Icon(LucideIcons.logIn, size: 18), label: const Text('Iniciá sesión para reservar'))]);
-                  return _FormularioMulti(slots: fakeSlots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, espaciosDelLaboratorio), asistentes: _asistentes, tiposReserva: tiposReserva, tipoReservaId: _tipoReservaId, enviando: _enviando, error: _error, onToggle: (i) => _alternarSlot(fakeSlots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoReservaIdChanged: (v) => setState(() => _tipoReservaId = v), onConfirmar: () => _reservar(fakeSlots));
+                  return _FormularioMulti(slots: fakeSlots, seleccion: _seleccion, capacidadMax: _capacidadMax(recursosAsync, espaciosDelLaboratorio), asistentes: _asistentes, tiposReserva: tiposReserva, tipoReservaId: _tipoReservaId, enviando: _enviando, error: _error, diasYaAgregados: _ocurrencias.length, onToggle: (i) => _alternarSlot(fakeSlots, i), onRango: _seleccionarRango, onAsistentesChanged: (v) => setState(() => _asistentes = v), onTipoReservaIdChanged: (v) => setState(() => _tipoReservaId = v), onAgregarDia: () => _agregarDiaActual(fakeSlots), onConfirmar: () => _reservar(fakeSlots));
                 }
                 return const EmptyView(icon: LucideIcons.info, message: 'Seleccioná al menos un recurso o un espacio para ver disponibilidad.');
               }),
@@ -523,7 +603,7 @@ class _LaboratorioReservaSheetState extends ConsumerState<LaboratorioReservaShee
 }
 
 class _FormularioMulti extends StatelessWidget {
-  const _FormularioMulti({required this.slots, required this.seleccion, required this.capacidadMax, required this.asistentes, required this.tiposReserva, required this.tipoReservaId, required this.enviando, required this.error, required this.onToggle, required this.onRango, required this.onAsistentesChanged, required this.onTipoReservaIdChanged, required this.onConfirmar});
+  const _FormularioMulti({required this.slots, required this.seleccion, required this.capacidadMax, required this.asistentes, required this.tiposReserva, required this.tipoReservaId, required this.enviando, required this.error, required this.diasYaAgregados, required this.onToggle, required this.onRango, required this.onAsistentesChanged, required this.onTipoReservaIdChanged, required this.onAgregarDia, required this.onConfirmar});
   final List<DisponibilidadSlot> slots;
   final Set<int> seleccion;
   final int capacidadMax;
@@ -532,10 +612,14 @@ class _FormularioMulti extends StatelessWidget {
   final int? tipoReservaId;
   final bool enviando;
   final String? error;
+  // Reservas multi-día agrupadas: cuántos días ya se confirmaron antes de
+  // este (0 = el caso de siempre, una sola reserva).
+  final int diasYaAgregados;
   final ValueChanged<int> onToggle;
   final void Function(int, int) onRango;
   final ValueChanged<int> onAsistentesChanged;
   final ValueChanged<int?> onTipoReservaIdChanged;
+  final VoidCallback onAgregarDia;
   final VoidCallback onConfirmar;
   @override
   Widget build(BuildContext context) {
@@ -558,7 +642,22 @@ class _FormularioMulti extends StatelessWidget {
       if (error != null) ...[const SizedBox(height: AppSpacing.md), Container(width: double.infinity, padding: const EdgeInsets.all(AppSpacing.md), decoration: BoxDecoration(color: AppEstados.negativo.tinte, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppEstados.negativo.borde.withValues(alpha: 0.4))), child: Text(error!, style: TextStyle(color: AppEstados.negativo.sobreTinte)))],
       const SizedBox(height: AppSpacing.lg),
       if (resumen != null) Container(width: double.infinity, padding: const EdgeInsets.all(AppSpacing.md), margin: const EdgeInsets.only(bottom: AppSpacing.md), decoration: BoxDecoration(color: AppColors.azul50, borderRadius: BorderRadius.circular(8)), child: Row(children: [const Icon(LucideIcons.calendarCheck, size: 16, color: AppColors.marca), const SizedBox(width: AppSpacing.sm), Expanded(child: Text(resumen, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.azul800, fontWeight: FontWeight.w600))) ])),
-      SizedBox(width: double.infinity, child: FilledButton(onPressed: (!hay || enviando) ? null : onConfirmar, child: enviando ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Reservar'))),
+      // Reservas multi-día agrupadas: "Agregar otro día" solo tiene sentido
+      // con una selección vigente -- suma este día y abre el selector de
+      // fecha para el siguiente, sin enviar nada todavía.
+      if (hay) ...[
+        SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: enviando ? null : onAgregarDia, icon: const Icon(LucideIcons.calendarPlus, size: 16), label: const Text('Agregar otro día'))),
+        const SizedBox(height: AppSpacing.sm),
+      ],
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: (!hay || enviando) ? null : onConfirmar,
+          child: enviando
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(diasYaAgregados > 0 ? 'Reservar ${diasYaAgregados + 1} días' : 'Reservar'),
+        ),
+      ),
       if (!hay) ...[const SizedBox(height: AppSpacing.sm), Center(child: Text('Tocá una franja disponible, o arrastrá para elegir varias seguidas', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center))],
     ]);
   }

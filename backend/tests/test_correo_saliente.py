@@ -367,3 +367,83 @@ class TestEnganchesDeReserva:
         correos = db.query(CorreoSaliente).all()
         assert len(correos) == 2  # gestor (pendiente de aprobación) + solicitante (confirmación)
         assert all(correo.estado == "pendiente" for correo in correos)
+
+
+class TestCorreoOpcional:
+    """Correo opcional (2026-09-03): dos flags independientes,
+    `Laboratorio.notificar_por_correo` y `Personal.recibir_correos` /
+    `Usuario.recibir_correos` (ver `services/preferencias_correo.py`).
+    Ninguno de los dos debe afectar la `Notificacion` in-app, solo el
+    correo."""
+
+    def test_laboratorio_con_correo_apagado_no_encola_nada_pero_notificacion_in_app_sigue(self, client, db, email_habilitado):
+        from app.models import Notificacion
+
+        usuario, gestor, laboratorio, recurso = _setup(db, nombre_espacio="Sala Correo Apagado Lab")
+        laboratorio.notificar_por_correo = False
+        db.commit()
+
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+
+        assert db.query(CorreoSaliente).count() == 0
+        assert db.query(Notificacion).filter(Notificacion.personal_id == gestor.id).count() == 1
+
+    def test_gestor_con_correo_personal_apagado_no_recibe_pero_solicitante_si(self, client, db, email_habilitado):
+        """Los dos flags se evalúan por destinatario: que el gestor haya
+        apagado su propio correo no debe afectar al correo de confirmación
+        que recibe el solicitante por el mismo evento."""
+        usuario, gestor, _, recurso = _setup(db, nombre_espacio="Sala Correo Apagado Gestor")
+        gestor.recibir_correos = False
+        db.commit()
+
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+
+        assert db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).first() is None
+        correo_usuario = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).one()
+        assert correo_usuario.estado == "enviado"
+
+    def test_usuario_con_correo_personal_apagado_no_recibe_confirmacion_pero_gestor_si(self, client, db, email_habilitado):
+        usuario, gestor, _, recurso = _setup(db, nombre_espacio="Sala Correo Apagado Usuario")
+        usuario.recibir_correos = False
+        db.commit()
+
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+
+        assert db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).first() is None
+        correo_gestor = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).one()
+        assert correo_gestor.estado == "enviado"
+
+    def test_aprobar_reserva_con_laboratorio_apagado_no_notifica_al_propietario(self, client, db, email_habilitado):
+        usuario, gestor, laboratorio, recurso = _setup(db, nombre_espacio="Sala Correo Apagado Aprobar")
+        creada = client.post(
+            "/reservas",
+            json=payload_reserva(recurso.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        ).json()
+        db.query(CorreoSaliente).delete()
+        db.commit()
+        laboratorio.notificar_por_correo = False
+        db.commit()
+
+        aprobada = client.put(
+            f"/reservas/{creada['id']}/estado",
+            json={"nuevo_estado": "aprobada"},
+            headers=cookies_para(gestor),
+        )
+        assert aprobada.status_code == 200
+        assert db.query(CorreoSaliente).count() == 0

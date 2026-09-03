@@ -163,6 +163,25 @@ def test_actualizar_rol_de_gestor_a_admin_dentro_de_personal(client, db):
     assert respuesta.json()["rol"] == "admin"
 
 
+def test_admin_puede_ajustar_recibir_correos_de_un_gestor(client, db):
+    """Correo opcional por persona (2026-09-03): un admin puede tocar la
+    preferencia de otra cuenta de personal, no solo la propia (a diferencia
+    de PUT /usuarios/me, que es self-service)."""
+    admin = _admin(db)
+    laboratorio = crear_laboratorio(db, nombre="Sala Correo Pref Personal")
+    gestor = crear_usuario(
+        db, username="gestor_correo_pref", email="gestor_correo_pref@example.com", rol="gestor", laboratorio_id=laboratorio.id
+    )
+    assert gestor.recibir_correos is True
+
+    respuesta = client.put(f"/personal/{gestor.id}", json={"recibir_correos": False}, headers=cookies_para(admin))
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["recibir_correos"] is False
+    db.refresh(gestor)
+    assert gestor.recibir_correos is False
+
+
 class TestPromoverUsuarioAPersonal:
     def test_promover_usuario_existente_a_gestor(self, client, db):
         admin = _admin(db)

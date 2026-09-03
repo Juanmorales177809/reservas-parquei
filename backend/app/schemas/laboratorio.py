@@ -71,12 +71,14 @@ class ConfiguracionLaboratorioResponse(BaseModel):
     horario_atencion: dict[int, list[int]]
     horas_antelacion: int
     aprobacion_automatica: bool
+    notificar_por_correo: bool
 
 
 class ConfiguracionLaboratorioUpdate(BaseModel):
     horario_atencion: dict[int, list[int]]
     horas_antelacion: int = Field(ge=0, le=8760)
     aprobacion_automatica: bool
+    notificar_por_correo: bool
 
     @field_validator("horario_atencion")
     @classmethod

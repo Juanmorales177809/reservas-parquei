@@ -58,6 +58,67 @@ def test_eliminar_espacio_con_dependencias_da_409(client, db):
     assert respuesta.status_code == 409
 
 
+class TestConfiguracionNotificarPorCorreo:
+    """Correo opcional por laboratorio (2026-09-03) -- roundtrip del campo
+    nuevo en `PUT/GET /laboratorios/gestion/configuracion`."""
+
+    def _payload(self, *, notificar_por_correo, aprobacion_automatica=False):
+        return {
+            "horario_atencion": {str(dia): list(range(7, 20)) for dia in range(6)},
+            "horas_antelacion": 24,
+            "aprobacion_automatica": aprobacion_automatica,
+            "notificar_por_correo": notificar_por_correo,
+        }
+
+    def test_default_true_en_laboratorio_nuevo(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Config Correo Default")
+        gestor = crear_usuario(
+            db, username="gestor_cfg1", email="gestor_cfg1@example.com", rol="gestor", laboratorio_id=laboratorio.id
+        )
+        respuesta = client.get("/laboratorios/gestion/configuracion", headers=cookies_para(gestor))
+        assert respuesta.status_code == 200
+        assert respuesta.json()["notificar_por_correo"] is True
+
+    def test_se_puede_apagar_y_prender(self, client, db):
+        laboratorio = crear_laboratorio(db, nombre="Sala Config Correo Toggle")
+        gestor = crear_usuario(
+            db, username="gestor_cfg2", email="gestor_cfg2@example.com", rol="gestor", laboratorio_id=laboratorio.id
+        )
+        apagar = client.put(
+            "/laboratorios/gestion/configuracion",
+            json=self._payload(notificar_por_correo=False),
+            headers=cookies_para(gestor),
+        )
+        assert apagar.status_code == 200
+        assert apagar.json()["notificar_por_correo"] is False
+        db.refresh(laboratorio)
+        assert laboratorio.notificar_por_correo is False
+
+        prender = client.put(
+            "/laboratorios/gestion/configuracion",
+            json=self._payload(notificar_por_correo=True),
+            headers=cookies_para(gestor),
+        )
+        assert prender.status_code == 200
+        assert prender.json()["notificar_por_correo"] is True
+
+    def test_sin_el_campo_da_422(self, client, db):
+        """`notificar_por_correo` es requerido en el Update, mismo criterio
+        que `aprobacion_automatica` -- no hay valor implícito seguro."""
+        laboratorio = crear_laboratorio(db, nombre="Sala Config Correo Faltante")
+        gestor = crear_usuario(
+            db, username="gestor_cfg3", email="gestor_cfg3@example.com", rol="gestor", laboratorio_id=laboratorio.id
+        )
+        payload = self._payload(notificar_por_correo=True)
+        del payload["notificar_por_correo"]
+        respuesta = client.put(
+            "/laboratorios/gestion/configuracion",
+            json=payload,
+            headers=cookies_para(gestor),
+        )
+        assert respuesta.status_code == 422
+
+
 class TestRN005ListadoPublico:
     def test_espacio_activo_visible_sin_token(self, client, db):
         crear_laboratorio(db, nombre="Sala Activa")
