@@ -53,13 +53,22 @@ logger = logging.getLogger("app.email_graph")
 
 CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
 AUTHORITY = "https://login.microsoftonline.com/common"
-# `Calendars.ReadWrite` (2026-09-03, invitación de Outlook Calendar):
-# ampliado sobre el scope original de solo correo. El token cacheado antes
-# de este cambio SOLO consintió `Mail.Send` -- hace falta correr
-# `python -m scripts.graph_login` de nuevo (a mano, con la contraseña de
-# `settings.graph_mail_sender`) para que el nuevo scope quede consentido;
-# `_token_silencioso()` no lo hace sola. Ver `services/calendario.py`.
-SCOPES = ["Mail.Send", "Calendars.ReadWrite"]
+SCOPES = ["Mail.Send"]
+# `Calendars.ReadWrite` (2026-09-03, invitación de Outlook Calendar) --
+# **NO** se combina con `SCOPES` en una sola lista: confirmado en vivo
+# (2026-09-03) que el tenant del ITM exige aprobación de un admin de Entra
+# para este scope puntual ("Need admin approval"), a diferencia de
+# `Mail.Send`, que un usuario normal ya pudo consentir solo. Si ambos
+# vivieran en la misma lista, cada llamada a `_token_silencioso()` --
+# incluida la que usa `enviar_graph` para el correo, que YA funciona --
+# pediría los dos juntos y fallaría por el bloqueo del segundo, rompiendo
+# también el correo. Separados, el correo sigue andando con su propio
+# scope ya consentido mientras el calendario queda bloqueado esperando que
+# Sistemas otorgue el consentimiento de admin (ver `ticket-sistemas-graph-mail.html`,
+# a ampliar para pedir también este scope sobre el App Registration
+# permanente -- no tiene sentido pedirle a un admin que apruebe el cliente
+# genérico "Microsoft Graph Command Line Tools" para todo el tenant).
+CALENDAR_SCOPES = ["Calendars.ReadWrite"]
 
 _GRAPH_SEND_MAIL_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
 _GRAPH_EVENTS_URL_TEMPLATE = "https://graph.microsoft.com/v1.0/users/{sender}/events"
@@ -89,9 +98,14 @@ def _construir_app(cache: SerializableTokenCache) -> PublicClientApplication:
     return PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=cache)
 
 
-def _token_silencioso() -> str:
+def _token_silencioso(scopes: list[str] = SCOPES) -> str:
     """Renueva el token SOLO desde la caché -- nunca dispara un login
-    interactivo (no hay humano mirando un proceso desatendido)."""
+    interactivo (no hay humano mirando un proceso desatendido).
+
+    `scopes` es parametrizable (default `SCOPES`, solo correo) para que el
+    calendario (`CALENDAR_SCOPES`) pida su propio scope de forma aislada --
+    ver el comentario junto a `CALENDAR_SCOPES` sobre por qué no conviene
+    combinarlos en una sola lista."""
     cache = _cargar_cache()
     app = _construir_app(cache)
     cuentas = app.get_accounts()
@@ -100,7 +114,7 @@ def _token_silencioso() -> str:
             "No hay ninguna sesión de Graph cacheada -- correr "
             "'python -m scripts.graph_login' de forma interactiva para crearla."
         )
-    resultado = app.acquire_token_silent(SCOPES, account=cuentas[0])
+    resultado = app.acquire_token_silent(scopes, account=cuentas[0])
     _persistir_cache(cache)
     if not resultado or "access_token" not in resultado:
         detalle = (resultado or {}).get("error_description", "sin detalle")
@@ -111,12 +125,12 @@ def _token_silencioso() -> str:
     return resultado["access_token"]
 
 
-def login_interactivo() -> None:
+def login_interactivo(scopes: list[str] = SCOPES) -> None:
     """Login único por device code flow -- pensado para correrse a mano
     (`scripts/graph_login.py`), nunca desde el backend en producción."""
     cache = _cargar_cache()
     app = _construir_app(cache)
-    flow = app.initiate_device_flow(scopes=SCOPES)
+    flow = app.initiate_device_flow(scopes=scopes)
     if "user_code" not in flow:
         raise RuntimeError(f"No se pudo iniciar el device flow: {flow}")
     print(flow["message"])  # noqa: T201 -- script interactivo, no logging
@@ -172,7 +186,7 @@ def crear_evento_calendario_graph(
     directo al calendario de nadie más. Devuelve el `id` del evento creado
     (se guarda en `Reserva.graph_event_id` para poder actualizarlo o
     cancelarlo después)."""
-    token = _token_silencioso()
+    token = _token_silencioso(CALENDAR_SCOPES)
     url = _GRAPH_EVENTS_URL_TEMPLATE.format(sender=settings.graph_mail_sender)
     payload = {
         "subject": asunto,
@@ -194,7 +208,7 @@ def crear_evento_calendario_graph(
 def actualizar_evento_calendario_graph(event_id: str, *, inicio: datetime, fin: datetime) -> None:
     """Reprograma un evento ya creado (reserva aprobada que cambió de
     horario vía `actualizar_reserva`)."""
-    token = _token_silencioso()
+    token = _token_silencioso(CALENDAR_SCOPES)
     url = _GRAPH_EVENT_URL_TEMPLATE.format(sender=settings.graph_mail_sender, event_id=event_id)
     payload = {
         "start": {"dateTime": inicio.isoformat(), "timeZone": "America/Bogota"},
@@ -209,7 +223,7 @@ def cancelar_evento_calendario_graph(event_id: str, *, comentario: str = "") -> 
     """`POST .../cancel`, no `DELETE` -- Outlook manda automáticamente el
     aviso de cancelación a los asistentes (decisión confirmada: ya habían
     recibido la invitación, deben enterarse de que se retiró)."""
-    token = _token_silencioso()
+    token = _token_silencioso(CALENDAR_SCOPES)
     url = _GRAPH_EVENT_CANCEL_URL_TEMPLATE.format(sender=settings.graph_mail_sender, event_id=event_id)
     respuesta = httpx.post(url, headers={"Authorization": f"Bearer {token}"}, json={"comment": comentario}, timeout=10)
     if respuesta.status_code >= 400:

@@ -74,7 +74,7 @@ class TestTokenSilencioso:
 
 class TestEnviarGraph:
     def test_envia_con_payload_y_header_correctos(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
 
         llamadas = []
 
@@ -97,7 +97,7 @@ class TestEnviarGraph:
         assert mensaje["toRecipients"][0]["emailAddress"]["address"] == "destino@example.com"
 
     def test_es_html_true_manda_contenttype_html(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
 
         llamadas = []
 
@@ -113,7 +113,7 @@ class TestEnviarGraph:
         assert llamadas[0]["message"]["body"]["content"] == "<p>Cuerpo</p>"
 
     def test_error_http_lanza_runtimeerror_con_status_y_detalle(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
 
         def _post_falso(url, headers=None, json=None, timeout=None):
             return httpx.Response(403, text="Forbidden: insufficient privileges", request=httpx.Request("POST", url))
@@ -140,7 +140,7 @@ class TestEventosCalendario:
     `TestEnviarGraph`: nunca le pegan a Graph real."""
 
     def test_crear_evento_manda_payload_y_asistentes_correctos(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         llamadas = []
 
         def _post_falso(url, headers=None, json=None, timeout=None):
@@ -175,7 +175,7 @@ class TestEventosCalendario:
         assert asistentes[1]["emailAddress"] == {"address": "usuario@example.com", "name": "usuario1"}
 
     def test_crear_evento_error_http_lanza_runtimeerror(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         monkeypatch.setattr(
             email_graph.httpx,
             "post",
@@ -189,7 +189,7 @@ class TestEventosCalendario:
             )
 
     def test_actualizar_evento_manda_patch_con_nuevo_horario(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         llamadas = []
 
         def _patch_falso(url, headers=None, json=None, timeout=None):
@@ -208,7 +208,7 @@ class TestEventosCalendario:
         assert llamadas[0]["json"]["end"]["dateTime"] == "2026-09-11T16:00:00"
 
     def test_actualizar_evento_error_http_lanza_runtimeerror(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         monkeypatch.setattr(
             email_graph.httpx,
             "patch",
@@ -221,7 +221,7 @@ class TestEventosCalendario:
             )
 
     def test_cancelar_evento_manda_post_cancel_con_comentario(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         llamadas = []
 
         def _post_falso(url, headers=None, json=None, timeout=None):
@@ -237,7 +237,7 @@ class TestEventosCalendario:
         assert llamadas[0]["json"] == {"comment": "La reserva fue cancelada."}
 
     def test_cancelar_evento_error_http_lanza_runtimeerror(self, config_graph, monkeypatch):
-        monkeypatch.setattr(email_graph, "_token_silencioso", lambda: "token-de-prueba")
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
         monkeypatch.setattr(
             email_graph.httpx,
             "post",
