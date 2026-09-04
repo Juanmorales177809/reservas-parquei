@@ -56,6 +56,16 @@ class _CompletarCuentaScreenState extends ConsumerState<CompletarCuentaScreen> {
       // Igual que en LoginScreen: la navegación a la ruta protegida la
       // resuelve el `redirect` de go_router al detectar el cambio de
       // estado de `authProvider`, no este widget directamente.
+    } on AuthException catch (e) {
+      // `updateUser` (llamado dentro de `completarCuenta`) le pega directo
+      // a Supabase, no a nuestro backend -- lanza `AuthException` (paquete
+      // `gotrue`), no `DioException`/`ApiException`. `apiErrorMessage` solo
+      // sabe desenvolver esas dos, así que sin este catch el mensaje real
+      // de Supabase (ej. "New password should be different from the old
+      // password") se perdía detrás del fallback genérico.
+      setState(() {
+        _errorMessage = e.message;
+      });
     } on Object catch (e) {
       setState(() {
         _errorMessage = apiErrorMessage(e, fallback: 'No se pudo completar la cuenta. Intenta de nuevo.');
