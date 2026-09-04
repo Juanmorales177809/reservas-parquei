@@ -20,7 +20,7 @@ Aplicación web para administrar espacios institucionales, sus recursos y las re
 - `Mi perfil` centrado dentro del `ShellRoute` con navbar visible (fix 2026-09-02).
 - Correo opcional: toggle por laboratorio (`notificar_por_correo`) y preferencia por persona (`recibir_correos`), independientes entre sí.
 - Reservas multi-día agrupadas (`POST /reservas/grupo`): un grupo con horario distinto por día, "mejor esfuerzo" por ocurrencia, cada día cancelable solo o el grupo entero de una.
-- Invitación de Outlook Calendar al aprobar una reserva (Microsoft Graph, técnico + usuario como asistentes), vía outbox diferido para no bloquear la aprobación.
+- Invitación de Outlook Calendar al aprobar una reserva: adjunto `.ics` de invitación real (`METHOD:REQUEST`/`CANCEL`, técnico + usuario como asistentes) vía el mismo correo saliente ya existente — sin depender de ningún permiso de Microsoft Graph que requiera aprobación de un admin del tenant.
 
 ## Tecnologías
 

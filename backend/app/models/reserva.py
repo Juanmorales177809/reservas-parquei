@@ -90,12 +90,24 @@ class Reserva(Base):
     # coherencia del grupo (mismo actor, mismos recursos/espacios) la
     # garantiza el servicio, no el esquema.
     grupo_id = Column(UUID(as_uuid=True), nullable=True, index=True)
-    # Invitación de Outlook Calendar vía Graph (2026-09-03): `id` del evento
-    # ya creado, se completa recién cuando el outbox
-    # (`EventoCalendarioSaliente`) tiene éxito -- ver
-    # `services/calendario.py`. `null` mientras no haya evento (reserva
-    # nunca aprobada, o Graph todavía no proceso la fila pendiente).
+    # Invitación de Outlook Calendar (2026-09-03, rediseño): NO es un id de
+    # Microsoft Graph (el plan original -- API de eventos -- quedó
+    # bloqueado por política de admin del tenant del ITM, ver
+    # `backend/CLAUDE.md`). Es el `UID` (RFC 5545) del `.ics` de invitación
+    # que ya se mandó por correo (`services/calendario.py`) -- se completa
+    # sincrónicamente al encolar la primera invitación (mandar un correo no
+    # puede fallar por causas externas como sí podía una llamada HTTP a
+    # Graph, no hace falta esperar a que se procese). `null` mientras la
+    # reserva nunca se aprobó. El nombre de la columna quedó igual que en
+    # el diseño original a propósito -- no tiene datos reales en ningún
+    # entorno todavía, pero renombrarla exigiría una migración sin
+    # beneficio funcional.
     graph_event_id = Column(String(255), nullable=True)
+    # Contador de revisiones de esa invitación (`SEQUENCE` de RFC 5545) --
+    # se incrementa cada vez que se reprograma o cancela, para que el
+    # cliente de correo del destinatario reconozca una actualización del
+    # mismo evento (mismo UID) en vez de confundirlo con uno nuevo.
+    calendario_secuencia = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -106,12 +118,6 @@ class Reserva(Base):
     tipo_reserva = relationship("TipoReserva")
     motivo_solicitud = relationship("MotivoSolicitud")
     notificaciones = relationship("Notificacion", back_populates="reserva", cascade="all, delete-orphan")
-    eventos_calendario = relationship(
-        "EventoCalendarioSaliente",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        overlaps="reserva",
-    )
 
     # Fase 12C-6: relaciones aditivas de lectura hacia las tablas de
     # asociación (sin cambio de esquema). `reserva_recursos`/`reserva_espacios`

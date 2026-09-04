@@ -2,7 +2,6 @@ from app.models.control_cambio import ControlCambio
 from app.models.correo_saliente import CorreoSaliente
 from app.models.espacio import Espacio
 from app.models.espacio_recurso import EspacioRecurso
-from app.models.evento_calendario_saliente import EventoCalendarioSaliente
 from app.models.laboratorio import Laboratorio
 from app.models.lista_espera import ListaEspera
 from app.models.notificacion import Notificacion
@@ -22,7 +21,6 @@ __all__ = [
     "CorreoSaliente",
     "Espacio",
     "EspacioRecurso",
-    "EventoCalendarioSaliente",
     "Laboratorio",
     "ListaEspera",
     "MotivoSolicitud",

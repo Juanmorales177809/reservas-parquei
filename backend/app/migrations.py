@@ -978,11 +978,18 @@ def migrate_resource_reservations() -> None:
         # sin backfill -- todo lo histórico queda sin grupo.
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS grupo_id UUID",
         "CREATE INDEX IF NOT EXISTS ix_reservas_grupo_id ON reservas (grupo_id)",
-        # Invitación de Outlook Calendar vía Graph (2026-09-03): nullable,
-        # sin backfill -- se completa recién cuando el outbox
-        # (`EventoCalendarioSaliente`, tabla nueva sin datos que migrar)
-        # procesa la fila con éxito.
+        # Invitación de Outlook Calendar por correo (2026-09-03, rediseño --
+        # ver `services/calendario.py`): `graph_event_id` NO es un id de
+        # Graph, es el UID (RFC 5545) del `.ics` de invitación ya mandado
+        # por correo; nullable, sin backfill. `calendario_secuencia` es el
+        # `SEQUENCE` de esa invitación, para que reprogramar/cancelar no se
+        # confunda con un evento nuevo -- default 0, backfill explícito
+        # porque la columna es NOT NULL.
         "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS graph_event_id VARCHAR(255)",
+        "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS calendario_secuencia INTEGER DEFAULT 0",
+        "UPDATE reservas SET calendario_secuencia = 0 WHERE calendario_secuencia IS NULL",
+        "ALTER TABLE reservas ALTER COLUMN calendario_secuencia SET DEFAULT 0",
+        "ALTER TABLE reservas ALTER COLUMN calendario_secuencia SET NOT NULL",
     )
 
     with engine.begin() as connection:

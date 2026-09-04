@@ -20,7 +20,14 @@ def test_auto_aprobacion_adjunta_ics(client, db):
     respuesta = client.post("/reservas", json=payload_reserva(recurso.id, fecha_habilitada()), headers=cookies_para(gestor))
     assert respuesta.json()["estado"] == "aprobada"
 
-    correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).one()
+    # Ahora también existe la invitación de calendario (2026-09-03, independiente de
+    # este correo de confirmación) para el mismo destinatario -- se filtra por asunto
+    # para aislar el correo de confirmación de reserva, no la invitación.
+    correo = (
+        db.query(CorreoSaliente)
+        .filter(CorreoSaliente.destinatario == gestor.email, CorreoSaliente.asunto == "Tu reserva fue aprobada")
+        .one()
+    )
     assert correo.adjunto_nombre is not None
     assert correo.adjunto_content_type == "text/calendar"
     contenido = base64.b64decode(correo.adjunto_contenido).decode("utf-8")

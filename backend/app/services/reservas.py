@@ -49,7 +49,11 @@ from app.schemas.reserva import (
 )
 from app.services.actores import columnas_actor, es_actor
 from app.services.auditoria import registrar_cambio
-from app.services.calendario import encolar_evento_calendario, procesar_eventos_calendario_pendientes
+from app.services.calendario import (
+    encolar_actualizacion_calendario,
+    encolar_cancelacion_calendario,
+    encolar_invitacion_calendario,
+)
 from app.services.email import Adjunto, encolar_correo, procesar_pendientes
 from app.services.ics import construir_ics
 from app.services.email_templates import (
@@ -104,7 +108,9 @@ def _asistentes_evento_calendario(db: Session, laboratorio_id: int, dueno: Perso
     """Invitación de Outlook Calendar (2026-09-03): técnico(s) + dueño de
     la reserva, mismo público que ya recibe el correo de "reserva
     pendiente" (join `Personal`+`UsuarioLaboratorio` filtrando
-    `rol=gestor`)."""
+    `rol=gestor`). Deduplicado por email -- un gestor que reserva su propio
+    laboratorio es a la vez "técnico" y "dueño"; sin esto quedaría dos
+    veces en la lista (dos `ATTENDEE` y dos correos a la misma persona)."""
     gestores = (
         db.query(Personal.username, Personal.email)
         .join(UsuarioLaboratorio, UsuarioLaboratorio.usuario_id == Personal.id)
@@ -112,7 +118,8 @@ def _asistentes_evento_calendario(db: Session, laboratorio_id: int, dueno: Perso
         .all()
     )
     asistentes = [(email, username) for username, email in gestores]
-    asistentes.append((dueno.email, dueno.username))
+    if not any(email == dueno.email for email, _ in asistentes):
+        asistentes.append((dueno.email, dueno.username))
     return asistentes
 
 
@@ -121,15 +128,10 @@ def _encolar_evento_calendario_crear(db: Session, *, reserva: Reserva, laborator
     reserva queda `aprobada` de una. Independiente del toggle de correo
     opcional (`services/preferencias_correo.py`) -- decisión confirmada,
     son dos preferencias separadas."""
-    encolar_evento_calendario(
+    encolar_invitacion_calendario(
         db,
-        reserva_id=reserva.id,
-        accion="crear",
-        asunto=f"Reserva: {laboratorio.nombre}",
-        cuerpo=f"<p>Reserva confirmada en {laboratorio.nombre}, {reserva.fecha} {reserva.hora_inicio}-{reserva.hora_fin}.</p>",
-        ubicacion=laboratorio.nombre,
-        inicio=datetime.combine(reserva.fecha, reserva.hora_inicio),
-        fin=datetime.combine(reserva.fecha, reserva.hora_fin),
+        reserva=reserva,
+        laboratorio_nombre=laboratorio.nombre,
         asistentes=_asistentes_evento_calendario(db, laboratorio.id, dueno),
     )
 
@@ -743,7 +745,6 @@ def crear_reserva(
     )
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
-    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 
@@ -891,12 +892,11 @@ def cambiar_estado(
         if nuevo == EstadoReserva.APROBADA:
             _encolar_evento_calendario_crear(db, reserva=reserva, laboratorio=reserva.laboratorio, dueno=reserva.actor)
         elif nuevo == EstadoReserva.CANCELADA and reserva.graph_event_id is not None:
-            encolar_evento_calendario(
+            encolar_cancelacion_calendario(
                 db,
-                reserva_id=reserva.id,
-                accion="cancelar",
-                graph_event_id=reserva.graph_event_id,
-                comentario="La reserva fue cancelada.",
+                reserva=reserva,
+                laboratorio_nombre=reserva.laboratorio.nombre,
+                asistentes=_asistentes_evento_calendario(db, reserva.laboratorio_id, reserva.actor),
             )
         if nuevo in {EstadoReserva.RECHAZADA, EstadoReserva.CANCELADA} and estado_anterior in ESTADOS_BLOQUEANTES:
             _notificar_lista_espera_liberados(db, reserva)
@@ -914,7 +914,6 @@ def cambiar_estado(
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
-    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 
@@ -1317,18 +1316,16 @@ def cancelar_reserva_usuario(db: Session, reserva_id: int, usuario: Personal | U
         f"Canceló su reserva #{reserva.id}",
     )
     if reserva.graph_event_id is not None:
-        encolar_evento_calendario(
+        encolar_cancelacion_calendario(
             db,
-            reserva_id=reserva.id,
-            accion="cancelar",
-            graph_event_id=reserva.graph_event_id,
-            comentario="La reserva fue cancelada.",
+            reserva=reserva,
+            laboratorio_nombre=reserva.laboratorio.nombre,
+            asistentes=_asistentes_evento_calendario(db, reserva.laboratorio_id, reserva.actor),
         )
     _notificar_lista_espera_liberados(db, reserva)
     _sincronizar_campos_asociaciones(db, reserva)
     confirmar_cambios_reserva(db)
     procesar_pendientes(db)
-    procesar_eventos_calendario_pendientes(db)
     db.refresh(reserva)
     return get_reserva(db, reserva.id) or reserva
 
@@ -1500,13 +1497,14 @@ def actualizar_reserva(db: Session, reserva_id: int, data: ReservaUpdate, usuari
                     es_html=True,
                 )
     if reprogramar_evento_calendario:
-        encolar_evento_calendario(
+        encolar_actualizacion_calendario(
             db,
-            reserva_id=reserva.id,
-            accion="actualizar",
-            graph_event_id=reserva.graph_event_id,
-            inicio=datetime.combine(fecha, hora_inicio),
-            fin=datetime.combine(fecha, hora_fin),
+            reserva=reserva,
+            laboratorio_nombre=objetivo.laboratorio.nombre,
+            fecha=fecha,
+            hora_inicio=hora_inicio,
+            hora_fin=hora_fin,
+            asistentes=_asistentes_evento_calendario(db, objetivo.laboratorio.id, reserva.actor),
         )
     registrar_cambio(db, usuario, "actualizar", "reserva", reserva.id, f"Actualizó la reserva #{reserva.id}")
 
@@ -1546,6 +1544,7 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
     recurso_ids_liberados = get_recurso_ids_reserva(db, reserva.id) if reserva.estado in ESTADOS_BLOQUEANTES else []
     laboratorio_obj = reserva.laboratorio
     graph_event_id = reserva.graph_event_id
+    asistentes_calendario = _asistentes_evento_calendario(db, reserva.laboratorio_id, reserva.actor) if graph_event_id is not None else []
     if propietario is not None:
         datos_correo = {
             "email": propietario.email,
@@ -1574,22 +1573,14 @@ def eliminar_reserva(db: Session, reserva_id: int, usuario: Personal | Usuario) 
             es_html=True,
         )
     if graph_event_id is not None:
-        # `reserva_id=None` a propósito -- ver el comentario en
-        # `EventoCalendarioSaliente.reserva_id`: esta fila tiene que
-        # sobrevivir al DELETE de la reserva que la origina, y un
-        # `reserva_id` real quedaría alcanzado por el `ondelete=CASCADE`
-        # dentro de la misma transacción.
-        encolar_evento_calendario(
+        encolar_cancelacion_calendario(
             db,
-            reserva_id=None,
-            accion="cancelar",
-            graph_event_id=graph_event_id,
-            comentario="La reserva fue eliminada.",
+            reserva=reserva,
+            laboratorio_nombre=laboratorio_obj.nombre,
+            asistentes=asistentes_calendario,
         )
     db.commit()
-    if propietario is not None:
+    if propietario is not None or graph_event_id is not None:
         procesar_pendientes(db)
-    if graph_event_id is not None:
-        procesar_eventos_calendario_pendientes(db)
     for recurso_id in recurso_ids_liberados:
         notificar_primero_en_espera(db, recurso_id=recurso_id, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin)

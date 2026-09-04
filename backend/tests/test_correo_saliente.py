@@ -230,7 +230,12 @@ class TestEnganchesDeReserva:
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "aprobada"
 
-        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == usuario.email).one()
+        # Filtrado por asunto exacto -- la invitación de calendario
+        # (2026-09-03) también le manda un correo aparte al mismo
+        # destinatario, ver `test_calendario_invitacion.py`.
+        correo = db.query(CorreoSaliente).filter(
+            CorreoSaliente.destinatario == usuario.email, CorreoSaliente.asunto == "Tu reserva fue aprobada"
+        ).one()
         assert correo.estado == "enviado"
         assert "aprobada" in correo.asunto.lower()
         assert correo.es_html is True
@@ -254,7 +259,10 @@ class TestEnganchesDeReserva:
         )
         assert aprobada.status_code == 200
 
-        correo = db.query(CorreoSaliente).one()
+        # La invitación de calendario (2026-09-03) también manda su propio
+        # correo al aprobar -- filtrado por asunto exacto, ver
+        # `test_calendario_invitacion.py` para esa parte.
+        correo = db.query(CorreoSaliente).filter(CorreoSaliente.asunto == "Tu reserva fue aprobada").one()
         assert correo.destinatario == usuario.email
         assert correo.estado == "enviado"
         assert "aprobada" in correo.asunto.lower()
@@ -308,7 +316,12 @@ class TestEnganchesDeReserva:
         cancelada = client.put(f"/reservas/{creada['id']}/cancelar", headers=cookies_para(usuario))
         assert cancelada.status_code == 200
 
-        correo = db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).one()
+        # La invitación de calendario (2026-09-03) también manda su propio
+        # aviso de cancelación al mismo destinatario -- filtrado por
+        # asunto exacto, ver `test_calendario_invitacion.py`.
+        correo = db.query(CorreoSaliente).filter(
+            CorreoSaliente.destinatario == gestor.email, CorreoSaliente.asunto == "Se canceló una reserva aprobada"
+        ).one()
         assert correo.estado == "enviado"
         assert correo.es_html is True
         assert "Tu reserva" not in correo.cuerpo
@@ -351,7 +364,16 @@ class TestEnganchesDeReserva:
         respuesta = client.delete(f"/reservas/{creada['id']}", headers=cookies_para(gestor))
         assert respuesta.status_code == 204
 
-        assert db.query(CorreoSaliente).filter(CorreoSaliente.destinatario == gestor.email).first() is None
+        # Sin autonotificación del correo informativo "Tu reserva fue
+        # eliminada" -- pero SÍ le llega el aviso de cancelación de la
+        # invitación de calendario (2026-09-03): es su propio calendario
+        # el que pierde el evento, distinto del correo informativo
+        # redundante que este test evita.
+        assert db.query(CorreoSaliente).filter(CorreoSaliente.asunto == "Tu reserva fue eliminada").count() == 0
+        cancelacion = db.query(CorreoSaliente).filter(
+            CorreoSaliente.destinatario == gestor.email, CorreoSaliente.asunto.like("Reserva cancelada:%")
+        ).one()
+        assert cancelacion.estado == "enviado"
 
     def test_sin_email_enabled_no_se_intenta_enviar_pero_la_reserva_se_crea_igual(self, client, db):
         # Sin la fixture email_habilitado: EMAIL_ENABLED sigue en false. La
@@ -446,4 +468,7 @@ class TestCorreoOpcional:
             headers=cookies_para(gestor),
         )
         assert aprobada.status_code == 200
-        assert db.query(CorreoSaliente).count() == 0
+        # El correo normal de "aprobada" queda apagado -- pero la
+        # invitación de calendario (2026-09-03) es independiente de este
+        # toggle a propósito, ver `test_calendario_invitacion.py`.
+        assert db.query(CorreoSaliente).filter(CorreoSaliente.asunto == "Tu reserva fue aprobada").count() == 0
