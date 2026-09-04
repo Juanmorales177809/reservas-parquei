@@ -2,6 +2,10 @@
 """Pruebas de `app/services/email_templates.py`."""
 
 from app.services.email_templates import (
+    CID_ICONO_BIENVENIDA,
+    CID_LOGO_ITM,
+    imagenes_inline_para,
+    plantilla_bienvenida_autoregistro,
     plantilla_invitacion,
     plantilla_recuperacion_password,
     plantilla_reserva_actualizada,
@@ -173,3 +177,31 @@ class TestPlantillaReservaActualizada:
         assert "#7" in html
         # Color de "actualizada" (mismo navy que el resto de la identidad de Ingeniería)
         assert "#102d69" in html
+
+
+class TestImagenesInline:
+    """`imagenes_inline_para` (2026-09-04) -- reemplaza el `data:` embebido
+    (Outlook de escritorio no lo renderiza) por adjuntos `cid:` reales."""
+
+    def test_ninguna_plantilla_deja_data_uri_en_el_html(self):
+        html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
+        assert "data:image" not in html
+        assert f"cid:{CID_LOGO_ITM}" in html
+
+    def test_plantilla_invitacion_devuelve_logo_y_el_icono_de_bienvenida(self):
+        html = plantilla_invitacion(link="https://ejemplo.com/link", nombre_saludo="ana")
+        imagenes = imagenes_inline_para(html)
+        assert {i.cid for i in imagenes} == {CID_LOGO_ITM, CID_ICONO_BIENVENIDA}
+        logo = next(i for i in imagenes if i.cid == CID_LOGO_ITM)
+        assert logo.content_type == "image/png"
+        assert logo.contenido.startswith(b"\x89PNG")
+
+    def test_plantilla_bienvenida_autoregistro_devuelve_solo_el_logo(self):
+        """A diferencia de `plantilla_invitacion`, esta no usa el ícono de
+        bienvenida -- solo el logo del encabezado compartido."""
+        html = plantilla_bienvenida_autoregistro(nombre_saludo="ana")
+        imagenes = imagenes_inline_para(html)
+        assert [i.cid for i in imagenes] == [CID_LOGO_ITM]
+
+    def test_html_sin_ninguna_marca_cid_no_devuelve_imagenes(self):
+        assert imagenes_inline_para("<p>Sin imagenes</p>") == []

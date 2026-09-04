@@ -16,6 +16,7 @@ import smtplib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -24,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.correo_saliente import CorreoSaliente
 from app.services.email_graph import enviar_graph
+from app.services.email_templates import ImagenInline, imagenes_inline_para
 
 logger = logging.getLogger("app.email")
 
@@ -67,12 +69,34 @@ def encolar_correo(
     return correo
 
 
-def _enviar_smtp(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False, adjunto: Adjunto | None = None) -> None:
+def _enviar_smtp(
+    destinatario: str,
+    asunto: str,
+    cuerpo: str,
+    es_html: bool = False,
+    adjunto: Adjunto | None = None,
+    imagenes_inline: list[ImagenInline] | None = None,
+) -> None:
+    cuerpo_mime: MIMEText | MIMEMultipart = MIMEText(cuerpo, "html" if es_html else "plain", "utf-8")
+    if imagenes_inline:
+        # `multipart/related`: el HTML referencia cada imagen por
+        # `cid:<id>` (ver `email_templates.py::imagenes_inline_para`) --
+        # necesario porque Outlook de escritorio no renderiza imágenes
+        # `data:` embebidas en `<img src>`.
+        relacionado = MIMEMultipart("related")
+        relacionado.attach(cuerpo_mime)
+        for imagen in imagenes_inline:
+            parte_imagen = MIMEImage(imagen.contenido, _subtype=imagen.content_type.split("/")[-1])
+            parte_imagen.add_header("Content-ID", f"<{imagen.cid}>")
+            parte_imagen.add_header("Content-Disposition", "inline", filename=f"{imagen.cid}.png")
+            relacionado.attach(parte_imagen)
+        cuerpo_mime = relacionado
+
     if adjunto is None:
-        mensaje = MIMEText(cuerpo, "html" if es_html else "plain", "utf-8")
+        mensaje = cuerpo_mime
     else:
         mensaje = MIMEMultipart("mixed")
-        mensaje.attach(MIMEText(cuerpo, "html" if es_html else "plain", "utf-8"))
+        mensaje.attach(cuerpo_mime)
         parte_adjunto = MIMEApplication(adjunto.contenido, _subtype=adjunto.content_type.split("/")[-1])
         parte_adjunto.add_header("Content-Disposition", "attachment", filename=adjunto.nombre)
         mensaje.attach(parte_adjunto)
@@ -120,8 +144,12 @@ def procesar_pendientes(db: Session) -> None:
             if correo.adjunto_contenido is not None
             else None
         )
+        # Solo las plantillas HTML referencian imágenes por `cid:` -- un
+        # correo de texto plano nunca contiene esa marca, así que esto
+        # devuelve una lista vacía sin costo extra en ese caso.
+        imagenes_inline = imagenes_inline_para(correo.cuerpo) if correo.es_html else None
         try:
-            enviar(correo.destinatario, correo.asunto, correo.cuerpo, correo.es_html, adjunto)
+            enviar(correo.destinatario, correo.asunto, correo.cuerpo, correo.es_html, adjunto, imagenes_inline)
         except Exception:
             logger.exception("Fallo enviando correo id=%s a %s", correo.id, correo.destinatario)
             correo.intentos += 1

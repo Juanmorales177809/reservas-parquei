@@ -110,6 +110,61 @@ class TestEnviarGraph:
         assert llamadas[0]["message"]["body"]["contentType"] == "HTML"
         assert llamadas[0]["message"]["body"]["content"] == "<p>Cuerpo</p>"
 
+    def test_imagenes_inline_se_mandan_con_isinline_y_contentid(self, config_graph, monkeypatch):
+        from app.services.email_templates import ImagenInline
+
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
+
+        llamadas = []
+
+        def _post_falso(url, headers=None, json=None, timeout=None):
+            llamadas.append(json)
+            return httpx.Response(202, request=httpx.Request("POST", url))
+
+        monkeypatch.setattr(email_graph.httpx, "post", _post_falso)
+
+        email_graph.enviar_graph(
+            "destino@example.com",
+            "Asunto",
+            "<p>Cuerpo</p>",
+            es_html=True,
+            imagenes_inline=[ImagenInline(cid="logo-itm", content_type="image/png", contenido=b"\x89PNG...")],
+        )
+
+        adjuntos = llamadas[0]["message"]["attachments"]
+        assert len(adjuntos) == 1
+        assert adjuntos[0]["isInline"] is True
+        assert adjuntos[0]["contentId"] == "logo-itm"
+        assert adjuntos[0]["contentType"] == "image/png"
+
+    def test_adjunto_real_e_imagen_inline_conviven_en_attachments(self, config_graph, monkeypatch):
+        from app.services.email import Adjunto
+        from app.services.email_templates import ImagenInline
+
+        monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
+
+        llamadas = []
+
+        def _post_falso(url, headers=None, json=None, timeout=None):
+            llamadas.append(json)
+            return httpx.Response(202, request=httpx.Request("POST", url))
+
+        monkeypatch.setattr(email_graph.httpx, "post", _post_falso)
+
+        email_graph.enviar_graph(
+            "destino@example.com",
+            "Asunto",
+            "<p>Cuerpo</p>",
+            es_html=True,
+            adjunto=Adjunto(nombre="invitacion.ics", contenido=b"BEGIN:VCALENDAR", content_type="text/calendar"),
+            imagenes_inline=[ImagenInline(cid="logo-itm", content_type="image/png", contenido=b"\x89PNG...")],
+        )
+
+        adjuntos = llamadas[0]["message"]["attachments"]
+        assert len(adjuntos) == 2
+        assert any(a.get("name") == "invitacion.ics" and "isInline" not in a for a in adjuntos)
+        assert any(a.get("isInline") is True and a.get("contentId") == "logo-itm" for a in adjuntos)
+
     def test_error_http_lanza_runtimeerror_con_status_y_detalle(self, config_graph, monkeypatch):
         monkeypatch.setattr(email_graph, "_token_silencioso", lambda *a, **kw: "token-de-prueba")
 

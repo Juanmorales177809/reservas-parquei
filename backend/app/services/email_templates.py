@@ -32,7 +32,9 @@ documento, no uno repetido por plantilla.
 
 from __future__ import annotations
 
+import base64
 import html
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 _NAVY = "#102d69"
@@ -89,6 +91,44 @@ _ICONO_BIENVENIDA_B64 = (
 )
 
 
+# Identificadores `Content-ID` de las imágenes que este módulo referencia
+# por `cid:` en vez de `data:` (ver `ImagenInline`/`imagenes_inline_para`
+# más abajo) -- Outlook de escritorio (motor Word) no renderiza imágenes
+# `data:` embebidas en `<img src>`, un problema real encontrado en
+# producción (2026-09-04): el logo/ícono simplemente no aparecían, solo el
+# `alt`. Cualquier plantilla nueva que necesite una imagen propia agrega su
+# constante acá y la referencia como `cid:<constante>` en el HTML.
+CID_LOGO_ITM = "logo-itm"
+CID_ICONO_BIENVENIDA = "icono-bienvenida"
+
+
+@dataclass(frozen=True)
+class ImagenInline:
+    """Una imagen para adjuntar como `multipart/related` con `Content-ID`
+    -- mismo concepto que `services/email.py::Adjunto`, pero `inline`
+    (referenciada por `cid:` dentro del HTML) en vez de un adjunto
+    descargable aparte."""
+
+    cid: str
+    content_type: str
+    contenido: bytes
+
+
+def imagenes_inline_para(cuerpo: str) -> list[ImagenInline]:
+    """Devuelve las imágenes inline que un HTML armado con estas plantillas
+    efectivamente referencia (`cid:<constante>` presente en el texto) --
+    `procesar_pendientes` (`services/email.py`) llama esto para saber qué
+    adjuntar antes de mandar cada correo `es_html`. Ninguna plantilla de
+    texto plano contiene estas marcas, así que para esas siempre devuelve
+    una lista vacía sin necesidad de un chequeo aparte."""
+    imagenes: list[ImagenInline] = []
+    if f"cid:{CID_LOGO_ITM}" in cuerpo:
+        imagenes.append(ImagenInline(CID_LOGO_ITM, "image/png", base64.b64decode(_LOGO_ITM_B64)))
+    if f"cid:{CID_ICONO_BIENVENIDA}" in cuerpo:
+        imagenes.append(ImagenInline(CID_ICONO_BIENVENIDA, "image/png", base64.b64decode(_ICONO_BIENVENIDA_B64)))
+    return imagenes
+
+
 def _esc(texto: str) -> str:
     return html.escape(texto)
 
@@ -122,7 +162,7 @@ def _flag_y_logo() -> str:
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin-left:auto;">
 <tr>
 <td style="border-left:1px solid #e3e7ee;padding-left:16px;">
-<img src="data:image/png;base64,{_LOGO_ITM_B64}" alt="Institución Universitaria ITM" style="display:block;width:130px;max-width:130px;height:auto;">
+<img src="cid:{CID_LOGO_ITM}" alt="Institución Universitaria ITM" style="display:block;width:130px;max-width:130px;height:auto;">
 </td>
 </tr>
 </table>
@@ -271,7 +311,7 @@ def plantilla_invitacion(*, link: str, nombre_saludo: str = "") -> str:
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;background-color:#fbfcfe;border:1px solid #edf1f6;">
 <tr>
 <td align="center" valign="middle" style="padding:14px;">
-<img src="data:image/png;base64,{_ICONO_BIENVENIDA_B64}" alt="" style="display:block;width:150px;max-width:100%;height:auto;margin:0 auto;">
+<img src="cid:{CID_ICONO_BIENVENIDA}" alt="" style="display:block;width:150px;max-width:100%;height:auto;margin:0 auto;">
 </td>
 </tr>
 </table>

@@ -57,6 +57,7 @@ from app.config import settings
 
 if TYPE_CHECKING:
     from app.services.email import Adjunto
+    from app.services.email_templates import ImagenInline
 
 logger = logging.getLogger("app.email_graph")
 
@@ -127,7 +128,14 @@ def login_interactivo() -> None:
     print(f"OK -- sesión cacheada en {settings.graph_token_cache_path}")  # noqa: T201
 
 
-def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = False, adjunto: "Adjunto | None" = None) -> None:
+def enviar_graph(
+    destinatario: str,
+    asunto: str,
+    cuerpo: str,
+    es_html: bool = False,
+    adjunto: "Adjunto | None" = None,
+    imagenes_inline: "list[ImagenInline] | None" = None,
+) -> None:
     token = _token_silencioso()
     url = _GRAPH_SEND_MAIL_URL_TEMPLATE.format(sender=settings.graph_mail_sender)
     payload = {
@@ -138,15 +146,33 @@ def enviar_graph(destinatario: str, asunto: str, cuerpo: str, es_html: bool = Fa
         },
         "saveToSentItems": True,
     }
+    attachments = []
     if adjunto is not None:
-        payload["message"]["attachments"] = [
+        attachments.append(
             {
                 "@odata.type": "#microsoft.graph.fileAttachment",
                 "name": adjunto.nombre,
                 "contentType": adjunto.content_type,
                 "contentBytes": base64.b64encode(adjunto.contenido).decode("ascii"),
             }
-        ]
+        )
+    for imagen in imagenes_inline or []:
+        # `isInline`/`contentId`: el HTML la referencia por `cid:<id>`
+        # (ver `email_templates.py::imagenes_inline_para`), mismo motivo
+        # que en `_enviar_smtp` -- Outlook de escritorio no soporta
+        # imágenes `data:` embebidas.
+        attachments.append(
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": f"{imagen.cid}.png",
+                "contentType": imagen.content_type,
+                "contentBytes": base64.b64encode(imagen.contenido).decode("ascii"),
+                "isInline": True,
+                "contentId": imagen.cid,
+            }
+        )
+    if attachments:
+        payload["message"]["attachments"] = attachments
     respuesta = httpx.post(
         url,
         headers={"Authorization": f"Bearer {token}"},

@@ -160,8 +160,12 @@ class TestOutbox:
 
         llamadas_graph = []
         llamadas_smtp = []
-        monkeypatch.setattr(email_service, "enviar_graph", lambda d, a, c, h=False, adj=None: llamadas_graph.append((d, a, c)))
-        monkeypatch.setattr(email_service, "_enviar_smtp", lambda d, a, c, h=False, adj=None: llamadas_smtp.append((d, a, c)))
+        monkeypatch.setattr(
+            email_service, "enviar_graph", lambda d, a, c, h=False, adj=None, img=None: llamadas_graph.append((d, a, c))
+        )
+        monkeypatch.setattr(
+            email_service, "_enviar_smtp", lambda d, a, c, h=False, adj=None, img=None: llamadas_smtp.append((d, a, c))
+        )
 
         email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="B")
         db.commit()
@@ -171,6 +175,65 @@ class TestOutbox:
         assert correo.estado == "enviado"
         assert llamadas_graph == [("x@example.com", "A", "B")]
         assert llamadas_smtp == []
+
+
+class TestImagenesInline:
+    """Adjuntos inline con `Content-ID` (2026-09-04) -- reemplaza el
+    `data:` embebido que Outlook de escritorio no renderiza (ver
+    `services/email_templates.py::imagenes_inline_para`)."""
+
+    def test_html_con_referencia_al_logo_se_manda_como_multipart_related_con_content_id(self, db, email_habilitado):
+        from app.services.email_templates import CID_LOGO_ITM
+
+        cuerpo = f'<p>Hola</p><img src="cid:{CID_LOGO_ITM}">'
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo=cuerpo, es_html=True)
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        mensaje = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje.get_content_type() == "multipart/related"
+        partes = list(mensaje.walk())
+        html = next(p for p in partes if p.get_content_type() == "text/html")
+        assert "cid:logo-itm" in html.get_payload(decode=True).decode("utf-8")
+        imagen = next(p for p in partes if p.get_content_type() == "image/png")
+        assert imagen["Content-ID"] == f"<{CID_LOGO_ITM}>"
+        assert imagen["Content-Disposition"].startswith("inline")
+
+    def test_html_sin_referencia_a_ninguna_imagen_sigue_siendo_solo_text_html(self, db, email_habilitado):
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo="<p>Sin imagen</p>", es_html=True)
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        mensaje = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje.get_content_type() == "text/html"
+
+    def test_texto_plano_con_la_marca_cid_no_dispara_ninguna_imagen(self, db, email_habilitado):
+        from app.services.email_templates import CID_LOGO_ITM
+
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo=f"cid:{CID_LOGO_ITM}", es_html=False)
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        mensaje = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje.get_content_type() == "text/plain"
+
+    def test_imagen_inline_conviviendo_con_un_adjunto_real_queda_dentro_de_multipart_mixed(self, db, email_habilitado):
+        """Caso real: `plantilla_reserva_estado` (con el logo) + el `.ics`
+        de confirmación, ver `services/reservas.py::crear_reserva`."""
+        from app.services.email_templates import CID_LOGO_ITM
+
+        cuerpo = f'<img src="cid:{CID_LOGO_ITM}">'
+        adjunto = email_service.Adjunto(nombre="invitacion.ics", contenido=b"BEGIN:VCALENDAR", content_type="text/calendar")
+        email_service.encolar_correo(db, destinatario="x@example.com", asunto="A", cuerpo=cuerpo, es_html=True, adjunto=adjunto)
+        db.commit()
+        email_service.procesar_pendientes(db)
+
+        mensaje = email_habilitado.instancias[0].mensajes_enviados[0]
+        assert mensaje.get_content_type() == "multipart/mixed"
+        partes = list(mensaje.walk())
+        assert any(p.get_content_type() == "text/html" for p in partes)
+        assert any(p.get_content_type() == "image/png" and p["Content-ID"] == f"<{CID_LOGO_ITM}>" for p in partes)
+        assert any(p.get_filename() == "invitacion.ics" for p in partes)
 
 
 class TestEnganchesDeReserva:
