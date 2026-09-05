@@ -654,7 +654,7 @@ class TestApoyoAuxiliarForzadoPorRecurso:
         assert respuesta.status_code == 201
         assert respuesta.json()["requiere_apoyo_auxiliar"] is True
 
-        payload_false = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada(dias=9))
+        payload_false = payload_reserva_objetivos(recurso_ids=[recurso.id], fecha=fecha_habilitada(dias=20))
         respuesta_false = client.post("/reservas", json=payload_false, headers=cookies_para(usuario))
         assert respuesta_false.status_code == 201
         assert respuesta_false.json()["requiere_apoyo_auxiliar"] is False
