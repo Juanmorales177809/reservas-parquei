@@ -434,6 +434,10 @@ class _EspacioFormDialogState extends ConsumerState<_EspacioFormDialog> {
   int? _laboratorioId;
   bool _guardando = false;
   String? _error;
+  // Solo se usa al CREAR -- en edición, asignar recursos sigue siendo el
+  // botón "Recursos" existente de la tarjeta (`_EspacioRecursosDialog`),
+  // que precarga la selección real y evita vaciarla por accidente.
+  final Set<int> _recursosSeleccionados = {};
 
   bool get _esEdicion => widget.espacio != null;
 
@@ -475,13 +479,16 @@ class _EspacioFormDialogState extends ConsumerState<_EspacioFormDialog> {
           laboratorioId: _laboratorioId,
         );
       } else {
-        await repo.crear(
+        final nuevoEspacio = await repo.crear(
           nombre: _nombre,
           laboratorioId: _laboratorioId!,
           descripcion: _descripcion.isEmpty ? null : _descripcion,
           capacidad: _capacidad,
           estado: _estado.name,
         );
+        if (_recursosSeleccionados.isNotEmpty) {
+          await repo.reemplazarRecursos(nuevoEspacio.id, _recursosSeleccionados.toList());
+        }
       }
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -561,6 +568,45 @@ class _EspacioFormDialogState extends ConsumerState<_EspacioFormDialog> {
                 onChanged: (v) => setState(() => _estado = v!),
                 onSaved: (v) => _estado = v!,
               ),
+              // Solo al crear -- editando, la asignación de recursos sigue
+              // siendo el botón "Recursos" existente de la tarjeta.
+              if (!_esEdicion && _laboratorioId != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Recursos', style: Theme.of(context).textTheme.titleSmall),
+                ),
+                Builder(
+                  builder: (context) {
+                    final recursos = ref.watch(recursosPorLaboratorioProvider(_laboratorioId!));
+                    if (recursos.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        child: Text('No hay recursos en este laboratorio.'),
+                      );
+                    }
+                    return Column(
+                      children: recursos
+                          .map(
+                            (r) => CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(r.nombre),
+                              subtitle: Text(r.tipo.nombre),
+                              value: _recursosSeleccionados.contains(r.id),
+                              onChanged: (v) => setState(() {
+                                if (v == true) {
+                                  _recursosSeleccionados.add(r.id);
+                                } else {
+                                  _recursosSeleccionados.remove(r.id);
+                                }
+                              }),
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

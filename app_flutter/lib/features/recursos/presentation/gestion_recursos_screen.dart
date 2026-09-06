@@ -562,13 +562,6 @@ class _RecursoFormDialogState extends ConsumerState<_RecursoFormDialog> {
               const SizedBox(height: AppSpacing.sm),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Prestación de servicio'),
-                subtitle: const Text('Solo visible para gestor/admin'),
-                value: _esPrestacion,
-                onChanged: (v) => setState(() => _esPrestacion = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
                 title: const Text('Requiere apoyo del auxiliar del laboratorio'),
                 subtitle: const Text('Toda reserva que incluya este recurso exigirá acompañamiento del auxiliar'),
                 value: _requiereApoyoAuxiliar,

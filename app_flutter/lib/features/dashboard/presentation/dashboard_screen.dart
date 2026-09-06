@@ -86,7 +86,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Inicio'),
         actions: [
           ExportButton(
             nombreArchivo: 'dashboard',
@@ -140,7 +140,7 @@ class _UsuarioDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reservasAsync = ref.watch(misReservasProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(title: const Text('Inicio')),
       body: reservasAsync.when(
         loading: () => const LoadingSpinner(),
         error: (e, _) => ErrorView(message: apiErrorMessage(e, fallback: 'No se pudo cargar tu resumen.'), onRetry: () => ref.invalidate(misReservasProvider)),
@@ -227,8 +227,8 @@ class _SummaryStrip extends StatelessWidget {
         color: AppColors.marca,
         delta: deltas?.totalReservas,
       ),
-      _StatItem(icon: LucideIcons.clock, label: 'Pendientes', value: summary.reservasPendientes, color: AppEstados.pendiente.relleno),
-      _StatItem(icon: LucideIcons.package, label: 'Recursos activos', value: summary.recursosActivos, color: AppColors.accion),
+      _StatPieItem(estado: summary.reservasPorEstado, total: summary.totalReservas),
+      _StatItem(icon: LucideIcons.check, label: 'Reservas aprobadas', value: summary.reservasPorEstado.aprobadas, color: AppEstados.positivo.relleno),
       if (esAdmin) _StatItem(icon: LucideIcons.users, label: 'Usuarios', value: summary.usuarios, color: AppEstados.positivo.relleno),
     ];
     return Card(
@@ -328,6 +328,62 @@ class _StatItem extends StatelessWidget {
                 // Dos líneas: con el rail lateral ocupando 80px, en una
                 // ventana media cada KPI queda en ~170px y "RECURSOS
                 // ACTIVOS" no entra en una sola línea.
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Reemplaza el KPI numérico "Pendientes" por un mini donut de reservas
+/// por estado -- mismos colores que `_kColoresEstado`/`EstadoReservaBadge`
+/// (aprobadas/pendientes/rechazadas/canceladas), construido con el mismo
+/// patrón `PieChart`/`PieChartSectionData` que ya usa `_OcupacionHero`.
+class _StatPieItem extends StatelessWidget {
+  const _StatPieItem({required this.estado, required this.total});
+
+  final ReservasPorEstado estado;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final secciones = [
+      if (estado.aprobadas > 0) PieChartSectionData(value: estado.aprobadas.toDouble(), color: AppEstados.positivo.relleno, radius: 14, title: ''),
+      if (estado.pendientes > 0) PieChartSectionData(value: estado.pendientes.toDouble(), color: AppEstados.pendiente.relleno, radius: 14, title: ''),
+      if (estado.rechazadas > 0) PieChartSectionData(value: estado.rechazadas.toDouble(), color: AppEstados.negativo.relleno, radius: 14, title: ''),
+      if (estado.canceladas > 0) PieChartSectionData(value: estado.canceladas.toDouble(), color: AppEstados.neutro.relleno, radius: 14, title: ''),
+    ];
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: secciones.isEmpty
+              ? DecoratedBox(decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.borde))
+              : PieChart(
+                  PieChartData(sections: secciones, sectionsSpace: 1, centerSpaceRadius: 6),
+                ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedCounter(
+                value: total,
+                style: AppText.numerico(fontSize: 26, fontWeight: FontWeight.w700, height: 1.15),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'POR ESTADO',
+                style: AppText.overline(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

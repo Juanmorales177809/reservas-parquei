@@ -80,6 +80,32 @@ class TestCrearReserva:
         assert respuesta.status_code == 201
         assert respuesta.json()["estado"] == "esperando"
 
+    def test_gestor_de_otro_laboratorio_con_aprobacion_automatica_queda_aprobada(self, client, db):
+        """Combinación no cubierta por los dos tests anteriores: un gestor
+        reservando en OTRO laboratorio (no el suyo) también queda aprobada
+        directo si ESE laboratorio tiene aprobacion_automatica=True -- el
+        `or` de `services/reservas.py::crear_reserva` ya contempla este caso,
+        este test solo cierra el gap de cobertura."""
+        espacio_a = crear_laboratorio(db, nombre="Sala Gestor Auto")
+        usuario = crear_usuario(
+            db,
+            username="gestor_auto",
+            email="gestor_auto@example.com",
+            rol="gestor",
+            laboratorio_id=espacio_a.id,
+        )
+        espacio_b = crear_laboratorio(db, nombre="Sala B Auto")
+        espacio_b.aprobacion_automatica = True
+        db.commit()
+        recurso_b = crear_recurso(db, laboratorio=espacio_b, usuario=usuario)
+        respuesta = client.post(
+            "/reservas",
+            json=payload_reserva(recurso_b.id, fecha_habilitada()),
+            headers=cookies_para(usuario),
+        )
+        assert respuesta.status_code == 201
+        assert respuesta.json()["estado"] == "aprobada"
+
     def test_bloque_no_completo_da_400(self, client, db):
         usuario, _, recurso = _setup(db)
         respuesta = client.post(

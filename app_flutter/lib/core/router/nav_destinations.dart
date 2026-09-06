@@ -144,7 +144,7 @@ const kNavDestinations = <NavDestinationSpec>[
   ),
   NavDestinationSpec(
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Inicio',
     icon: LucideIcons.layoutDashboard,
     path: AppRoutes.admin,
     primario: true,
