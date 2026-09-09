@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import Usuario, UsuarioEspacio
+from app.models import Usuario
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -101,14 +101,7 @@ def require_resource_manager(current_user: Usuario = Depends(get_current_user)) 
 def get_managed_space_id(db: Session, usuario: Usuario) -> int | None:
     if usuario.rol == "admin":
         return None
-    asignacion = (
-        db.query(UsuarioEspacio)
-        .filter(UsuarioEspacio.usuario_id == usuario.id)
-        .first()
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="El ámbito del personal se resolverá desde las tablas maestras de LIA",
     )
-    if asignacion is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="El gestor no tiene un espacio asignado",
-        )
-    return asignacion.espacio_id

@@ -1,6 +1,16 @@
+from pathlib import Path
+
 from sqlalchemy import text
 
 from app.db import engine
+
+
+def migrate_shared_schema() -> None:
+    """Apply the idempotent structural migration for the shared PostgreSQL."""
+    migration = Path(__file__).resolve().parents[1] / "migrations" / "001_shared_postgres.sql"
+    statements = migration.read_text(encoding="utf-8")
+    with engine.begin() as connection:
+        connection.execute(text(statements))
 
 
 def migrate_resource_reservations() -> None:

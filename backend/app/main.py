@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from app.api import admin_dashboard, auth, control_cambios, espacios, notificaciones, recursos, reservas, usuarios
 from app.auth.auth import hash_password
 from app.config import settings
-from app.db import Base, engine, SessionLocal
+from app.db import engine, SessionLocal
 from app import models  # noqa: F401
-from app.migrations import migrate_resource_reservations
+from app.migrations import migrate_shared_schema
 
 
 app = FastAPI(
@@ -28,8 +28,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    Base.metadata.create_all(bind=engine)
-    migrate_resource_reservations()
+    migrate_shared_schema()
     seed_admin_user()
 
 

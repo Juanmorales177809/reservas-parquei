@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 
 from app.models.usuario import Usuario
-from app.models.usuario_espacio import UsuarioEspacio
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 
 
@@ -32,8 +31,6 @@ def create_usuario(db: Session, usuario: UsuarioCreate) -> Usuario:
     )
     db.add(db_usuario)
     db.flush()
-    if db_usuario.rol == "gestor" and getattr(usuario, "espacio_id", None) is not None:
-        db.add(UsuarioEspacio(usuario_id=db_usuario.id, espacio_id=usuario.espacio_id))
     db.commit()
     db.refresh(db_usuario)
     return db_usuario
@@ -47,24 +44,10 @@ def update_usuario(db: Session, db_usuario: Usuario, data: UsuarioUpdate) -> Usu
     else:
         update_data.pop("password", None)
         
-    espacio_id = update_data.pop("espacio_id", None)
+    update_data.pop("espacio_id", None)
     for field, value in update_data.items():
         setattr(db_usuario, field, value)
 
-    asignacion = (
-        db.query(UsuarioEspacio)
-        .filter(UsuarioEspacio.usuario_id == db_usuario.id)
-        .first()
-    )
-    if db_usuario.rol != "gestor":
-        if asignacion is not None:
-            db.delete(asignacion)
-    elif espacio_id is not None:
-        if asignacion is None:
-            db.add(UsuarioEspacio(usuario_id=db_usuario.id, espacio_id=espacio_id))
-        else:
-            asignacion.espacio_id = espacio_id
-        
     db.add(db_usuario)
     db.commit()
     db.refresh(db_usuario)
