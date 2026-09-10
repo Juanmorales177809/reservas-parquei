@@ -76,7 +76,8 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `username` | varchar(80) | NN | UQ `usuarios_username_key` |
 | `email` | varchar(255) | NN | UQ `usuarios_email_key` |
 | `hashed_password` | varchar(255) | NN | — |
-| `created_at`, `updated_at` | timestamptz | NN | DEFAULT `now()` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+| `updated_at` | timestamptz | NN | DEFAULT `now()` |
 
 ## `reservas.laboratorios_config`
 
@@ -88,7 +89,8 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `ubicacion` | varchar(255) | Sí | — |
 | `descripcion` | text | Sí | — |
 | `dias_atencion` | jsonb | NN | DEFAULT `'[0, 1, 2, 3, 4, 5]'::jsonb` |
-| `hora_apertura`, `hora_cierre` | time | NN | CHECK apertura < cierre |
+| `hora_apertura` | time | NN | Parte de `ck_laboratorios_config_horario` |
+| `hora_cierre` | time | NN | Parte de `ck_laboratorios_config_horario` |
 | `horario_atencion` | jsonb | NN | DEFAULT `'{}'::jsonb` |
 | `horas_antelacion` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `aprobacion_automatica` | boolean | NN | DEFAULT `false` |
@@ -108,13 +110,45 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `descripcion` | text | Sí | — |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
-## `reservas.mobiliarios` y `reservas.otros`
+## `reservas.mobiliarios`
 
-Ambas tienen: `id integer NN` PK (identity); `id_unidad integer NN` FK a `unidadOrganizacional.unidad_organizacional(id_unidad)`; `nombre varchar(100) NN`; `descripcion text` nullable; `habilitado boolean NN DEFAULT true`. No tienen UQ por nombre.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `mobiliarios_pkey`; identity |
+| `id_unidad` | integer | NN | FK `mobiliarios_id_unidad_fkey` → unidad organizacional |
+| `nombre` | varchar(100) | NN | — |
+| `descripcion` | text | Sí | — |
+| `habilitado` | boolean | NN | DEFAULT `true` |
 
-## `reservas.tipos_reserva` y `reservas.motivos_solicitud`
+## `reservas.otros`
 
-Ambas tienen: `id integer NN` PK (identity); `nombre varchar(100) NN`; `descripcion text` nullable; `habilitado boolean NN DEFAULT true`. No tienen FKs ni UQ adicionales.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `otros_pkey`; identity |
+| `id_unidad` | integer | NN | FK `otros_id_unidad_fkey` → unidad organizacional |
+| `nombre` | varchar(100) | NN | — |
+| `descripcion` | text | Sí | — |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+
+No hay UQ por nombre en ninguna de las dos tablas.
+
+## `reservas.tipos_reserva`
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `tipos_reserva_pkey`; identity |
+| `nombre` | varchar(100) | NN | — |
+| `descripcion` | text | Sí | — |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+
+## `reservas.motivos_solicitud`
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `motivos_solicitud_pkey`; identity |
+| `nombre` | varchar(100) | NN | — |
+| `descripcion` | text | Sí | — |
+| `habilitado` | boolean | NN | DEFAULT `true` |
 
 ## `reservas.reservas`
 
@@ -125,14 +159,16 @@ Ambas tienen: `id integer NN` PK (identity); `nombre varchar(100) NN`; `descripc
 | `id_unidad` | integer | NN | FK `reservas_id_unidad_fkey` → unidad organizacional |
 | `espacio_id` | integer | Sí | FK `reservas_espacio_id_fkey` → `reservas.espacios(id)` |
 | `fecha` | date | NN | — |
-| `hora_inicio`, `hora_fin` | time | NN | CHECK `hora_inicio < hora_fin` |
+| `hora_inicio` | time | NN | Parte de `ck_reservas_horario` |
+| `hora_fin` | time | NN | Parte de `ck_reservas_horario` |
 | `asistentes` | integer | NN | CHECK `>= 0` |
 | `ubicacion_uso` | varchar(255) | Sí | Condicional según `tipo_uso` |
 | `tipo_uso` | varchar(30) | NN | CHECK `ESPACIO_RESERVADO`, `DENTRO_CAMPUS`, `FUERA_CAMPUS` |
 | `tipo_reserva_id` | integer | NN | FK → `reservas.tipos_reserva(id)` |
 | `motivo_solicitud_id` | integer | Sí | FK → `reservas.motivos_solicitud(id)` |
 | `estado` | varchar(20) | NN | DEFAULT `PENDIENTE`; CHECK `PENDIENTE`, `APROBADA`, `RECHAZADA`, `CANCELADA` |
-| `created_at`, `updated_at` | timestamptz | NN | DEFAULT `now()` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+| `updated_at` | timestamptz | NN | DEFAULT `now()` |
 
 `ck_reservas_tipo_uso`: `ESPACIO_RESERVADO` exige `espacio_id`; `DENTRO_CAMPUS` exige espacio o `ubicacion_uso` no vacío; `FUERA_CAMPUS` exige `espacio_id IS NULL` y `ubicacion_uso` no vacío. Índices: `ix_reservas_fecha_estado(fecha, estado)` y `ix_reservas_unidad_fecha(id_unidad, fecha)`.
 
@@ -140,27 +176,69 @@ Ambas tienen: `id integer NN` PK (identity); `nombre varchar(100) NN`; `descripc
 
 ### `reservas.reserva_acompanantes`
 
-`id integer NN` PK `reserva_acompanantes_pkey` identity; `reserva_id integer NN` FK a `reservas.reservas(id)` ON DELETE CASCADE; `nombre varchar(150) NN`; `correo varchar(255)` nullable. Sin UQ adicional.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `reserva_acompanantes_pkey`; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
+| `nombre` | varchar(150) | NN | — |
+| `correo` | varchar(255) | Sí | — |
 
 ### `reservas.reserva_equipos`
 
-`id integer NN` PK `reserva_equipos_pkey` identity; `reserva_id integer NN` FK a `reservas.reservas(id)` ON DELETE CASCADE; `id_equipo integer NN` FK a `equipos.equipos(id_equipo)`. UQ `uq_reserva_equipo(reserva_id, id_equipo)`; índice `ix_reserva_equipos_equipo(id_equipo)`.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `reserva_equipos_pkey`; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
+| `id_equipo` | integer | NN | FK → `equipos.equipos(id_equipo)` |
+
+UQ `uq_reserva_equipo(reserva_id, id_equipo)`; índice `ix_reserva_equipos_equipo(id_equipo)`.
 
 ### `reservas.reserva_mobiliarios`
 
-`id integer NN` PK `reserva_mobiliarios_pkey` identity; `reserva_id integer NN` FK a `reservas.reservas(id)` ON DELETE CASCADE; `mobiliario_id integer NN` FK a `reservas.mobiliarios(id)`. UQ `uq_reserva_mobiliario(reserva_id, mobiliario_id)`; índice `ix_reserva_mobiliarios_mobiliario(mobiliario_id)`.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `reserva_mobiliarios_pkey`; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
+| `mobiliario_id` | integer | NN | FK → `reservas.mobiliarios(id)` |
+
+UQ `uq_reserva_mobiliario(reserva_id, mobiliario_id)`; índice `ix_reserva_mobiliarios_mobiliario(mobiliario_id)`.
 
 ### `reservas.reserva_otros`
 
-`id integer NN` PK `reserva_otros_pkey` identity; `reserva_id integer NN` FK a `reservas.reservas(id)` ON DELETE CASCADE; `otro_id integer NN` FK a `reservas.otros(id)`. UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_id)`.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `reserva_otros_pkey`; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
+| `otro_id` | integer | NN | FK → `reservas.otros(id)` |
+
+UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_id)`.
 
 ### `reservas.notificaciones`
 
-`id integer NN` PK `notificaciones_pkey` identity; `usuario_id integer NN` FK a `reservas.usuarios(id)` ON DELETE CASCADE; `reserva_id integer` nullable FK a `reservas.reservas(id)` ON DELETE CASCADE; `tipo varchar(20) NN` CHECK `PENDIENTE|APROBADA|RECHAZADA|CANCELADA`; `leida boolean NN DEFAULT false`; `created_at timestamptz NN DEFAULT now()`. Índice `ix_notificaciones_usuario(usuario_id, leida)`.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `notificaciones_pkey`; identity |
+| `usuario_id` | integer | NN | FK → `reservas.usuarios(id)` ON DELETE CASCADE |
+| `reserva_id` | integer | Sí | FK → `reservas.reservas(id)` ON DELETE CASCADE |
+| `tipo` | varchar(20) | NN | CHECK `PENDIENTE`, `APROBADA`, `RECHAZADA`, `CANCELADA` |
+| `leida` | boolean | NN | DEFAULT `false` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+Índice `ix_notificaciones_usuario(usuario_id, leida)`.
 
 ### `reservas.control_cambios`
 
-`id integer NN` PK `control_cambios_pkey` identity; `actor_tipo varchar(30) NN`; `actor_id integer` nullable sin FK; `actor_nombre varchar(255) NN`; `accion varchar(30) NN`; `entidad varchar(80) NN`; `entidad_id integer` nullable sin FK; `descripcion text NN`; `created_at timestamptz NN DEFAULT now()`.
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK `control_cambios_pkey`; identity |
+| `actor_tipo` | varchar(30) | NN | — |
+| `actor_id` | integer | Sí | Sin FK declarada |
+| `actor_nombre` | varchar(255) | NN | — |
+| `accion` | varchar(30) | NN | — |
+| `entidad` | varchar(80) | NN | — |
+| `entidad_id` | integer | Sí | Sin FK declarada |
+| `descripcion` | text | NN | — |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
 
 ## Reglas no declaradas como constraints SQL
 
