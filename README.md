@@ -350,3 +350,15 @@ Una respuesta HTTP `409` indica que otro usuario reservó el mismo recurso y hor
 - Servir la aplicación detrás de HTTPS en entornos públicos.
 - El JWT se almacena actualmente en `localStorage`; por ello deben evitarse scripts de terceros y revisarse cuidadosamente los cambios de frontend que puedan introducir XSS.
 
+## Taller de integración y normalización
+
+El ejercicio de integración se rige por [`CONTRATO_API.md`](CONTRATO_API.md). El programa debe leer los datasets entregados, normalizar sus registros al contrato institucional, validar localmente y enviarlos al servicio HTTP configurado.
+
+La ejecución mínima esperada es:
+
+```bash
+python programa.py
+pytest
+```
+
+`URL_BASE` y `EQUIPO` se suministran como variables de entorno antes de ejecutar el programa. La implementación puede organizar internamente sus módulos como considere conveniente, siempre que respete el contrato y produzca el reporte final requerido.
