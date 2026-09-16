@@ -8,39 +8,107 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 | Usuario | Descripción | Casos de uso |
 |---|---|---|
-| Principal: solicitante | Estudiante, docente, investigador o colaborador autorizado que necesita utilizar un laboratorio, espacio, equipo u otro recurso institucional. | 1. Consulta los espacios y recursos disponibles 2. Crea una solicitud de reserva indicando fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos 3. Consulta el estado de sus solicitudes 4. Cancela una reserva cuando corresponde 5. Recibe notificaciones sobre cambios de estado |
-| Secundario: gestor de reservas | Persona responsable de administrar los recursos de una unidad o laboratorio y revisar las solicitudes recibidas. | 1. Consulta las solicitudes pendientes 2. Aprueba, rechaza o modifica solicitudes indicando el motivo 3. Configura horarios y reglas de reserva 4. Administra espacios, equipos, tipos de reserva, mobiliarios y otros recursos 5. Consulta el historial y control de cambios 6. Visualiza y descarga informes de ocupación del laboratorio que administra por proyectos, semilleros, recursos, laboratorios o espacios |
-| Secundario: administrador institucional | Usuario con permisos globales para gestionar la configuración general, usuarios, unidades organizacionales y permisos del sistema. | 1. Administra usuarios y cuentas 2. Gestiona unidades, cargos y perfiles 3. Configura permisos y accesos 4. Consulta la actividad general del sistema 5. Supervisa la configuración global de reservas 6. Visualiza y descarga informes de ocupación por laboratorios, espacios, recursos, proyectos o semilleros 7. Consulta el historial y control de cambios |
+| Principal: solicitante | Estudiante, docente, investigador o colaborador autorizado que necesita utilizar un laboratorio, espacio, equipo u otro recurso institucional. | 1. Consulta los espacios y recursos disponibles 2. Crea una solicitud de reserva indicando su tipo, fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos 3. Consulta el estado de sus solicitudes 4. Cancela una reserva cuando corresponde 5. Recibe notificaciones sobre cambios de estado 6. Se autorregistra o completa su cuenta desde una invitación, y edita su perfil 7. Indica el tipo de reserva (dentro o fuera del laboratorio) y combina espacio, recursos y equipos en una misma solicitud  8. Acepta, rechaza o contrapropone un horario alternativo que le proponga el gestor  |
+| Secundario: gestor de reservas | Persona responsable de administrar los recursos de una unidad o laboratorio y revisar las solicitudes recibidas. | 1. Consulta las solicitudes pendientes 2. Aprueba, rechaza o modifica solicitudes indicando el motivo 3. Configura horarios y reglas de reserva 4. Administra espacios, equipos, tipos de reserva, mobiliarios y otros recursos 5. Visualiza y descarga informes de ocupación del laboratorio que administra por proyectos, semilleros, recursos, laboratorios o espacios 6. Propone un horario alternativo en vez de rechazar, y resuelve la contrapropuesta del solicitante 7. Edita una solicitud ya aprobada (agregar o quitar recursos) sin perder su estado 8. Administra los catálogos de tipos de reserva y motivos de solicitud de su laboratorio |
+| Secundario: administrador institucional | Usuario con permisos globales para gestionar la configuración general, usuarios, unidades organizacionales y permisos del sistema. | 1. Administra usuarios y cuentas 2. Gestiona unidades, cargos y perfiles 3. Configura permisos y accesos 4. Consulta la actividad general del sistema 5. Supervisa la configuración global de reservas 6. Visualiza y descarga informes de ocupación por laboratorios, espacios, recursos, proyectos, tipos de usuarios o semilleros 7. Consulta el historial y control de cambios 8. Promueve una cuenta a personal administrativo o la degrada de vuelta, sin perder su historial 9. Administra unidades organizacionales, cargos, personal institucional y equipos con jerarquía propia 10. Importa masivamente el inventario institucional de equipos desde una planilla |
 
 ## 3. Funcionalidades
 
 ### Solicitudes de reserva
 
 - El usuario puede consultar los espacios, equipos y recursos disponibles.
-- El usuario puede crear una solicitud indicando fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos.
+- El usuario puede crear una solicitud indicando tipo de reserva, fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos.
 - El sistema valida los datos de la solicitud y registra su estado inicial.
+- El usuario indica si la reserva es dentro o fuera del laboratorio; si es fuera, debe indicar la ubicación de uso.
+- Una misma solicitud puede combinar un espacio, varios recursos del inventario institucional.
+- El usuario puede agrupar varias fechas/horarios distintos en una sola solicitud (reserva multi-día). (NO)
+- El usuario puede agregar acompañantes a la reserva.
+- Si algún recurso incluido lo exige, la solicitud queda marcada automáticamente como "requiere apoyo del auxiliar/técnico".
+- El sistema garantiza a nivel de base de datos, no solo de aplicación, que dos solicitudes concurrentes nunca reserven el mismo recurso en el mismo horario.
 
 ### Gestión y aprobación
 
 - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
 - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
+- El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
+- El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+
+## Gestión por tipo de reserva 
+ ## #1 - Gestión de reservas por espacios
+        -  El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
+        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
+        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
+        - El usuario solo puede editar una reserva en estado pendiente de aprobación.
+        - El usuario puede seleccionar los recursos dentro del espacio.
+        - El sistema genera reportes para el gestor y el administrador.
+## #2 - Gestión de reservas en el campus (fuera del laboratorio).
+        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
+        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
+        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
+        - El sistema debe generar un formato de salida diligenciado - Para salida dentro del campus.
+## #3 - Gestión de reservas en fuera del campus
+        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
+        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
+        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
+        - El sistema debe generar un formato de salida diligenciado FGL 030 - Para salida FUERA DEL CAMPUS.
+## #4 - Lista de espera 
+        - El gestor puede consultar, aprobar, editar, poner en ejecución, finalizado,
+        rechazar o cancelar solicitudes.
+        - El usuario debe registrar el requerimiento.
+        - El usuario puede adjuntar un archivo para su requerimiento. (LIMITE 5 MB).
+        - El sistema debe poner la reserva en una lista de espera secuencial.
+        - El usuario debe ingresar  el numero de horas en las que realizó el servicio.
+        - El sistema debe generar el informe de uso por horas de la maquina seleccionada.
+## #4 - Servicio
+        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El usuario debe registrar el tipo de servicio a solicitar.
+        - El usuario debe registrar la descripción del servicio.
+        - El usuario puede editar y cancelar un servicio que no haya sido aprobado.
+        - El usuario puede cancelar un servicio que haya sido aprobado, pero no editarlo.
+        
+        
 
 ### Administración de recursos
 
 - El administrador puede crear, editar, habilitar o deshabilitar espacios, equipos, mobiliarios y otros recursos.
 - El gestor puede crear, editar, habilitar o deshabilitar mobiliarios y otros recursos.
 - El sistema permite configurar horarios de atención, modalidad de reserva, anticipación requerida y aprobación automática.
+- El administrador puede importar masivamente el inventario institucional de equipos desde una planilla, sin duplicar registros ya importados.
+- Cada recurso puede marcarse como "prestación de servicio" y llevar un identificador de placa de inventario.
 
 ### Usuarios y trazabilidad
 
 - El administrador puede gestionar usuarios, cuentas, perfiles, unidades organizacionales y permisos.
 - El sistema registra notificaciones y un historial de cambios asociados a las operaciones relevantes.
+- Un usuario puede autorregistrarse sin invitación previa, completar su perfil (documento, teléfono, institución, vinculación, dependencia), y recuperar su contraseña de forma autónoma.
+- El administrador puede invitar cuentas, reenviar una invitación no completada, y promover o degradar a una persona entre reservista y personal administrativo sin perder su historial.
+- El sistema nunca elimina ni degrada la última cuenta con permisos de administrador.
+- Las notificaciones se envían tanto dentro de la aplicación como por correo (confirmación, aprobación, rechazo, cancelación, recordatorio antes de la reserva, invitación de calendario), y cada persona puede optar por no recibir el correo (la notificación dentro de la app no se apaga).
+
+### Datos maestros institucionales
+
+- El administrador administra unidades organizacionales (con jerarquía de unidad padre/hijas), cargos asociados a una unidad, y personal institucional asociado a un cargo.
+- El administrador administra equipos institucionales asociados a una unidad, con su estado operativo, calibración y mantenimiento.
+- Un equipo institucional puede incluirse en una reserva como un recurso más, siempre que esté operativo.
+- Dar de baja personal o un equipo es lógico (queda inactivo), nunca se borra si tiene historial asociado.
+
+### Reportes
+
+- El gestor y el administrador pueden exportar a CSV o Excel: sus propias reservas, el panel de indicadores (KPIs y ocupación por día/hora) y el historial de control de cambios.
+- Los informes se pueden filtrar/agrupar por laboratorio, espacio, recurso, proyecto y semillero.
 
 ### Estados
 
 - El sistema muestra el estado de la solicitud: pendiente, aprobada, rechazada o cancelada.
 - El sistema muestra estados de carga, confirmación, vacío y error durante las operaciones.
 - El sistema informa cuando no existen recursos disponibles o solicitudes pendientes.
+- El personal institucional y los equipos del inventario institucional usan un estado activo/inactivo como baja lógica.
 
 ### Fuera del alcance
 
@@ -82,6 +150,38 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 3. El sistema cambia el estado a cancelada, libera la disponibilidad y registra la acción.
 4. El sistema notifica el cambio a los usuarios involucrados.
 
+### Flujo secundario — Proponer y resolver un horario alternativo
+
+1. El gestor abre una solicitud pendiente y, en vez de rechazarla, propone un horario alternativo con un motivo.
+2. El sistema notifica al solicitante.
+3. El solicitante acepta el horario propuesto, lo rechaza, o contrapropone otro horario con su propio motivo.
+4. Si contrapropone, el gestor recibe el aviso y puede aceptar o rechazar esa contrapropuesta.
+5. Al aceptarse cualquiera de las dos propuestas, el sistema revalida disponibilidad, capacidad y horario, y reprograma la reserva; al rechazarse, la reserva queda pendiente con su horario original.
+
+### Flujo secundario — Anotarse en lista de espera
+
+1. El usuario intenta reservar un recurso/horario ya ocupado y el sistema le ofrece anotarse en la lista de espera.
+2. Cuando el recurso se libera (cancelación, rechazo o eliminación de la reserva que lo ocupaba), el sistema notifica automáticamente a la primera persona en la cola.
+3. Si esa persona no reserva a tiempo, su turno expira y el sistema notifica a la siguiente.
+
+### Flujo secundario — Administrar datos maestros institucionales
+
+1. El administrador crea una unidad organizacional, opcionalmente bajo otra unidad padre.
+2. Da de alta cargos dentro de esa unidad, y personal institucional dentro de un cargo.
+3. Da de alta equipos dentro de una unidad, con sus datos de calibración y mantenimiento.
+4. Da de baja (lógica) personal o equipos que ya no correspondan, sin afectar el historial de reservas que ya los incluyeron.
+
+### Flujo secundario — Autorregistro y recuperación de contraseña
+
+1. Una persona sin cuenta se autorregistra indicando usuario, correo y contraseña propia, sin necesitar invitación.
+2. Si olvida su contraseña, pide un enlace de recuperación; el sistema responde igual exista o no una cuenta con ese correo, y si existe, envía el enlace por correo.
+3. Al completar el cambio, el sistema le confirma por correo que su contraseña fue actualizada.
+
+### Flujo secundario — Exportar un reporte
+
+1. El gestor o administrador filtra la vista que quiere exportar (sus reservas, el panel de indicadores, o el control de cambios).
+2. Elige el formato (CSV o Excel) y descarga el archivo con exactamente los datos que tenía filtrados en pantalla.
+
 ## 5. Arquitectura
 
 | Componente | Tecnología | Función |
@@ -120,4 +220,4 @@ Usuario → Next.js (React) → FastAPI → PostgreSQL → FastAPI → Next.js �
 
 - No incluye aplicaciones móviles nativas para Android o iOS.
 - No incluye pagos, cobros ni facturación asociados a las reservas.
-- No incluye integración con calendarios externos ni soporte multiidioma.
+- No incluye integración con calendarios externos (más allá de una invitación de calendario enviada por correo como adjunto `.ics` al aprobar una reserva — ver Funcionalidades → Usuarios y trazabilidad) ni soporte multiidioma.
