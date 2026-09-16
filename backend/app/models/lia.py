@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -43,7 +44,7 @@ class Personal(Base):
     correo = Column(String(150), nullable=False)
     telefono = Column(String(20), nullable=False)
     estado = Column(Boolean, nullable=True)
-    supabase_id = Column(String(36), nullable=True, unique=True)
+    supabase_id = Column(UUID(as_uuid=True), nullable=True, unique=True)
     cargo = relationship("Cargo")
 
 
@@ -60,6 +61,17 @@ class Equipo(Base):
     nombre_equipo = Column(String(50), nullable=False)
     placa = Column(String(40), nullable=True)
     serial = Column(String(50), nullable=True)
+    marca = Column(String(50), nullable=True)
+    modelo = Column(String(50), nullable=True)
+    image_path = Column(String(100), nullable=True)
+    manual_operacion = Column(String(100), nullable=True)
+    requiere_calibracion = Column(Boolean, nullable=True)
+    guia_rapida = Column(String(100), nullable=True)
+    instalador = Column(String(100), nullable=True)
     estado = Column(Boolean, nullable=True)
+    id_categoria = Column(Integer, nullable=True)
+    proxima_fecha_calibracion = Column(Date, nullable=True)
+    proxima_fecha_mantenimiento = Column(Date, nullable=True)
+    frecuencia_calibracion = Column(Integer, nullable=True)
+    frecuencia_mantenimiento = Column(Integer, nullable=True)
     unidad = relationship("UnidadOrganizacional")
-
