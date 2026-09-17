@@ -9,6 +9,25 @@ Gestionar el ciclo de vida de las reservas institucionales.
 El módulo cubre creación, consulta, modificación, aprobación,
 rechazo, cancelación y validación de disponibilidad temporal.
 
+## States
+
+Todas los tipos de reservas utilizan un conjunto común de estados.
+
+-  SOLICITADA;
+-  APROBADA;
+-  RECHAZADA;
+-  EN_EJECUCION;
+-  FINALIZADA;
+-  CANCELADA;
+
+### Transiciones generales
+
+- SOLICITADA -> APROBADA;
+- SOLICITADA -> RECHAZADA;
+- APROBADA -> EN_EJECUCION;
+- EN_EJECUCION -> FINALIZADA;
+- APROBADA -> CANCELADA
+
 ## Responsibilities
 
 - gestionar reservas;
