@@ -12,14 +12,14 @@ El modelo persistente se define en [data-model](data-model.md), los espacios en 
 - **RN-RES-02:** Toda reserva debe ser creada por una cuenta autenticada y activa.
 - **RN-RES-03:** Toda reserva debe estar asociada a una unidad organizacional receptora mediante `id_unidad`.
 - **RN-RES-04:** Los datos y elementos requeridos para crear una reserva dependen del tipo de reserva seleccionado.
-- **RN-RES-05:** Todo espacio, recurso, servicio, proyecto, semillero u otro elemento asociado a la reserva debe existir y encontrarse habilitado cuando aplique.
+- **RN-RES-05:** Todo espacio, recurso, proyecto, semillero u otro elemento asociado a la reserva debe existir y encontrarse habilitado cuando aplique.
 - **RN-RES-06:** Los elementos asociados a una reserva deben pertenecer o estar disponibles para la unidad organizacional receptora, según corresponda.
 - **RN-RES-07:** Una misma cuenta puede mantener varias reservas simultáneas siempre que no exista una restricción específica del tipo de reserva ni conflicto sobre los elementos reservados.
 - **RN-RES-08:** Crear o modificar una reserva debe revalidar las reglas aplicables a su tipo de reserva.
 - **RN-RES-09:** Cuando un equipo incluido en la reserva tenga `requiere_apoyo = true`, la reserva debe persistir `requiere_apoyo = true` automáticamente y el Usuario no puede desmarcar la opción “requiere técnico”.
 - **RN-RES-10:** Cuando ningún equipo incluido exija apoyo, el Usuario puede solicitar voluntariamente apoyo técnico; el valor efectivo se persiste en `reservas.reservas.requiere_apoyo`.
 - **RN-RES-11:** Para crear una reserva, la cuenta Usuario debe haber completado la actualización inicial de su perfil conforme a RN-USR-07 y RN-USR-08, y conservar al menos una vinculación activa y válida conforme a RN-USR-11. El backend revalida ambas condiciones al registrar cada nueva reserva. Las vinculaciones seleccionadas como contexto se validan además conforme a RN-CTX-05.
-- **RN-RES-12:** Una reserva por espacio admite cero o más recursos complementarios y no exige un recurso principal. Las reservas de recurso interno, campus y externo requieren un recurso principal y admiten adicionales conforme a sus reglas específicas. No se impone un recurso principal a lista de espera ni servicio por una regla global; su composición corresponde a sus reglas específicas.
+- **RN-RES-12:** Una reserva por espacio admite cero o más recursos complementarios y no exige un recurso principal. Las reservas de recurso interno, campus y externo requieren un recurso principal y admiten adicionales conforme a sus reglas específicas. No se impone un recurso principal a lista de espera por una regla global; su composición corresponde a sus reglas específicas.
 
 ---
 
@@ -39,7 +39,6 @@ Los tipos de reserva contemplados actualmente son:
 - Recurso para uso dentro del campus y fuera del laboratorio.
 - Recurso fuera del campus.
 - Lista de espera.
-- Servicio.
 
 ---
 
@@ -141,12 +140,6 @@ Los tipos de reserva contemplados actualmente son:
 
 ---
 
-## Reserva por servicio — RN-TIP-SER
-
-Las reglas específicas de este tipo de reserva se definirán cuando se establezca su flujo funcional. Hasta entonces, le aplican únicamente las reglas generales del dominio que sean compatibles con su naturaleza.
-
----
-
 ## Horario para reservas con franja horaria — RN-HOR
 
 - **RN-HOR-01:** Estas reglas aplican únicamente a los tipos de reserva que utilizan `hora_inicio` y `hora_fin`.
@@ -207,9 +200,9 @@ Los únicos estados globales válidos son:
 
 - **RN-APR-01:** Solo una cuenta autenticada con permiso para gestionar reservas de la unidad receptora puede aprobar o rechazar una reserva.
 - **RN-APR-02:** La aprobación automática de reservas creadas por Usuarios puede habilitarse o deshabilitarse por el Técnico desde la configuración de su propia unidad organizacional.
-- **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo.
+- **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo. Esta vía no aplica a lista de espera, que siempre inicia en `SOLICITADA` conforme a RN-TIP-PLE-05.
 - **RN-APR-04:** Cuando la aprobación automática no esté habilitada, la reserva creada por un usuario se registra en estado `SOLICITADA` y requiere revisión del Técnico .
-- **RN-APR-05:** Las reservas creadas por un Técnico dentro de su propia unidad organizacional se registran directamente en estado `APROBADA`.
+- **RN-APR-05:** Las reservas creadas por un Técnico dentro de su propia unidad organizacional se registran directamente en estado `APROBADA`, excepto lista de espera. El Técnico no puede autoaprobar una lista de espera al crearla; esta siempre inicia en `SOLICITADA` y solo pasa a `APROBADA` conforme a RN-TIP-PLE-05.
 - **RN-APR-06:** La aprobación automática, tanto para usuarios como para Técnico es, no omite las validaciones aplicables al tipo de reserva, incluyendo disponibilidad, horario o fechas, capacidad, estado operativo, habilitación y pertenencia a la unidad cuando correspondan.
 - **RN-APR-07:** Aprobar una reserva manualmente debe revalidar las condiciones aplicables a su tipo.
 - **RN-APR-08:** Rechazar una reserva conserva toda su información histórica y debe registrar el motivo del rechazo.
@@ -250,7 +243,7 @@ Los únicos estados globales válidos son:
 
 ## Archivo de calendario — RN-CAL
 
-- **RN-CAL-01:** Cuando una reserva sea aprobada, el sistema debe generar un archivo de calendario en formato iCalendar (`.ics`).
+- **RN-CAL-01:** Cuando una reserva sea aprobada, el sistema debe generar un archivo de calendario en formato iCalendar (`.ics`), excepto lista de espera, que no tiene periodo y no genera `.ics`.
 - **RN-CAL-02:** El archivo `.ics` debe incluir como mínimo la fecha, hora de inicio, hora de finalización, ubicación o espacio cuando aplique y una descripción de la reserva.
 - **RN-CAL-03:** Cuando corresponda enviar el correo de confirmación de la reserva, el archivo `.ics` debe adjuntarse a ese correo.
 - **RN-CAL-04:** Si una reserva es modificada y se envía una nueva confirmación, el sistema debe generar un nuevo archivo `.ics` con la información vigente.
@@ -278,7 +271,7 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 - **RN-ACO-02:** Cada acompañante debe ser una cuenta existente vinculada activamente al proyecto o al semillero registrado en la reserva.
 - **RN-ACO-03:** Una reserva puede registrar de cero a N acompañantes; no es obligatorio registrar uno.
 - **RN-ACO-04:** Si la reserva tiene proyecto y semillero, las opciones de acompañante son la unión de las cuentas vinculadas activamente a cualquiera de los dos.
-- **RN-ACO-05:** Las reservas de lista de espera y de servicio no admiten acompañantes.
+- **RN-ACO-05:** Las reservas de lista de espera no admiten acompañantes.
 - **RN-ACO-06:** Ser acompañante no otorga por sí mismo permisos administrativos sobre la reserva; la autorización se determina en `auth`.
 - **RN-ACO-07:** La asociación del acompañante se conserva históricamente aunque posteriormente se desactive su vinculación con el proyecto o semillero.
 

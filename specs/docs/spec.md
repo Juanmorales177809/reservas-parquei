@@ -65,14 +65,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
         - El Técnico selecciona la siguiente reserva aprobada según prioridad o criterios operativos, conforme a RN-TIP-PLE-06.
         - El Técnico registra las horas empleadas al finalizar la ejecución, conforme a RN-TIP-PLE-08.
         - El sistema debe generar el informe de uso por horas de la maquina seleccionada.
-## #4 - Servicio
-        - El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
-        - El usuario debe registrar el tipo de servicio a solicitar.
-        - El usuario debe registrar la descripción del servicio.
-        - El usuario puede editar y cancelar un servicio que no haya sido aprobado.
-        - El usuario puede cancelar un servicio que haya sido aprobado, pero no editarlo.
-        
-        
+
 
 ### Administración de recursos
 

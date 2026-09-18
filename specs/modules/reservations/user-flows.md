@@ -8,7 +8,7 @@ En todos los flujos de creación, el sistema aplica RN-RES-11 al iniciar la soli
 
 ## Condición común de acompañantes
 
-Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera y servicio no permiten acompañantes.
+Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera no permiten acompañantes.
 
 ## Condición común de composición y ejecución de recursos
 
@@ -90,18 +90,18 @@ Usuario.
 1. El usuario selecciona el laboratorio o unidad organizacional.
 2. Selecciona `Recurso para uso dentro del campus`.
 3. El sistema muestra los recursos habilitados.
-4. El usuario selecciona un recurso.
-5. Selecciona fecha de salida y fecha de devolución.
-6. El sistema valida disponibilidad durante todo el periodo.
+4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
+5. Selecciona fecha de salida y fecha de devolución, aplicables a todos los recursos.
+6. El sistema valida disponibilidad de cada recurso durante todo el periodo.
 7. El usuario envía la solicitud.
 8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración aplicable.
 
 ### Entrega y devolución
 1. El Técnico  aprueba la entrega.
-2. El sistema genera la orden de salida para uso dentro del campus.
+2. El sistema genera la orden de salida para uso dentro del campus, listando todos los recursos.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
-4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
-5. Al devolverlo, el Técnico  registra la devolución.
+4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
+5. Al devolverlos, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -115,18 +115,18 @@ Usuario.
 1. El usuario selecciona el laboratorio o unidad organizacional.
 2. Selecciona `Recurso fuera del campus`.
 3. El sistema muestra los recursos autorizados para este tipo de salida.
-4. El usuario selecciona un recurso.
-5. Selecciona fecha de salida y fecha de devolución.
-6. El sistema valida disponibilidad durante todo el periodo.
+4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
+5. Selecciona fecha de salida y fecha de devolución, aplicables a todos los recursos.
+6. El sistema valida disponibilidad de cada recurso durante todo el periodo.
 7. El usuario envía la solicitud.
 8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración aplicable.
 
 ### Entrega y devolución
 1. El Técnico  aprueba la salida.
-2. El sistema genera la orden de salida externa.
+2. El sistema genera la orden de salida externa, listando todos los recursos.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
-4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
-5. Al devolverlo, el Técnico  registra la devolución.
+4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
+5. Al devolverlos, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -156,15 +156,6 @@ Usuario.
 17. Al iniciar la fabricación o prestación, la reserva pasa a `EN_EJECUCION`.
 18. Al finalizar, el Técnico  registra las horas empleadas.
 19. La reserva pasa a `FINALIZADA`.
-
----
-
-## UF-RES-06 — Crear reserva por servicio
-
-### Estado
-Pendiente de definición funcional.
-
-Este flujo se completará cuando se establezcan las reglas específicas de la reserva por servicio.
 
 ---
 
@@ -352,10 +343,10 @@ Se acerca la fecha/hora de inicio de una reserva en estado `APROBADA`.
 Sistema.
 
 ### Disparador
-Una reserva pasa a `APROBADA`, o se modifica y requiere el envío de una nueva confirmación.
+Una reserva pasa a `APROBADA`, excepto lista de espera, o se modifica y requiere el envío de una nueva confirmación.
 
 ### Flujo
-1. Cuando la reserva queda `APROBADA`, el sistema genera un archivo `.ics` con la fecha, horario, ubicación o espacio cuando aplique y descripción de la reserva.
+1. Cuando la reserva queda `APROBADA`, excepto lista de espera que no genera `.ics`, el sistema genera un archivo `.ics` con la fecha, horario, ubicación o espacio cuando aplique y descripción de la reserva.
 2. El sistema adjunta el archivo `.ics` al correo de confirmación de la reserva.
 3. Si la reserva es modificada y se envía una nueva confirmación, el sistema genera un nuevo archivo `.ics` con la información vigente y lo adjunta a ese correo.
 4. El flujo no sincroniza directamente calendarios externos ni persiste identificadores de eventos externos.

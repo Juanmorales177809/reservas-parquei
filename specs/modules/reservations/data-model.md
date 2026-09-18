@@ -19,7 +19,7 @@ Modelo cabecera–detalle del dominio. `reservas.reservas` contiene atributos co
 | `habilitado` | boolean | NOT NULL |
 | `created_at`, `updated_at` | timestamptz | NOT NULL |
 
-`codigo` contempla `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO`, `LISTA_ESPERA` y `SERVICIO`.
+`codigo` contempla `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`.
 
 ### `reservas.estados_reserva`
 
@@ -71,7 +71,9 @@ CHECK `hora_inicio < hora_fin`. Capacidad, habilitación, horario y solapamiento
 
 ### `reservas.reserva_recurso_interno`
 
-`reserva_id integer PK/FK`, `fecha_inicio date NOT NULL`, `fecha_fin date NOT NULL`, CHECK `fecha_fin >= fecha_inicio`. Debe tener al menos un recurso asociado y puede tener adicionales.
+`reserva_id integer PK/FK`, `fecha date NOT NULL`, `hora_inicio time NOT NULL`, `hora_fin time NOT NULL`.
+
+CHECK `hora_inicio < hora_fin`. Debe tener al menos un recurso asociado y puede tener adicionales. Horario, habilitación y solapamientos son reglas de negocio.
 
 ### `reservas.reserva_recurso_campus` y `reservas.reserva_recurso_externo`
 
@@ -80,10 +82,6 @@ Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `f
 ### `reservas.reserva_lista_espera`
 
 `reserva_id integer PK/FK`, `descripcion_necesidad text NOT NULL`, `viable boolean NULL`, `fecha_evaluacion_viabilidad timestamptz NULL`, `fecha_recepcion_material timestamptz NULL`, `prioridad integer NULL`, `horas_ejecucion numeric NULL CHECK (horas_ejecucion >= 0)`. No requiere fecha ni horario de ejecución.
-
-### `reservas.reserva_servicio`
-
-`reserva_id integer PK/FK`. Sus atributos quedan pendientes hasta definir el flujo funcional.
 
 ## Recursos
 
@@ -106,7 +104,7 @@ El catálogo raíz `recursos.recursos` y la relación 1:1 con equipos, mobiliari
 
 Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas.
 
-La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. Para `LISTA_ESPERA` y `SERVICIO` no se impone un principal por defecto: su composición depende de la definición funcional del tipo. Para campus y externo, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
+La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. Para `LISTA_ESPERA` no se impone un principal por defecto: su composición depende de la definición funcional del tipo. Para campus y externo, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
 
 `asignado_at` registra la asignación a la reserva y `retirado_at` su desasignación; ninguno acredita entrega ni devolución física. Estas últimas se registran en `reserva_ejecucion_recursos`.
 
@@ -271,7 +269,7 @@ La aplicación comprueba que la orden coincide con el tipo de reserva y que `ord
 
 ## Puntos pendientes
 
-- Definir atributos de `SERVICIO`, catálogo de actividades y estructura exacta de campos de espacios.
+- Definir catálogo de actividades y estructura exacta de campos de espacios.
 - Definir migración 1:1 de equipos, mobiliarios y otros hacia `recursos`.
 - Implementar y verificar el mecanismo contra solapamientos descrito en «Garantía transaccional — pendiente de implementación» y migrar las opciones de visibilidad por unidad.
 - Propuestas/contrapropuestas y recordatorios quedan fuera hasta contar con especificación funcional. El archivo `.ics` de confirmación se genera y adjunta al correo sin una tabla propia, sin sincronización directa con calendarios externos y sin persistir identificadores de eventos externos, conforme a RN-CAL.
