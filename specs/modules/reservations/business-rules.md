@@ -56,13 +56,13 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-12:** Al seleccionar un espacio, el sistema debe cargar los recursos asociados y los campos adicionales configurados para ese espacio.
 - **RN-TIP-PE-13:** El sistema debe indicar cuáles recursos asociados al espacio se encuentran disponibles y cuáles no están disponibles para la fecha y horario solicitados.
 - **RN-TIP-PE-14:** La falta de disponibilidad de uno o más recursos asociados al espacio no impide crear la reserva del espacio.
-- **RN-TIP-PE-15:** La reserva por espacio debe permitir registrar una observación para comunicar al gestor necesidades, restricciones o información adicional relacionada con los recursos requeridos.
-- **RN-TIP-PE-16:** Al revisar la solicitud, el gestor debe visualizar la disponibilidad de los recursos asociados al espacio y la observación registrada por el usuario.
-- **RN-TIP-PE-17:** Antes de aprobar la reserva, el gestor puede modificar los recursos asociados a la solicitud para ajustarla según la disponibilidad existente, sin alterar el espacio solicitado salvo que el flujo de gestión lo permita expresamente.
+- **RN-TIP-PE-15:** La reserva por espacio debe permitir registrar una observación para comunicar al Técnico  necesidades, restricciones o información adicional relacionada con los recursos requeridos.
+- **RN-TIP-PE-16:** Al revisar la solicitud, el Técnico  debe visualizar la disponibilidad de los recursos asociados al espacio y la observación registrada por el usuario.
+- **RN-TIP-PE-17:** Antes de aprobar la reserva, el Técnico  puede modificar los recursos asociados a la solicitud para ajustarla según la disponibilidad existente, sin alterar el espacio solicitado salvo que el flujo de gestión lo permita expresamente.
 - **RN-TIP-PE-18:** Cuando el espacio tenga campos adicionales configurados como obligatorios, el usuario debe diligenciarlos antes de enviar la solicitud.
 - **RN-TIP-PE-19:** Si el espacio no tiene campos adicionales configurados, la reserva continúa sin solicitar información adicional.
 - **RN-TIP-PE-20:** Los valores diligenciados en los campos adicionales deben conservarse asociados a la reserva como parte de su información histórica.
-- **RN-TIP-PE-21:** El gestor puede agregar recursos asociados a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
+- **RN-TIP-PE-21:** El Técnico  puede agregar recursos asociados a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-PE-22:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
 - **RN-TIP-PE-23:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
 
@@ -76,10 +76,10 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RI-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
 - **RN-TIP-RI-05:** La reserva de un recurso para uso dentro del laboratorio no requiere asociarlo a una reserva de espacio.
 - **RN-TIP-RI-06:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RI-07:** La entrega del recurso al usuario requiere la aprobación previa del gestor.
+- **RN-TIP-RI-07:** La entrega del recurso al usuario requiere la aprobación previa del Técnico .
 - **RN-TIP-RI-08:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RI-09:** Al recibir nuevamente el recurso o finalizar su uso dentro del laboratorio, el gestor debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
-- **RN-TIP-RI-10:** El gestor puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
+- **RN-TIP-RI-09:** Al recibir nuevamente el recurso o finalizar su uso dentro del laboratorio, el Técnico  debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RI-10:** El Técnico  puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-RI-11:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
 - **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
 
@@ -92,11 +92,11 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RC-03:** El recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
 - **RN-TIP-RC-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
 - **RN-TIP-RC-05:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RC-06:** La entrega del recurso al usuario requiere la aprobación previa del gestor.
+- **RN-TIP-RC-06:** La entrega del recurso al usuario requiere la aprobación previa del Técnico .
 - **RN-TIP-RC-07:** El sistema debe generar la orden de salida correspondiente al uso del recurso dentro del campus y fuera del laboratorio.
-- **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del gestor y la recepción del recurso por parte del usuario.
+- **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del Técnico  y la recepción del recurso por parte del usuario.
 - **RN-TIP-RC-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RC-10:** Al recibir nuevamente el recurso, el gestor debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RC-10:** Al recibir nuevamente el recurso, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RC-11:** La orden de salida (`RN-TIP-RC-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
 - **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
 - **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
@@ -112,11 +112,11 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RE-03:** El recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
 - **RN-TIP-RE-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
 - **RN-TIP-RE-05:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RE-06:** La salida del recurso requiere la aprobación previa del gestor.
+- **RN-TIP-RE-06:** La salida del recurso requiere la aprobación previa del Técnico .
 - **RN-TIP-RE-07:** El sistema debe generar la orden de salida externa correspondiente al retiro del recurso fuera del campus.
-- **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del gestor y la recepción del recurso por parte del usuario.
+- **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del Técnico  y la recepción del recurso por parte del usuario.
 - **RN-TIP-RE-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RE-10:** Al recibir nuevamente el recurso, el gestor debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RE-10:** Al recibir nuevamente el recurso, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RE-11:** La orden de salida externa (`RN-TIP-RE-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
 - **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
 - **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
@@ -129,12 +129,12 @@ Los tipos de reserva contemplados actualmente son:
 
 - **RN-TIP-PLE-01:** La reserva no requiere seleccionar fecha ni horario de ejecución al momento de la solicitud.
 - **RN-TIP-PLE-02:** La solicitud debe incluir una descripción de la necesidad y podrá incluir un archivo CAD, una imagen u otro archivo técnico asociado cuando corresponda.
-- **RN-TIP-PLE-03:** El formulario complementario solo se habilita después de que el gestor determine que la solicitud es viable.
+- **RN-TIP-PLE-03:** El formulario complementario solo se habilita después de que el Técnico  determine que la solicitud es viable.
 - **RN-TIP-PLE-04:** La evaluación de viabilidad y la aprobación del formulario complementario forman parte del flujo interno de revisión y no constituyen estados globales de la reserva.
-- **RN-TIP-PLE-05:** La reserva pasa al estado `APROBADA` cuando se han completado las aprobaciones requeridas y el gestor registra la recepción del material necesario para su ejecución.
-- **RN-TIP-PLE-06:** Las reservas de tipo lista de espera en estado `APROBADA` no siguen un orden cronológico obligatorio. El gestor selecciona la siguiente reserva a ejecutar según la prioridad o los criterios operativos aplicables.
-- **RN-TIP-PLE-07:** Cuando el gestor inicia la fabricación o prestación correspondiente, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-PLE-08:** Al finalizar la ejecución, el gestor debe registrar las horas empleadas y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-PLE-05:** La reserva pasa al estado `APROBADA` cuando se han completado las aprobaciones requeridas y el Técnico  registra la recepción del material necesario para su ejecución.
+- **RN-TIP-PLE-06:** Las reservas de tipo lista de espera en estado `APROBADA` no siguen un orden cronológico obligatorio. El Técnico  selecciona la siguiente reserva a ejecutar según la prioridad o los criterios operativos aplicables.
+- **RN-TIP-PLE-07:** Cuando el Técnico  inicia la fabricación o prestación correspondiente, la reserva debe pasar al estado `EN_EJECUCION`.
+- **RN-TIP-PLE-08:** Al finalizar la ejecución, el Técnico  debe registrar las horas empleadas y la reserva debe pasar al estado `FINALIZADA`.
 
 ---
 
@@ -199,11 +199,11 @@ Los únicos estados globales válidos son:
 ## Aprobación — RN-APR
 
 - **RN-APR-01:** Solo una cuenta autenticada con permiso para gestionar reservas de la unidad receptora puede aprobar o rechazar una reserva.
-- **RN-APR-02:** La aprobación automática de reservas creadas por usuarios puede habilitarse o deshabilitarse por el gestor desde la configuración de su unidad organizacional.
+- **RN-APR-02:** La aprobación automática de reservas creadas por usuarios puede habilitarse o deshabilitarse por el Técnico  desde la configuración de su unidad organizacional.
 - **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo.
-- **RN-APR-04:** Cuando la aprobación automática no esté habilitada, la reserva creada por un usuario se registra en estado `SOLICITADA` y requiere revisión del gestor.
-- **RN-APR-05:** Las reservas creadas por un gestor dentro de una unidad organizacional en la que tenga permiso de gestión se registran directamente en estado `APROBADA`.
-- **RN-APR-06:** La aprobación automática, tanto para usuarios como para gestores, no omite las validaciones aplicables al tipo de reserva, incluyendo disponibilidad, horario o fechas, capacidad, estado operativo, habilitación y pertenencia a la unidad cuando correspondan.
+- **RN-APR-04:** Cuando la aprobación automática no esté habilitada, la reserva creada por un usuario se registra en estado `SOLICITADA` y requiere revisión del Técnico .
+- **RN-APR-05:** Las reservas creadas por un Técnico  dentro de una unidad organizacional en la que tenga permiso de gestión se registran directamente en estado `APROBADA`.
+- **RN-APR-06:** La aprobación automática, tanto para usuarios como para Técnico es, no omite las validaciones aplicables al tipo de reserva, incluyendo disponibilidad, horario o fechas, capacidad, estado operativo, habilitación y pertenencia a la unidad cuando correspondan.
 - **RN-APR-07:** Aprobar una reserva manualmente debe revalidar las condiciones aplicables a su tipo.
 - **RN-APR-08:** Rechazar una reserva conserva toda su información histórica y debe registrar el motivo del rechazo.
 
@@ -211,10 +211,10 @@ Los únicos estados globales válidos son:
 
 ## Propuesta y contrapropuesta de horario — RN-PROP
 
-- **RN-PROP-01:** En lugar de rechazar una reserva en estado `SOLICITADA`, el gestor puede proponer un horario o fecha alternativa, indicando un motivo.
+- **RN-PROP-01:** En lugar de rechazar una reserva en estado `SOLICITADA`, el Técnico  puede proponer un horario o fecha alternativa, indicando un motivo.
 - **RN-PROP-02:** Una propuesta de horario notifica a la cuenta usuario y no cambia el estado de la reserva.
 - **RN-PROP-03:** La cuenta usuario puede aceptar la propuesta, rechazarla, o presentar una contrapropuesta con su propio motivo.
-- **RN-PROP-04:** Ante una contrapropuesta, únicamente el gestor puede aceptarla o rechazarla.
+- **RN-PROP-04:** Ante una contrapropuesta, únicamente el Técnico  puede aceptarla o rechazarla.
 - **RN-PROP-05:** Aceptar cualquier propuesta o contrapropuesta revalida las reglas aplicables al tipo de reserva (disponibilidad, horario o fechas, capacidad) antes de reprogramarla.
 - **RN-PROP-06:** Rechazar una propuesta o contrapropuesta conserva la reserva en estado `SOLICITADA` con su horario original, sin generar una nueva solicitud.
 - **RN-PROP-07:** Solo puede existir una propuesta o contrapropuesta vigente a la vez por reserva.

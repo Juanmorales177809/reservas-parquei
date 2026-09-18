@@ -26,7 +26,7 @@ Usuario.
 14. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
 15. Cuando el contexto seleccionado sea un proyecto o semillero, el sistema muestra únicamente las cuentas asociadas a ese proyecto o semillero como opciones válidas de acompañante, conforme a `RN-ACO`.
 16. El usuario selecciona uno o más acompañantes de esa lista.
-17. El usuario puede registrar una observación para el gestor.
+17. El usuario puede registrar una observación para el Técnico .
 18. El usuario envía la solicitud.
 19. El sistema revalida las reglas aplicables.
 20. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
@@ -51,10 +51,10 @@ Usuario.
 8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración de aprobación automática.
 
 ### Ejecución
-1. El gestor entrega físicamente el recurso.
+1. El Técnico  entrega físicamente el recurso.
 2. La reserva pasa a `EN_EJECUCION`.
-3. El gestor puede agregar recursos adicionales si están habilitados, operativos y disponibles durante el periodo aplicable.
-4. Al devolver el recurso o finalizar su uso, el gestor registra la finalización.
+3. El Técnico  puede agregar recursos adicionales si están habilitados, operativos y disponibles durante el periodo aplicable.
+4. Al devolver el recurso o finalizar su uso, el Técnico  registra la finalización.
 5. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -75,11 +75,11 @@ Usuario.
 8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración aplicable.
 
 ### Entrega y devolución
-1. El gestor aprueba la entrega.
+1. El Técnico  aprueba la entrega.
 2. El sistema genera la orden de salida para uso dentro del campus.
-3. La orden registra la aprobación del gestor y la recepción del recurso por parte del usuario.
+3. La orden registra la aprobación del Técnico  y la recepción del recurso por parte del usuario.
 4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
-5. Al devolverlo, el gestor registra la devolución.
+5. Al devolverlo, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -100,11 +100,11 @@ Usuario.
 8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración aplicable.
 
 ### Entrega y devolución
-1. El gestor aprueba la salida.
+1. El Técnico  aprueba la salida.
 2. El sistema genera la orden de salida externa.
-3. La orden registra la aprobación del gestor y la recepción del recurso por parte del usuario.
+3. La orden registra la aprobación del Técnico  y la recepción del recurso por parte del usuario.
 4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
-5. Al devolverlo, el gestor registra la devolución.
+5. Al devolverlo, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -121,18 +121,18 @@ Usuario.
 4. Cuando corresponda, adjunta un archivo CAD, imagen u otro archivo técnico.
 5. Envía la solicitud.
 6. La reserva queda en `SOLICITADA`.
-7. El gestor revisa la solicitud y determina si es viable.
+7. El Técnico  revisa la solicitud y determina si es viable.
 8. Si no es viable, la reserva pasa a `RECHAZADA`.
 9. Si es viable, el sistema habilita el formulario complementario.
 10. El usuario diligencia y envía el formulario.
-11. El gestor revisa la información.
+11. El Técnico  revisa la información.
 12. Cuando se completan las aprobaciones requeridas, el usuario entrega el material.
-13. El gestor registra la recepción del material.
+13. El Técnico  registra la recepción del material.
 14. La reserva pasa a `APROBADA`.
-15. Las reservas aprobadas permanecen disponibles para selección del gestor sin orden cronológico obligatorio.
-16. El gestor selecciona la siguiente según prioridad o criterio operativo.
+15. Las reservas aprobadas permanecen disponibles para selección del Técnico  sin orden cronológico obligatorio.
+16. El Técnico  selecciona la siguiente según prioridad o criterio operativo.
 17. Al iniciar la fabricación o prestación, la reserva pasa a `EN_EJECUCION`.
-18. Al finalizar, el gestor registra las horas empleadas.
+18. Al finalizar, el Técnico  registra las horas empleadas.
 19. La reserva pasa a `FINALIZADA`.
 
 ---
@@ -149,28 +149,28 @@ Este flujo se completará cuando se establezcan las reglas específicas de la re
 ## UF-RES-07 — Revisar y aprobar una reserva
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Flujo
-1. El gestor consulta las reservas de las unidades organizacionales autorizadas.
+1. El Técnico  consulta las reservas de las unidades organizacionales autorizadas.
 2. Selecciona una reserva en estado `SOLICITADA`.
 3. El sistema muestra datos de la reserva, usuario, tipo, elementos asociados, disponibilidad, observaciones e información adicional aplicable.
-4. El gestor revisa la solicitud.
+4. El Técnico  revisa la solicitud.
 5. El sistema revalida las condiciones aplicables al tipo de reserva.
-6. El gestor puede ajustar los elementos permitidos por las reglas del tipo.
+6. El Técnico  puede ajustar los elementos permitidos por las reglas del tipo.
 7. Si aprueba, la reserva pasa a `APROBADA`.
 8. Si rechaza, registra el motivo y la reserva pasa a `RECHAZADA`.
 9. El sistema genera las notificaciones correspondientes.
 
 ---
 
-## UF-RES-08 — Crear reserva como gestor
+## UF-RES-08 — Crear reserva como Técnico 
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Flujo
-1. El gestor selecciona una unidad organizacional dentro de su ámbito autorizado.
+1. El Técnico  selecciona una unidad organizacional dentro de su ámbito autorizado.
 2. Crea la reserva correspondiente.
 3. El sistema valida las reglas aplicables al tipo.
 4. Si las validaciones se cumplen, la reserva se registra directamente en `APROBADA`.
@@ -181,16 +181,16 @@ Gestor.
 ## UF-RES-09 — Agregar recursos a una reserva por espacio
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Precondición
 La reserva debe estar en `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 
 ### Flujo
-1. El gestor abre la reserva.
+1. El Técnico  abre la reserva.
 2. Selecciona la opción para gestionar recursos asociados.
 3. El sistema muestra recursos habilitados y su disponibilidad.
-4. El gestor selecciona uno o más recursos.
+4. El Técnico  selecciona uno o más recursos.
 5. El sistema valida habilitación, estado operativo, disponibilidad y pertenencia o disponibilidad para la unidad.
 6. Si la reserva está en `EN_EJECUCION`, la disponibilidad se valida desde el momento de incorporación hasta la finalización prevista.
 7. El sistema agrega el recurso a la reserva.
@@ -201,16 +201,16 @@ La reserva debe estar en `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 ## UF-RES-10 — Agregar recursos a una reserva de uso dentro del laboratorio
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Precondición
 La reserva debe estar en `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 
 ### Flujo
-1. El gestor abre la reserva.
+1. El Técnico  abre la reserva.
 2. Selecciona la opción para agregar recursos.
 3. El sistema muestra recursos habilitados y disponibles.
-4. El gestor selecciona recursos adicionales.
+4. El Técnico  selecciona recursos adicionales.
 5. El sistema valida las condiciones aplicables.
 6. Si la reserva está en `EN_EJECUCION`, la disponibilidad se valida desde el momento de incorporación hasta la finalización prevista.
 7. Los recursos se agregan a la reserva.
@@ -258,10 +258,10 @@ Se deshabilita un espacio o recurso.
 ## UF-RES-13 — Iniciar ejecución
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Flujo
-1. El gestor selecciona una reserva `APROBADA`.
+1. El Técnico  selecciona una reserva `APROBADA`.
 2. Verifica las condiciones requeridas para iniciar.
 3. Ejecuta la acción de inicio.
 4. La reserva pasa a `EN_EJECUCION`.
@@ -273,10 +273,10 @@ Gestor.
 ## UF-RES-14 — Finalizar reserva
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Flujo
-1. El gestor selecciona una reserva en `EN_EJECUCION`.
+1. El Técnico  selecciona una reserva en `EN_EJECUCION`.
 2. Registra la información requerida por el tipo de reserva.
 3. Cuando aplique, registra devolución de recursos, horas empleadas u observaciones de cierre.
 4. Confirma la finalización.
@@ -289,18 +289,18 @@ Gestor.
 ## UF-RES-15 — Proponer y resolver un horario alternativo
 
 ### Actor principal
-Gestor.
+Técnico .
 
 ### Precondición
 La reserva debe estar en `SOLICITADA`.
 
 ### Flujo
-1. El gestor abre una reserva en `SOLICITADA` y, en vez de rechazarla, selecciona proponer un horario alternativo.
+1. El Técnico  abre una reserva en `SOLICITADA` y, en vez de rechazarla, selecciona proponer un horario alternativo.
 2. Registra el horario o fecha propuesta y un motivo.
 3. El sistema notifica al usuario; la reserva permanece en `SOLICITADA`.
 4. El usuario revisa la propuesta y elige aceptarla, rechazarla o contraproponer otro horario con su propio motivo.
-5. Si contrapropone, el sistema notifica al gestor.
-6. El gestor revisa la contrapropuesta y elige aceptarla o rechazarla.
+5. Si contrapropone, el sistema notifica al Técnico .
+6. El Técnico  revisa la contrapropuesta y elige aceptarla o rechazarla.
 7. Al aceptarse cualquiera de las dos propuestas, el sistema revalida las reglas aplicables al tipo de reserva (disponibilidad, horario o fechas, capacidad) y reprograma la reserva con el nuevo horario.
 8. Al rechazarse una propuesta o contrapropuesta, la reserva conserva su horario original y permanece en `SOLICITADA`.
 9. La acción queda registrada en auditoría.
@@ -342,10 +342,10 @@ Una reserva pasa a `APROBADA`, se reprograma estando `APROBADA` o `EN_EJECUCION`
 ## UF-RES-18 — Exportar reportes
 
 ### Actor principal
-Gestor o administrador.
+Técnico  o administrador.
 
 ### Flujo
-1. El gestor o administrador consulta el reporte que necesita, con los filtros aplicables a su ámbito.
+1. El Técnico  o administrador consulta el reporte que necesita, con los filtros aplicables a su ámbito.
 2. Selecciona la opción de exportar y el formato (CSV o Excel).
 3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
 4. El sistema entrega el archivo para su descarga.
