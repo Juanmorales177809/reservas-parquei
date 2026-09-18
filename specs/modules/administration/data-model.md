@@ -65,7 +65,7 @@ La importación escribe las entidades en el módulo propietario (`investigacion`
 
 ## Relaciones y responsabilidad
 
-El módulo define la estructura institucional (unidades y cargos) y documenta `reservas.control_cambios` como registro transversal del inventario, aunque su schema físico sea `reservas`. Las unidades tienen jerarquía mediante `id_unidad_padre`; los cargos pertenecen a una unidad y son referenciados por el personal de [Usuarios](../usuarios/data-model.md).
+El módulo define la estructura institucional (unidades y cargos) y es propietario de la auditoría de las operaciones administrativas. Las unidades tienen jerarquía mediante `id_unidad_padre`; los cargos pertenecen a una unidad y son referenciados por el personal de [Usuarios](../usuarios/data-model.md).
 
 La gestión administrativa de cuentas, usuarios y perfiles utiliza los modelos propietarios de [Auth](../auth/data-model.md), [Usuarios](../usuarios/data-model.md) y [Researchs](../researchs/data-model.md), respectivamente. No se crean copias de esas entidades.
 

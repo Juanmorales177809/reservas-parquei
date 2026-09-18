@@ -2,7 +2,7 @@
 
 Contrato funcional del dominio de reservas.
 
-El modelo persistente se define en [data-model](data-model.md), los espacios en [business-rules.md](../espacios/busines-rules.md), los recursos en [business-rules.md](../resources/business-rules.md), la autenticación y autorización en [business-rules.md](../auth/business-rules.md), y las relaciones académicas e investigativas en el módulo `researchs`.
+El modelo persistente se define en [data-model](data-model.md), los espacios en [business-rules.md](../espacios/business-rules.md), los recursos en [business-rules.md](../resources/business-rules.md), la autenticación y autorización en [business-rules.md](../auth/business-rules.md), y las relaciones académicas e investigativas en el módulo `researchs`.
 
 ---
 
@@ -45,7 +45,7 @@ Los tipos de reserva contemplados actualmente son:
 ## Reserva por espacio — RN-TIP-PE
 
 - **RN-TIP-PE-01:** La reserva requiere seleccionar una fecha y un horario de inicio y finalización.
-- **RN-TIP-PE-02:** La fecha y el horario solicitados deben encontrarse dentro de la disponibilidad definida para el espacio.
+- **RN-TIP-PE-02:** La fecha y el horario solicitados deben encontrarse dentro del horario de atención de la unidad a la que pertenece el espacio, conforme a `RN-ESP-DIS-02`. El espacio no define un horario propio.
 - **RN-TIP-PE-03:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo espacio.
 - **RN-TIP-PE-04:** La reserva debe estar asociada a un espacio habilitado para reservas.
 - **RN-TIP-PE-05:** La reserva debe declarar el número de `asistentes`, que representa la ocupación total prevista del espacio. Debe ser al menos uno, correspondiente al reservista, y nunca menor que el reservista más el número de acompañantes registrados. No podrá superar la capacidad habilitada del espacio. Las personas que asisten sin cuenta vinculada al proyecto o semillero no pueden registrarse como acompañantes conforme a `RN-ACO-02`, pero sí se cuentan en este total.
@@ -145,7 +145,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-HOR-01:** Estas reglas aplican únicamente a los tipos de reserva que utilizan `hora_inicio` y `hora_fin`.
 - **RN-HOR-02:** `hora_inicio` debe ser menor que `hora_fin`.
 - **RN-HOR-03:** Una reserva con franja horaria no puede cruzar medianoche.
-- **RN-HOR-04:** La reserva debe encontrarse dentro del horario habilitado para la unidad, laboratorio o espacio correspondiente.
+- **RN-HOR-04:** La reserva debe encontrarse dentro del horario de atención habilitado para la unidad o laboratorio correspondiente. Los espacios y recursos de esa unidad heredan ese horario y no definen uno propio (`RN-ESP-DIS-02`).
 - **RN-HOR-05:** No se aceptan fechas pasadas al crear o reprogramar una reserva con franja horaria.
 - **RN-HOR-06:** `horas_antelacion` se valida al crear una reserva y al reprogramarla. No se vuelve a exigir al momento de aprobarla.
 - **RN-HOR-07:** La validación de horario debe utilizar la configuración vigente de la unidad al momento de crear, modificar o aprobar la reserva.
@@ -179,7 +179,7 @@ Los únicos estados globales válidos son:
 - **RN-DIS-04:** Un equipo debe encontrarse operativo según la información vigente del sistema de origen correspondiente al momento de crear o aprobar la reserva.
 - **RN-DIS-05:** La validación de disponibilidad y el registro de la reserva y sus asignaciones deben realizarse en una misma transacción con protección contra solicitudes concurrentes incompatibles. Esta garantía aplica al crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva, conforme al [data-model](data-model.md). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
 - **RN-DIS-06:** Un espacio o recurso solo bloquea disponibilidad cuando está efectivamente asignado a la reserva, tiene un periodo definido y la reserva se encuentra en un estado bloqueante conforme a `RN-EST-02` y `RN-EST-03`. Una solicitud sin periodo definido no bloquea franjas futuras por su estado solamente.
-- **RN-DIS-07:** El Usuario siempre puede consultar los horarios configurados y las franjas disponibles del espacio o recurso; las opciones de visibilidad no pueden ocultar esa información.
+- **RN-DIS-07:** El Usuario siempre puede consultar el horario de atención de la unidad y las franjas disponibles del espacio o recurso; las opciones de visibilidad no pueden ocultar esa información.
 - **RN-DIS-08:** Cada unidad puede configurar de forma independiente `mostrar_estado_reserva` y `mostrar_reservista`, ambas desactivadas por defecto, para mostrar al Usuario el estado y el nombre del reservista de la reserva que ocupa una franja no disponible.
 - **RN-DIS-09:** El Técnico solo puede modificar estas opciones para su propia unidad organizacional. El Administrador puede modificarlas para cualquier unidad, conforme a los permisos de `auth`.
 - **RN-DIS-10:** Las opciones de visibilidad solo determinan la información presentada al Usuario; no modifican la disponibilidad ni las reglas de bloqueo, ni permiten consultar el detalle completo de reservas ajenas. El backend aplica estas opciones al responder las consultas de disponibilidad.
@@ -300,7 +300,7 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 Las reglas de este documento dependen de otros dominios únicamente en los siguientes aspectos:
 
 - **Autenticación y autorización:** [business-rules.md](../auth/business-rules.md) determina autenticación, cuentas activas y validación de permisos.
-- **Espacios:** [business-rules.md](../espacios/busines-rules.md) determina existencia, habilitación, capacidad, configuración, campos adicionales y recursos asociados a los espacios.
+- **Espacios:** [business-rules.md](../espacios/business-rules.md) determina existencia, habilitación, capacidad, configuración, campos adicionales y recursos asociados a los espacios.
 - **Recursos:** [business-rules.md](../resources/business-rules.md) determina existencia, habilitación, clasificación y estado operativo de los recursos.
 - **Notificaciones:** [business-rules.md](../notifications/business-rules.md) determina canales, mecanismos y reglas de entrega de las notificaciones generadas por el dominio de reservas.
 - **Modelo persistente:** [data-model](data-model.md) define claves, relaciones, constraints y garantías transaccionales.

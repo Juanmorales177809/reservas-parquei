@@ -12,7 +12,7 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Un permiso por operación, frente a permisos agrupados por área funcional.
 
-**Impacto.** Bloquea la implementación de `exigir_permiso` del contrato de auth y la administración de asignaciones. Afecta a `RN-PER-01`, `RN-PER-03` y `SEC-AUTZ-04`.
+**Impacto.** Bloquea la implementación de `exigir_permiso` del contrato de auth y la administración de asignaciones. Afecta a `RN-PER-01`, `RN-PER-03` de administration y `SEC-AUTZ-04`.
 
 **Estado.** Abierta. Conviene resolverla al implementar el primer módulo administrativo, no en abstracto.
 
@@ -48,7 +48,7 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Plantillas por evento en configuración, frente a texto construido en código.
 
-**Impacto.** Afecta a `RN-CNT` y a la conservación histórica de `RN-HIS-03`. También queda por fijar qué eventos admiten una sola notificación por reserva, que es lo que sostiene la restricción única de la tabla.
+**Impacto.** Afecta a `RN-CNT` y a la conservación histórica de `RN-HIS-03` de notifications. También queda por fijar qué eventos admiten una sola notificación por reserva, que es lo que sostiene la restricción única de la tabla.
 
 **Estado.** Abierta.
 
@@ -72,6 +72,18 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Restricción de exclusión de PostgreSQL sobre rangos, bloqueo pesimista por elemento, o serialización de la transacción.
 
-**Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. Requiere un ADR conforme a `architecture.md` §17.
+**Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. Requiere un ADR conforme a `architecture.md` §17. La especificación de producto ya acota la decisión: exige la garantía **a nivel de base de datos, no solo de aplicación**, por lo que un bloqueo resuelto únicamente en el backend no satisface el requisito. Lo que queda por elegir es el mecanismo de PostgreSQL, no el nivel.
+
+**Estado.** Abierta. Bloquea dar por correcta la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) bajo concurrencia.
+
+---
+
+## OQ-07 — Destino de `motivos_solicitud`
+
+**Contexto.** `reservas.motivos_solicitud` existe en el inventario y `reservas.reservas.motivo_solicitud_id` lo referencia, pero el diseño objetivo no lo contempla: el "por qué" de una reserva pasó a resolverse con el contexto de `RN-CTX`.
+
+**Alternativas.** Retirarlo por quedar superado por el contexto, frente a conservarlo como catálogo complementario e independiente del contexto académico.
+
+**Impacto.** Afecta la migración del inventario y la lista de diferencias pendientes del modelo de reservations. Mientras no se decida, el catálogo queda sin propietario en el diseño objetivo.
 
 **Estado.** Abierta.

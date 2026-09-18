@@ -49,7 +49,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Rol principal:** Administrador
 
 **Precondiciones:**
-- El Administrador está autenticado y autorizado para administrar cuentas (`RN-ADM-01`, `RN-PER-03`).
+- El Administrador está autenticado y autorizado para administrar cuentas (`RN-ADM-01`, `RN-PER-03` de administration).
 - Existe o se define la identidad funcional que se asociará a la cuenta invitada.
 - Para invitar un Usuario, su identidad se registra previamente en Usuarios con los datos obligatorios de RN-DAT; la invitación no utiliza datos ficticios para completar el perfil.
 
@@ -259,17 +259,17 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 1. La persona solicita una operación protegida de cualquier módulo.
 2. El sistema determina la identidad autenticada a partir de la sesión, no de datos enviados por el cliente (`SEC-AUTZ-03`).
 3. El sistema verifica que la cuenta y la identidad funcional estén activas (`RN-AUTH-ID-01`, `RN-AUTH-ID-05`).
-4. El sistema evalúa el permiso requerido con información vigente, sin derivarlo del nombre del cargo ni de valores enviados por el cliente (`RN-AUTH-ROL-05`, `RN-PER-02`).
+4. El sistema evalúa el permiso requerido con información vigente, sin derivarlo del nombre del cargo ni de valores enviados por el cliente (`RN-AUTH-ROL-05`, `RN-PER-02` de administration).
 5. El sistema evalúa el ámbito organizacional aplicable: el Técnico solo sobre su unidad (`RN-AUTH-ROL-02`), el Administrador sobre cualquier unidad (`RN-AUTH-ROL-03`).
 6. Cuando la operación recae sobre un recurso identificado por el cliente —una reserva, un perfil, un archivo—, el sistema verifica además que dicho recurso pertenezca o esté explícitamente permitido para la identidad autenticada (`SEC-AUTZ-06`).
-7. Si la cuenta es `USUARIO`, el sistema consulta la condición vigente de actualización inicial en Usuarios. Mientras esté pendiente, solo autoriza las operaciones necesarias para completar el perfil y sus vinculaciones, mantener la sesión para ese fin o cerrarla, conforme a RN-USR-08. Las demás se rechazan aunque el cliente omita la redirección.
+7. Si la cuenta es `USUARIO`, el sistema consulta la condición vigente de actualización inicial en Usuarios. Mientras esté pendiente, solo autoriza las operaciones necesarias para completar el perfil y sus vinculaciones, mantener la sesión para ese fin o cerrarla, conforme a RN-USR-08 de administration. Las demás se rechazan aunque el cliente omita la redirección.
 8. Si el permiso, el ámbito y la condición de perfil lo permiten, `auth` entrega al módulo propietario la identidad y la autorización, y este aplica sus propias reglas funcionales.
-9. El módulo propietario ejecuta la operación y registra el actor cuando corresponda (`RN-AUD-01`).
+9. El módulo propietario ejecuta la operación y registra el actor cuando corresponda (`RN-AUD-01` de administration).
 
 **Flujos alternos:**
 
 - Si el permiso requerido no puede comprobarse de forma válida, el sistema deniega por defecto (`SEC-AUTZ-02`).
-- Si la operación queda fuera del ámbito organizacional autorizado, se deniega aunque el permiso exista (`RN-PER-06`, `SEC-AUTZ-04`).
+- Si la operación queda fuera del ámbito organizacional autorizado, se deniega aunque el permiso exista (`RN-PER-06` de administration, `SEC-AUTZ-04`).
 - Si el recurso solicitado no pertenece a la identidad autenticada ni le está explícitamente permitido, se deniega aunque posea el permiso general (`SEC-AUTZ-06`).
 - Las operaciones que modifican estado no se ejecutan mediante métodos destinados únicamente a lectura y requieren protección contra solicitudes falsificadas entre sitios (`SEC-CSRF-01`, `SEC-CSRF-03`).
 
@@ -313,7 +313,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 2. El sistema exige reautenticación por tratarse de una operación sensible (`SEC-REAUTH-02`).
 3. El actor registra el nuevo correo.
 4. El sistema valida el formato y la unicidad del correo (`RN-AUTH-ID-02`).
-5. El sistema aplica el cambio conservando la identidad funcional y el historial de la cuenta (`RN-CUE-01`, `RN-USR-02`).
+5. El sistema aplica el cambio conservando la identidad funcional y el historial de la cuenta (`RN-CUE-01`, `RN-USR-02` de administration).
 6. El módulo `notificaciones` informa del cambio a la cuenta afectada.
 7. El sistema registra el evento (`SEC-AUD-02`).
 
@@ -340,8 +340,8 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 4. El sistema marca la cuenta como inactiva sin eliminar su historial (`RN-AUTH-ID-05`, `RN-CUE-04`).
 5. El sistema revoca las sesiones activas de esa cuenta (`SEC-SES-10`).
 6. La cuenta no puede iniciar sesión ni ejecutar operaciones autenticadas (`RN-AUTH-ID-01`, `RN-CUE-03`).
-7. Las reservas, auditorías y notificaciones previas conservan su referencia e interpretación (`RN-CUE-04`, `RN-AUD-04`).
-8. El sistema registra el cambio administrativo (`RN-AUD-01`).
+7. Las reservas, auditorías y notificaciones previas conservan su referencia e interpretación (`RN-CUE-04`, `RN-AUD-04` de administration).
+8. El sistema registra el cambio administrativo (`RN-AUD-01` de administration).
 
 **Flujos alternos:**
 
@@ -356,7 +356,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Rol principal:** Administrador
 
 **Precondiciones:**
-- El Administrador está autenticado y autorizado (`RN-ADM-01`, `RN-PER-03`).
+- El Administrador está autenticado y autorizado (`RN-ADM-01`, `RN-PER-03` de administration).
 - Existe la identidad destino en `usuarios.usuarios` o en `personal.personal`.
 
 **Flujo principal:**
@@ -364,10 +364,10 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 1. El Administrador accede a la cuenta objetivo.
 2. Solicita promoverla a personal administrativo o degradarla a reservista.
 3. El sistema valida que la cuenta quede vinculada a exactamente una identidad, nunca a ambas (`RN-AUTH-ID-03`, `RN-AUTH-ID-04`).
-4. El sistema actualiza el tipo de cuenta y la identidad asociada conservando el historial de la persona (`RN-CUE-01`, `RN-USR-02`).
+4. El sistema actualiza el tipo de cuenta y la identidad asociada conservando el historial de la persona (`RN-CUE-01`, `RN-USR-02` de administration).
 5. Los permisos y el ámbito resultantes se administran explícitamente en `administration`; el cambio de tipo no los concede por sí solo (`RN-AUTH-ROL-04`, `RN-PRF-03`).
-6. El cambio aplica a las nuevas decisiones de autorización y no reinterpreta la trazabilidad histórica (`RN-AUTH-SES-03`, `RN-PER-05`).
-7. El sistema registra el cambio administrativo (`RN-AUD-02`).
+6. El cambio aplica a las nuevas decisiones de autorización y no reinterpreta la trazabilidad histórica (`RN-AUTH-SES-03`, `RN-PER-05` de administration).
+7. El sistema registra el cambio administrativo (`RN-AUD-02` de administration).
 
 **Flujos alternos:**
 

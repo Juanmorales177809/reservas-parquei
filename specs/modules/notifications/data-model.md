@@ -41,7 +41,7 @@ Notificación in-app. Una fila por destinatario y evento.
 
 `titulo` y `cuerpo` son el contenido tal como se comunicó, conforme a `RN-CNT` y `RN-HIS-03`: no se recalculan al consultar, aunque la reserva cambie después. `leida_at` sustituye al booleano `leida` para conservar cuándo se leyó. La FK a reservas deja de ser `ON DELETE CASCADE`, porque `RN-HIS-02` exige que el registro histórico sobreviva a la entidad relacionada.
 
-Índices `(id_cuenta, leida_at, created_at)` para la bandeja y `(reserva_id)` para la trazabilidad. UQ `(id_cuenta, tipo_evento_id, reserva_id)` cuando el evento admita una sola notificación por reserva, que es lo que permite verificar `RN-REC-02` sin duplicar estado en reservas.
+Índices `(id_cuenta, leida_at, created_at)` para la bandeja y `(reserva_id)` para la trazabilidad. UQ `(id_cuenta, tipo_evento_id, reserva_id)` cuando el evento admita una sola notificación por reserva, que es lo que permite verificar `RN-REC-02` de reservations sin duplicar estado en reservas.
 
 ### `notificaciones.envios_correo`
 

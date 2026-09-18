@@ -14,7 +14,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 
 Las tablas `usuario_*` relacionan usuarios con perfiles, modalidades, proyectos, semilleros, pasantías y trabajos de grado. Las PK compuestas o restricciones únicas impiden duplicar las asociaciones donde así se indica en las tablas.
 
-`proyectos` y `semilleros` generan su clave primaria con `identity BY DEFAULT`, igual que el resto de entidades del schema. Esto es lo que permite que la importación masiva cree registros nuevos a partir de un `codigo` inexistente, conforme a `RN-IMP-04`: el archivo aporta el código, no el identificador interno. El `codigo` se almacena normalizado en mayúsculas y sin espacios circundantes.
+`proyectos` y `semilleros` generan su clave primaria con `identity BY DEFAULT`, igual que el resto de entidades del schema. Esto es lo que permite que la importación masiva cree registros nuevos a partir de un `codigo` inexistente, conforme a `RN-IMP-04` de administration: el archivo aporta el código, no el identificador interno. El `codigo` se almacena normalizado en mayúsculas y sin espacios circundantes.
 
 `reservas.reserva_contexto` referencia `proyectos(id_proyecto)`, `semilleros(id_semillero)`, `pasantias(id_pasantia)`, `trabajos_grado(id_trabajo_grado)` y `actividades_institucionales(id_actividad)`. Reservas registra el contexto que justificó la reserva; no administra estas entidades ni crea vinculaciones desde su flujo.
 
@@ -160,7 +160,7 @@ Las tablas de vinculación permiten que un usuario esté asociado a varias pasan
 
 ## Integridad e historial
 
-Las reglas [RN-INV](business-rules.md#reglas-de-investigacion--rn-inv) y [RN-ACT](business-rules.md#actividades-institucionales--rn-act) rigen los datos del módulo. Los campos obligatorios de pasantías y trabajos de grado representan RN-INV-02 y RN-INV-03. `estado` representa la activación o desactivación de entidades y vinculaciones.
+Las reglas [RN-INV](business-rules.md#reglas-de-investigación--rn-inv) y [RN-ACT](business-rules.md#actividades-institucionales--rn-act) rigen los datos del módulo. Los campos obligatorios de pasantías y trabajos de grado representan RN-INV-02 y RN-INV-03. `estado` representa la activación o desactivación de entidades y vinculaciones.
 
 Una actividad institucional requiere `nombre`, `dependencia` y `estado`. Solo las actividades con `estado = true` se ofrecen para nuevas reservas; al desactivarlas se conserva la fila y las referencias históricas.
 

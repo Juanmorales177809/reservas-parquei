@@ -68,7 +68,7 @@ Estas tres tablas son las que `reservas.reserva_campos_valores` ya presupone: su
 
 ## Relaciones y responsabilidad
 
-Espacios es propietario funcional de `reservas.espacios`, conforme a sus [reglas RN-ESP](busines-rules.md). La pertenencia física al schema `reservas` no cambia esta responsabilidad. El overview previo de Resources agrupa espacios y recursos; para el detalle persistente, la definición de espacios se centraliza aquí y Resources la referencia.
+Espacios es propietario funcional de `reservas.espacios`, conforme a sus [reglas RN-ESP](business-rules.md). La pertenencia física al schema `reservas` no cambia esta responsabilidad. El overview previo de Resources agrupa espacios y recursos; para el detalle persistente, la definición de espacios se centraliza aquí y Resources la referencia.
 
 Cada espacio pertenece a una unidad de [Administration](../administration/data-model.md). La configuración del laboratorio está en [Resources](../resources/data-model.md); las reservas referencian el espacio desde su cabecera en el inventario y desde `reserva_espacio` en el [diseño objetivo](../reservations/data-model.md).
 

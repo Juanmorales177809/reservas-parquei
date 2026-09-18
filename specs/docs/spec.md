@@ -17,11 +17,11 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 ### Solicitudes de reserva
 
 - El usuario puede consultar los espacios, equipos y recursos disponibles.
-- El usuario puede crear una solicitud seleccionando el tipo de reserva, fecha, horario, asistentes, proyecto y semillero del catálogo, además del motivo y los recursos requeridos.
+- El usuario puede crear una solicitud seleccionando el tipo de reserva, los datos temporales que ese tipo exija, el número de asistentes, el contexto que la justifica (proyecto, semillero, pasantía, trabajo de grado o actividad institucional) y los recursos requeridos.
 - El sistema valida los datos de la solicitud y registra su estado inicial.
 - El usuario indica si la reserva es dentro o fuera del laboratorio; si es fuera, debe indicar la ubicación de uso.
 - Una misma solicitud puede combinar un espacio, varios recursos del inventario institucional.
-- El usuario puede agrupar varias fechas/horarios distintos en una sola solicitud (reserva multi-día). (NO)
+- **Fuera de alcance:** agrupar varias fechas u horarios distintos en una sola solicitud (reserva multi-día). Cada fecha u horario requiere su propia solicitud.
 - El usuario puede agregar acompañantes a la reserva.
 - Si algún recurso incluido lo exige, la solicitud queda marcada automáticamente como "requiere apoyo del auxiliar/técnico".
 - El sistema garantiza a nivel de base de datos, no solo de aplicación, que dos solicitudes concurrentes nunca reserven el mismo recurso en el mismo horario.

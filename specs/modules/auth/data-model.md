@@ -78,7 +78,7 @@ Vigencia por defecto **1 hora** y un solo uso: `usado_at` lo invalida para inten
 
 ### `auth.permisos`
 
-Catálogo de permisos administrativos, conforme a `RN-PER-01` y `RN-PER-02`. Incorporación objetivo pendiente de aplicar.
+Catálogo de permisos administrativos, conforme a `RN-PER-01` y `RN-PER-02` de administration. Incorporación objetivo pendiente de aplicar.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
@@ -88,7 +88,7 @@ Catálogo de permisos administrativos, conforme a `RN-PER-01` y `RN-PER-02`. Inc
 | `descripcion` | text | Sí | — |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
-Los permisos se identifican por `codigo` persistente, nunca por el nombre de un cargo, perfil o tipo de cuenta (`RN-PER-02`, `RN-AUTH-ROL-04`). Un permiso deshabilitado deja de conceder autorización en nuevas decisiones, sin alterar la validez histórica de las acciones ya ejecutadas (`RN-PER-05`).
+Los permisos se identifican por `codigo` persistente, nunca por el nombre de un cargo, perfil o tipo de cuenta (`RN-PER-02`, `RN-AUTH-ROL-04`). Un permiso deshabilitado deja de conceder autorización en nuevas decisiones, sin alterar la validez histórica de las acciones ya ejecutadas (`RN-PER-05` de administration).
 
 ### `auth.cuenta_permisos`
 
@@ -102,7 +102,7 @@ Asignación directa de un permiso a una cuenta, con su ámbito organizacional.
 | `otorgado_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-La PK compuesta incluye `id_unidad`, de modo que una misma cuenta puede tener el mismo permiso sobre varias unidades sin duplicar filas. `id_unidad NULL` representa alcance global y no se deduce de ningún otro dato: un permiso sobre una unidad nunca se extiende a otras (`RN-PER-06`). Retirar un permiso elimina la asignación y afecta solo a las decisiones posteriores (`RN-PER-04`); la trazabilidad del cambio queda en la auditoría administrativa. Índice `(id_cuenta, permiso_id)`.
+La PK compuesta incluye `id_unidad`, de modo que una misma cuenta puede tener el mismo permiso sobre varias unidades sin duplicar filas. `id_unidad NULL` representa alcance global y no se deduce de ningún otro dato: un permiso sobre una unidad nunca se extiende a otras (`RN-PER-06`). Retirar un permiso elimina la asignación y afecta solo a las decisiones posteriores (`RN-PER-04` de administration); la trazabilidad del cambio queda en la auditoría administrativa. Índice `(id_cuenta, permiso_id)`.
 
 ### Derivación del rol funcional
 

@@ -40,7 +40,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `instalador` | varchar(100) | Sí | — |
 | `estado` | boolean | Sí | — |
 | `requiere_apoyo` | boolean | NN | DEFAULT `false`; indica si exige acompañamiento técnico |
-| `acreditado` | boolean | NN | DEFAULT `false`; equipo acreditado para ensayos certificados, excluido de reserva conforme a `RN-REC-11` |
+| `acreditado` | boolean | NN | DEFAULT `false`; equipo acreditado para ensayos certificados, excluido de reserva conforme a `RN-REC-11` de este módulo |
 | `id_categoria` | integer | Sí | FK `fk_equipos_categoria` → `equipos.categoria(id_categoria)` |
 | `proxima_fecha_calibracion` | date | Sí | — |
 | `proxima_fecha_mantenimiento` | date | Sí | — |
@@ -76,7 +76,7 @@ Una categoría puede agrupar varios equipos. La relación se define mediante `eq
 | `notificar_por_correo` | boolean | NN | DEFAULT `false` |
 | `mostrar_estado_reserva` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
 | `mostrar_reservista` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
-| `recordatorio_horas_antes` | integer | NN | DEFAULT `24`; CHECK `> 0`; anticipación del recordatorio automático conforme a `RN-REC-01`; incorporación objetivo pendiente de migración |
+| `recordatorio_horas_antes` | integer | NN | DEFAULT `24`; CHECK `> 0`; anticipación del recordatorio automático conforme a `RN-REC-01` de reservations; incorporación objetivo pendiente de migración |
 
 Las dos opciones de visibilidad se guardan en la configuración única de cada unidad (`id_unidad`). Su comportamiento y permisos se definen en [RN-DIS de Reservations](../reservations/business-rules.md#disponibilidad--rn-dis). Estos campos son parte del diseño objetivo y no se consideran aplicados en la base de datos.
 

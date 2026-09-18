@@ -518,7 +518,7 @@ Se envía `id_persona` para `tipo_cuenta = "PERSONAL"` o `id_usuario` para `"USU
 }
 ```
 
-El cambio conserva el historial de la persona y aplica solo a decisiones de autorización posteriores (`RN-AUTH-SES-03`, `RN-PER-05`). No concede permisos por sí mismo: se administran en `administration` (`RN-PRF-03`).
+El cambio conserva el historial de la persona y aplica solo a decisiones de autorización posteriores (`RN-AUTH-SES-03`, `RN-PER-05` de administration). No concede permisos por sí mismo: se administran en `administration` (`RN-PRF-03`).
 
 **Errores:** `401 REAUTENTICACION_REQUERIDA`, `403 NO_AUTORIZADO`, `404 NO_ENCONTRADO` si la identidad destino no existe, `409 CONFLICTO` si la identidad destino está inactiva, ya pertenece a otra cuenta, o el cambio dejaría al sistema sin administradores, `422 VALIDACION`.
 
@@ -588,7 +588,7 @@ Todo lo que este contrato expone tiene ya respaldo definido en [data-model.md](.
 | Recuperación de contraseña (§3.6–§3.8) | `auth.tokens_recuperacion` |
 | Permisos y ámbito (§3.4, §7) | `auth.permisos` y `auth.cuenta_permisos` |
 
-`rol` no se almacena: se deriva de las asignaciones vigentes —`ADMINISTRADOR` con alguna asignación de alcance global, `TECNICO` con asignaciones acotadas a unidades, `USUARIO` sin ninguna— y `unidades_autorizadas` son las `id_unidad` distintas de esas asignaciones. La derivación se evalúa en cada operación y nunca viaja en el token (`RN-PER-02`, `SEC-JWT-04`).
+`rol` no se almacena: se deriva de las asignaciones vigentes —`ADMINISTRADOR` con alguna asignación de alcance global, `TECNICO` con asignaciones acotadas a unidades, `USUARIO` sin ninguna— y `unidades_autorizadas` son las `id_unidad` distintas de esas asignaciones. La derivación se evalúa en cada operación y nunca viaja en el token (`RN-PER-02` de administration, `SEC-JWT-04`).
 
 Valores por defecto, configurables conforme a `SEC-SES-09`:
 
