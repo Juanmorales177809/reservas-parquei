@@ -151,7 +151,95 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 
 `reservas.reserva_ejecucion_recursos`: `id integer PK`, `reserva_recurso_id integer FK`, `entregado_por bigint FK`, `recibido_por bigint FK NULL`, `entregado_at timestamptz`, `devuelto_at timestamptz NULL`, `observacion_entrega`, `observacion_devolucion`. Registra entrega y devolución física de recursos internos.
 
-`reservas.ordenes_salida`: `id integer PK`, `reserva_id integer UNIQUE NOT NULL FK`, `reserva_recurso_id integer UNIQUE NOT NULL FK a `reserva_recursos(id)`, `tipo_orden varchar(10) NOT NULL CHECK (tipo_orden IN ('CAMPUS','EXTERNA'))`, `fecha_generacion`, `aprobado_por bigint FK NULL`, `fecha_aprobacion`, `fecha_entrega`, `recepcion_usuario_at`, `fecha_devolucion_real`, `observacion`. La aplicación comprueba que la orden coincide con el tipo de reserva y su único recurso principal. No se inventan campos FGL 030 no definidos.
+### `reservas.ordenes_salida`
+
+Copia completa y fija de un formato "FGL 030 Orden de salida equipos y herramientas" (`RN-TIP-RC-11`, `RN-TIP-RE-11`) generado para una reserva `CAMPUS`/`EXTERNA`. Una fila por reserva, alineada con su único recurso principal (`RN-TIP-RC-01`, `RN-TIP-RE-01`). Todos los campos del documento se guardan como snapshot en el momento de generación: los que se prellenan desde otra tabla (`RN-TIP-RC-13`, `RN-TIP-RE-13`) se copian, no se referencian, para que la orden conserve exactamente lo impreso/firmado aunque la fuente cambie después — el mismo principio de `reserva_contexto` (`RN-CTX-07`).
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `id` | integer | PK |
+| `reserva_id` | integer | UNIQUE NOT NULL, FK a `reservas(id)` |
+| `reserva_recurso_id` | integer | UNIQUE NOT NULL, FK a `reserva_recursos(id)` |
+| `tipo_orden` | varchar(10) | NOT NULL, CHECK (`CAMPUS`, `EXTERNA`) |
+| `fecha_generacion` | timestamptz | NOT NULL |
+
+**1. Información general** — capturados al crear la reserva, sin fuente previa (`RN-TIP-RC-12`, `RN-TIP-RE-12`):
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `razon_solicitud` | text | NOT NULL |
+| `nombre_actividad_evento` | varchar(255) | NULL |
+| `lugar_nombre` | varchar(150) | NOT NULL |
+| `lugar_direccion` | varchar(255) | NOT NULL |
+
+Prellenados y copiados como snapshot desde su fuente al generar el documento:
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `dependencia_solicitante_snapshot` | varchar(150) | NOT NULL — de `reservas.id_unidad` |
+| `fecha_retiro_snapshot` | date | NOT NULL — de `reserva_recurso_campus`/`reserva_recurso_externo.fecha_salida` |
+| `fecha_regreso_snapshot` | date | NOT NULL — de `...fecha_devolucion` |
+| `actividad_tipo_snapshot` | varchar(30) | NOT NULL, CHECK (`PROYECTO_INVESTIGACION`, `SEMILLERO_INVESTIGACION`, `SERVICIO_EXTENSION`, `PROYECTO_ACADEMICO`, `CALIBRACION`, `DOCENCIA`, `MANTENIMIENTO`, `OTRO`) — de `reserva_contexto`; `CALIBRACION`, `DOCENCIA`, `MANTENIMIENTO` y `OTRO` no tienen contexto asociado y se registran directamente en la orden |
+| `proyecto_codigo_snapshot` | varchar(60) | NULL, solo si `actividad_tipo_snapshot = 'PROYECTO_INVESTIGACION'` — de `reserva_contexto` |
+| `responsable_nombre_snapshot` | varchar(150) | NOT NULL — de la cuenta (`reservas.id_cuenta`) |
+| `responsable_cedula_snapshot` | varchar(20) | NOT NULL |
+| `responsable_contacto_snapshot` | varchar(255) | NOT NULL |
+
+Cédula y contacto no están definidos hoy en `usuarios.usuarios`/`personal.personal`/`auth.cuentas` (ver Puntos pendientes); hasta que existan allí, se capturan manualmente al generar la orden.
+
+**2. Información técnica** — snapshot del recurso vía `reserva_recurso_id` ([Resources](../resources/data-model.md#reservasrecursos)):
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `placa_snapshot` | varchar(30) | NULL — el recurso puede no tener placa (`RN-TIP-RC-05`, `RN-TIP-RE-05`) |
+| `descripcion_snapshot` | varchar(255) | NOT NULL |
+| `bodega_snapshot` | varchar(100) | NULL |
+| `cc_snapshot` | varchar(30) | NULL |
+| `fecha_compra_snapshot` | date | NULL |
+| `observaciones_tecnicas` | text | NULL |
+
+**3. Autorizaciones y firmas** — no se prellenan; se diligencian en el momento (`RN-TIP-RC-14`, `RN-TIP-RE-14`). Cada rol admite una cuenta del sistema si el firmante tiene una, y siempre nombre/cargo tal como quedan escritos en el documento:
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `resp_cartera_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `resp_cartera_nombre` | varchar(150) | NULL |
+| `resp_cartera_cargo` | varchar(150) | NULL |
+| `resp_cartera_firma_at` | timestamptz | NULL |
+| `vobo_centro_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `vobo_centro_nombre` | varchar(150) | NULL |
+| `vobo_centro_cargo` | varchar(150) | NULL |
+| `vobo_centro_firma_at` | timestamptz | NULL |
+| `resp_bienes_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `resp_bienes_nombre` | varchar(150) | NULL |
+| `resp_bienes_cargo` | varchar(150) | NULL |
+| `resp_bienes_firma_at` | timestamptz | NULL |
+
+Estas tres firmas en conjunto son la aprobación exigida por `RN-TIP-RC-08`/`RN-TIP-RE-08`; no hay un `aprobado_por` genérico separado.
+
+**4. Recibido a satisfacción — retiro** y **5. — ingreso** (`RN-TIP-RC-09`/`10`, `RN-TIP-RE-09`/`10`):
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `fecha_salida` | date | NULL |
+| `entrega_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `entrega_nombre` | varchar(150) | NULL |
+| `entrega_firma_at` | timestamptz | NULL |
+| `retira_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `retira_nombre` | varchar(150) | NULL |
+| `retira_firma_at` | timestamptz | NULL |
+| `fecha_regreso_real` | date | NULL |
+| `regresa_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `regresa_nombre` | varchar(150) | NULL |
+| `regresa_firma_at` | timestamptz | NULL |
+| `recibe_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
+| `recibe_nombre` | varchar(150) | NULL |
+| `recibe_firma_at` | timestamptz | NULL |
+| `fecha_prorroga` | date | NULL |
+
+`entrega_firma_at`/`retira_firma_at` marcan la entrega física al usuario, que dispara `EN_EJECUCION` (`RN-TIP-RC-09`, `RN-TIP-RE-09`); `regresa_firma_at`/`recibe_firma_at` marcan la devolución, que dispara `FINALIZADA` (`RN-TIP-RC-10`, `RN-TIP-RE-10`). `fecha_prorroga` se actualiza cuando la reserva se reprograma extendiendo su fecha de devolución (`RN-TIP-RC-15`, `RN-TIP-RE-15`); no reemplaza `fecha_regreso_snapshot`, que conserva la fecha original impresa.
+
+La aplicación comprueba que la orden coincide con el tipo de reserva y su único recurso principal.
 
 ## Estados y auditoría
 
@@ -172,6 +260,7 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 - Definir migración 1:1 de equipos, mobiliarios y otros hacia `recursos`.
 - Precisar la garantía transaccional contra solapamientos.
 - Propuestas/contrapropuestas, recordatorios e invitaciones de calendario quedan fuera hasta contar con especificación funcional.
+- Cédula y contacto (ubicación, correo, teléfono/celular) del responsable de la solicitud para el FGL 030: no están definidos en `usuarios.usuarios`, `personal.personal` ni `auth.cuentas`; requieren definición en esos módulos, no en reservas.
 
 ## Inventario de reservas procedente del principal
 
