@@ -88,7 +88,8 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 6. El sistema crea o activa la cuenta con el tipo y la identidad definidos en la invitación, respetando la exclusividad de identidad (`RN-AUTH-ID-03`).
 7. El sistema marca el token como utilizado; un intento posterior con el mismo token se rechaza (`SEC-TOK-05`).
 8. El sistema registra el evento de activación (`SEC-AUD-02`).
-9. La persona continúa con el inicio de sesión y el completado de perfil (`UF-USR-02`).
+9. La activación deja la sesión iniciada: el sistema crea la sesión y entrega sus cookies igual que en `UF-AUTH-04`, sin pedir de nuevo la contraseña recién definida. El identificador de sesión se genera regenerado conforme a `SEC-SES-13`.
+10. El recorrido posterior depende del tipo de cuenta: una cuenta `USUARIO` continúa con la actualización inicial de su perfil (`UF-USR-02`, `RN-AUTH-SES-04`); una cuenta `PERSONAL` no tiene actualización inicial y accede directamente a las operaciones que le autoricen sus permisos.
 
 **Flujos alternos:**
 

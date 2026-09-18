@@ -89,8 +89,7 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 - **RN-EQP-07:** Un equipo puede reservarse sin espacio cuando la composición y el `tipo_uso` de la reserva lo permitan.
 - **RN-EQP-08:** Todo equipo debe indicar mediante `requiere_apoyo` si exige acompañamiento técnico durante su uso.
 - **RN-EQP-09:** El Técnico solo administra equipos existentes dentro de su unidad; no puede crear equipos.
-
-- **RN-EQP-08:** Un equipo puede utilizarse dentro o fuera del campus cuando las reglas de reserva y las políticas aplicables lo permitan.
+- **RN-EQP-10:** Un equipo puede utilizarse dentro o fuera del campus cuando las reglas de reserva y las políticas aplicables lo permitan.
 
 ---
 

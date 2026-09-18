@@ -14,6 +14,8 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 
 Las tablas `usuario_*` relacionan usuarios con perfiles, modalidades, proyectos, semilleros, pasantías y trabajos de grado. Las PK compuestas o restricciones únicas impiden duplicar las asociaciones donde así se indica en las tablas.
 
+`proyectos` y `semilleros` generan su clave primaria con `identity BY DEFAULT`, igual que el resto de entidades del schema. Esto es lo que permite que la importación masiva cree registros nuevos a partir de un `codigo` inexistente, conforme a `RN-IMP-04`: el archivo aporta el código, no el identificador interno. El `codigo` se almacena normalizado en mayúsculas y sin espacios circundantes.
+
 `reservas.reserva_contexto` referencia `proyectos(id_proyecto)`, `semilleros(id_semillero)`, `pasantias(id_pasantia)`, `trabajos_grado(id_trabajo_grado)` y `actividades_institucionales(id_actividad)`. Reservas registra el contexto que justificó la reserva; no administra estas entidades ni crea vinculaciones desde su flujo.
 
 Los proyectos y semilleros se cargan en sus tablas propias mediante el flujo de importación autorizado de Administration. El archivo usa `codigo` como identidad funcional: los códigos existentes se actualizan y los nuevos se crean; no se generan duplicados por reimportación. La importación no crea vinculaciones de usuarios.
@@ -42,7 +44,7 @@ Los proyectos y semilleros se cargan en sus tablas propias mediante el flujo de 
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id_proyecto` | integer | NN | PK `pk_proyectos` |
+| `id_proyecto` | integer | NN | PK `pk_proyectos`; identity BY DEFAULT |
 | `codigo` | varchar(50) | NN | UQ `uq_proyectos_codigo` |
 | `nombre` | varchar(255) | NN | — |
 | `estado` | boolean | NN | DEFAULT `true` |
@@ -51,7 +53,7 @@ Los proyectos y semilleros se cargan en sus tablas propias mediante el flujo de 
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id_semillero` | integer | NN | PK `pk_semilleros` |
+| `id_semillero` | integer | NN | PK `pk_semilleros`; identity BY DEFAULT |
 | `codigo` | varchar(50) | NN | UQ `uq_semilleros_codigo` |
 | `nombre` | varchar(150) | NN | — |
 | `estado` | boolean | NN | DEFAULT `true` |

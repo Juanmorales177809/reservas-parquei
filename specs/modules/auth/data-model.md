@@ -34,6 +34,87 @@ El check `ck_auth_cuentas_identidad` exige exactamente una identidad: para `USUA
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `expires_at` | timestamptz | NN | CHECK `expires_at > created_at` |
 | `revoked_at` | timestamptz | Sí | — |
+| `ultima_actividad_at` | timestamptz | NN | DEFAULT `now()`; incorporación objetivo |
+| `reautenticado_at` | timestamptz | Sí | incorporación objetivo |
+
+`expires_at` materializa la vigencia máxima y `ultima_actividad_at` se actualiza en cada operación autenticada para evaluar el tiempo máximo de inactividad; superar cualquiera de los dos límites invalida la sesión (`SEC-SES-09`). `reautenticado_at` marca la última reautenticación exitosa y define la ventana durante la cual las operaciones sensibles proceden sin volver a pedir credenciales (`SEC-REAUTH-01`); una reautenticación exitosa también regenera el identificador de sesión (`SEC-REAUTH-04`).
+
+Los valores por defecto, configurables conforme a `SEC-SES-09`, son: vigencia máxima de sesión **12 horas**, inactividad máxima **30 minutos** y ventana de autenticación reciente **10 minutos**.
+
+### `auth.invitaciones`
+
+Invitaciones de alta de cuenta (`SEC-INV-01` a `SEC-INV-04`). Incorporación objetivo pendiente de aplicar.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `correo` | varchar(255) | NN | — |
+| `tipo_cuenta` | varchar(20) | NN | CHECK `USUARIO` o `PERSONAL` |
+| `id_usuario` | bigint | Sí | FK → `usuarios.usuarios(id_usuario)` |
+| `id_persona` | integer | Sí | FK → `personal.personal(id_persona)` |
+| `token_hash` | varchar(255) | NN | UQ; nunca se almacena el token en claro |
+| `expira_at` | timestamptz | NN | CHECK `expira_at > created_at` |
+| `usada_at` | timestamptz | Sí | — |
+| `revocada_at` | timestamptz | Sí | — |
+| `creada_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+Vigencia por defecto **7 días**. El mismo CHECK de exclusividad de identidad que `auth.cuentas` aplica aquí según `tipo_cuenta`. Una invitación es utilizable solo si `usada_at` y `revocada_at` son NULL y no ha expirado (`SEC-INV-02`). Emitir una nueva invitación para el mismo proceso de alta marca `revocada_at` en la anterior (`SEC-INV-03`). Índice único parcial sobre `(correo)` para invitaciones utilizables. El token se compara por hash, nunca se devuelve en una respuesta (`SEC-TOK-02`).
+
+### `auth.tokens_recuperacion`
+
+Tokens de recuperación de contraseña (`SEC-REC-02`, `SEC-TOK-04`, `SEC-TOK-05`). Incorporación objetivo pendiente de aplicar.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `id_cuenta` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `token_hash` | varchar(255) | NN | UQ |
+| `expira_at` | timestamptz | NN | CHECK `expira_at > created_at` |
+| `usado_at` | timestamptz | Sí | — |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+Vigencia por defecto **1 hora** y un solo uso: `usado_at` lo invalida para intentos posteriores (`SEC-TOK-05`). El token viaja únicamente por correo y nunca se almacena en claro. Índice `(id_cuenta, created_at)`. Solicitar una recuperación nueva no revela si la cuenta existe (`SEC-REC-01`), por lo que la ausencia de filas para un correo no debe exponerse en ninguna respuesta.
+
+### `auth.permisos`
+
+Catálogo de permisos administrativos, conforme a `RN-PER-01` y `RN-PER-02`. Incorporación objetivo pendiente de aplicar.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `codigo` | varchar(60) | NN | UQ |
+| `nombre` | varchar(100) | NN | — |
+| `descripcion` | text | Sí | — |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+
+Los permisos se identifican por `codigo` persistente, nunca por el nombre de un cargo, perfil o tipo de cuenta (`RN-PER-02`, `RN-AUTH-ROL-04`). Un permiso deshabilitado deja de conceder autorización en nuevas decisiones, sin alterar la validez histórica de las acciones ya ejecutadas (`RN-PER-05`).
+
+### `auth.cuenta_permisos`
+
+Asignación directa de un permiso a una cuenta, con su ámbito organizacional.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
+| `permiso_id` | integer | NN | PK compuesta; FK → `auth.permisos(id)` |
+| `id_unidad` | integer | Sí | PK compuesta; FK → `unidadOrganizacional.unidad_organizacional(id_unidad)`; `NULL` significa alcance global |
+| `otorgado_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+La PK compuesta incluye `id_unidad`, de modo que una misma cuenta puede tener el mismo permiso sobre varias unidades sin duplicar filas. `id_unidad NULL` representa alcance global y no se deduce de ningún otro dato: un permiso sobre una unidad nunca se extiende a otras (`RN-PER-06`). Retirar un permiso elimina la asignación y afecta solo a las decisiones posteriores (`RN-PER-04`); la trazabilidad del cambio queda en la auditoría administrativa. Índice `(id_cuenta, permiso_id)`.
+
+### Derivación del rol funcional
+
+Los roles de `RN-AUTH-ROL-01` no se almacenan: se derivan de las asignaciones vigentes al resolver el contexto autenticado.
+
+| Rol | Condición |
+|---|---|
+| `ADMINISTRADOR` | tiene al menos una asignación con `id_unidad IS NULL` |
+| `TECNICO` | tiene asignaciones, todas acotadas a unidades concretas |
+| `USUARIO` | no tiene ninguna asignación |
+
+Las unidades autorizadas de un Técnico son las `id_unidad` distintas de sus asignaciones. Esta derivación se evalúa con información vigente en cada operación y nunca se copia al token (`RN-AUTH-ROL-05`, `SEC-JWT-04`).
 
 ## Relaciones y diferencias pendientes
 
@@ -41,4 +122,4 @@ Las cuentas referencian las identidades definidas en [Usuarios](../usuarios/data
 
 El CHECK `ck_auth_cuentas_identidad` exige exactamente una identidad: una cuenta es de tipo `USUARIO` o `PERSONAL`, nunca ambas. El correo electrónico es único en `auth.cuentas` y representa la identificación funcional de la persona dentro del acceso autenticado.
 
-El principal no define tablas de permisos, asignaciones, invitaciones ni recuperación de contraseña. Su estructura persistente queda pendiente de especificar conforme a las reglas; no se deduce del nombre del cargo ni del tipo de cuenta.
+El principal no define tablas de invitaciones ni de recuperación de contraseña. Su estructura persistente queda pendiente de especificar conforme a las reglas. Los permisos y sus asignaciones sí están definidos arriba como incorporación objetivo: no se deducen del nombre del cargo ni del tipo de cuenta.

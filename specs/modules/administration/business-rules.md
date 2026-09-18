@@ -164,13 +164,14 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 ## Importación de catálogos de investigación — RN-IMP
 
 - **RN-IMP-01:** Solo el Administrador puede importar proyectos y semilleros mediante un archivo Excel, con autorización global vigente.
-- **RN-IMP-02:** El archivo debe identificar cada registro mediante `codigo`, incluir `nombre` y `estado`, y señalar el tipo de catálogo que se importa.
+- **RN-IMP-02:** El archivo debe identificar cada registro mediante `codigo`, incluir `nombre` y `estado`, y señalar el tipo de catálogo que se importa. La columna `estado` admite únicamente los valores `ACTIVO` e `INACTIVO`, sin distinguir mayúsculas y recortando los espacios circundantes; cualquier otro valor, incluido el vacío, invalida la fila.
 - **RN-IMP-03:** Antes de guardar, el sistema debe validar columnas, campos obligatorios, estados permitidos, códigos duplicados dentro del archivo y el formato del archivo.
-- **RN-IMP-04:** Un código existente actualiza el registro correspondiente; un código nuevo crea un registro en `investigacion`. Reimportar el mismo archivo no crea duplicados.
+- **RN-IMP-04:** El `codigo` se normaliza recortando espacios y convirtiendo a mayúsculas, tanto para comparar como para almacenar. Un código existente actualiza el registro correspondiente; un código nuevo crea un registro en `investigacion`, cuya clave primaria genera la base de datos. Reimportar el mismo archivo no crea duplicados, y dos filas cuyo código normalizado coincida se rechazan como duplicadas conforme a `RN-IMP-03`.
 - **RN-IMP-05:** La importación no crea ni modifica vinculaciones de usuarios y no permite al Administrador reemplazar las reglas de Researchs sobre dichas vinculaciones.
 - **RN-IMP-06:** Una importación con errores no debe dejar cambios parciales; el Administrador debe revisar el resultado de validación antes de confirmar.
 - **RN-IMP-07:** Desactivar un proyecto o semillero conserva su registro, sus vinculaciones y las referencias históricas de reservas.
 - **RN-IMP-08:** Cada importación confirmada registra Administrador, fecha, catálogo, archivo o referencia de carga y registros creados, actualizados o desactivados.
+- **RN-IMP-09:** La importación es incremental: un registro existente que no aparezca en el archivo permanece sin cambios. Desactivar un proyecto o semillero requiere incluirlo expresamente con estado `INACTIVO`; la ausencia de una fila nunca desactiva registros.
 
 ---
 

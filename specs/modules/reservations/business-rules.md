@@ -101,7 +101,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RC-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RC-11:** La orden de salida (`RN-TIP-RC-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
 - **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
 - **RN-TIP-RC-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
 - **RN-TIP-RC-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga de los recursos.
 
@@ -121,7 +121,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RE-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RE-11:** La orden de salida externa (`RN-TIP-RE-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
 - **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
 - **RN-TIP-RE-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
 - **RN-TIP-RE-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga de los recursos.
 
@@ -236,8 +236,8 @@ Los únicos estados globales válidos son:
 
 ## Recordatorios — RN-REC
 
-- **RN-REC-01:** El sistema envía un recordatorio automático a la cuenta usuario antes del inicio previsto de una reserva en estado `APROBADA` segun las reglas establecidas en [].
-- **RN-REC-02:** El recordatorio se envía una única vez por reserva y no se repite si ya fue enviado.
+- **RN-REC-01:** El sistema envía un recordatorio automático a la cuenta usuario antes del inicio previsto de una reserva en estado `APROBADA`. La anticipación es configurable por unidad en `reservas.laboratorios_config.recordatorio_horas_antes`, y la generación y entrega de la notificación se rigen por [RN-EVT-11](../notifications/business-rules.md) del módulo de notificaciones.
+- **RN-REC-02:** El recordatorio se envía una única vez por reserva y no se repite si ya fue enviado. La constancia del envío es la propia notificación de recordatorio registrada para esa reserva; reservas no almacena un indicador duplicado.
 - **RN-REC-03:** Reprogramar o cancelar la reserva antes del envío del recordatorio anula el envío pendiente para ese horario.
 
 ---
@@ -290,7 +290,7 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 ## Reportes — RN-REP
 
 - **RN-REP-01:** Solo el Técnico dentro de su unidad y el Administrador con alcance global pueden generar y exportar reportes de reservas. El Usuario no tiene acceso a esta funcionalidad.
-- **RN-REP-02:** El Técnico puede exportar reservas y su historial de auditoría de su unidad; el Administrador puede exportar información de cualquier unidad, en formato CSV o Excel.
+- **RN-REP-02:** El Técnico puede exportar reservas y su historial de auditoría de su unidad; el Administrador puede exportar información de cualquier unidad. Los formatos admitidos son los que define [RN-EXP-05](../reports/business-rules.md) del módulo de reportes, propietario de esa decisión.
 - **RN-REP-03:** Un reporte exportado contiene exactamente los datos visibles según el filtro aplicado por quien lo solicita, sin exceder su ámbito de acceso.
 
 ---

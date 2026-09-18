@@ -16,6 +16,9 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `nombre` | varchar(100) | NN | UQ `uq_unidad_organizacional_nombre` |
 | `tipo` | varchar(50) | NN | — |
 | `id_unidad_padre` | integer | Sí | FK `fk_unidad_organizacional_padre` a `id_unidad` de la misma tabla |
+| `estado` | boolean | NN | DEFAULT `true`; incorporación objetivo pendiente de migración |
+
+`estado` da respaldo a `RN-UNI-04` y `RN-UNI-05`: una unidad deshabilitada conserva usuarios, personal, reservas, recursos e historial, pero no puede utilizarse en nuevas configuraciones u operaciones que exijan una unidad activa.
 
 ### `cargos.cargo`
 
@@ -25,19 +28,40 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `nombre_cargo` | varchar(50) | NN | — |
 | `id_unidad` | integer | NN | FK `fk_cargo_unidad` → `unidadOrganizacional.unidad_organizacional(id_unidad)` |
 
-### `reservas.control_cambios`
+### `administration.auditoria`
+
+Auditoría de las operaciones administrativas (`RN-AUD-01` a `RN-AUD-05`). Sustituye a `reservas.control_cambios` del inventario y adopta el mismo patrón que `reservas.reserva_auditoria`, para que el sistema tenga una sola forma de auditar. Incorporación objetivo pendiente de aplicar.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id` | integer | NN | PK `control_cambios_pkey`; identity |
-| `actor_tipo` | varchar(30) | NN | — |
-| `actor_id` | integer | Sí | Sin FK declarada |
-| `actor_nombre` | varchar(255) | NN | — |
-| `accion` | varchar(30) | NN | — |
+| `id` | bigint | NN | PK; identity |
+| `actor_cuenta_id` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `entidad` | varchar(80) | NN | — |
-| `entidad_id` | integer | Sí | Sin FK declarada |
-| `descripcion` | text | NN | — |
+| `entidad_id` | varchar(80) | Sí | identificador de la entidad afectada, como texto para admitir PK de distintos tipos |
+| `accion` | varchar(40) | NN | — |
+| `datos_anteriores` | jsonb | Sí | — |
+| `datos_nuevos` | jsonb | Sí | — |
+| `motivo` | text | Sí | — |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+`actor_cuenta_id` identifica la cuenta que ejecutó la acción, como exige `RN-AUD-01`, con FK real en lugar del `actor_id integer` sin referencia del inventario. `datos_anteriores` y `datos_nuevos` permiten reconstruir el cambio (`RN-AUD-03`). Los registros no se modifican para reflejar valores actuales (`RN-AUD-05`) y se conservan aunque la cuenta o la entidad se desactiven después (`RN-AUD-04`). Índices `(entidad, entidad_id, created_at)` y `(actor_cuenta_id, created_at)`.
+
+### `administration.importaciones`
+
+Resultado de cada importación masiva confirmada (`RN-IMP-08`). Los conteos se guardan estructurados, no dentro de un texto libre.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `actor_cuenta_id` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `catalogo` | varchar(40) | NN | CHECK sobre los catálogos importables, por ejemplo `PROYECTOS`, `SEMILLEROS`, `EQUIPOS` |
+| `archivo_referencia` | varchar(255) | NN | nombre o referencia de la carga |
+| `registros_creados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
+| `registros_actualizados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
+| `registros_desactivados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+La importación escribe las entidades en el módulo propietario (`investigacion`, `equipos`) y registra aquí únicamente su trazabilidad. Índice `(catalogo, created_at)`.
 
 ## Relaciones y responsabilidad
 
@@ -49,7 +73,7 @@ La importación administrativa de proyectos y semilleros no crea tablas propias 
 
 ## Diferencias pendientes
 
-- El principal no define tablas de permisos, asignaciones ni configuración global; falta su diseño persistente.
-- Las reglas permiten deshabilitar unidades, pero la tabla documentada no contiene un campo de estado.
-- `control_cambios.actor_id` es `integer` sin FK: no equivale a `auth.cuentas.id_cuenta bigint`. RN-AUD requiere identificar la cuenta; su adaptación queda pendiente.
-- El diseño objetivo de reservas incorpora auditoría propia. Debe definirse su convivencia con este registro transversal antes de migrar o retirar datos históricos.
+- Los permisos y sus asignaciones se definen en [Auth](../auth/data-model.md#authpermisos) como `auth.permisos` y `auth.cuenta_permisos`. Administration los administra mediante operaciones autorizadas; Auth los evalúa. No se duplican aquí.
+- La configuración global sigue sin tabla propia; falta su diseño persistente conforme a `RN-CFG-02`.
+- `administration.auditoria` reemplaza a `reservas.control_cambios`, cuyo `actor_id integer` sin FK no identificaba la cuenta exigida por `RN-AUD-01`. Como no hay datos en producción, la transición no requiere migrar registros históricos.
+- La auditoría administrativa y `reservas.reserva_auditoria` conviven por ámbito: cada módulo audita sus propias operaciones con el mismo patrón de campos. Administration no registra cambios de reservas ni viceversa.

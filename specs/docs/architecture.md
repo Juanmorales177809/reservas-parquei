@@ -634,8 +634,8 @@ data-model.md
 business-rules/
     Define las reglas que gobiernan el comportamiento del sistema.
 
-api/
-    Define los contratos de comunicación.
+contratos/
+    Define los contratos de comunicación, uno por módulo.
 
 modules/
     Define la responsabilidad, diseño, tareas y pruebas

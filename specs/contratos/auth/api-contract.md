@@ -66,7 +66,7 @@ La arquitectura fija JWT como mecanismo de autenticación (`architecture.md` §1
 |---|---|---|---|
 | `rp_access` | JWT de acceso | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api` | Corta, por configuración |
 | `rp_refresh` | Secreto de refresco; su hash se persiste en `auth.sesiones.refresh_token_hash` | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/auth/sesiones` | Hasta `expires_at` de la sesión |
-| `rp_csrf` | Token CSRF de doble envío | `Secure`, `SameSite=Lax`, legible por JavaScript | Igual que la sesión |
+| `rp_csrf` | Token CSRF de doble envío | `Secure`, `SameSite=Lax`, legible por JavaScript | Se emite en §3.0 antes de existir sesión y se renueva con cada sesión nueva |
 
 `rp_csrf` es intencionalmente legible por el cliente: no es el secreto de sesión y su exposición no contradice `SEC-SES-05`.
 
@@ -92,6 +92,10 @@ El token **no transporta rol, permisos ni ámbito**: esos datos se evalúan en c
 
 Toda operación que modifica estado exige el encabezado `X-CSRF-Token` con el valor de la cookie `rp_csrf` (`SEC-CSRF-01`, `SEC-CSRF-02`). Su ausencia o discrepancia responde `403 NO_AUTORIZADO`.
 
+Esto incluye los endpoints públicos de §3 y §4, que se ejecutan antes de existir una sesión. Para que puedan cumplirlo, el token se obtiene primero mediante `GET /api/auth/csrf` (§3.0), que lo emite sin requerir autenticación. Proteger también el inicio de sesión evita el *login CSRF*, en el que un tercero fuerza al navegador de la víctima a autenticarse con una cuenta ajena.
+
+Al iniciar sesión, activar una invitación o reautenticarse, `rp_csrf` se renueva junto con el identificador de sesión (`SEC-SES-13`).
+
 ### Limitación de intentos
 
 Los endpoints marcados como **limitado** aplican control contra abuso automatizado (`SEC-ABU-01`) y responden `429 DEMASIADOS_INTENTOS` con encabezado `Retry-After`. Superar el límite no implica autorización (`SEC-ABU-03`).
@@ -99,6 +103,18 @@ Los endpoints marcados como **limitado** aplican control contra abuso automatiza
 ---
 
 ## 3. Endpoints públicos de sesión y credenciales
+
+### 3.0 `GET /api/auth/csrf`
+
+Emite el token CSRF necesario para cualquier operación que modifique estado, incluidas las públicas. No requiere autenticación y no tiene efectos sobre el estado del sistema.
+
+Sin cuerpo de solicitud.
+
+**`204 No Content`** — establece la cookie `rp_csrf` cuando no existe o está vencida; si ya hay una vigente, la conserva.
+
+El cliente lee esa cookie y la reenvía como `X-CSRF-Token` en las operaciones siguientes. El valor se genera con un generador criptográficamente seguro y no contiene información de identidad (`SEC-SES-02`). No es un secreto de sesión: es el único valor que el cliente puede leer, y por eso no contradice `SEC-SES-05`.
+
+**Errores:** ninguno propio. La respuesta es idéntica exista o no una sesión.
 
 ### 3.1 `POST /api/auth/registro` — limitado
 
@@ -405,6 +421,8 @@ Activación de la cuenta invitada. Flujo [UF-AUTH-03](../../modules/auth/user-fl
 
 La cuenta se crea o activa con el tipo e identidad definidos en la invitación almacenada, respetando la exclusividad de identidad (`RN-AUTH-ID-03`), y el token queda marcado como utilizado (`SEC-TOK-05`).
 
+La activación deja la sesión iniciada, sin exigir un inicio de sesión posterior: quien activa acaba de demostrar control del correo y de definir su contraseña. El cliente usa `actualizacion_inicial_pendiente` para decidir a dónde dirigir a la persona: `true` conduce al flujo obligatorio de `usuarios` (`UF-USR-02`), mientras que `null` corresponde a una cuenta `PERSONAL`, que no tiene actualización inicial y accede según sus permisos.
+
 **Errores:** `410 TOKEN_NO_VIGENTE`, `422 VALIDACION`, `429 DEMASIADOS_INTENTOS`.
 
 ---
@@ -559,14 +577,27 @@ Generan registro de seguridad, sin contraseñas, secretos de sesión, tokens com
 
 ---
 
-## 9. Definiciones pendientes
+## 9. Respaldo persistente y vigencias
 
-Este contrato asume estructuras que el modelo principal todavía no define, conforme advierte [data-model.md](../../modules/auth/data-model.md):
+Todo lo que este contrato expone tiene ya respaldo definido en [data-model.md](../../modules/auth/data-model.md):
 
-1. **Invitaciones** (§4): no existe tabla de invitaciones ni de sus tokens. `id_invitacion`, `estado` y `expira_en` son provisionales hasta especificarla.
-2. **Recuperación de contraseña** (§3.6–§3.8): no existe tabla de tokens de recuperación.
-3. **Permisos y ámbito** (§3.4, §7): no existen tablas de permisos ni de asignaciones. `rol` y `unidades_autorizadas` se presentan como contrato estable, pero su derivación persistente está pendiente y no debe deducirse del nombre del cargo ni del tipo de cuenta (`RN-PER-02`).
-4. **Ventana de autenticación reciente** (§3.9): su duración es configuración pendiente de definir.
-5. **Vigencias de sesión** (§2): la vigencia máxima y el tiempo de inactividad son configuración (`SEC-SES-09`) y no se fijan en este documento.
+| Superficie | Tabla |
+|---|---|
+| Sesión, inactividad y reautenticación (§2, §3.3, §3.9) | `auth.sesiones`, con `ultima_actividad_at` y `reautenticado_at` |
+| Invitaciones (§4) | `auth.invitaciones` |
+| Recuperación de contraseña (§3.6–§3.8) | `auth.tokens_recuperacion` |
+| Permisos y ámbito (§3.4, §7) | `auth.permisos` y `auth.cuenta_permisos` |
 
-Mientras estas definiciones no existan, la superficie HTTP descrita puede implementarse, pero su respaldo persistente debe acordarse antes de construir los endpoints de §4 y la evaluación de permisos de §7.
+`rol` no se almacena: se deriva de las asignaciones vigentes —`ADMINISTRADOR` con alguna asignación de alcance global, `TECNICO` con asignaciones acotadas a unidades, `USUARIO` sin ninguna— y `unidades_autorizadas` son las `id_unidad` distintas de esas asignaciones. La derivación se evalúa en cada operación y nunca viaja en el token (`RN-PER-02`, `SEC-JWT-04`).
+
+Valores por defecto, configurables conforme a `SEC-SES-09`:
+
+| Parámetro | Valor |
+|---|---|
+| Vigencia máxima de sesión | 12 horas |
+| Inactividad máxima | 30 minutos |
+| Ventana de autenticación reciente | 10 minutos |
+| Vigencia de una invitación | 7 días |
+| Vigencia de un token de recuperación | 1 hora |
+
+Queda por definir el catálogo inicial de códigos de `auth.permisos`, es decir qué operaciones administrativas concretas se controlan y con qué granularidad.

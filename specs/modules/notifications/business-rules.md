@@ -88,7 +88,7 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-COR-02:** Un envío de correo pasa a estado enviado cuando el mecanismo de entrega confirma su transmisión, o a estado fallido cuando la transmisión no puede completarse.
 
-- **RN-COR-03:** Un envío de correo en estado fallido debe reintentarse automáticamente conforme a la política de reintentos vigente, sin requerir una nueva operación sobre el evento que lo originó.
+- **RN-COR-03:** Un envío de correo en estado fallido debe reintentarse automáticamente, sin requerir una nueva operación sobre el evento que lo originó. La política es de hasta cinco intentos con espera creciente de 1, 5, 15, 60 y 240 minutos; agotados, el envío queda en estado fallido definitivo. Su representación persistente se define en [data-model.md](data-model.md).
 
 - **RN-COR-04:** El agotamiento de los reintentos de un envío de correo no invalida la operación de negocio que originó el evento (ver RN-INT-04) ni el registro histórico de la notificación asociada.
 

@@ -362,7 +362,7 @@ Técnico de la unidad o Administrador.
 
 ### Flujo
 1. El Técnico consulta el reporte de su unidad o el Administrador consulta el reporte global que necesita.
-2. Selecciona la opción de exportar y el formato (CSV o Excel).
+2. Selecciona la opción de exportar y uno de los formatos admitidos por `RN-EXP-05` de reportes (CSV o Excel).
 3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
 4. El sistema entrega el archivo para su descarga.
 

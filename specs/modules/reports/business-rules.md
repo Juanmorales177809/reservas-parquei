@@ -92,9 +92,15 @@ Los informes de ocupación pueden organizarse según las dimensiones definidas p
 
 - **RN-OCU-03:** Un mismo elemento no debe contabilizarse más de una vez dentro de la misma unidad de análisis cuando corresponda al mismo registro de reserva y al mismo criterio de agrupación.
 
-- **RN-OCU-04:** Los criterios específicos para calcular indicadores derivados, porcentajes o tasas de ocupación deben definirse antes de implementar dichos indicadores.
+- **RN-OCU-04:** Solo cuentan como ocupación las reservas en estado `APROBADA`, `EN_EJECUCION` y `FINALIZADA`. Las reservas `SOLICITADA`, `RECHAZADA` y `CANCELADA` se excluyen de todo indicador de ocupación, porque no representan uso efectivo del elemento.
 
-- **RN-OCU-05:** No debe inferirse capacidad disponible, tiempo disponible u ocupación porcentual cuando el modelo no contenga la información necesaria para calcularlos.
+- **RN-OCU-05:** Los indicadores derivados se calculan así:
+  - **Ocupación de un espacio**: horas reservadas en el periodo dividido entre las horas de atención de su unidad en ese mismo periodo, conforme al horario definido en `reservas.laboratorios_config` y a `RN-ESP-DIS-02`.
+  - **Ocupación de un recurso**: tiempo asignado al recurso en el periodo dividido entre la duración del periodo analizado.
+  - **Uso por recurso**: horas acumuladas de uso efectivo, incluidas las horas registradas al finalizar una lista de espera conforme a `RN-TIP-PLE-08`.
+  - **Solicitudes**: conteo de reservas agrupadas por estado, sin aplicar el filtro de ocupación de `RN-OCU-04`.
+
+- **RN-OCU-06:** No debe inferirse capacidad disponible, tiempo disponible u ocupación porcentual cuando el modelo no contenga la información necesaria para calcularlos. Un elemento sin horario de atención definido no produce porcentaje de ocupación, sino únicamente el total de horas reservadas.
 
 ---
 
@@ -144,7 +150,7 @@ Los informes de ocupación pueden organizarse según las dimensiones definidas p
 
 - **RN-EXP-04:** El archivo debe incluir información suficiente para identificar el periodo y los criterios principales utilizados para generar el reporte.
 
-- **RN-EXP-05:** El formato específico de exportación debe definirse en el diseño o contrato correspondiente antes de su implementación.
+- **RN-EXP-05:** Los formatos de exportación admitidos son CSV y Excel. Este módulo es el propietario de esa definición; los demás módulos la referencian en lugar de declararla por su cuenta.
 
 ---
 
