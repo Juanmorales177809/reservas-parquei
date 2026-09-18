@@ -24,12 +24,14 @@ Usuario.
 12. El usuario selecciona uno o más elementos de contexto académico/investigativo (proyecto, semillero, pasantía y trabajo de grado), o una actividad institucional independiente. El sistema impide combinar la actividad institucional con los demás elementos, conforme a `RN-CTX`.
 13. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
 14. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
-15. El usuario puede registrar una observación para el gestor.
-16. El usuario envía la solicitud.
-17. El sistema revalida las reglas aplicables.
-18. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
-19. Si no está habilitada, la reserva queda en `SOLICITADA`.
-20. El sistema genera las notificaciones correspondientes.
+15. Cuando el contexto seleccionado sea un proyecto o semillero, el sistema muestra únicamente las cuentas asociadas a ese proyecto o semillero como opciones válidas de acompañante, conforme a `RN-ACO`.
+16. El usuario selecciona uno o más acompañantes de esa lista.
+17. El usuario puede registrar una observación para el gestor.
+18. El usuario envía la solicitud.
+19. El sistema revalida las reglas aplicables.
+20. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
+21. Si no está habilitada, la reserva queda en `SOLICITADA`.
+22. El sistema genera las notificaciones correspondientes.
 
 ---
 
@@ -281,6 +283,72 @@ Gestor.
 5. La reserva pasa a `FINALIZADA`.
 6. La acción queda registrada en auditoría.
 7. El sistema genera las notificaciones correspondientes cuando aplique.
+
+---
+
+## UF-RES-15 — Proponer y resolver un horario alternativo
+
+### Actor principal
+Gestor.
+
+### Precondición
+La reserva debe estar en `SOLICITADA`.
+
+### Flujo
+1. El gestor abre una reserva en `SOLICITADA` y, en vez de rechazarla, selecciona proponer un horario alternativo.
+2. Registra el horario o fecha propuesta y un motivo.
+3. El sistema notifica al usuario; la reserva permanece en `SOLICITADA`.
+4. El usuario revisa la propuesta y elige aceptarla, rechazarla o contraproponer otro horario con su propio motivo.
+5. Si contrapropone, el sistema notifica al gestor.
+6. El gestor revisa la contrapropuesta y elige aceptarla o rechazarla.
+7. Al aceptarse cualquiera de las dos propuestas, el sistema revalida las reglas aplicables al tipo de reserva (disponibilidad, horario o fechas, capacidad) y reprograma la reserva con el nuevo horario.
+8. Al rechazarse una propuesta o contrapropuesta, la reserva conserva su horario original y permanece en `SOLICITADA`.
+9. La acción queda registrada en auditoría.
+
+---
+
+## UF-RES-16 — Enviar recordatorio automático
+
+### Actor principal
+Sistema.
+
+### Disparador
+Se acerca la fecha/hora de inicio de una reserva en estado `APROBADA`.
+
+### Flujo
+1. El sistema identifica las reservas `APROBADA` cuyo inicio se aproxima dentro del margen configurado.
+2. Excluye las reservas que ya recibieron el recordatorio.
+3. El sistema envía el recordatorio a la cuenta usuario responsable de la reserva.
+4. El sistema marca la reserva como recordada, para no enviarlo nuevamente.
+5. Si la reserva se reprograma o cancela antes del envío, el recordatorio pendiente para ese horario queda anulado.
+
+---
+
+## UF-RES-17 — Enviar, actualizar o cancelar la invitación de calendario
+
+### Actor principal
+Sistema.
+
+### Disparador
+Una reserva pasa a `APROBADA`, se reprograma estando `APROBADA` o `EN_EJECUCION`, o pasa a `RECHAZADA`/`CANCELADA` teniendo una invitación previa.
+
+### Flujo
+1. Cuando la reserva queda `APROBADA`, el sistema genera y envía una invitación de calendario a los interesados, con opción de aceptar o rechazar desde su propio cliente de correo.
+2. Si la reserva se reprograma, el sistema actualiza la invitación conservando el mismo identificador de evento.
+3. Si la reserva se cancela o rechaza teniendo una invitación previamente enviada, el sistema envía la cancelación de esa invitación.
+
+---
+
+## UF-RES-18 — Exportar reportes
+
+### Actor principal
+Gestor o administrador.
+
+### Flujo
+1. El gestor o administrador consulta el reporte que necesita, con los filtros aplicables a su ámbito.
+2. Selecciona la opción de exportar y el formato (CSV o Excel).
+3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
+4. El sistema entrega el archivo para su descarga.
 
 ---
 

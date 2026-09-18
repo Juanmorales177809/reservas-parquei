@@ -27,3 +27,16 @@ El módulo [Researchs](modules/researchs/overview.md) administra el contexto aca
 LIA y Reservas comparten una única PostgreSQL. Reservas puede referenciar las tablas maestras de LIA mediante FK dentro de la misma base; LIA no conoce ni referencia tablas de Reservas. No existe una capa de sincronización ni proyecciones persistentes.
 
 Las reglas RN son obligatorias, incluso cuando utilizan valores configurables. Las propuestas no aprobadas se identifican como recomendaciones o decisiones pendientes. Las referencias cruzadas remiten al documento que define cada regla. La documentación objetivo no acredita su implementación en las bases o el backend actuales.
+
+
+## Modelos de datos por módulo
+
+- [auth](modules/auth/data-model.md).
+- [usuarios](modules/usuarios/data-model.md).
+- [administration](modules/administration/data-model.md).
+- [espacios](modules/espacios/data-model.md).
+- [resources](modules/resources/data-model.md).
+- [notifications](modules/notifications/data-model.md).
+- [reservations](modules/reservations/data-model.md).
+- [researchs](modules/researchs/data-model.md).
+- [reports](modules/reports/data-model.md).

@@ -154,3 +154,8 @@ Estas decisiones pertenecen a los módulos propietarios correspondientes.
 - `../../docs/data-model.md`
 
 Los contratos API específicos de reportes deben mantenerse en la documentación central de API.
+
+
+## Modelo persistente
+
+[Modelo de datos del módulo](data-model.md): tablas propias, relaciones y diferencias pendientes respecto al inventario principal.

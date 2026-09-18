@@ -46,4 +46,4 @@ Quedan pendientes los permisos concretos para administrar estas entidades, sus f
 - [Reglas de negocio](business-rules.md).
 - [Modelo de datos del módulo](data-model.md).
 - [Modelo general](../../docs/data-model.md#schema-investigacion).
-- [Modelo de contexto de reservas](../reservations/reservas_data-model.md#reservasreserva_contexto).
+- [Modelo de contexto de reservas](../reservations/data-model.md#reservasreserva_contexto).

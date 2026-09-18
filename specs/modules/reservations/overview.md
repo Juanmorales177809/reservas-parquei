@@ -72,3 +72,7 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 - `../../docs/product-spec.md`
 - `../../docs/architecture.md`
 - `../../docs/data-model.md`
+
+## Modelo persistente
+
+[Modelo de datos del módulo](data-model.md): tablas propias, relaciones y diferencias pendientes respecto al inventario principal.
