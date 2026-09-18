@@ -57,6 +57,8 @@ La PK compuesta impide duplicados. Los tipos seleccionables se obtienen filtrand
 
 Índices: `(id_cuenta, created_at)`, `(id_unidad, estado_id)`, `(tipo_reserva_id, estado_id)`.
 
+Al crear una reserva para una cuenta Usuario, el backend aplica RN-RES-11 usando el `id_usuario` asociado a la cuenta: comprueba la actualización inicial y consulta en `investigacion` la existencia de al menos una vinculación activa y válida. Revalida esta condición al guardar, aunque el formulario se haya abierto antes de perder la última vinculación. Las FK y `perfil_actualizado_at` por sí solos no acreditan esta condición vigente; no se almacena un indicador duplicado de habilitación en la reserva. Esta comprobación es independiente de la validación del contexto seleccionado.
+
 Cada reserva debe tener exactamente un detalle compatible con su tipo. La cabecera, el detalle y sus asociaciones se escriben en una única transacción; el backend valida la correspondencia. Cada detalle usa `reserva_id` como PK y FK, por lo que solo admite una fila de ese subtipo. Si se permiten escrituras directas fuera del servicio, se requiere una restricción diferida equivalente; no se propone un trigger complejo como requisito general.
 
 ## Detalles por tipo
@@ -85,7 +87,7 @@ Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `f
 
 ## Recursos
 
-El catálogo raíz `reservas.recursos` y la relación 1:1 con equipos, mobiliarios y otros se definen en [Resources](../resources/data-model.md#reservasrecursos). Este módulo define las asignaciones de dichos recursos a reservas. La configuración de laboratorios pertenece a Resources y los espacios a [Espacios](../espacios/data-model.md).
+El catálogo raíz `recursos.recursos` y la relación 1:1 con equipos, mobiliarios y otros se definen en [Resources](../resources/data-model.md#recursosrecursos). Este módulo define las asignaciones de dichos recursos a reservas. La configuración de laboratorios pertenece a Resources y los espacios a [Espacios](../espacios/data-model.md).
 
 ### `reservas.reserva_recursos`
 
@@ -102,7 +104,11 @@ El catálogo raíz `reservas.recursos` y la relación 1:1 con equipos, mobiliari
 | `incorporado_por` | bigint | NOT NULL, FK a `auth.cuentas` |
 | `created_at` | timestamptz | NOT NULL |
 
-Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas. La aplicación exige exactamente un `PRINCIPAL` por reserva en todos los tipos; `ADICIONAL`es se admiten en `INTERNO`, `ESPACIO`, `CAMPUS` y `EXTERNO`. Para `CAMPUS` y `EXTERNO`, todo `ADICIONAL` comparte las fechas de salida/devolución del `PRINCIPAL` (`reserva_recurso_campus`/`reserva_recurso_externo`) y aparece listado en la misma orden de salida.
+Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas.
+
+La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. Para `LISTA_ESPERA` y `SERVICIO` no se impone un principal por defecto: su composición depende de la definición funcional del tipo. Para campus y externo, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
+
+`asignado_at` registra la asignación a la reserva y `retirado_at` su desasignación; ninguno acredita entrega ni devolución física. Estas últimas se registran en `reserva_ejecucion_recursos`.
 
 ## Disponibilidad y configuración por unidad
 
@@ -168,7 +174,22 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 
 `reservas.reserva_adjuntos`: `id integer PK`, `reserva_id integer FK`, `tipo_adjunto`, `nombre_original`, `storage_key`, `content_type`, `size_bytes`, `uploaded_by bigint FK a cuentas`, `created_at`.
 
-`reservas.reserva_ejecucion_recursos`: `id integer PK`, `reserva_recurso_id integer FK`, `entregado_por bigint FK`, `recibido_por bigint FK NULL`, `entregado_at timestamptz`, `devuelto_at timestamptz NULL`, `observacion_entrega`, `observacion_devolucion`. Registra entrega y devolución física de recursos internos.
+### `reservas.reserva_ejecucion_recursos`
+
+Registro de entrega y devolución física para `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, independiente de la asignación temporal y de las firmas físicas del FGL 030.
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `id` | integer | PK |
+| `reserva_recurso_id` | integer | NOT NULL, FK a `reservas.reserva_recursos(id)` |
+| `entregado_por` | bigint | NOT NULL, FK a `auth.cuentas(id_cuenta)` |
+| `recibido_por` | bigint | NULL, FK a `auth.cuentas(id_cuenta)` |
+| `entregado_at` | timestamptz | NOT NULL |
+| `devuelto_at` | timestamptz | NULL; debe ser mayor o igual que `entregado_at` |
+| `observacion_entrega` | text | NULL |
+| `observacion_devolucion` | text | NULL |
+
+`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso. No puede existir más de una entrega abierta por `reserva_recurso_id`. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
 
 ### `reservas.ordenes_salida`
 
@@ -216,7 +237,7 @@ Campos generales restantes del formato:
 
 ### `reservas.orden_salida_items`
 
-**2. Información técnica** del FGL 030: una fila por cada recurso de la reserva (`PRINCIPAL` y `ADICIONAL`es), snapshot tomado del recurso vía `reserva_recurso_id` ([Resources](../resources/data-model.md#reservasrecursos)) al generar la orden.
+**2. Información técnica** del FGL 030: una fila por cada recurso de la reserva (`PRINCIPAL` y `ADICIONAL`es), snapshot tomado del recurso vía `reserva_recurso_id` ([Resources](../resources/data-model.md#recursosrecursos)) al generar la orden.
 
 | Campo | Tipo | Restricción |
 |---|---|---|
@@ -231,7 +252,7 @@ Campos generales restantes del formato:
 
 UNIQUE `(orden_salida_id, reserva_recurso_id)`; índice `(reserva_recurso_id)`.
 
-Las secciones 3, 4 y 5 del FGL 030 (autorizaciones y firmas; recibido al retirar; recibido al ingresar) son enteramente físicas y no tienen columnas en ninguna de las dos tablas: se firman a mano sobre el PDF generado. El seguimiento digital de entrega y devolución de cada recurso, que dispara `EN_EJECUCION` y `FINALIZADA` (`RN-TIP-RC-09`/`10`, `RN-TIP-RE-09`/`10`), ya existe en `reserva_recursos.asignado_at`/`retirado_at`; no se duplica aquí.
+Las secciones 3, 4 y 5 del FGL 030 se firman físicamente sobre el documento. El seguimiento digital de entrega y devolución utiliza `reserva_ejecucion_recursos.entregado_at` y `devuelto_at`, con las cuentas responsables, conforme a las reglas de ejecución del tipo. No utiliza `reserva_recursos.asignado_at` ni `retirado_at` y no representa las firmas del formato.
 
 La aplicación comprueba que la orden coincide con el tipo de reserva y que `orden_salida_items` incluye exactamente los recursos activos (`PRINCIPAL` y `ADICIONAL`es) de esa reserva, sin faltantes ni sobrantes.
 

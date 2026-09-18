@@ -13,12 +13,18 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id_usuario` | bigint | NN | PK `pk_usuarios` |
-| `nombre` | varchar(150) | NN | — |
+| `nombre` | varchar(150) | NN | CHECK `btrim(nombre) <> ''` |
+| `documento` | varchar(20) | NN | UQ `uq_usuarios_documento`; CHECK `btrim(documento) <> ''` |
+| `telefono` | varchar(20) | NN | UQ `uq_usuarios_telefono`; CHECK `btrim(telefono) <> ''` |
+| `institucion` | varchar(255) | NN | CHECK `btrim(institucion) <> ''` |
+| `dependencia` | varchar(255) | NN | CHECK `btrim(dependencia) <> ''` |
 | `correo` | varchar(255) | NN | UQ `uq_usuarios_correo` |
 | `estado` | boolean | NN | DEFAULT `true` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
 | `perfil_actualizado_at` | timestamptz | Sí | NULL mientras la actualización inicial esté pendiente |
+
+Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus restricciones y el CHECK de nombre, son cambios objetivo pendientes de migración. Antes de exigirlos sobre datos existentes se deben completar los faltantes y resolver duplicados sin inventar valores. El alta solicita los cinco datos conforme a RN-DAT; `perfil_actualizado_at` permanece NULL hasta completar la revisión inicial y las vinculaciones. Institución y dependencia son atributos del perfil, sin FK a las unidades receptoras de reservas.
 
 ### `personal.personal`
 
@@ -35,6 +41,8 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 La tabla ya no contiene `supabase_id`.
 
 `perfil_actualizado_at` registra que el Usuario completó la actualización inicial obligatoria. El valor no se establece hasta que los datos obligatorios estén válidos y exista al menos una vinculación académica o investigativa activa y válida confirmada por `investigacion`. No duplica las vinculaciones ni reemplaza sus estados.
+
+La pérdida posterior de todas las vinculaciones activas y válidas no borra ni reinicia `perfil_actualizado_at`. El bloqueo de nuevas reservas de RN-USR-11 se determina consultando las vinculaciones vigentes en `investigacion`; no requiere otro campo persistido ni se deduce únicamente de esta fecha.
 
 ## Relaciones y límites
 

@@ -25,7 +25,7 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 5. El actor diligencia los datos obligatorios.
 6. El sistema valida la información.
 7. El sistema crea el registro en `recursos.recursos`.
-8. El sistema crea el registro asociado en `recursos.mobiliarios`.
+8. El sistema crea el registro asociado en `recursos.mobiliarios` usando el mismo `id` del recurso como PK/FK, en una única transacción con el paso anterior; ante un fallo revierte ambos registros.
 9. El recurso queda disponible en el catálogo de la unidad.
 
 **Flujos alternos:**
@@ -52,7 +52,7 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 5. El actor diligencia los datos.
 6. El sistema valida la información.
 7. El sistema crea el registro en `recursos.recursos`.
-8. El sistema crea el registro asociado en `recursos.otros_recursos`.
+8. El sistema crea el registro asociado en `recursos.otros_recursos` usando el mismo `id` del recurso como PK/FK, en una única transacción con el paso anterior; ante un fallo revierte ambos registros.
 9. El recurso queda disponible en el catálogo de la unidad.
 
 **Flujos alternos:**
@@ -75,7 +75,7 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 1. El Administrador o el proceso de importación autorizado inicia el registro o vinculación del equipo.
 2. El sistema crea un registro en `recursos.recursos` con tipo `EQUIPO`.
 3. El sistema obtiene el identificador común del recurso.
-4. El módulo `equipos` asocia `equipos.equipos.recurso_id` con `recursos.recursos.id`.
+4. El módulo `equipos` asocia `equipos.equipos.recurso_id` con `recursos.recursos.id`, respetando la relación 1:1 definida en el data-model: el recurso debe ser de tipo `EQUIPO`, de la misma unidad y no estar vinculado a otro equipo.
 5. El equipo queda disponible para los procesos que consumen el catálogo de recursos.
 
 **Flujos alternos:**

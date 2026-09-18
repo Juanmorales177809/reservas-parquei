@@ -26,7 +26,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id_equipo` | integer | NN | PK `pk_equipos`; `nextval('equipos.equipos_id_equipo_seq')` |
-| `recurso_id` | integer | NN | FK a `recursos.recursos(id)`; identidad común reservable |
+| `recurso_id` | integer | NN | UQ; FK a `recursos.recursos(id)`; identidad común reservable |
 | `id_unidad` | integer | NN | FK `fk_equipos_unidad` → unidad organizacional |
 | `nombre_equipo` | varchar(50) | NN | — |
 | `placa` | varchar(40) | Sí | UQ `uq_equipos_placa` |
@@ -82,7 +82,7 @@ Las dos opciones de visibilidad se guardan en la configuración única de cada u
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id` | integer | NN | PK `mobiliarios_pkey`; identity |
+| `id` | integer | NN | PK `mobiliarios_pkey`; FK a `recursos.recursos(id)`; sin identity propia |
 | `id_unidad` | integer | NN | FK `mobiliarios_id_unidad_fkey` → unidad organizacional |
 | `nombre` | varchar(100) | NN | — |
 | `descripcion` | text | Sí | — |
@@ -92,7 +92,7 @@ Las dos opciones de visibilidad se guardan en la configuración única de cada u
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id` | integer | NN | PK `otros_pkey`; identity |
+| `id` | integer | NN | PK `otros_pkey`; FK a `recursos.recursos(id)`; sin identity propia |
 | `id_unidad` | integer | NN | FK `otros_id_unidad_fkey` → unidad organizacional |
 | `nombre` | varchar(100) | NN | — |
 | `descripcion` | text | Sí | — |
@@ -108,12 +108,10 @@ Los equipos, mobiliarios, otros recursos y laboratorios configurados pertenecen 
 
 ## Catálogo unificado objetivo
 
-El diseño de reservas propone `reservas.recursos` como catálogo raíz. Su definición se centraliza en este módulo, responsable del inventario:
+El catálogo raíz objetivo es `recursos.recursos`, definido arriba en este módulo, responsable del inventario.
 
 ### Relación con Reservations
 
-`id integer PK`, `id_unidad integer NOT NULL FK` a `unidadOrganizacional.unidad_organizacional(id_unidad)`, `tipo varchar(20) NOT NULL CHECK (tipo IN ('EQUIPO','MOBILIARIO','OTRO'))`, `habilitado boolean NOT NULL`, `created_at timestamptz NOT NULL`, `updated_at timestamptz NOT NULL`.
-
-Equipos, mobiliarios y otros conservan sus atributos y se relacionan 1:1 mediante PK/FK con `recursos.recursos.id`. `equipos.equipos` permanece en su schema especializado y todo equipo es también un recurso mediante `recurso_id`.
+Equipos, mobiliarios y otros conservan sus atributos y se relacionan 1:1 con `recursos.recursos.id`: los equipos mediante `recurso_id NOT NULL UNIQUE FK`, conservando su PK `id_equipo`; mobiliarios y otros mediante su `id` compartido como PK/FK, sin generar otra identidad. Cada recurso debe corresponder a una única especialización compatible con su `tipo`; su unidad debe coincidir con la del catálogo raíz. La creación del recurso y su especialización debe ser atómica.
 
 Este catálogo no aparece como aplicado en el principal. `reserva_recursos` utilizará su PK en el modelo objetivo; las asociaciones actuales por tipo de recurso se conservan en el inventario de reservas.

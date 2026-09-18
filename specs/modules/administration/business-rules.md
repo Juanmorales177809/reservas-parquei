@@ -33,6 +33,7 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 - **RN-USR-04:** La eliminación física de usuarios con información histórica asociada no debe utilizarse como mecanismo ordinario de administración.
 
 - **RN-USR-05:** La información administrativa de un usuario debe mantenerse separada de sus credenciales de autenticación cuando dichas responsabilidades pertenezcan a estructuras distintas del sistema.
+- **RN-USR-06:** El alta y la edición administrativa de Usuarios aplican RN-DAT del módulo Usuarios. Para invitar una cuenta de tipo `USUARIO`, debe existir previamente una identidad con esos datos obligatorios y válidos; la invitación y el alta administrativa no completan la actualización inicial por el Usuario.
 
 ---
 

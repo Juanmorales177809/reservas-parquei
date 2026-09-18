@@ -18,7 +18,8 @@ El modelo persistente se define en [data-model](data-model.md), los espacios en 
 - **RN-RES-08:** Crear o modificar una reserva debe revalidar las reglas aplicables a su tipo de reserva.
 - **RN-RES-09:** Cuando un equipo incluido en la reserva tenga `requiere_apoyo = true`, la reserva debe persistir `requiere_apoyo = true` automáticamente y el Usuario no puede desmarcar la opción “requiere técnico”.
 - **RN-RES-10:** Cuando ningún equipo incluido exija apoyo, el Usuario puede solicitar voluntariamente apoyo técnico; el valor efectivo se persiste en `reservas.reservas.requiere_apoyo`.
-- **RN-RES-11:** Para crear una reserva, la cuenta Usuario debe haber completado la actualización inicial de su perfil conforme a RN-USR-07 y RN-USR-08. Las vinculaciones seleccionadas como contexto se validan nuevamente conforme a RN-CTX-05.
+- **RN-RES-11:** Para crear una reserva, la cuenta Usuario debe haber completado la actualización inicial de su perfil conforme a RN-USR-07 y RN-USR-08, y conservar al menos una vinculación activa y válida conforme a RN-USR-11. El backend revalida ambas condiciones al registrar cada nueva reserva. Las vinculaciones seleccionadas como contexto se validan además conforme a RN-CTX-05.
+- **RN-RES-12:** Una reserva por espacio admite cero o más recursos complementarios y no exige un recurso principal. Las reservas de recurso interno, campus y externo requieren un recurso principal y admiten adicionales conforme a sus reglas específicas. No se impone un recurso principal a lista de espera ni servicio por una regla global; su composición corresponde a sus reglas específicas.
 
 ---
 

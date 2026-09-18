@@ -30,6 +30,16 @@ Este documento describe los flujos administrativos del módulo `administration`.
 - Si el archivo contiene nombres parecidos con códigos diferentes, el sistema puede advertir la coincidencia, pero no fusiona registros automáticamente.
 - Si la cuenta no tiene alcance global, el sistema rechaza la operación.
 
+## UF-ADM-02 — Registrar o actualizar la identidad de un Usuario
+
+**Rol:** Administrador con permiso de gestión de usuarios.
+
+1. El Administrador abre el alta o la edición de un Usuario.
+2. El sistema solicita los datos obligatorios de RN-DAT de Usuarios y el correo de la identidad.
+3. Usuarios valida obligatoriedad y unicidad conforme a sus reglas; al editar, excluye el propio registro de la comprobación de duplicados.
+4. El sistema guarda la identidad y registra la acción administrativa. Si hay datos faltantes, inválidos o duplicados, rechaza la operación sin guardar cambios parciales.
+5. Para un alta nueva, el Administrador puede continuar con UF-AUTH-02 para invitar la cuenta usando el correo de esa identidad. El Usuario revisará sus datos y completará las vinculaciones en su primer ingreso; el alta administrativa no marca la actualización inicial como completada.
+
 ## Separación de responsabilidades
 
 - Administration autoriza, valida y ejecuta la carga.

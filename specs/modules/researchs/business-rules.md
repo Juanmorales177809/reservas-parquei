@@ -13,6 +13,9 @@ Contrato funcional del dominio `investigacion`, alojado en el módulo `researchs
 - **RN-INV-05:** La desactivación de una vinculación no elimina su historial.
 - **RN-INV-06:** `proyectos` y `semilleros` son catálogos administrados centralmente; sus códigos e identidades son persistentes y no pueden crearse ni modificarse desde el perfil del Usuario ni desde una reserva.
 - **RN-INV-07:** El Usuario solo puede seleccionar proyectos y semilleros existentes del catálogo y solicitar o mantener una vinculación válida conforme a las reglas de `investigacion`.
+- **RN-INV-08:** Las vinculaciones académicas o investigativas son declaradas por el Usuario bajo su responsabilidad. El sistema verifica que la entidad seleccionada exista, esté habilitada y que la vinculación esté activa, pero no acredita la pertenencia institucional del Usuario. Los proyectos y semilleros se seleccionan exclusivamente de los catálogos administrados; no pueden crearse desde el perfil.
+
+En esta especificación, una «vinculación válida» es una vinculación declarada que cumple las condiciones de RN-INV-08 dentro de la aplicación. Esta definición se aplica a la actualización del perfil, la creación de reservas y la selección de acompañantes; no supone consulta a una fuente institucional ni certificación externa de pertenencia.
 
 ## Actividades institucionales — RN-ACT
 

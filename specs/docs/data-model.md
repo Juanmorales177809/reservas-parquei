@@ -26,7 +26,7 @@ Los modelos de módulo centralizan el detalle por responsabilidad funcional. Est
 | [researchs](../modules/researchs/data-model.md) | `investigacion.modalidades_vinculacion`, `investigacion.perfiles`, `investigacion.proyectos`, `investigacion.semilleros`, `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado`, `investigacion.usuario_trabajos_grado`, `investigacion.usuario_modalidades_vinculacion`, `investigacion.usuario_perfiles`, `investigacion.usuario_proyectos`, `investigacion.usuario_semilleros` |
 | [reports](../modules/reports/data-model.md) | Sin tablas propias; fuentes de consulta |
 
-El catálogo unificado objetivo `reservas.recursos` se define en Resources; las asignaciones y detalles objetivo se definen en Reservations. Los modelos de módulo identifican las diferencias con las reglas y los cambios pendientes. Antes de retirar el inventario de este archivo, debe conservarse una referencia histórica de la estructura de origen.
+El catálogo unificado objetivo `recursos.recursos` se define en Resources; las asignaciones y detalles objetivo se definen en Reservations. Los modelos de módulo identifican las diferencias con las reglas y los cambios pendientes. Antes de retirar el inventario de este archivo, debe conservarse una referencia histórica de la estructura de origen.
 
 ## Relaciones entre schemas
 
@@ -73,7 +73,7 @@ El catálogo unificado objetivo `reservas.recursos` se define en Resources; las 
 | `guia_rapida` | varchar(100) | Sí | — |
 | `instalador` | varchar(100) | Sí | — |
 | `estado` | boolean | Sí | — |
-| `recurso_id` | integer | NN | FK → `recursos.recursos(id)`; identidad común del equipo |
+| `recurso_id` | integer | NN | UQ; FK → `recursos.recursos(id)`; identidad común del equipo |
 | `requiere_apoyo` | boolean | NN | DEFAULT `false` |
 | `id_categoria` | integer | Sí | FK `fk_equipos_categoria` → `equipos.categoria(id_categoria)` |
 | `proxima_fecha_calibracion` | date | Sí | — |
@@ -92,7 +92,7 @@ Una categoría puede agrupar varios equipos. La relación se define mediante `eq
 
 ## Schema `recursos`
 
-`recursos.recursos` es la identidad común de todo elemento reservable. Los equipos permanecen en `equipos.equipos` y se relacionan con esta tabla mediante `recurso_id`; los mobiliarios y otros recursos especializados pertenecen a este schema.
+`recursos.recursos` es la identidad común de todo elemento reservable. Los equipos permanecen en `equipos.equipos` y se relacionan con esta tabla mediante `recurso_id NOT NULL UNIQUE FK`; los mobiliarios y otros recursos especializados comparten su PK con el catálogo raíz, sin identity propia. Las condiciones de especialización 1:1 se centralizan en [Resources](../modules/resources/data-model.md#relación-con-reservations).
 
 ### `recursos.recursos`
 
@@ -290,12 +290,18 @@ UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_i
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id_usuario` | bigint | NN | PK `pk_usuarios` |
-| `nombre` | varchar(150) | NN | — |
+| `nombre` | varchar(150) | NN | CHECK `btrim(nombre) <> ''` |
+| `documento` | varchar(20) | NN | UQ `uq_usuarios_documento`; CHECK `btrim(documento) <> ''` |
+| `telefono` | varchar(20) | NN | UQ `uq_usuarios_telefono`; CHECK `btrim(telefono) <> ''` |
+| `institucion` | varchar(255) | NN | CHECK `btrim(institucion) <> ''` |
+| `dependencia` | varchar(255) | NN | CHECK `btrim(dependencia) <> ''` |
 | `correo` | varchar(255) | NN | UQ `uq_usuarios_correo` |
 | `estado` | boolean | NN | DEFAULT `true` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
 | `perfil_actualizado_at` | timestamptz | Sí | NULL mientras la actualización inicial obligatoria esté pendiente |
+
+Los cuatro nuevos campos del perfil y las restricciones de datos obligatorios son diseño objetivo pendiente de migración. La preparación de datos existentes y la relación con la actualización inicial se detallan en [Usuarios](../modules/usuarios/data-model.md#usuariosusuarios); no se consideran aplicados al inventario de origen.
 
 ## Schema `auth`
 

@@ -2,9 +2,19 @@
 
 Este documento describe los flujos de interacción del dominio de reservas. Las reglas de negocio asociadas se definen en [business-rules.md](business-rules.md).
 
+## Condición común para crear reservas
+
+En todos los flujos de creación, el sistema aplica RN-RES-11 al iniciar la solicitud y nuevamente al guardarla. Si el Usuario completó su actualización inicial pero ya no tiene ninguna vinculación activa y válida, informa del bloqueo y lo dirige a actualizar sus vinculaciones en el perfil conforme a RN-USR-11. Solo permite continuar cuando `investigacion` confirma al menos una válida. Si la última vinculación deja de ser válida durante el diligenciamiento, rechaza la creación y solicita actualizarla. Esta condición también aplica a reservas con actividad institucional o sin contexto obligatorio.
+
 ## Condición común de acompañantes
 
 Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera y servicio no permiten acompañantes.
+
+## Condición común de composición y ejecución de recursos
+
+La composición de recursos de cada tipo sigue RN-RES-12. Una reserva por espacio puede continuar sin recursos complementarios y no solicita un recurso principal.
+
+En UF-RES-02, UF-RES-03 y UF-RES-04, el sistema registra por recurso la entrega y la devolución físicas con fecha, responsable y observaciones cuando correspondan, según [el registro de ejecución](data-model.md#reservasreserva_ejecucion_recursos). Asignar un recurso a la reserva o retirarlo de su composición no acredita su entrega ni su devolución. Los cambios de estado siguen las reglas de ejecución del tipo.
 
 ## Condición común de disponibilidad
 
@@ -89,7 +99,7 @@ Usuario.
 ### Entrega y devolución
 1. El Técnico  aprueba la entrega.
 2. El sistema genera la orden de salida para uso dentro del campus.
-3. La orden registra la aprobación del Técnico  y la recepción del recurso por parte del usuario.
+3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
 5. Al devolverlo, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
@@ -114,7 +124,7 @@ Usuario.
 ### Entrega y devolución
 1. El Técnico  aprueba la salida.
 2. El sistema genera la orden de salida externa.
-3. La orden registra la aprobación del Técnico  y la recepción del recurso por parte del usuario.
+3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente el recurso, la reserva pasa a `EN_EJECUCION`.
 5. Al devolverlo, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.

@@ -25,20 +25,21 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujo principal:**
 
 1. La persona accede a la opción de registro.
-2. El sistema solicita correo electrónico y contraseña.
+2. El sistema solicita correo electrónico, contraseña y los datos obligatorios de Usuario definidos en RN-DAT: nombre, documento, teléfono, institución y dependencia.
 3. La persona diligencia los datos.
-4. El sistema valida el formato del correo y que la contraseña cumpla la longitud admitida, sin imponer reglas de composición (`SEC-PWD-07`).
+4. El sistema valida el formato del correo y que la contraseña cumpla la longitud admitida, sin imponer reglas de composición (`SEC-PWD-07`); delega en `usuarios` la validación de los datos del perfil y la unicidad de documento y teléfono conforme a RN-DAT.
 5. El sistema verifica que el correo no corresponda a una cuenta existente (`RN-AUTH-ID-02`).
 6. El sistema deriva el hash de la contraseña mediante la función de almacenamiento definida y nunca conserva la contraseña en texto plano (`SEC-PWD-01`, `SEC-PWD-02`, `SEC-PWD-03`).
-7. El sistema crea la cuenta con tipo `USUARIO`, vinculada a una única identidad funcional en `usuarios.usuarios` (`RN-AUTH-ID-03`, `RN-AUTH-ID-04`).
+7. El sistema crea, en una única transacción, la identidad funcional en `usuarios.usuarios` con los datos obligatorios y su cuenta de tipo `USUARIO` (`RN-AUTH-ID-03`, `RN-AUTH-ID-04`). Si falla una validación o restricción única, no crea ninguno de los dos registros.
 8. La cuenta queda activa y sin permisos administrativos (`RN-AUTH-ROL-04`).
 9. El sistema registra el evento de creación de cuenta para trazabilidad (`SEC-AUD-01`).
-10. La persona continúa con el inicio de sesión (`UF-AUTH-03`) y con el completado de perfil, que pertenece al módulo `usuarios` (`UF-USR-01`).
+10. La persona continúa con el inicio de sesión (`UF-AUTH-04`) y con la revisión de datos y el completado de vinculaciones del módulo `usuarios` (`UF-USR-01`); el alta no establece `perfil_actualizado_at`.
 
 **Flujos alternos:**
 
 - Si el correo ya corresponde a una cuenta, el sistema responde sin revelar que la cuenta existe y orienta a recuperar la contraseña (`SEC-ABU-02`, `SEC-REC-01`).
 - Si la contraseña no cumple la longitud mínima admitida, el sistema solicita corregirla.
+- Si falta algún dato obligatorio o está vacío, el sistema solicita corregirlo. Si documento o teléfono ya están registrados, no crea el alta y mantiene la respuesta pública genérica para no revelar identidades existentes.
 - Si se superan los límites de intentos definidos contra abuso automatizado, el sistema restringe temporalmente la operación (`SEC-ABU-01`).
 
 ---
@@ -50,6 +51,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Precondiciones:**
 - El Administrador está autenticado y autorizado para administrar cuentas (`RN-ADM-01`, `RN-PER-03`).
 - Existe o se define la identidad funcional que se asociará a la cuenta invitada.
+- Para invitar un Usuario, su identidad se registra previamente en Usuarios con los datos obligatorios de RN-DAT; la invitación no utiliza datos ficticios para completar el perfil.
 
 **Flujo principal:**
 
@@ -112,7 +114,8 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 6. El sistema regenera el identificador de sesión tras la autenticación exitosa, invalidando cualquier identificador previo (`SEC-SES-13`).
 7. El sistema entrega el secreto de sesión exclusivamente mediante cookie `HttpOnly` y `Secure`, con política `SameSite` declarada explícitamente (`SEC-SES-03`, `SEC-SES-04`).
 8. El sistema registra el inicio de sesión exitoso (`SEC-AUD-02`).
-9. La persona accede a las funcionalidades permitidas por su rol y ámbito, evaluadas en cada operación protegida (`UF-AUTH-10`).
+9. Para una cuenta `USUARIO`, el sistema consulta en Usuarios si la actualización inicial está pendiente, conforme a RN-AUTH-SES-04. Si está pendiente, conduce al flujo de completar o reanudar el perfil; si está completada, permite continuar. Para `PERSONAL`, esta condición no aplica.
+10. Cada operación protegida aplica `UF-AUTH-10`, incluyendo la restricción de perfil pendiente; la redirección de la interfaz no sustituye ese control.
 
 **Flujos alternos:**
 
@@ -258,8 +261,9 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 4. El sistema evalúa el permiso requerido con información vigente, sin derivarlo del nombre del cargo ni de valores enviados por el cliente (`RN-AUTH-ROL-05`, `RN-PER-02`).
 5. El sistema evalúa el ámbito organizacional aplicable: el Técnico solo sobre su unidad (`RN-AUTH-ROL-02`), el Administrador sobre cualquier unidad (`RN-AUTH-ROL-03`).
 6. Cuando la operación recae sobre un recurso identificado por el cliente —una reserva, un perfil, un archivo—, el sistema verifica además que dicho recurso pertenezca o esté explícitamente permitido para la identidad autenticada (`SEC-AUTZ-06`).
-7. Si el permiso y el ámbito son válidos, `auth` entrega al módulo propietario la identidad y la autorización, y este aplica sus propias reglas funcionales.
-8. El módulo propietario ejecuta la operación y registra el actor cuando corresponda (`RN-AUD-01`).
+7. Si la cuenta es `USUARIO`, el sistema consulta la condición vigente de actualización inicial en Usuarios. Mientras esté pendiente, solo autoriza las operaciones necesarias para completar el perfil y sus vinculaciones, mantener la sesión para ese fin o cerrarla, conforme a RN-USR-08. Las demás se rechazan aunque el cliente omita la redirección.
+8. Si el permiso, el ámbito y la condición de perfil lo permiten, `auth` entrega al módulo propietario la identidad y la autorización, y este aplica sus propias reglas funcionales.
+9. El módulo propietario ejecuta la operación y registra el actor cuando corresponda (`RN-AUD-01`).
 
 **Flujos alternos:**
 

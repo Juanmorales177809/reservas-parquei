@@ -4,6 +4,10 @@ Este documento define los flujos de usuario del módulo `usuarios`.
 
 El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. Cuando el flujo requiere información académica o investigativa, consume las entidades y reglas del módulo `investigacion` sin duplicar su lógica de negocio.
 
+## Validación común de datos personales
+
+Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: nombre, documento, teléfono, institución y dependencia son obligatorios. El backend rechaza campos vacíos o compuestos solo por espacios y valida la unicidad de documento y teléfono, cada uno por separado; al editar excluye el propio usuario. Ante datos inválidos o duplicados no guarda los cambios ni marca como completa la actualización inicial. Las restricciones de base de datos mantienen la unicidad frente a operaciones concurrentes.
+
 ---
 
 ## UF-USR-01 — Completar actualización inicial después del autorregistro
@@ -18,7 +22,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 1. El usuario inicia sesión por primera vez.
 2. El sistema verifica que `perfil_actualizado_at` esté pendiente y bloquea las operaciones de negocio no permitidas.
-3. El usuario diligencia los datos personales obligatorios.
+3. El sistema presenta nombre, documento, teléfono, institución y dependencia registrados en el alta; el Usuario los revisa, confirma o actualiza aplicando la validación común de datos personales.
 4. El usuario selecciona su perfil o perfiles académicos/investigativos cuando corresponda.
 5. El sistema consulta al módulo `investigacion` las opciones y relaciones disponibles.
 6. El usuario selecciona, sin ingresar texto libre, proyectos y semilleros del catálogo existente; las pasantías y trabajos de grado se registran o seleccionan conforme a las reglas vigentes de `investigacion`.
@@ -48,7 +52,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 1. El usuario completa la activación de su cuenta.
 2. El sistema autentica al usuario y verifica que `perfil_actualizado_at` esté pendiente.
-3. El sistema solicita completar los datos personales aplicables.
+3. El sistema presenta nombre, documento, teléfono, institución y dependencia registrados en el alta administrativa para su revisión y actualización, aplicando la validación común de datos personales.
 4. El usuario diligencia la información requerida.
 5. El usuario selecciona perfiles y vinculaciones académicas o investigativas; los proyectos y semilleros provienen del catálogo existente.
 6. El módulo `investigacion` valida y almacena dichas vinculaciones.
@@ -92,7 +96,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 1. El usuario accede a la edición de su perfil.
 2. El sistema muestra los datos personales editables y el estado de actualización inicial.
 3. El usuario modifica uno o más datos.
-4. El sistema valida formato y obligatoriedad.
+4. El sistema aplica la validación común de datos personales, incluida la unicidad de documento y teléfono sin considerar el propio registro como duplicado.
 5. El sistema guarda los cambios.
 6. El sistema confirma la actualización.
 
@@ -288,7 +292,13 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 1. El usuario selecciona la opción para crear una reserva.
 2. El sistema verifica que `perfil_actualizado_at` no esté pendiente y que el Usuario conserve al menos una vinculación activa y válida.
-3. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente.
+3. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente y revalida RN-RES-11 al guardar la solicitud.
+
+**Flujos alternos:**
+
+- Si la actualización inicial está pendiente, el sistema conduce al flujo de completarla conforme a RN-USR-08.
+- Si la actualización inicial está completa pero no queda ninguna vinculación activa y válida, el sistema bloquea nuevas reservas conforme a RN-USR-11 y ofrece actualizar las vinculaciones en el perfil mediante los flujos correspondientes. Conserva `perfil_actualizado_at` y el acceso a las reservas existentes según sus reglas.
+- Después de guardar las vinculaciones, el sistema consulta su validez en `investigacion`. Si existe al menos una activa y válida, permite reintentar la creación; de lo contrario mantiene el bloqueo y explica qué falta. Seleccionar una opción sin una vinculación validada no levanta el bloqueo.
 
 ---
 

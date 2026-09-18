@@ -62,8 +62,8 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
         rechazar o cancelar solicitudes.
         - El usuario debe registrar el requerimiento.
         - El usuario puede adjuntar un archivo para su requerimiento. (LIMITE 5 MB).
-        - El sistema debe poner la reserva en una lista de espera secuencial.
-        - El usuario debe ingresar  el numero de horas en las que realizó el servicio.
+        - El Técnico selecciona la siguiente reserva aprobada según prioridad o criterios operativos, conforme a RN-TIP-PLE-06.
+        - El Técnico registra las horas empleadas al finalizar la ejecución, conforme a RN-TIP-PLE-08.
         - El sistema debe generar el informe de uso por horas de la maquina seleccionada.
 ## #4 - Servicio
         - El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
@@ -158,11 +158,15 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 4. Si contrapone, el Técnico recibe el aviso y puede aceptar o rechazar esa contrapropuesta.
 5. Al aceptarse cualquiera de las dos propuestas, el sistema revalida disponibilidad, capacidad y horario, y reprograma la reserva; al rechazarse, la reserva queda pendiente con su horario original.
 
-### Flujo secundario — Anotarse en lista de espera
+### Flujo secundario — Solicitar fabricación o prestación en lista de espera
 
-1. El usuario intenta reservar un recurso/horario ya ocupado y el sistema le ofrece anotarse en la lista de espera.
-2. Cuando el recurso se libera (cancelación, rechazo o eliminación de la reserva que lo ocupaba), el sistema notifica automáticamente a la primera persona en la cola.
-3. Si esa persona no reserva a tiempo, su turno expira y el sistema notifica a la siguiente.
+1. El Usuario registra la necesidad y, cuando corresponda, adjunta un archivo técnico, sin seleccionar fecha ni horario de ejecución.
+2. El Técnico evalúa la viabilidad; si es viable, se habilita el formulario complementario.
+3. Tras completar las aprobaciones requeridas y registrar la recepción del material, la reserva pasa a `APROBADA`.
+4. El Técnico selecciona la siguiente reserva según RN-TIP-PLE-06 e inicia su ejecución.
+5. Al finalizar, el Técnico registra las horas empleadas y el sistema notifica los cambios de estado conforme a Notifications.
+
+El detalle se define en [UF-RES-05](../modules/reservations/user-flows.md#uf-res-05--crear-reserva-tipo-lista-de-espera). No se establece una cola de liberación de cupos ni un plazo de confirmación por turno.
 
 ### Flujo secundario — Administrar datos maestros institucionales
 
@@ -173,7 +177,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Flujo secundario — Autorregistro y recuperación de contraseña
 
-1. Una persona sin cuenta se autorregistra indicando usuario, correo y contraseña propia, sin necesitar invitación.
+1. Una persona sin cuenta se autorregistra con correo, contraseña y los datos obligatorios de RN-DAT de Usuarios: nombre, documento, teléfono, institución y dependencia. En el primer ingreso revisa sus datos y completa las vinculaciones requeridas.
 2. Si olvida su contraseña, pide un enlace de recuperación; el sistema responde igual exista o no una cuenta con ese correo, y si existe, envía el enlace por correo.
 3. Al completar el cambio, el sistema le confirma por correo que su contraseña fue actualizada.
 

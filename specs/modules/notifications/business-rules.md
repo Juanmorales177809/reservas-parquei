@@ -12,7 +12,7 @@ Un mismo evento puede dar lugar a dos registros independientes: una notificació
 
 ## Creación de notificaciones — RN-NOT
 
-- **RN-NOT-01:** Toda notificación debe estar asociada a un evento identificable, generado ya sea por una operación válida del sistema o por una condición temporal verificada por un proceso automático (por ejemplo, un recordatorio previo al inicio de una reserva o la expiración de un plazo en lista de espera).
+- **RN-NOT-01:** Toda notificación debe estar asociada a un evento identificable, generado ya sea por una operación válida del sistema o por una condición temporal verificada por un proceso automático (por ejemplo, un recordatorio previo al inicio de una reserva).
 
 - **RN-NOT-02:** La creación de una notificación no puede modificar el resultado de la operación o condición que la originó.
 
@@ -62,7 +62,7 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-EVT-09:** La incorporación de un recurso adicional a una reserva ya aprobada genera una notificación para el reservista indicando el recurso agregado.
 
-- **RN-EVT-10:** La liberación de un cupo para un solicitante en lista de espera genera una notificación informando la disponibilidad y el plazo para confirmarla.
+- **RN-EVT-10:** Las reservas de tipo lista de espera generan las notificaciones de cambios de estado definidas en este módulo. Su ejecución se rige por RN-TIP-PLE de Reservations; no se generan avisos de liberación de cupo, turnos ni vencimientos de confirmación.
 
 - **RN-EVT-11:** El vencimiento del plazo de un recordatorio automático previo al inicio de una reserva genera una notificación para el reservista, sin que esto constituya una operación sobre la reserva.
 

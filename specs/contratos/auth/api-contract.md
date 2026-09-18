@@ -44,6 +44,7 @@ Toda respuesta de error usa la misma estructura (`architecture.md` §12):
 | 401 | `CREDENCIALES_INVALIDAS` | Autenticación fallida, sin distinguir la causa (`SEC-ABU-02`) |
 | 401 | `REAUTENTICACION_REQUERIDA` | Operación sensible sin autenticación reciente (`SEC-REAUTH-01`) |
 | 403 | `NO_AUTORIZADO` | Permiso ausente, fuera de ámbito o recurso ajeno (`SEC-AUTZ-02`, `SEC-AUTZ-04`, `SEC-AUTZ-06`) |
+| 403 | `PERFIL_INICIAL_PENDIENTE` | La operación requiere haber completado la actualización inicial del Usuario (`RN-USR-08`) |
 | 404 | `NO_ENCONTRADO` | Recurso inexistente dentro del ámbito visible del actor |
 | 409 | `CONFLICTO` | Conflicto de negocio, por ejemplo correo ya registrado |
 | 410 | `TOKEN_NO_VIGENTE` | Token vencido, ya utilizado o revocado (`SEC-TOK-05`, `SEC-INV-02`) |
@@ -105,12 +106,19 @@ Autorregistro sin invitación. Flujo [UF-AUTH-01](../../modules/auth/user-flow.m
 
 ```json
 {
+  "nombre": "Persona de ejemplo",
+  "documento": "1000000001",
+  "telefono": "+573000000001",
+  "institucion": "Institución de ejemplo",
+  "dependencia": "Facultad de ejemplo",
   "correo": "persona@correo.itm.edu.co",
   "contrasena": "una frase larga de paso"
 }
 ```
 
 `contrasena`: mínimo 8 y máximo admitido 64 caracteres, sin reglas de composición obligatorias (`SEC-PWD-07`).
+
+Los cinco campos del perfil son obligatorios conforme a RN-DAT de Usuarios: `nombre` hasta 150 caracteres; `documento` y `telefono` hasta 20 cada uno; `institucion` y `dependencia` hasta 255 cada uno. Son cadenas no vacías ni compuestas solo por espacios; documento y teléfono son únicos por separado en Usuarios. Auth delega la validación y persistencia del perfil en ese módulo. La identidad y la cuenta se crean atómicamente y `perfil_actualizado_at` permanece NULL hasta completar el flujo inicial.
 
 **`202 Accepted`**
 
@@ -120,11 +128,17 @@ Autorregistro sin invitación. Flujo [UF-AUTH-01](../../modules/auth/user-flow.m
 }
 ```
 
-La respuesta es idéntica exista o no una cuenta con ese correo, para no revelar cuentas registradas (`SEC-ABU-02`). Cuando la cuenta se crea, queda activa, de tipo `USUARIO`, vinculada a una única identidad (`RN-AUTH-ID-03`) y sin permisos administrativos (`RN-AUTH-ROL-04`).
+La respuesta es idéntica exista o no una cuenta con ese correo, para no revelar cuentas registradas (`SEC-ABU-02`). También se conserva esta respuesta genérica ante un documento o teléfono duplicado, sin crear la cuenta ni revelar la identidad con la que existe el conflicto. Cuando la cuenta se crea, queda activa, de tipo `USUARIO`, vinculada a una única identidad (`RN-AUTH-ID-03`) y sin permisos administrativos (`RN-AUTH-ROL-04`).
 
-**Errores:** `422 VALIDACION` (correo con formato inválido o contraseña fuera del rango admitido), `429 DEMASIADOS_INTENTOS`.
+**Errores:** `422 VALIDACION` (datos obligatorios ausentes, vacíos o fuera de longitud; correo con formato inválido o contraseña fuera del rango admitido), `429 DEMASIADOS_INTENTOS`.
 
-El completado de perfil no pertenece a este contrato: continúa en el módulo `usuarios`.
+El completado de perfil pertenece a `usuarios`. Auth consulta su condición para aplicar RN-AUTH-SES-04 y RN-USR-08; no duplica sus campos ni valida por su cuenta las vinculaciones.
+
+### Condición de actualización inicial
+
+Las respuestas de inicio de sesión (§3.2), renovación (§3.3), sesión actual (§3.4) y activación con sesión (§4.4) incluyen `actualizacion_inicial_pendiente`: `true` si la cuenta es `USUARIO` y `usuarios.usuarios.perfil_actualizado_at` es NULL, `false` si ya completó el proceso y `null` para `PERSONAL` (no aplica).
+
+El cliente conduce al Usuario pendiente al flujo de completar o reanudar el perfil. El servidor consulta la condición vigente al autorizar cada operación; no la toma del cliente ni de un claim del JWT. Mientras esté pendiente permite las operaciones necesarias de perfil, catálogos y vinculaciones, la consulta/renovación de sesión para ese fin y el cierre de sesión. Las demás operaciones de negocio responden `403 PERFIL_INICIAL_PENDIENTE`. Los procesos públicos de recuperación de credenciales mantienen sus controles propios.
 
 ---
 
@@ -146,6 +160,7 @@ Inicio de sesión. Flujo [UF-AUTH-04](../../modules/auth/user-flow.md).
   "id_cuenta": 1042,
   "tipo_cuenta": "USUARIO",
   "rol": "USUARIO",
+  "actualizacion_inicial_pendiente": true,
   "correo": "persona@correo.itm.edu.co",
   "id_sesion": "8f2c1b6e-5a71-4f0c-9a3a-2c9f1d0b7e44",
   "expira_en": "2026-09-18T22:03:11Z"
@@ -171,7 +186,8 @@ Sin cuerpo de solicitud.
 ```json
 {
   "id_sesion": "8f2c1b6e-5a71-4f0c-9a3a-2c9f1d0b7e44",
-  "expira_en": "2026-09-18T22:33:11Z"
+  "expira_en": "2026-09-18T22:33:11Z",
+  "actualizacion_inicial_pendiente": true
 }
 ```
 
@@ -193,6 +209,7 @@ Identidad autenticada vigente. Sustenta el paso 2 de [UF-AUTH-10](../../modules/
   "tipo_cuenta": "PERSONAL",
   "rol": "TECNICO",
   "correo": "tecnico@itm.edu.co",
+  "actualizacion_inicial_pendiente": null,
   "id_sesion": "8f2c1b6e-5a71-4f0c-9a3a-2c9f1d0b7e44",
   "unidades_autorizadas": [7],
   "autenticacion_reciente": false
@@ -305,6 +322,8 @@ Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Re
 
 `id_unidad` es obligatorio para `tipo_cuenta = "PERSONAL"` y debe estar dentro del ámbito del emisor (`SEC-AUTZ-04`).
 
+Para `tipo_cuenta = "USUARIO"`, debe existir una identidad creada previamente mediante el alta administrativa de Usuarios conforme a RN-DAT. El servidor la resuelve por el correo único del destinatario y valida sus datos obligatorios antes de emitir la invitación. La activación utiliza esa identidad existente, sin duplicar el perfil ni crear una identidad con campos vacíos.
+
 **`201 Created`**
 
 ```json
@@ -378,6 +397,7 @@ Activación de la cuenta invitada. Flujo [UF-AUTH-03](../../modules/auth/user-fl
   "tipo_cuenta": "PERSONAL",
   "rol": "TECNICO",
   "correo": "nuevo@itm.edu.co",
+  "actualizacion_inicial_pendiente": null,
   "id_sesion": "0d5b1a44-92f7-4c33-b0f5-6e0a2c7d1f10",
   "expira_en": "2026-10-02T17:15:00Z"
 }
@@ -502,6 +522,7 @@ ContextoAutenticado:
     rol: Literal["USUARIO", "TECNICO", "ADMINISTRADOR"]
     unidades_autorizadas: list[int] | Literal["GLOBAL"]
     autenticacion_reciente: bool
+    actualizacion_inicial_pendiente: bool | None
 ```
 
 La identidad proviene siempre de la sesión, nunca de identificadores enviados por el cliente (`SEC-AUTZ-03`).
@@ -513,6 +534,7 @@ La identidad proviene siempre de la sesión, nunca de identificadores enviados p
 | `obtener_contexto()` | Resuelve el contexto autenticado y verifica que cuenta e identidad estén activas (`RN-AUTH-ID-01`, `RN-AUTH-ID-05`) | `401 NO_AUTENTICADO` |
 | `exigir_permiso(codigo, id_unidad=None)` | Evalúa permiso y ámbito con información vigente (`RN-AUTH-ROL-05`, `SEC-AUTZ-04`) | `403 NO_AUTORIZADO` |
 | `exigir_autenticacion_reciente()` | Verifica la ventana de reautenticación (`SEC-REAUTH-01`) | `401 REAUTENTICACION_REQUERIDA` |
+| `exigir_perfil_inicial_completo()` | Consulta la condición vigente en Usuarios; se aplica a operaciones de negocio fuera del flujo permitido de actualización inicial. Para PERSONAL no aplica | `403 PERFIL_INICIAL_PENDIENTE` |
 
 La comprobación de que un recurso concreto pertenece al actor —una reserva, un perfil, un archivo— corresponde al módulo propietario del recurso, que la ejecuta además del permiso general (`SEC-AUTZ-06`). `auth` no conoce la propiedad de entidades ajenas.
 

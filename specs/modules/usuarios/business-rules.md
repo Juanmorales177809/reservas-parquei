@@ -49,9 +49,16 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **RN-USR-08:** Mientras la actualización inicial esté pendiente, el Usuario solo puede acceder a las operaciones necesarias para completar su perfil, seleccionar o mantener sus vinculaciones y cerrar sesión; no puede crear reservas ni ejecutar otras operaciones de negocio que requieran el perfil completo.
 - **RN-USR-09:** La actualización inicial puede cumplirse con una o más vinculaciones de cualquier tipo admitido; no exige tener una vinculación de cada tipo. Una actividad institucional no cuenta como vinculación académica o investigativa.
 - **RN-USR-10:** Los proyectos y semilleros deben seleccionarse desde los catálogos existentes de `investigacion`; el Usuario no puede crearlos ni ingresar sus nombres o códigos libremente.
+- **RN-USR-11:** Después de completar la actualización inicial, el Usuario debe conservar al menos una vinculación académica o investigativa activa y válida de los tipos definidos en RN-USR-07 para crear nuevas reservas. Si no conserva ninguna, se bloquea la creación de nuevas reservas hasta que actualice sus vinculaciones y `investigacion` confirme al menos una activa y válida. Esta condición se verifica con información vigente al crear cada reserva, incluso si su contexto es una actividad institucional o el tipo no requiere contexto. No se reinicia la actualización inicial ni se bloquea el inicio de sesión por esta causa; el Usuario puede actualizar sus vinculaciones y consultar o gestionar reservas existentes conforme a sus reglas, sin alteración automática de su estado o historial.
 
 
 ---
+
+## Datos obligatorios del Usuario — RN-DAT
+
+- **RN-DAT-01:** Toda alta de Usuario debe registrar nombre, documento, teléfono, institución y dependencia. Los cinco campos son obligatorios y no admiten valores vacíos ni compuestos únicamente por espacios. Se solicitan en el autorregistro o en el alta administrativa de la identidad que se invita; se revisan durante la actualización inicial y deben mantenerse completos en posteriores modificaciones.
+- **RN-DAT-02:** Documento y teléfono deben ser únicos, cada uno por separado, entre los registros de `usuarios.usuarios`, incluidos los inactivos. El backend valida la unicidad al crear y modificar, excluyendo el propio registro en una edición; la base de datos la garantiza mediante restricciones `UNIQUE`. Un conflicto rechaza la operación y no debe sobrescribir ni fusionar identidades.
+- **RN-DAT-03:** Institución y dependencia describen la afiliación del Usuario y se almacenan en su perfil. No conceden permisos administrativos ni sustituyen una vinculación académica o investigativa. Sus valores no son únicos.
 
 ## Personal — RN-PER
 
