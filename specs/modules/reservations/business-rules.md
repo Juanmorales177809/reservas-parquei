@@ -88,41 +88,41 @@ Los tipos de reserva contemplados actualmente son:
 
 ## Recurso para uso dentro del campus — RN-TIP-RC
 
-- **RN-TIP-RC-01:** La reserva corresponde a un único recurso que saldrá del laboratorio, pero permanecerá dentro del campus autorizado.
-- **RN-TIP-RC-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución del recurso.
-- **RN-TIP-RC-03:** El recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
-- **RN-TIP-RC-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
-- **RN-TIP-RC-05:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RC-06:** La entrega del recurso al usuario requiere la aprobación previa del Técnico .
-- **RN-TIP-RC-07:** El sistema debe generar la orden de salida correspondiente al uso del recurso dentro del campus y fuera del laboratorio.
-- **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del Técnico  y la recepción del recurso por parte del usuario.
-- **RN-TIP-RC-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RC-10:** Al recibir nuevamente el recurso, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RC-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) que saldrán del laboratorio, pero permanecerán dentro del campus autorizado. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución.
+- **RN-TIP-RC-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución, aplicable a todos sus recursos.
+- **RN-TIP-RC-03:** Cada recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
+- **RN-TIP-RC-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para alguno de sus recursos durante el periodo solicitado.
+- **RN-TIP-RC-05:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
+- **RN-TIP-RC-06:** La entrega de los recursos al usuario requiere la aprobación previa del Técnico .
+- **RN-TIP-RC-07:** El sistema debe generar la orden de salida correspondiente al uso de los recursos dentro del campus y fuera del laboratorio, listando todos los recursos de la reserva.
+- **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del Técnico  y la recepción de los recursos por parte del usuario.
+- **RN-TIP-RC-09:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
+- **RN-TIP-RC-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RC-11:** La orden de salida (`RN-TIP-RC-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
-- **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
-- **RN-TIP-RC-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física del recurso no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
-- **RN-TIP-RC-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga del recurso.
+- **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
+- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RC-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
+- **RN-TIP-RC-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga de los recursos.
 
 ---
 
 ## Recurso fuera del campus — RN-TIP-RE
 
-- **RN-TIP-RE-01:** La reserva corresponde a un único recurso autorizado para salir del campus.
-- **RN-TIP-RE-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución.
-- **RN-TIP-RE-03:** El recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
-- **RN-TIP-RE-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
-- **RN-TIP-RE-05:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RE-06:** La salida del recurso requiere la aprobación previa del Técnico .
-- **RN-TIP-RE-07:** El sistema debe generar la orden de salida externa correspondiente al retiro del recurso fuera del campus.
-- **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del Técnico  y la recepción del recurso por parte del usuario.
-- **RN-TIP-RE-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RE-10:** Al recibir nuevamente el recurso, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RE-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) autorizados para salir del campus. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución.
+- **RN-TIP-RE-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución, aplicable a todos sus recursos.
+- **RN-TIP-RE-03:** Cada recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
+- **RN-TIP-RE-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para alguno de sus recursos durante el periodo solicitado.
+- **RN-TIP-RE-05:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
+- **RN-TIP-RE-06:** La salida de los recursos requiere la aprobación previa del Técnico .
+- **RN-TIP-RE-07:** El sistema debe generar la orden de salida externa correspondiente al retiro de los recursos fuera del campus, listando todos los recursos de la reserva.
+- **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del Técnico  y la recepción de los recursos por parte del usuario.
+- **RN-TIP-RE-09:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
+- **RN-TIP-RE-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RE-11:** La orden de salida externa (`RN-TIP-RE-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
-- **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
-- **RN-TIP-RE-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física del recurso no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
-- **RN-TIP-RE-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga del recurso.
+- **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
+- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos de cada recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RE-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
+- **RN-TIP-RE-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga de los recursos.
 
 ---
 

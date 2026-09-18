@@ -73,7 +73,7 @@ CHECK `hora_inicio < hora_fin`. Capacidad, habilitación, horario y solapamiento
 
 ### `reservas.reserva_recurso_campus` y `reservas.reserva_recurso_externo`
 
-Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `fecha_devolucion date NOT NULL`, CHECK `fecha_devolucion >= fecha_salida`. Cada reserva tiene exactamente un recurso principal activo y una orden del tipo correspondiente.
+Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `fecha_devolucion date NOT NULL`, CHECK `fecha_devolucion >= fecha_salida`. Cada reserva tiene exactamente un recurso `PRINCIPAL` activo, admite `ADICIONAL`es (`RN-TIP-RC-01`, `RN-TIP-RE-01`) y tiene una orden del tipo correspondiente que lista todos sus recursos. `fecha_salida`/`fecha_devolucion` aplican a todos los recursos de la reserva.
 
 ### `reservas.reserva_lista_espera`
 
@@ -102,7 +102,7 @@ El catálogo raíz `reservas.recursos` y la relación 1:1 con equipos, mobiliari
 | `incorporado_por` | bigint | NOT NULL, FK a `auth.cuentas` |
 | `created_at` | timestamptz | NOT NULL |
 
-Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas. Para `CAMPUS` y `EXTERNO` la aplicación limita a un `PRINCIPAL`; `INTERNO` y `ESPACIO` admiten adicionales.
+Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas. La aplicación exige exactamente un `PRINCIPAL` por reserva en todos los tipos; `ADICIONAL`es se admiten en `INTERNO`, `ESPACIO`, `CAMPUS` y `EXTERNO`. Para `CAMPUS` y `EXTERNO`, todo `ADICIONAL` comparte las fechas de salida/devolución del `PRINCIPAL` (`reserva_recurso_campus`/`reserva_recurso_externo`) y aparece listado en la misma orden de salida.
 
 ## Contexto y campos de espacio
 
@@ -154,13 +154,12 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 
 ### `reservas.ordenes_salida`
 
-Copia completa y fija de un formato "FGL 030 Orden de salida equipos y herramientas" (`RN-TIP-RC-11`, `RN-TIP-RE-11`) generado para una reserva `CAMPUS`/`EXTERNA`. Una fila por reserva, alineada con su único recurso principal (`RN-TIP-RC-01`, `RN-TIP-RE-01`). Todos los campos del documento se guardan como snapshot en el momento de generación: los que se prellenan desde otra tabla (`RN-TIP-RC-13`, `RN-TIP-RE-13`) se copian, no se referencian, para que la orden conserve exactamente lo impreso/firmado aunque la fuente cambie después — el mismo principio de `reserva_contexto` (`RN-CTX-07`).
+Datos con los que el sistema **prellena** el formato "FGL 030 Orden de salida equipos y herramientas" (`RN-TIP-RC-11`, `RN-TIP-RE-11`) para imprimirlo, generado para una reserva `CAMPUS`/`EXTERNA` y listando todos sus recursos —`PRINCIPAL` y `ADICIONAL`es— (`RN-TIP-RC-01`, `RN-TIP-RE-01`, `RN-TIP-RC-07`, `RN-TIP-RE-07`). Esta tabla **no captura firmas ni autorizaciones**: los jefes de cartera/laboratorios, el V.o.B.o del Centro Parque I y el técnico de bienes muebles firman físicamente sobre el documento impreso (`RN-TIP-RC-14`, `RN-TIP-RE-14`); igual ocurre con quien entrega, retira, regresa y recibe el bien. Ninguno de esos campos existe aquí. Los datos que sí se guardan se copian como snapshot en el momento de generación — los que se prellenan desde otra tabla (`RN-TIP-RC-13`, `RN-TIP-RE-13`) se copian, no se referencian, para que la orden conserve exactamente lo impreso aunque la fuente cambie después — el mismo principio de `reserva_contexto` (`RN-CTX-07`).
 
 | Campo | Tipo | Restricción |
 |---|---|---|
 | `id` | integer | PK |
 | `reserva_id` | integer | UNIQUE NOT NULL, FK a `reservas(id)` |
-| `reserva_recurso_id` | integer | UNIQUE NOT NULL, FK a `reserva_recursos(id)` |
 | `tipo_orden` | varchar(10) | NOT NULL, CHECK (`CAMPUS`, `EXTERNA`) |
 | `fecha_generacion` | timestamptz | NOT NULL |
 
@@ -188,59 +187,35 @@ Prellenados y copiados como snapshot desde su fuente al generar el documento:
 
 Cédula y contacto no están definidos hoy en `usuarios.usuarios`/`personal.personal`/`auth.cuentas` (ver Puntos pendientes); hasta que existan allí, se capturan manualmente al generar la orden.
 
-**2. Información técnica** — snapshot del recurso vía `reserva_recurso_id` ([Resources](../resources/data-model.md#reservasrecursos)):
+Campos generales restantes del formato:
 
 | Campo | Tipo | Restricción |
 |---|---|---|
+| `observaciones` | text | NULL |
+| `fecha_prorroga` | date | NULL |
+
+`fecha_prorroga` se actualiza cuando la reserva se reprograma extendiendo su fecha de devolución (`RN-TIP-RC-15`, `RN-TIP-RE-15`); no reemplaza `fecha_regreso_snapshot`, que conserva la fecha originalmente impresa.
+
+### `reservas.orden_salida_items`
+
+**2. Información técnica** del FGL 030: una fila por cada recurso de la reserva (`PRINCIPAL` y `ADICIONAL`es), snapshot tomado del recurso vía `reserva_recurso_id` ([Resources](../resources/data-model.md#reservasrecursos)) al generar la orden.
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `id` | integer | PK |
+| `orden_salida_id` | integer | NOT NULL, FK a `ordenes_salida(id)` |
+| `reserva_recurso_id` | integer | NOT NULL, FK a `reserva_recursos(id)` |
 | `placa_snapshot` | varchar(30) | NULL — el recurso puede no tener placa (`RN-TIP-RC-05`, `RN-TIP-RE-05`) |
 | `descripcion_snapshot` | varchar(255) | NOT NULL |
 | `bodega_snapshot` | varchar(100) | NULL |
 | `cc_snapshot` | varchar(30) | NULL |
 | `fecha_compra_snapshot` | date | NULL |
-| `observaciones_tecnicas` | text | NULL |
 
-**3. Autorizaciones y firmas** — no se prellenan; se diligencian en el momento (`RN-TIP-RC-14`, `RN-TIP-RE-14`). Cada rol admite una cuenta del sistema si el firmante tiene una, y siempre nombre/cargo tal como quedan escritos en el documento:
+UNIQUE `(orden_salida_id, reserva_recurso_id)`; índice `(reserva_recurso_id)`.
 
-| Campo | Tipo | Restricción |
-|---|---|---|
-| `resp_cartera_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `resp_cartera_nombre` | varchar(150) | NULL |
-| `resp_cartera_cargo` | varchar(150) | NULL |
-| `resp_cartera_firma_at` | timestamptz | NULL |
-| `vobo_centro_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `vobo_centro_nombre` | varchar(150) | NULL |
-| `vobo_centro_cargo` | varchar(150) | NULL |
-| `vobo_centro_firma_at` | timestamptz | NULL |
-| `resp_bienes_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `resp_bienes_nombre` | varchar(150) | NULL |
-| `resp_bienes_cargo` | varchar(150) | NULL |
-| `resp_bienes_firma_at` | timestamptz | NULL |
+Las secciones 3, 4 y 5 del FGL 030 (autorizaciones y firmas; recibido al retirar; recibido al ingresar) son enteramente físicas y no tienen columnas en ninguna de las dos tablas: se firman a mano sobre el PDF generado. El seguimiento digital de entrega y devolución de cada recurso, que dispara `EN_EJECUCION` y `FINALIZADA` (`RN-TIP-RC-09`/`10`, `RN-TIP-RE-09`/`10`), ya existe en `reserva_recursos.asignado_at`/`retirado_at`; no se duplica aquí.
 
-Estas tres firmas en conjunto son la aprobación exigida por `RN-TIP-RC-08`/`RN-TIP-RE-08`; no hay un `aprobado_por` genérico separado.
-
-**4. Recibido a satisfacción — retiro** y **5. — ingreso** (`RN-TIP-RC-09`/`10`, `RN-TIP-RE-09`/`10`):
-
-| Campo | Tipo | Restricción |
-|---|---|---|
-| `fecha_salida` | date | NULL |
-| `entrega_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `entrega_nombre` | varchar(150) | NULL |
-| `entrega_firma_at` | timestamptz | NULL |
-| `retira_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `retira_nombre` | varchar(150) | NULL |
-| `retira_firma_at` | timestamptz | NULL |
-| `fecha_regreso_real` | date | NULL |
-| `regresa_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `regresa_nombre` | varchar(150) | NULL |
-| `regresa_firma_at` | timestamptz | NULL |
-| `recibe_cuenta_id` | bigint | NULL, FK a `auth.cuentas` |
-| `recibe_nombre` | varchar(150) | NULL |
-| `recibe_firma_at` | timestamptz | NULL |
-| `fecha_prorroga` | date | NULL |
-
-`entrega_firma_at`/`retira_firma_at` marcan la entrega física al usuario, que dispara `EN_EJECUCION` (`RN-TIP-RC-09`, `RN-TIP-RE-09`); `regresa_firma_at`/`recibe_firma_at` marcan la devolución, que dispara `FINALIZADA` (`RN-TIP-RC-10`, `RN-TIP-RE-10`). `fecha_prorroga` se actualiza cuando la reserva se reprograma extendiendo su fecha de devolución (`RN-TIP-RC-15`, `RN-TIP-RE-15`); no reemplaza `fecha_regreso_snapshot`, que conserva la fecha original impresa.
-
-La aplicación comprueba que la orden coincide con el tipo de reserva y su único recurso principal.
+La aplicación comprueba que la orden coincide con el tipo de reserva y que `orden_salida_items` incluye exactamente los recursos activos (`PRINCIPAL` y `ADICIONAL`es) de esa reserva, sin faltantes ni sobrantes.
 
 ## Estados y auditoría
 
