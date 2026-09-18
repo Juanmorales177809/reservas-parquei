@@ -266,14 +266,13 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 
 ## Acompañante — RN-ACO
 
-- **RN-ACO-01:** El acompañante de una reserva es la persona que supervisa y orienta al reservista en el desarrollo del proyecto o tarea asociada, dentro del contexto académico o investigativo registrado en la reserva.
-- **RN-ACO-02:** El acompañante debe corresponder a una cuenta existente en el sistema.
-- **RN-ACO-03:** Una cuenta solo puede asociarse como acompañante de una reserva si pertenece al mismo proyecto o semillero registrado como contexto de esa reserva.
-- **RN-ACO-04:** Al seleccionar el proyecto o semillero de la reserva, el sistema debe ofrecer como opciones de acompañante únicamente las cuentas asociadas a ese proyecto o semillero.
-- **RN-ACO-05:** Una reserva puede registrar uno o más acompañantes.
-- **RN-ACO-06:** El acompañante asociado a una reserva se conserva históricamente aunque posteriormente deje de pertenecer al proyecto o semillero.
-- **RN-ACO-07:** Ser acompañante de una reserva no otorga por sí mismo permisos administrativos sobre ella; solo la autorización definida en el módulo `auth` determina qué acciones puede ejercer.
-- **RN-ACO-08:** La figura de acompañante aplica a todos los tipos de reserva excepto lista de espera (`RN-TIP-PLE`) y reserva por servicio (`RN-TIP-SER`), que no admiten acompañante.
+- **RN-ACO-01:** Los acompañantes solo aplican cuando la reserva tiene un proyecto o un semillero como contexto.
+- **RN-ACO-02:** Cada acompañante debe ser una cuenta existente vinculada activamente al proyecto o al semillero registrado en la reserva.
+- **RN-ACO-03:** Una reserva puede registrar de cero a N acompañantes; no es obligatorio registrar uno.
+- **RN-ACO-04:** Si la reserva tiene proyecto y semillero, las opciones de acompañante son la unión de las cuentas vinculadas activamente a cualquiera de los dos.
+- **RN-ACO-05:** Las reservas de lista de espera y de servicio no admiten acompañantes.
+- **RN-ACO-06:** Ser acompañante no otorga por sí mismo permisos administrativos sobre la reserva; la autorización se determina en `auth`.
+- **RN-ACO-07:** La asociación del acompañante se conserva históricamente aunque posteriormente se desactive su vinculación con el proyecto o semillero.
 
 ---
 

@@ -286,10 +286,10 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id` | integer | NN | PK `reserva_acompanantes_pkey`; identity |
-| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
-| `nombre` | varchar(150) | NN | — |
-| `correo` | varchar(255) | Sí | — |
+| `reserva_id` | integer | NN | PK compuesta; FK → `reservas.reservas(id)` |
+| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
+
+La PK compuesta `(reserva_id, id_cuenta)` impide repetir una cuenta en la misma reserva. La aplicación solo permite insertar la asociación cuando la reserva tiene proyecto o semillero y la cuenta mantiene una vinculación activa con al menos uno de ellos; si ambos existen, valida la unión de ambas vinculaciones. Esta es la única estructura de acompañantes del modelo de Reservations.
 
 ### `reservas.reserva_equipos`
 
@@ -327,7 +327,6 @@ UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_i
 - Mapear `estado` al catálogo `estados_reserva`, incluyendo la transición de `PENDIENTE` a `SOLICITADA` sin perder historial.
 - Incorporar código y configuración por laboratorio de los tipos; conciliar descripción nullable del inventario con la descripción obligatoria del objetivo.
 - Definir el destino de `motivos_solicitud` y `motivo_solicitud_id`, ausentes del objetivo.
-- Definir acompañantes vinculados a cuentas conforme a RN-ACO; el inventario solo contiene nombre y correo.
 - Migrar asociaciones de equipos, mobiliarios y otros hacia `reserva_recursos`, preservando referencias históricas.
 - Coordinar notificaciones y auditoría con sus módulos propietarios. Los `ON DELETE CASCADE` del inventario requieren revisión frente a las reglas de conservación histórica.
 
