@@ -2,13 +2,13 @@
 
 Contrato funcional del dominio de reservas.
 
-El modelo persistente se define en [data-model](../core/data-model.md), los espacios en [business-rules.md](../docs/modules/espacios/business-rules.md), los recursos en [business-rules.md](../docs/modules/resources/business-rules.md), la autenticación y autorización en [business-rules.md](../docs/modules/auth/business-rules.md), y las relaciones académicas e investigativas en el módulo correspondiente de investigación.
+El modelo persistente se define en [data-model](data-model.md), los espacios en [business-rules.md](../espacios/busines-rules.md), los recursos en [business-rules.md](../resources/business-rules.md), la autenticación y autorización en [business-rules.md](../auth/business-rules.md), y las relaciones académicas e investigativas en el módulo `researchs`.
 
 ---
 
 ## Creación y composición — RN-RES
 
-- **RN-RES-01:** El usuario debe completar la información requerida de su perfil antes de crear una reserva.
+- **RN-RES-01:** El Usuario debe cumplir las validaciones aplicables a la creación de la reserva.
 - **RN-RES-02:** Toda reserva debe ser creada por una cuenta autenticada y activa.
 - **RN-RES-03:** Toda reserva debe estar asociada a una unidad organizacional receptora mediante `id_unidad`.
 - **RN-RES-04:** Los datos y elementos requeridos para crear una reserva dependen del tipo de reserva seleccionado.
@@ -16,7 +16,8 @@ El modelo persistente se define en [data-model](../core/data-model.md), los espa
 - **RN-RES-06:** Los elementos asociados a una reserva deben pertenecer o estar disponibles para la unidad organizacional receptora, según corresponda.
 - **RN-RES-07:** Una misma cuenta puede mantener varias reservas simultáneas siempre que no exista una restricción específica del tipo de reserva ni conflicto sobre los elementos reservados.
 - **RN-RES-08:** Crear o modificar una reserva debe revalidar las reglas aplicables a su tipo de reserva.
-- **RN-RES-09:** Cuando un recurso incluido en la reserva exija acompañamiento de personal auxiliar o técnico, la reserva queda marcada con ese requisito de forma automática, sin que el usuario pueda quitarlo.
+- **RN-RES-09:** Cuando un equipo incluido en la reserva tenga `requiere_apoyo = true`, la reserva debe persistir `requiere_apoyo = true` automáticamente y el Usuario no puede desmarcar la opción “requiere técnico”.
+- **RN-RES-10:** Cuando ningún equipo incluido exija apoyo, el Usuario puede solicitar voluntariamente apoyo técnico; el valor efectivo se persiste en `reservas.reservas.requiere_apoyo`.
 
 ---
 
@@ -181,7 +182,7 @@ Los únicos estados globales válidos son:
 - **RN-DIS-02:** Para reservas de recursos por días, el periodo comprende la fecha de salida o inicio y la fecha de devolución o finalización. Dos reservas se consideran solapadas cuando comparten al menos una fecha del periodo reservado.
 - **RN-DIS-03:** La disponibilidad se valida de forma independiente para el espacio y para cada recurso individual asociado, salvo los recursos complementarios de una reserva por espacio cuya falta de disponibilidad no bloquee la reserva según `RN-TIP-PE-14`.
 - **RN-DIS-04:** Un equipo debe encontrarse operativo según la información vigente del sistema de origen correspondiente al momento de crear o aprobar la reserva.
-- **RN-DIS-05:** Crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva deben utilizar la garantía transaccional definida en [data-model](../core/data-model.md#4-garantia-transaccional). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
+- **RN-DIS-05:** Crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva deben utilizar la garantía transaccional definida en [data-model](data-model.md). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
 - **RN-DIS-06:** La validación de disponibilidad debe considerar como bloqueantes únicamente las reservas en estados definidos como bloqueantes por `RN-EST-02`.
 
 ---
@@ -191,7 +192,7 @@ Los únicos estados globales válidos son:
 - **RN-PRO-01:** La cuenta usuario puede consultar sus propias reservas independientemente de su estado.
 - **RN-PRO-02:** La cuenta usuario puede editar sus propias reservas únicamente cuando el estado de la reserva y las reglas de negocio permitan la modificación.
 - **RN-PRO-03:** Una cuenta sin permisos administrativos no puede consultar, modificar, aprobar, rechazar ni cancelar reservas pertenecientes a terceros.
-- **RN-PRO-04:** El personal autorizado puede consultar y gestionar reservas de terceros únicamente dentro de las unidades organizacionales incluidas en su ámbito de autorización.
+- **RN-PRO-04:** El Técnico puede consultar y gestionar reservas de terceros únicamente dentro de su propia unidad organizacional. El Administrador puede hacerlo dentro de cualquier unidad organizacional.
 - **RN-PRO-05:** La autenticación y la validación de permisos se rigen por las reglas definidas en el módulo `auth`. Las reglas de este dominio determinan qué acciones requieren dichos permisos y sobre qué unidad organizacional deben aplicarse.
 
 ---
@@ -199,10 +200,10 @@ Los únicos estados globales válidos son:
 ## Aprobación — RN-APR
 
 - **RN-APR-01:** Solo una cuenta autenticada con permiso para gestionar reservas de la unidad receptora puede aprobar o rechazar una reserva.
-- **RN-APR-02:** La aprobación automática de reservas creadas por usuarios puede habilitarse o deshabilitarse por el Técnico  desde la configuración de su unidad organizacional.
+- **RN-APR-02:** La aprobación automática de reservas creadas por Usuarios puede habilitarse o deshabilitarse por el Técnico desde la configuración de su propia unidad organizacional.
 - **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo.
 - **RN-APR-04:** Cuando la aprobación automática no esté habilitada, la reserva creada por un usuario se registra en estado `SOLICITADA` y requiere revisión del Técnico .
-- **RN-APR-05:** Las reservas creadas por un Técnico  dentro de una unidad organizacional en la que tenga permiso de gestión se registran directamente en estado `APROBADA`.
+- **RN-APR-05:** Las reservas creadas por un Técnico dentro de su propia unidad organizacional se registran directamente en estado `APROBADA`.
 - **RN-APR-06:** La aprobación automática, tanto para usuarios como para Técnico es, no omite las validaciones aplicables al tipo de reserva, incluyendo disponibilidad, horario o fechas, capacidad, estado operativo, habilitación y pertenencia a la unidad cuando correspondan.
 - **RN-APR-07:** Aprobar una reserva manualmente debe revalidar las condiciones aplicables a su tipo.
 - **RN-APR-08:** Rechazar una reserva conserva toda su información histórica y debe registrar el motivo del rechazo.
@@ -228,7 +229,7 @@ Los únicos estados globales válidos son:
 - **RN-CAN-03:** Toda cancelación registra el actor, el momento de la acción y el motivo cuando corresponda.
 - **RN-CAN-04:** Cuando se deshabilite un espacio o recurso, todas las reservas futuras que dependan de ese elemento deben pasar automáticamente al estado `CANCELADA`.
 - **RN-CAN-05:** La cancelación automática por deshabilitación aplica únicamente a reservas cuya ejecución aún no haya iniciado.
-- **RN-CAN-06:** El sistema debe notificar a los usuarios afectados que la reserva fue cancelada por la deshabilitación del espacio o recurso asociado, conforme a las reglas y canales definidos en [business-rules.md](../docs/modules/notifications/business-rules.md).
+- **RN-CAN-06:** El sistema debe notificar a los usuarios afectados que la reserva fue cancelada por la deshabilitación del espacio o recurso asociado, conforme a las reglas y canales definidos en [business-rules.md](../notifications/business-rules.md).
 - **RN-CAN-07:** La cancelación automática debe registrar como motivo la deshabilitación del espacio o recurso y conservar la trazabilidad histórica de la reserva.
 
 ---
@@ -287,8 +288,8 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 
 ## Reportes — RN-REP
 
-- **RN-REP-01:** Solo el personal con permisos de gestión o administración puede generar y exportar reportes de reservas. La cuenta usuario no tiene acceso a esta funcionalidad.
-- **RN-REP-02:** El personal autorizado puede exportar reservas y su historial de auditoría dentro de su ámbito de autorización, en formato CSV o Excel.
+- **RN-REP-01:** Solo el Técnico dentro de su unidad y el Administrador con alcance global pueden generar y exportar reportes de reservas. El Usuario no tiene acceso a esta funcionalidad.
+- **RN-REP-02:** El Técnico puede exportar reservas y su historial de auditoría de su unidad; el Administrador puede exportar información de cualquier unidad, en formato CSV o Excel.
 - **RN-REP-03:** Un reporte exportado contiene exactamente los datos visibles según el filtro aplicado por quien lo solicita, sin exceder su ámbito de acceso.
 
 ---
@@ -297,11 +298,11 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 
 Las reglas de este documento dependen de otros dominios únicamente en los siguientes aspectos:
 
-- **Autenticación y autorización:** [business-rules.md](../docs/modules/auth/business-rules.md) determina autenticación, cuentas activas y validación de permisos.
-- **Espacios:** [business-rules.md](../docs/modules/espacios/business-rules.md) determina existencia, habilitación, capacidad, configuración, campos adicionales y recursos asociados a los espacios.
-- **Recursos:** [business-rules.md](../docs/modules/resources/business-rules.md) determina existencia, habilitación, clasificación y estado operativo de los recursos.
-- **Notificaciones:** [business-rules.md](../docs/modules/notifications/business-rules.md) determina canales, mecanismos y reglas de entrega de las notificaciones generadas por el dominio de reservas.
-- **Modelo persistente:** [data-model](../core/data-model.md) define claves, relaciones, constraints y garantías transaccionales.
+- **Autenticación y autorización:** [business-rules.md](../auth/business-rules.md) determina autenticación, cuentas activas y validación de permisos.
+- **Espacios:** [business-rules.md](../espacios/busines-rules.md) determina existencia, habilitación, capacidad, configuración, campos adicionales y recursos asociados a los espacios.
+- **Recursos:** [business-rules.md](../resources/business-rules.md) determina existencia, habilitación, clasificación y estado operativo de los recursos.
+- **Notificaciones:** [business-rules.md](../notifications/business-rules.md) determina canales, mecanismos y reglas de entrega de las notificaciones generadas por el dominio de reservas.
+- **Modelo persistente:** [data-model](data-model.md) define claves, relaciones, constraints y garantías transaccionales.
 - **Investigación y contexto institucional:** perfiles, semilleros, proyectos, actividades institucionales y modalidades de vinculación son datos de contexto y no sustituyen las reglas de autorización. También determina qué cuentas pertenecen a cada proyecto o semillero, base para ofrecerlas como opciones válidas de acompañante (`RN-ACO`).
 
 ---

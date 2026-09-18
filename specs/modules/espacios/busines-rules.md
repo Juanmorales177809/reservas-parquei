@@ -6,7 +6,7 @@
 
 - **RN-ESP-02:** Un espacio debe definir su capacidad máxima cuando esta aplique.
 
-- **RN-ESP-03:** Solo el personal autorizado dentro de la unidad correspondiente puede crear, modificar o deshabilitar espacios.
+- **RN-ESP-03:** Solo el Técnico de la unidad correspondiente puede crear, modificar o deshabilitar espacios; el Administrador puede hacerlo sobre cualquier unidad.
 
 ---
 
@@ -16,7 +16,7 @@
 
 - **RN-ESP-REC-02:** Los recursos asociados deben existir previamente en el catálogo de recursos; asociar un recurso a un espacio no crea un nuevo recurso.
 
-- **RN-ESP-REC-03:** Un recurso puede asociarse o desasociarse de un espacio por personal autorizado.
+- **RN-ESP-REC-03:** Un recurso puede asociarse o desasociarse de un espacio por el Técnico de la unidad o por el Administrador.
 
 - **RN-ESP-REC-04:** La asociación de un recurso a un espacio no implica que el recurso esté disponible en todos los horarios en los que el espacio pueda reservarse.
 

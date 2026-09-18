@@ -39,6 +39,6 @@ El check `ck_auth_cuentas_identidad` exige exactamente una identidad: para `USUA
 
 Las cuentas referencian las identidades definidas en [Usuarios](../usuarios/data-model.md). Las sesiones dependen de la cuenta; las reservas y sus actores utilizan `id_cuenta bigint`.
 
-El CHECK `ck_auth_cuentas_identidad` del inventario exige exactamente una identidad. Esto contradice RN-ID-04 de [Usuarios](../usuarios/business-rules.md), que permite usuario y personal simultáneamente. Se conserva aquí la restricción documentada para no presentar una migración como aplicada; su adaptación queda pendiente.
+El CHECK `ck_auth_cuentas_identidad` exige exactamente una identidad: una cuenta es de tipo `USUARIO` o `PERSONAL`, nunca ambas. El correo electrónico es único en `auth.cuentas` y representa la identificación funcional de la persona dentro del acceso autenticado.
 
 El principal no define tablas de permisos, asignaciones, invitaciones ni recuperación de contraseña. Su estructura persistente queda pendiente de especificar conforme a las reglas; no se deduce del nombre del cargo ni del tipo de cuenta.

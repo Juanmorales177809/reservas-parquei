@@ -19,7 +19,7 @@ Los usuarios interactúan con el sistema mediante un navegador web.
 Los actores principales son:
 
 - solicitante;
-- gestor de reservas;
+- Técnico;
 - administrador institucional.
 
 El sistema no requiere servicios externos para ejecutar el flujo principal de reservas.
@@ -27,7 +27,7 @@ El sistema no requiere servicios externos para ejecutar el flujo principal de re
 ```text
 Solicitante ───────────────┐
                            │
-Gestor de reservas ────────┼──→ Reservas Parquei
+Técnico ────────────────────┼──→ Reservas Parquei
                            │
 Administrador institucional ┘
 ```
@@ -55,7 +55,7 @@ Reservas Parquei utiliza una arquitectura web separada en frontend, backend y pe
 │      Navegador       │
 │                      │
 │ Solicitante          │
-│ Gestor               │
+│ Técnico              │
 │ Administrador        │
 └──────────┬───────────┘
            │
@@ -268,7 +268,7 @@ Responsable de funciones administrativas globales, incluyendo:
 - permisos;
 - configuración general del sistema.
 
-Las responsabilidades específicas deberán mantenerse separadas de las operaciones ordinarias realizadas por solicitantes y gestores de reservas.
+Las responsabilidades específicas deberán mantenerse separadas de las operaciones ordinarias realizadas por Usuarios y Técnicos.
 
 ---
 

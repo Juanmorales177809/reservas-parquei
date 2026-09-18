@@ -26,9 +26,9 @@ Los reportes utilizan información registrada por los módulos propietarios y no
 
 ## Ámbito de consulta — RN-AMB
 
-- **RN-AMB-01:** Un gestor de reservas solo puede consultar reportes correspondientes a las unidades sobre las cuales tenga autorización.
+- **RN-AMB-01:** Un Técnico solo puede consultar reportes de su propia unidad organizacional.
 
-- **RN-AMB-02:** Un administrador institucional puede consultar reportes dentro del ámbito global autorizado para su cuenta.
+- **RN-AMB-02:** Un Administrador puede consultar reportes de cualquier unidad organizacional.
 
 - **RN-AMB-03:** El acceso a un reporte debe validarse con información vigente de autorización al momento de realizar la consulta.
 

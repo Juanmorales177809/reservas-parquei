@@ -2,14 +2,14 @@
 
 ## 1. Visión del Producto
 
-Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios, espacios, equipos y otros recursos institucionales para estudiantes, docentes, investigadores y personal autorizado. Resuelve la falta de un proceso centralizado y trazable para solicitar, aprobar, consultar y administrar reservas, evitando conflictos de horario y mejorando el uso de los recursos.
+Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios, espacios, equipos y otros recursos institucionales para Usuarios, Técnicos y Administradores. Resuelve la falta de un proceso centralizado y trazable para solicitar, aprobar, consultar y administrar reservas, evitando conflictos de horario y mejorando el uso de los recursos.
 
 ## 2. Usuarios y Casos de Uso
 
 | Usuario | Descripción | Casos de uso |
 |---|---|---|
-| Principal: solicitante | Estudiante, docente, investigador o colaborador autorizado que necesita utilizar un laboratorio, espacio, equipo u otro recurso institucional. | 1. Consulta los espacios y recursos disponibles 2. Crea una solicitud de reserva indicando su tipo, fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos 3. Consulta el estado de sus solicitudes 4. Cancela una reserva cuando corresponde 5. Recibe notificaciones sobre cambios de estado 6. Se autorregistra o completa su cuenta desde una invitación, y edita su perfil 7. Indica el tipo de reserva (dentro o fuera del laboratorio) y combina espacio, recursos y equipos en una misma solicitud  8. Acepta, rechaza o contrapropone un horario alternativo que le proponga el gestor  |
-| Secundario: gestor de reservas | Persona responsable de administrar los recursos de una unidad o laboratorio y revisar las solicitudes recibidas. | 1. Consulta las solicitudes pendientes 2. Aprueba, rechaza o modifica solicitudes indicando el motivo 3. Configura horarios y reglas de reserva 4. Administra espacios, equipos, tipos de reserva, mobiliarios y otros recursos 5. Visualiza y descarga informes de ocupación del laboratorio que administra por proyectos, semilleros, recursos, laboratorios o espacios 6. Propone un horario alternativo en vez de rechazar, y resuelve la contrapropuesta del solicitante 7. Edita una solicitud ya aprobada (agregar o quitar recursos) sin perder su estado 8. Administra los catálogos de tipos de reserva y motivos de solicitud de su laboratorio |
+| Usuario | Estudiante, docente, investigador o colaborador que utiliza laboratorios, espacios, equipos y otros recursos. | 1. Consulta recursos disponibles 2. Crea solicitudes 3. Consulta sus estados 4. Cancela cuando corresponde 5. Recibe notificaciones 6. Gestiona su cuenta 7. Selecciona tipo, contexto y recursos 8. Responde propuestas de horario del Técnico |
+| Técnico | Personal que administra reservas y recursos únicamente dentro de su propia unidad organizacional. | 1. Consulta las solicitudes de su unidad 2. Aprueba, rechaza o modifica solicitudes indicando el motivo 3. Configura horarios y reglas de reserva 4. Administra espacios, mobiliarios y otros recursos de su unidad 5. Visualiza y descarga informes de su unidad 6. Propone horarios alternativos y resuelve contrapropuestas 7. Edita solicitudes conforme a las reglas aplicables 8. Administra catálogos de su unidad |
 | Secundario: administrador institucional | Usuario con permisos globales para gestionar la configuración general, usuarios, unidades organizacionales y permisos del sistema. | 1. Administra usuarios y cuentas 2. Gestiona unidades, cargos y perfiles 3. Configura permisos y accesos 4. Consulta la actividad general del sistema 5. Supervisa la configuración global de reservas 6. Visualiza y descarga informes de ocupación por laboratorios, espacios, recursos, proyectos, tipos de usuarios o semilleros 7. Consulta el historial y control de cambios 8. Promueve una cuenta a personal administrativo o la degrada de vuelta, sin perder su historial 9. Administra unidades organizacionales, cargos, personal institucional y equipos con jerarquía propia 10. Importa masivamente el inventario institucional de equipos desde una planilla |
 
 ## 3. Funcionalidades
@@ -28,37 +28,37 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Gestión y aprobación
 
-- El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+- El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
 - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
-- El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
-- El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+- El Técnico puede proponer un horario alternativo en vez de rechazar directamente; el Usuario lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
+- El Técnico puede editar una solicitud ya aprobada conforme a las reglas aplicables, dentro de su unidad.
 
 ## Gestión por tipo de reserva 
  ## #1 - Gestión de reservas por espacios
-        -  El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        -  El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
         - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
-        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
-        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El Técnico puede proponer un horario alternativo; el Usuario lo acepta, lo rechaza o contrapropone otro.
+        - El Técnico puede editar una solicitud ya aprobada conforme a las reglas aplicables dentro de su unidad.
         - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
         - El usuario solo puede editar una reserva en estado pendiente de aprobación.
         - El usuario puede seleccionar los recursos dentro del espacio.
-        - El sistema genera reportes para el gestor y el administrador.
+        - El sistema genera reportes para el Técnico de la unidad y el Administrador.
 ## #2 - Gestión de reservas en el campus (fuera del laboratorio).
-        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
         - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
-        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
-        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El Técnico puede proponer un horario alternativo; el Usuario lo acepta, lo rechaza o contrapropone otro.
+        - El Técnico puede editar una solicitud ya aprobada conforme a las reglas aplicables dentro de su unidad.
         - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
         - El sistema debe generar un formato de salida diligenciado - Para salida dentro del campus.
 ## #3 - Gestión de reservas en fuera del campus
-        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
         - El sistema evita solicitudes con horarios inválidos y aplica las reglas de uso configuradas.
-        - El gestor puede proponer un horario alternativo en vez de rechazar directamente; el solicitante lo acepta, lo rechaza o contrapropone otro, sin que la solicitud pase por "rechazada" mientras dura la negociación.
-        - El gestor puede editar una solicitud ya aprobada (agregar o quitar recursos, solo cancelar).
+        - El Técnico puede proponer un horario alternativo; el Usuario lo acepta, lo rechaza o contrapropone otro.
+        - El Técnico puede editar una solicitud ya aprobada conforme a las reglas aplicables dentro de su unidad.
         - El usuario puede cancelar una reserva en cualquier estado, dejando su trazabilidad.
         - El sistema debe generar un formato de salida diligenciado FGL 030 - Para salida FUERA DEL CAMPUS.
 ## #4 - Lista de espera 
-        - El gestor puede consultar, aprobar, editar, poner en ejecución, finalizado,
+        - El Técnico puede consultar, aprobar, editar, poner en ejecución, finalizar,
         rechazar o cancelar solicitudes.
         - El usuario debe registrar el requerimiento.
         - El usuario puede adjuntar un archivo para su requerimiento. (LIMITE 5 MB).
@@ -66,7 +66,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
         - El usuario debe ingresar  el numero de horas en las que realizó el servicio.
         - El sistema debe generar el informe de uso por horas de la maquina seleccionada.
 ## #4 - Servicio
-        - El gestor puede consultar, aprobar, editar, rechazar o cancelar solicitudes.
+        - El Técnico puede consultar, aprobar, editar, rechazar o cancelar solicitudes de su unidad.
         - El usuario debe registrar el tipo de servicio a solicitar.
         - El usuario debe registrar la descripción del servicio.
         - El usuario puede editar y cancelar un servicio que no haya sido aprobado.
@@ -77,7 +77,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 ### Administración de recursos
 
 - El administrador puede crear, editar, habilitar o deshabilitar espacios, equipos, mobiliarios y otros recursos.
-- El gestor puede crear, editar, habilitar o deshabilitar mobiliarios y otros recursos.
+- El Técnico puede crear, editar, habilitar o deshabilitar mobiliarios y otros recursos dentro de su unidad.
 - El sistema permite configurar horarios de atención, modalidad de reserva, anticipación requerida y aprobación automática.
 - El administrador puede importar masivamente el inventario institucional de equipos desde una planilla, sin duplicar registros ya importados.
 - Cada recurso puede marcarse como "prestación de servicio" y llevar un identificador de placa de inventario.
@@ -100,7 +100,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Reportes
 
-- El gestor y el administrador pueden exportar a CSV o Excel: sus propias reservas, el panel de indicadores (KPIs y ocupación por día/hora) y el historial de control de cambios.
+- El Técnico puede exportar información de su unidad y el Administrador puede exportar información de cualquier unidad, en CSV o Excel.
 - Los informes se pueden filtrar/agrupar por laboratorio, espacio, recurso, proyecto y semillero.
 
 ### Estados
@@ -137,7 +137,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Flujo secundario — Aprobar o rechazar una solicitud
 
-1. El gestor inicia sesión y accede a las solicitudes pendientes de su unidad.
+1. El Técnico inicia sesión y accede a las solicitudes pendientes de su unidad.
 2. Selecciona una solicitud y revisa sus datos, recursos y horario.
 3. Elige “Aprobar” o “Rechazar”; si rechaza, registra el motivo.
 4. El sistema actualiza el estado, registra el cambio y genera una notificación para el solicitante.
@@ -152,10 +152,10 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Flujo secundario — Proponer y resolver un horario alternativo
 
-1. El gestor abre una solicitud pendiente y, en vez de rechazarla, propone un horario alternativo con un motivo.
+1. El Técnico abre una solicitud pendiente y, en vez de rechazarla, propone un horario alternativo con un motivo.
 2. El sistema notifica al solicitante.
 3. El solicitante acepta el horario propuesto, lo rechaza, o contrapropone otro horario con su propio motivo.
-4. Si contrapropone, el gestor recibe el aviso y puede aceptar o rechazar esa contrapropuesta.
+4. Si contrapone, el Técnico recibe el aviso y puede aceptar o rechazar esa contrapropuesta.
 5. Al aceptarse cualquiera de las dos propuestas, el sistema revalida disponibilidad, capacidad y horario, y reprograma la reserva; al rechazarse, la reserva queda pendiente con su horario original.
 
 ### Flujo secundario — Anotarse en lista de espera
@@ -179,7 +179,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 ### Flujo secundario — Exportar un reporte
 
-1. El gestor o administrador filtra la vista que quiere exportar (sus reservas, el panel de indicadores, o el control de cambios).
+1. El Técnico filtra la vista de su unidad o el Administrador la vista global que necesita.
 2. Elige el formato (CSV o Excel) y descarga el archivo con exactamente los datos que tenía filtrados en pantalla.
 
 ## 5. Arquitectura

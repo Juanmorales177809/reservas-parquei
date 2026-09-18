@@ -2,17 +2,19 @@
 
 Este documento define los flujos de usuario del módulo `recursos`.
 
-El módulo `recursos` administra el catálogo común de elementos reservables. Los equipos conservan su información especializada en el módulo `equipos`, mientras que `recursos` mantiene la identidad común necesaria para que otros módulos, como `reservas`, puedan referenciarlos de forma uniforme.
+El módulo `recursos` administra el catálogo común de elementos reservables en `recursos.recursos`, `recursos.mobiliarios` y `recursos.otros_recursos`. Los equipos conservan su información especializada en el módulo `equipos`, mientras que cada equipo mantiene una identidad común mediante `equipos.equipos.recurso_id`.
+
+En todos los flujos administrativos, el Técnico solo puede operar sobre elementos de su propia unidad organizacional. El Administrador tiene alcance global. El Técnico no crea equipos; sí puede crear y administrar mobiliario y otros recursos de su unidad.
 
 ---
 
 ## UF-REC-01 — Registrar un mobiliario
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El actor está autenticado.
-- El actor tiene permiso para administrar recursos en la unidad correspondiente.
+- El actor es Técnico de la unidad correspondiente o Administrador.
 
 **Flujo principal:**
 
@@ -35,11 +37,11 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-02 — Registrar otro recurso
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El actor está autenticado.
-- El actor tiene permiso para administrar recursos en la unidad correspondiente.
+- El actor es Técnico de la unidad correspondiente o Administrador.
 
 **Flujo principal:**
 
@@ -62,7 +64,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-03 — Registrar un equipo como recurso
 
-**Actor principal:** Sistema o personal autorizado, según el flujo definido por el módulo `equipos`
+**Rol principal:** Administrador o proceso de importación autorizado
 
 **Precondiciones:**
 - Existe o se está creando un registro válido en `equipos.equipos`.
@@ -70,7 +72,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 **Flujo principal:**
 
-1. El módulo `equipos` inicia el registro o vinculación del equipo.
+1. El Administrador o el proceso de importación autorizado inicia el registro o vinculación del equipo.
 2. El sistema crea un registro en `recursos.recursos` con tipo `EQUIPO`.
 3. El sistema obtiene el identificador común del recurso.
 4. El módulo `equipos` asocia `equipos.equipos.recurso_id` con `recursos.recursos.id`.
@@ -78,6 +80,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 **Flujos alternos:**
 
+- El Técnico no puede ejecutar este flujo; administra equipos existentes, pero no los crea.
 - Si el equipo ya tiene un `recurso_id` asociado, el sistema no crea un recurso duplicado.
 - Si falla la creación del equipo o del recurso, la operación completa debe revertirse para evitar registros huérfanos.
 
@@ -85,7 +88,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-04 — Consultar recursos
 
-**Actor principal:** Usuario autenticado o personal autorizado
+**Actor principal:** Usuario autenticado, Técnico o Administrador
 
 **Precondiciones:**
 - El actor está autenticado.
@@ -107,7 +110,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-05 — Consultar detalle de un recurso
 
-**Actor principal:** Usuario autenticado o personal autorizado
+**Actor principal:** Usuario autenticado, Técnico o Administrador
 
 **Precondiciones:**
 - El recurso existe.
@@ -129,7 +132,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-06 — Actualizar un mobiliario
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El mobiliario existe.
@@ -154,7 +157,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-07 — Actualizar otro recurso
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El recurso existe.
@@ -174,7 +177,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-08 — Habilitar un recurso
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El recurso existe.
@@ -193,7 +196,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-09 — Deshabilitar un recurso
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El recurso existe.
@@ -219,7 +222,7 @@ El módulo `recursos` administra el catálogo común de elementos reservables. L
 
 ## UF-REC-10 — Cambiar la unidad responsable de un recurso
 
-**Actor principal:** Personal autorizado
+**Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
 - El recurso existe.

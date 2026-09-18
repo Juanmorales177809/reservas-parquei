@@ -1,5 +1,9 @@
 # Auth
 
+## Roles funcionales
+
+Los únicos roles funcionales son Usuario, Técnico y Administrador. El rol Técnico corresponde al personal que opera dentro de su propia unidad; el rol Administrador tiene alcance global. La autorización debe derivarse de permisos persistentes y no de nombres de cargo.
+
 ## Purpose
 
 Gestionar la identidad autenticada, la autenticación, las sesiones y la autorización de las operaciones protegidas de Reservas Parquei.

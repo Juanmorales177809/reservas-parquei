@@ -35,10 +35,10 @@ La tabla ya no contiene `supabase_id`.
 
 ## Relaciones y límites
 
-Las identidades funcionales pertenecen a este módulo: `usuarios.usuarios` representa al usuario y `personal.personal` al personal institucional. Las credenciales y sesiones se definen únicamente en [Auth](../auth/data-model.md). `id_usuario bigint`, `id_persona integer` e `id_cuenta bigint` identifican entidades distintas.
+Las identidades funcionales pertenecen a este módulo: `usuarios.usuarios` representa al Usuario y `personal.personal` al personal que puede operar como Técnico o Administrador. Las credenciales y sesiones se definen únicamente en [Auth](../auth/data-model.md). `id_usuario bigint`, `id_persona integer` e `id_cuenta bigint` identifican entidades distintas. Una cuenta solo puede apuntar a una de las dos identidades.
 
 El personal referencia un cargo de [Administration](../administration/data-model.md); el cargo determina su unidad. [Researchs](../researchs/data-model.md) administra las vinculaciones académicas/investigativas de `id_usuario`. Administration puede gestionar estas identidades mediante operaciones autorizadas sin duplicar su modelo.
 
 ## Diferencias pendientes
 
-Las reglas RN-ID-04 y RN-PER-08 permiten ambas identidades en una cuenta, mientras el CHECK del inventario de Auth las hace excluyentes. La migración necesaria se documenta como pendiente en su modelo. Los datos mínimos de perfil de RN-USR-07 deben concretarse antes de añadir campos que no aparecen en el principal.
+El modelo no define todavía las tablas persistentes de permisos. La distinción entre Técnico y Administrador debe resolverse mediante permisos y alcance global, no mediante la coexistencia de identidades.

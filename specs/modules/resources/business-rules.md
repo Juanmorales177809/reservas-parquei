@@ -2,7 +2,7 @@
 
 Contrato funcional del dominio de laboratorios, espacios y recursos.
 
-La estructura persistente se define en [data-model](../core/data-model.md), las reglas de reservas y disponibilidad en [bookings](bookings.md) y las reglas de identidad y autorización en [identity](identity.md).
+La estructura persistente se define en [data-model](data-model.md), las reglas de reservas y disponibilidad en [business-rules.md](../reservations/business-rules.md) y las reglas de identidad y autorización en [business-rules.md](../auth/business-rules.md).
 
 ---
 
@@ -16,11 +16,11 @@ La estructura persistente se define en [data-model](../core/data-model.md), las 
 
 - **RN-LAB-04:** Horario de atención, días habilitados, anticipación mínima, modalidad de reserva y aprobación automática son configuraciones propias del dominio de Reservas.
 
-- **RN-LAB-05:** La configuración vigente de la unidad se utiliza para validar las operaciones de reserva conforme a [bookings](bookings.md).
+- **RN-LAB-05:** La configuración vigente de la unidad se utiliza para validar las operaciones de reserva conforme a [reservations](../reservations/business-rules.md).
 
 - **RN-LAB-06:** Una unidad organizacional puede existir sin tener habilitado el servicio de Reservas. La existencia de la unidad no implica que pueda recibir reservas.
 
-- **RN-LAB-07:** `notificar_por_correo` determina si la unidad tiene habilitado el envío de correo saliente para las notificaciones asociadas a sus reservas y recursos. Esta configuración es propia de la unidad, se aplica a todas las personas relacionadas con ella y es independiente de la preferencia de correo que cada persona pueda configurar individualmente (ver [notifications](../business-rules%20(1).md)). Deshabilitarla no afecta la generación de notificaciones in-app.
+- **RN-LAB-07:** `notificar_por_correo` determina si la unidad tiene habilitado el envío de correo saliente para las notificaciones asociadas a sus reservas y recursos. Esta configuración es propia de la unidad, se aplica a todas las personas relacionadas con ella y es independiente de la preferencia de correo que cada persona pueda configurar individualmente (ver [notifications](../notifications/business-rules.md)). Deshabilitarla no afecta la generación de notificaciones in-app.
 
 ---
 
@@ -38,9 +38,9 @@ La estructura persistente se define en [data-model](../core/data-model.md), las 
 
 - **RN-ESP-06:** Cuando un espacio sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
 
-- **RN-ESP-07:** La exclusividad temporal del espacio se rige por las reglas de disponibilidad definidas en [bookings](bookings.md).
+- **RN-ESP-07:** La exclusividad temporal del espacio se rige por las reglas de disponibilidad definidas en [reservations](../reservations/business-rules.md).
 
-- **RN-ESP-08:** Una reserva puede no contener espacio cuando su composición y `tipo_uso` lo permitan conforme a [bookings](bookings.md).
+- **RN-ESP-08:** Una reserva puede no contener espacio cuando su composición lo permita conforme a [reservations](../reservations/business-rules.md).
 
 ---
 
@@ -56,7 +56,7 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-REC-04:** Un mismo recurso no puede aparecer más de una vez dentro de una misma reserva.
 
-- **RN-REC-05:** La disponibilidad temporal se evalúa individualmente para cada recurso conforme a [bookings](bookings.md).
+- **RN-REC-05:** La disponibilidad temporal se evalúa individualmente para cada recurso conforme a [reservations](../reservations/business-rules.md).
 
 - **RN-REC-06:** El nombre de un recurso no constituye su identidad y puede repetirse. La identificación se realiza mediante su clave primaria.
 
@@ -66,7 +66,7 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-REC-09:** Cuando un recurso sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
 
-- **RN-REC-10:** `requiere_apoyo_auxiliar` es un atributo propio del catálogo del recurso, configurado por la unidad organizacional responsable. Determina si el recurso exige acompañamiento técnico y su efecto sobre la reserva se rige por las reglas definidas en [bookings](bookings.md).
+- **RN-REC-10:** `requiere_apoyo` es un atributo propio de `equipos.equipos`, obligatorio y configurado por la unidad organizacional responsable. Indica si el equipo exige acompañamiento técnico durante su uso.
 
 - **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los recursos con `acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado `boolean = true` u operativo.
 
@@ -87,6 +87,8 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 - **RN-EQP-06:** Las nuevas operaciones utilizan la información vigente del equipo al momento de realizar la validación.
 
 - **RN-EQP-07:** Un equipo puede reservarse sin espacio cuando la composición y el `tipo_uso` de la reserva lo permitan.
+- **RN-EQP-08:** Todo equipo debe indicar mediante `requiere_apoyo` si exige acompañamiento técnico durante su uso.
+- **RN-EQP-09:** El Técnico solo administra equipos existentes dentro de su unidad; no puede crear equipos.
 
 - **RN-EQP-08:** Un equipo puede utilizarse dentro o fuera del campus cuando las reglas de reserva y las políticas aplicables lo permitan.
 
@@ -94,13 +96,13 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 ## Mobiliarios — RN-MOB
 
-- **RN-MOB-01:** Cada elemento de mobiliario reservable tiene un registro individual en `reservas.mobiliarios`.
+- **RN-MOB-01:** Cada elemento de mobiliario reservable tiene un registro individual en `recursos.mobiliarios`.
 
 - **RN-MOB-02:** Cada mobiliario pertenece a una unidad organizacional mediante `id_unidad`.
 
 - **RN-MOB-03:** Solo mobiliarios con `habilitado = true` pueden incorporarse a nuevas reservas.
 
-- **RN-MOB-04:** La exclusividad temporal de cada mobiliario se evalúa individualmente conforme a las reglas de disponibilidad de [bookings](bookings.md).
+- **RN-MOB-04:** La exclusividad temporal de cada mobiliario se evalúa individualmente conforme a las reglas de disponibilidad de [reservations](../reservations/business-rules.md).
 
 - **RN-MOB-05:** Deshabilitar un mobiliario conserva su registro, relaciones e historial.
 
@@ -108,15 +110,21 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 ## Otros recursos — RN-OTR
 
-- **RN-OTR-01:** Cada elemento clasificado como otro recurso tiene un registro individual en `reservas.otros`.
+- **RN-OTR-01:** Cada elemento clasificado como otro recurso tiene un registro individual en `recursos.otros_recursos`.
 
 - **RN-OTR-02:** Cada elemento pertenece a una unidad organizacional mediante `id_unidad`.
 
 - **RN-OTR-03:** Solo elementos con `habilitado = true` pueden incorporarse a nuevas reservas.
 
-- **RN-OTR-04:** Su exclusividad temporal se evalúa individualmente conforme a las reglas de disponibilidad de [bookings](bookings.md).
+- **RN-OTR-04:** Su exclusividad temporal se evalúa individualmente conforme a las reglas de disponibilidad de [reservations](../reservations/business-rules.md).
 
 - **RN-OTR-05:** Deshabilitar un elemento conserva su registro, relaciones e historial.
+
+## Administración por rol — RN-ROL
+
+- **RN-ROL-01:** El Técnico solo administra elementos pertenecientes a su unidad organizacional.
+- **RN-ROL-02:** El Técnico puede crear y administrar mobiliario y otros recursos de su unidad.
+- **RN-ROL-03:** El Administrador tiene alcance global y puede realizar las operaciones administrativas definidas sobre cualquier unidad organizacional.
 
 ---
 
