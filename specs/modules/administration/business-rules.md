@@ -2,7 +2,7 @@
 
 Contrato funcional del módulo de administración.
 
-El módulo de administración permite gestionar la configuración institucional necesaria para operar Reservas Parquei, incluyendo usuarios, cuentas, perfiles, unidades organizacionales, permisos y configuraciones globales.
+El módulo de administración permite gestionar la configuración institucional necesaria para operar Reservas Parquei, incluyendo usuarios, cuentas, perfiles, unidades organizacionales, permisos y configuraciones globales. El Técnico opera únicamente dentro de su propia unidad; el Administrador tiene alcance global.
 
 Las reglas específicas de autenticación y autorización pertenecen al módulo correspondiente. Las reglas de reservas, recursos, notificaciones y reportes permanecen bajo responsabilidad de sus respectivos módulos.
 

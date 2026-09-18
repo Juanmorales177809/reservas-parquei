@@ -48,6 +48,7 @@ La PK compuesta impide duplicados. Los tipos seleccionables se obtienen filtrand
 | `tipo_reserva_id` | integer | NOT NULL, FK |
 | `estado_id` | integer | NOT NULL, FK |
 | `observacion` | text | NULL |
+| `requiere_apoyo` | boolean | NOT NULL, DEFAULT `false`; requerimiento efectivo de apoyo técnico |
 | `created_at`, `updated_at` | timestamptz | NOT NULL |
 | `created_by` | bigint | NOT NULL, FK a `auth.cuentas(id_cuenta)` |
 | `fecha_aprobacion` | timestamptz | NULL |
@@ -92,7 +93,7 @@ El catálogo raíz `reservas.recursos` y la relación 1:1 con equipos, mobiliari
 |---|---|---|
 | `id` | integer | PK |
 | `reserva_id` | integer | NOT NULL, FK |
-| `recurso_id` | integer | NOT NULL, FK a `recursos(id)` |
+| `recurso_id` | integer | NOT NULL, FK a `recursos.recursos(id)` |
 | `rol` | varchar(20) | NOT NULL, CHECK `PRINCIPAL` o `ADICIONAL` |
 | `estado_asignacion` | varchar(20) | NOT NULL, CHECK `SOLICITADO`, `ASIGNADO`, `NO_DISPONIBLE`, `RETIRADO` |
 | `solicitado_at` | timestamptz | NOT NULL |
@@ -242,7 +243,7 @@ UQ `uq_reserva_equipo(reserva_id, id_equipo)`; índice `ix_reserva_equipos_equip
 |---|---|---|---|
 | `id` | integer | NN | PK `reserva_mobiliarios_pkey`; identity |
 | `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
-| `mobiliario_id` | integer | NN | FK → `reservas.mobiliarios(id)` |
+| `mobiliario_id` | integer | NN | FK → `recursos.mobiliarios(id)` |
 
 UQ `uq_reserva_mobiliario(reserva_id, mobiliario_id)`; índice `ix_reserva_mobiliarios_mobiliario(mobiliario_id)`.
 
@@ -252,7 +253,7 @@ UQ `uq_reserva_mobiliario(reserva_id, mobiliario_id)`; índice `ix_reserva_mobil
 |---|---|---|---|
 | `id` | integer | NN | PK `reserva_otros_pkey`; identity |
 | `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
-| `otro_id` | integer | NN | FK → `reservas.otros(id)` |
+| `otro_id` | integer | NN | FK → `recursos.otros_recursos(id)` |
 
 UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_id)`.
 

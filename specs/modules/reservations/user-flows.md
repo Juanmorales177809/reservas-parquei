@@ -20,18 +20,20 @@ Usuario.
 8. El sistema valida disponibilidad del espacio.
 9. El sistema muestra la disponibilidad de los recursos asociados.
 10. La falta de disponibilidad de recursos asociados no impide continuar con la reserva del espacio.
-11. El usuario diligencia los campos adicionales obligatorios, cuando existan.
-12. El usuario selecciona uno o más elementos de contexto académico/investigativo (proyecto, semillero, pasantía y trabajo de grado), o una actividad institucional independiente. El sistema impide combinar la actividad institucional con los demás elementos, conforme a `RN-CTX`.
-13. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
-14. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
-15. Cuando el contexto seleccionado sea un proyecto o semillero, el sistema muestra únicamente las cuentas asociadas a ese proyecto o semillero como opciones válidas de acompañante, conforme a `RN-ACO`.
-16. El usuario selecciona uno o más acompañantes de esa lista.
-17. El usuario puede registrar una observación para el Técnico .
-18. El usuario envía la solicitud.
-19. El sistema revalida las reglas aplicables.
-20. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
-21. Si no está habilitada, la reserva queda en `SOLICITADA`.
-22. El sistema genera las notificaciones correspondientes.
+11. Si entre los equipos seleccionados alguno tiene `requiere_apoyo = true`, el sistema selecciona automáticamente “requiere técnico” y el usuario no puede desmarcarlo.
+12. Si ningún equipo exige apoyo, el usuario puede seleccionar voluntariamente “requiere técnico”.
+13. El usuario diligencia los campos adicionales obligatorios, cuando existan.
+14. El usuario selecciona uno o más elementos de contexto académico/investigativo (proyecto, semillero, pasantía y trabajo de grado), o una actividad institucional independiente. El sistema impide combinar la actividad institucional con los demás elementos, conforme a `RN-CTX`.
+15. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
+16. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
+17. Cuando el contexto seleccionado sea un proyecto o semillero, el sistema muestra únicamente las cuentas asociadas a ese proyecto o semillero como opciones válidas de acompañante, conforme a `RN-ACO`.
+18. El usuario selecciona uno o más acompañantes de esa lista.
+19. El usuario puede registrar una observación para el Técnico.
+20. El usuario envía la solicitud.
+21. El sistema revalida las reglas aplicables.
+22. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
+23. Si no está habilitada, la reserva queda en `SOLICITADA`.
+24. El sistema genera las notificaciones correspondientes.
 
 ---
 
@@ -45,6 +47,7 @@ Usuario.
 2. Selecciona `Recurso para uso dentro del laboratorio`.
 3. El sistema muestra los recursos habilitados.
 4. El usuario selecciona uno o varios recursos.
+5. Si un equipo seleccionado tiene `requiere_apoyo = true`, el sistema selecciona “requiere técnico” y bloquea su desactivación; si ninguno lo exige, el usuario puede solicitarlo voluntariamente.
 5. Selecciona fecha y hora de inicio y fecha y hora de finalización de uso.
 6. El sistema valida disponibilidad durante todo el periodo.
 7. El usuario envía la solicitud.
@@ -152,7 +155,7 @@ Este flujo se completará cuando se establezcan las reglas específicas de la re
 Técnico .
 
 ### Flujo
-1. El Técnico  consulta las reservas de las unidades organizacionales autorizadas.
+1. El Técnico consulta las reservas de su propia unidad organizacional.
 2. Selecciona una reserva en estado `SOLICITADA`.
 3. El sistema muestra datos de la reserva, usuario, tipo, elementos asociados, disponibilidad, observaciones e información adicional aplicable.
 4. El Técnico  revisa la solicitud.
@@ -170,7 +173,7 @@ Técnico .
 Técnico .
 
 ### Flujo
-1. El Técnico  selecciona una unidad organizacional dentro de su ámbito autorizado.
+1. El Técnico selecciona su propia unidad organizacional.
 2. Crea la reserva correspondiente.
 3. El sistema valida las reglas aplicables al tipo.
 4. Si las validaciones se cumplen, la reserva se registra directamente en `APROBADA`.
@@ -341,11 +344,11 @@ Una reserva pasa a `APROBADA`, se reprograma estando `APROBADA` o `EN_EJECUCION`
 
 ## UF-RES-18 — Exportar reportes
 
-### Actor principal
-Técnico  o administrador.
+### Roles participantes
+Técnico de la unidad o Administrador.
 
 ### Flujo
-1. El Técnico  o administrador consulta el reporte que necesita, con los filtros aplicables a su ámbito.
+1. El Técnico consulta el reporte de su unidad o el Administrador consulta el reporte global que necesita.
 2. Selecciona la opción de exportar y el formato (CSV o Excel).
 3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
 4. El sistema entrega el archivo para su descarga.

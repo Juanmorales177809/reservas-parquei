@@ -4,9 +4,9 @@ Este documento define los flujos de usuario del módulo `espacios`.
 
 Roles funcionales usados en este documento:
 
-- **Técnico :** administra espacios dentro de las unidades o laboratorios donde tiene autorización.
+- **Técnico:** administra espacios únicamente dentro de su propia unidad organizacional.
 - **Usuario:** consulta y utiliza espacios disponibles dentro de los procesos permitidos.
-- **Admin:** interviene únicamente en configuraciones globales cuando corresponda.
+- **Administrador:** puede intervenir sobre cualquier unidad organizacional.
 
 El módulo `espacios` administra la configuración propia de los espacios: información general, capacidad, disponibilidad, recursos asociados y campos adicionales. El módulo `reservas` consume esta configuración, pero no la administra.
 

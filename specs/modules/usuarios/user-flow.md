@@ -13,14 +13,11 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Precondiciones:**
 - La cuenta fue creada mediante autorregistro.
 - La cuenta está activa y autenticada.
-- El usuario aún no ha completado la información mínima de perfil.
 
 **Flujo principal:**
 
 1. El usuario inicia sesión.
-2. El sistema detecta que el perfil funcional está incompleto.
-3. El sistema dirige al usuario a completar su perfil.
-4. El usuario diligencia los datos personales obligatorios.
+2. El usuario diligencia los datos personales que correspondan al alta.
 5. El usuario selecciona su perfil o perfiles académicos/investigativos cuando corresponda.
 6. El sistema consulta al módulo `investigacion` las opciones y relaciones disponibles.
 7. El usuario registra o selecciona, según corresponda:
@@ -29,16 +26,15 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
    - pasantías;
    - trabajos de grado.
 8. El módulo `investigacion` valida y almacena las vinculaciones académicas o investigativas.
-9. El usuario selecciona las unidades o laboratorios en los que espera realizar reservas, cuando esta información forme parte del perfil funcional.
-10. El sistema valida que los datos obligatorios estén completos.
-11. El sistema marca el perfil como completo.
-12. El usuario puede continuar hacia las funcionalidades que exigen perfil completo.
+9. El usuario selecciona las unidades o laboratorios en los que espera realizar reservas, cuando esta información forme parte de su configuración.
+10. El sistema valida los datos aplicables al alta.
+11. El usuario puede continuar con las funcionalidades permitidas.
 
 **Flujos alternos:**
 
-- Si faltan datos obligatorios, el sistema informa cuáles deben completarse y no marca el perfil como completo.
+- Si faltan datos obligatorios, el sistema informa cuáles deben completarse.
 - Si una vinculación académica o investigativa no es válida, el módulo `investigacion` rechaza su registro o selección.
-- Si el usuario abandona el proceso antes de finalizar, el perfil permanece incompleto.
+- Si el usuario abandona el proceso antes de finalizar, el alta queda pendiente.
 
 ---
 
@@ -49,25 +45,22 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Precondiciones:**
 - Existe una invitación válida asociada a una cuenta.
 - El usuario completó el proceso de activación de la cuenta.
-- El perfil funcional aún está incompleto.
 
 **Flujo principal:**
 
 1. El usuario completa la activación de su cuenta.
 2. El sistema autentica al usuario.
-3. El sistema identifica que el perfil funcional está incompleto.
-4. El sistema solicita completar los datos personales obligatorios.
-5. El usuario diligencia la información requerida.
-6. El usuario registra o selecciona sus perfiles y vinculaciones académicas o investigativas cuando corresponda.
-7. El módulo `investigacion` valida y almacena dichas vinculaciones.
-8. El usuario completa las demás asociaciones funcionales requeridas por el perfil.
-9. El sistema valida la integridad de la información.
-10. El perfil queda completo.
+3. El sistema solicita completar los datos personales aplicables.
+4. El usuario diligencia la información requerida.
+5. El usuario registra o selecciona sus perfiles y vinculaciones académicas o investigativas cuando corresponda.
+6. El módulo `investigacion` valida y almacena dichas vinculaciones.
+7. El usuario completa las demás asociaciones funcionales requeridas.
+8. El sistema valida la integridad de la información.
 
 **Flujos alternos:**
 
 - Si la invitación ya no es válida, el flujo de activación se resuelve en el dominio `auth`.
-- Si el usuario no completa el perfil, puede autenticarse, pero no puede ejecutar operaciones que exijan perfil completo.
+- Si la información requerida no es válida, el sistema solicita corregirla.
 
 ---
 
@@ -103,13 +96,11 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 3. El usuario modifica uno o más datos.
 4. El sistema valida formato y obligatoriedad.
 5. El sistema guarda los cambios.
-6. El sistema recalcula si el perfil continúa cumpliendo los requisitos mínimos.
-7. El sistema confirma la actualización.
+6. El sistema confirma la actualización.
 
 **Flujos alternos:**
 
 - Si un dato obligatorio queda vacío o inválido, el sistema rechaza la actualización.
-- Si el cambio afecta la condición de perfil completo, el sistema actualiza su estado funcional.
 
 ---
 
@@ -242,7 +233,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 ## UF-USR-10 — Desactivar una vinculación académica o investigativa
 
-**Actor principal:** Usuario o personal autorizado, según las reglas del módulo `investigacion`
+**Actor principal:** Usuario o Técnico/Administrador autorizado, según las reglas del módulo `investigacion`
 
 **Precondiciones:**
 - Existe una vinculación vigente entre el usuario y una entidad de investigación.
@@ -287,7 +278,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 ---
 
-## UF-USR-12 — Verificar perfil antes de iniciar una reserva
+## UF-USR-12 — Iniciar una reserva
 
 **Actor principal:** Usuario
 
@@ -298,16 +289,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario selecciona la opción para crear una reserva.
-2. El sistema consulta el estado del perfil funcional.
-3. Si el perfil está completo, el sistema permite continuar con el flujo del módulo `reservas`.
-4. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente.
-
-**Flujo alterno — perfil incompleto:**
-
-1. El sistema detecta que el perfil no cumple los requisitos mínimos.
-2. El sistema informa que debe completar su perfil.
-3. El usuario es dirigido al flujo `UF-USR-01` o a la edición correspondiente.
-4. La creación de la reserva no continúa hasta que se cumpla la condición de perfil completo.
+2. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente.
 
 ---
 

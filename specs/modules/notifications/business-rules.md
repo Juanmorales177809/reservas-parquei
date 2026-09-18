@@ -34,7 +34,7 @@ Un mismo evento puede dar lugar a dos registros independientes: una notificació
 
 - **RN-DES-03:** Una notificación destinada al reservista debe asociarse a la cuenta responsable de la reserva correspondiente.
 
-- **RN-DES-04:** Cuando una operación administrativa requiera notificar a personal autorizado, los destinatarios deben determinarse mediante las reglas vigentes de autorización y ámbito organizacional definidas por el módulo correspondiente.
+- **RN-DES-04:** Cuando una operación administrativa requiera notificar a un Técnico o Administrador, los destinatarios deben determinarse mediante las reglas vigentes de autorización y alcance organizacional.
 
 - **RN-DES-05:** La existencia de una notificación histórica no depende de que el destinatario permanezca activo posteriormente.
 

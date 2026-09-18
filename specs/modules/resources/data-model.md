@@ -8,11 +8,25 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 
 ## Tablas
 
+### `recursos.recursos`
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `id_unidad` | integer | NN | FK → `unidadOrganizacional.unidad_organizacional(id_unidad)` |
+| `tipo` | varchar(20) | NN | CHECK `EQUIPO`, `MOBILIARIO` o `OTRO` |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+| `updated_at` | timestamptz | NN | DEFAULT `now()` |
+
 ### `equipos.equipos`
+
+`equipos.equipos` permanece en el schema `equipos`. Todo equipo debe tener una identidad común en `recursos.recursos`; no se trasladan sus atributos especializados al schema `recursos`.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id_equipo` | integer | NN | PK `pk_equipos`; `nextval('equipos.equipos_id_equipo_seq')` |
+| `recurso_id` | integer | NN | FK a `recursos.recursos(id)`; identidad común reservable |
 | `id_unidad` | integer | NN | FK `fk_equipos_unidad` → unidad organizacional |
 | `nombre_equipo` | varchar(50) | NN | — |
 | `placa` | varchar(40) | Sí | UQ `uq_equipos_placa` |
@@ -25,6 +39,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `guia_rapida` | varchar(100) | Sí | — |
 | `instalador` | varchar(100) | Sí | — |
 | `estado` | boolean | Sí | — |
+| `requiere_apoyo` | boolean | NN | DEFAULT `false`; indica si exige acompañamiento técnico |
 | `id_categoria` | integer | Sí | FK `fk_equipos_categoria` → `equipos.categoria(id_categoria)` |
 | `proxima_fecha_calibracion` | date | Sí | — |
 | `proxima_fecha_mantenimiento` | date | Sí | — |
@@ -59,7 +74,7 @@ Una categoría puede agrupar varios equipos. La relación se define mediante `eq
 | `correo` | varchar(255) | Sí | — |
 | `notificar_por_correo` | boolean | NN | DEFAULT `false` |
 
-### `reservas.mobiliarios`
+### `recursos.mobiliarios`
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
@@ -69,7 +84,7 @@ Una categoría puede agrupar varios equipos. La relación se define mediante `eq
 | `descripcion` | text | Sí | — |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
-### `reservas.otros`
+### `recursos.otros_recursos`
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
@@ -85,16 +100,16 @@ No hay UQ por nombre en ninguna de las dos tablas.
 
 Los equipos, mobiliarios, otros recursos y laboratorios configurados pertenecen a unidades de [Administration](../administration/data-model.md). La estructura de los espacios se define en [Espacios](../espacios/data-model.md). La disponibilidad temporal y las asignaciones a reservas pertenecen a [Reservations](../reservations/data-model.md).
 
-`equipos.categoria` y su FK son cambios pendientes de aplicar, tal como indica el principal. El resto de las tablas procede de su inventario documentado; esta extracción no constituye una nueva verificación de la instancia.
+`recursos.recursos`, sus tablas especializadas, `equipos.equipos.recurso_id`, `equipos.categoria` y su FK son cambios pendientes de aplicar, tal como indica el principal. Esta extracción no constituye una nueva verificación de la instancia.
 
 ## Catálogo unificado objetivo
 
 El diseño de reservas propone `reservas.recursos` como catálogo raíz. Su definición se centraliza en este módulo, responsable del inventario:
 
-### `reservas.recursos`
+### Relación con Reservations
 
 `id integer PK`, `id_unidad integer NOT NULL FK` a `unidadOrganizacional.unidad_organizacional(id_unidad)`, `tipo varchar(20) NOT NULL CHECK (tipo IN ('EQUIPO','MOBILIARIO','OTRO'))`, `habilitado boolean NOT NULL`, `created_at timestamptz NOT NULL`, `updated_at timestamptz NOT NULL`.
 
-Equipos, mobiliarios y otros conservan sus atributos y se relacionan 1:1 mediante PK/FK con `recursos.id`. El mecanismo de migración y la correspondencia entre sus identificadores existentes y la nueva PK están pendientes. No se presupone que identificadores iguales de distintos catálogos representen el mismo recurso.
+Equipos, mobiliarios y otros conservan sus atributos y se relacionan 1:1 mediante PK/FK con `recursos.recursos.id`. `equipos.equipos` permanece en su schema especializado y todo equipo es también un recurso mediante `recurso_id`.
 
 Este catálogo no aparece como aplicado en el principal. `reserva_recursos` utilizará su PK en el modelo objetivo; las asociaciones actuales por tipo de recurso se conservan en el inventario de reservas.

@@ -1,8 +1,8 @@
 # Identidad y autorización
 
-La estructura persistente está en [data-model](../core/data-model.md) y las reglas del dominio de reservas en [business-rules.md](../modules/reservas/business-rules.md).
+La estructura persistente está en [data-model](data-model.md) y las reglas del dominio de reservas en [business-rules.md](../reservations/business-rules.md).
 
-La autenticación pertenece al schema `auth`. Las identidades funcionales se representan mediante `usuarios.usuarios` y `personal.personal`. Una misma cuenta puede estar vinculada a ambas entidades cuando la persona cumple simultáneamente ambas condiciones dentro del sistema. La autorización administrativa del personal se determina a partir de su cargo, unidad organizacional y permisos vigentes.
+La autenticación pertenece al schema `auth`. Las identidades funcionales se representan mediante `usuarios.usuarios` y `personal.personal`. Una cuenta corresponde a una sola de esas identidades. La autorización administrativa del personal se determina a partir de su cargo, unidad organizacional y permisos vigentes.
 
 ---
 
@@ -14,9 +14,9 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-ID-03:** Una cuenta puede estar asociada a un único registro de `personal.personal`.
 
-- **RN-ID-04:** Una misma cuenta puede estar vinculada simultáneamente a `usuarios.usuarios` y `personal.personal` cuando la misma persona cumple ambas condiciones dentro del sistema.
+- **RN-ID-04:** Una cuenta no puede estar vinculada simultáneamente a `usuarios.usuarios` y `personal.personal`; corresponde funcionalmente a una sola identidad.
 
-- **RN-ID-05:** La existencia de una vinculación con `usuarios.usuarios` o `personal.personal` no elimina ni reemplaza la otra vinculación existente.
+- **RN-ID-05:** La creación o cambio de identidad de una cuenta debe respetar la exclusividad entre `usuarios.usuarios` y `personal.personal`.
 
 - **RN-ID-06:** La vinculación de una cuenta con `usuarios.usuarios` o `personal.personal` no concede por sí misma permisos administrativos.
 
@@ -28,7 +28,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-ID-10:** Una cuenta que no completó su proceso de alta puede recibir una nueva invitación sin que eso duplique su identidad ni impida reintentar el alta.
 
-- **RN-ID-11:** El historial de reservas, notificaciones y auditoría debe mantenerse asociado a la misma cuenta, independientemente de que esta tenga vinculación con `usuarios.usuarios`, `personal.personal` o ambas.
+- **RN-ID-11:** El historial de reservas, notificaciones y auditoría debe mantenerse asociado a la misma cuenta aunque la identidad funcional permanezca inactiva.
 
 ---
 
@@ -36,7 +36,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-USR-01:** `usuarios.usuarios` representa personas que utilizan el sistema principalmente para realizar y gestionar sus propias reservas.
 
-- **RN-USR-02:** Un usuario autenticado puede crear reservas conforme a las reglas establecidas en [business-rules.md](../modules/reservas/business-rules.md).
+- **RN-USR-02:** Un Usuario autenticado puede crear reservas conforme a las reglas establecidas en [business-rules.md](../reservations/business-rules.md).
 
 - **RN-USR-03:** Un usuario puede consultar sus propias reservas y sus estados.
 
@@ -46,7 +46,6 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos, pasantías, trabajos de grado y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación.
 
-- **RN-USR-07:** Una cuenta vinculada a `usuarios.usuarios` debe completar los datos mínimos de perfil requeridos antes de poder crear una reserva.
 
 ---
 
@@ -66,11 +65,11 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-PER-07:** Una cuenta vinculada a `personal.personal` puede realizar reservas propias además de las operaciones administrativas que le hayan sido autorizadas.
 
-- **RN-PER-08:** La vinculación simultánea con `usuarios.usuarios` y `personal.personal` representa una única cuenta con dos relaciones funcionales; no crea cuentas duplicadas ni identidades independientes.
+- **RN-PER-08:** Una cuenta de `personal.personal` no se vincula simultáneamente a `usuarios.usuarios`.
 
 - **RN-PER-09:** Siempre debe existir al menos una cuenta vinculada a `personal.personal` con permisos de administración global vigentes. Ninguna operación puede eliminar, degradar o inhabilitar la última cuenta que los posee.
 
-- **RN-PER-10:** Una cuenta vinculada a `personal.personal` no puede realizar reservas en unidades organizacionales distintas a las que que pertenece con `id_unidad`.
+- **RN-PER-10:** El Técnico no puede ejecutar operaciones administrativas sobre unidades organizacionales distintas de la unidad de su registro de personal.
 
 ---
 
@@ -100,7 +99,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-AUTZ-04:** El cargo no debe evaluarse mediante comparaciones de nombres fijos en la aplicación; las acciones permitidas deben derivarse del modelo de permisos definido para el sistema.
 
-- **RN-AUTZ-05:** El personal autorizado solo puede ejercer una operación dentro de las unidades comprendidas en su ámbito de autorización.
+- **RN-AUTZ-05:** El Técnico solo puede ejercer operaciones administrativas dentro de la unidad de su registro de personal. El Administrador tiene alcance global.
 
 - **RN-AUTZ-06:** Una cuenta vinculada a `personal.personal` sin el permiso requerido se comporta como una cuenta sin autorización administrativa para dicha operación.
 
@@ -141,7 +140,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **Usuarios:** contiene la información funcional del reservista que no pertenece al dominio de autenticación.
 - **Investigación:** administra perfiles académicos, proyectos, semilleros, pasantías, trabajos de grado y sus vinculaciones con el usuario, así como las modalidades de vinculación.
 - **Notificaciones:** gestiona la entrega de notificaciones derivadas de eventos del dominio de identidad y autorización.
-- **Modelo persistente:** [data-model](../core/data-model.md) define claves, relaciones, restricciones e integridad referencial.
+- **Modelo persistente:** [data-model](../../docs/data-model.md) define claves, relaciones, restricciones e integridad referencial.
 
 ---
 
