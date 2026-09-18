@@ -6,7 +6,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 ---
 
-## UF-USR-01 — Completar perfil después del autorregistro
+## UF-USR-01 — Completar actualización inicial después del autorregistro
 
 **Actor principal:** Usuario
 
@@ -16,29 +16,27 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 
 **Flujo principal:**
 
-1. El usuario inicia sesión.
-2. El usuario diligencia los datos personales que correspondan al alta.
-5. El usuario selecciona su perfil o perfiles académicos/investigativos cuando corresponda.
-6. El sistema consulta al módulo `investigacion` las opciones y relaciones disponibles.
-7. El usuario registra o selecciona, según corresponda:
-   - proyectos;
-   - semilleros;
-   - pasantías;
-   - trabajos de grado.
-8. El módulo `investigacion` valida y almacena las vinculaciones académicas o investigativas.
+1. El usuario inicia sesión por primera vez.
+2. El sistema verifica que `perfil_actualizado_at` esté pendiente y bloquea las operaciones de negocio no permitidas.
+3. El usuario diligencia los datos personales obligatorios.
+4. El usuario selecciona su perfil o perfiles académicos/investigativos cuando corresponda.
+5. El sistema consulta al módulo `investigacion` las opciones y relaciones disponibles.
+6. El usuario selecciona, sin ingresar texto libre, proyectos y semilleros del catálogo existente; las pasantías y trabajos de grado se registran o seleccionan conforme a las reglas vigentes de `investigacion`.
+7. El módulo `investigacion` valida y almacena las vinculaciones académicas o investigativas.
+8. El sistema verifica que exista al menos una vinculación activa y válida.
 9. El usuario selecciona las unidades o laboratorios en los que espera realizar reservas, cuando esta información forme parte de su configuración.
-10. El sistema valida los datos aplicables al alta.
+10. El sistema valida los datos aplicables al alta y registra `perfil_actualizado_at`.
 11. El usuario puede continuar con las funcionalidades permitidas.
 
 **Flujos alternos:**
 
-- Si faltan datos obligatorios, el sistema informa cuáles deben completarse.
+- Si faltan datos obligatorios o no existe una vinculación activa y válida, el sistema informa qué debe completarse y mantiene pendiente la actualización.
 - Si una vinculación académica o investigativa no es válida, el módulo `investigacion` rechaza su registro o selección.
 - Si el usuario abandona el proceso antes de finalizar, el alta queda pendiente.
 
----
+## UF-USR-02 — Completar actualización inicial después de una invitación
 
-## UF-USR-02 — Completar perfil después de una invitación
+---
 
 **Actor principal:** Usuario invitado
 
@@ -49,18 +47,18 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario completa la activación de su cuenta.
-2. El sistema autentica al usuario.
+2. El sistema autentica al usuario y verifica que `perfil_actualizado_at` esté pendiente.
 3. El sistema solicita completar los datos personales aplicables.
 4. El usuario diligencia la información requerida.
-5. El usuario registra o selecciona sus perfiles y vinculaciones académicas o investigativas cuando corresponda.
+5. El usuario selecciona perfiles y vinculaciones académicas o investigativas; los proyectos y semilleros provienen del catálogo existente.
 6. El módulo `investigacion` valida y almacena dichas vinculaciones.
-7. El usuario completa las demás asociaciones funcionales requeridas.
-8. El sistema valida la integridad de la información.
+7. El sistema verifica que exista al menos una vinculación activa y válida.
+8. El sistema registra `perfil_actualizado_at` cuando todos los datos y vinculaciones cumplen las reglas.
 
 **Flujos alternos:**
 
 - Si la invitación ya no es válida, el flujo de activación se resuelve en el dominio `auth`.
-- Si la información requerida no es válida, el sistema solicita corregirla.
+- Si la información requerida no es válida o no existe una vinculación activa y válida, el sistema solicita corregirla y conserva la actualización pendiente.
 
 ---
 
@@ -74,7 +72,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario accede a su perfil.
-2. El sistema obtiene la información funcional del módulo `usuarios`.
+2. El sistema obtiene la información funcional del módulo `usuarios`, incluido el estado de la actualización inicial.
 3. El sistema consulta al módulo `investigacion` las vinculaciones académicas e investigativas que deban mostrarse.
 4. El sistema presenta la información consolidada del perfil.
 5. El usuario puede revisar sus datos y acceder a las opciones de actualización permitidas.
@@ -92,7 +90,7 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario accede a la edición de su perfil.
-2. El sistema muestra los datos personales editables.
+2. El sistema muestra los datos personales editables y el estado de actualización inicial.
 3. El usuario modifica uno o más datos.
 4. El sistema valida formato y obligatoriedad.
 5. El sistema guarda los cambios.
@@ -139,8 +137,8 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario accede a la sección de proyectos de su perfil.
-2. El sistema consulta los proyectos disponibles o vinculables.
-3. El usuario selecciona el proyecto correspondiente.
+2. El sistema consulta los proyectos existentes y vigentes del catálogo de `investigacion`.
+3. El usuario selecciona el proyecto correspondiente; no puede ingresar un nombre o código para crear otro.
 4. El módulo `investigacion` valida la vinculación.
 5. El sistema registra la relación entre usuario y proyecto.
 6. El proyecto queda disponible como contexto en procesos que lo permitan, como reservas.
@@ -163,8 +161,8 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario accede a la sección de semilleros.
-2. El sistema consulta los semilleros disponibles o vinculables.
-3. El usuario selecciona el semillero correspondiente.
+2. El sistema consulta los semilleros existentes y vigentes del catálogo de `investigacion`.
+3. El usuario selecciona el semillero correspondiente; no puede ingresar un nombre o código para crear otro.
 4. El módulo `investigacion` valida la vinculación.
 5. El sistema registra la relación entre usuario y semillero.
 6. El semillero queda disponible como contexto en procesos que lo permitan.
@@ -289,7 +287,8 @@ El módulo `usuarios` orquesta la gestión del perfil funcional del reservista. 
 **Flujo principal:**
 
 1. El usuario selecciona la opción para crear una reserva.
-2. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente.
+2. El sistema verifica que `perfil_actualizado_at` no esté pendiente y que el Usuario conserve al menos una vinculación activa y válida.
+3. El módulo `reservas` continúa con la selección de tipo, unidad y contexto correspondiente.
 
 ---
 

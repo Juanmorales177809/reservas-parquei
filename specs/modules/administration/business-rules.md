@@ -160,9 +160,22 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 ---
 
+## Importación de catálogos de investigación — RN-IMP
+
+- **RN-IMP-01:** Solo el Administrador puede importar proyectos y semilleros mediante un archivo Excel, con autorización global vigente.
+- **RN-IMP-02:** El archivo debe identificar cada registro mediante `codigo`, incluir `nombre` y `estado`, y señalar el tipo de catálogo que se importa.
+- **RN-IMP-03:** Antes de guardar, el sistema debe validar columnas, campos obligatorios, estados permitidos, códigos duplicados dentro del archivo y el formato del archivo.
+- **RN-IMP-04:** Un código existente actualiza el registro correspondiente; un código nuevo crea un registro en `investigacion`. Reimportar el mismo archivo no crea duplicados.
+- **RN-IMP-05:** La importación no crea ni modifica vinculaciones de usuarios y no permite al Administrador reemplazar las reglas de Researchs sobre dichas vinculaciones.
+- **RN-IMP-06:** Una importación con errores no debe dejar cambios parciales; el Administrador debe revisar el resultado de validación antes de confirmar.
+- **RN-IMP-07:** Desactivar un proyecto o semillero conserva su registro, sus vinculaciones y las referencias históricas de reservas.
+- **RN-IMP-08:** Cada importación confirmada registra Administrador, fecha, catálogo, archivo o referencia de carga y registros creados, actualizados o desactivados.
+
+---
+
 ## Separación de responsabilidades
 
-- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos y configuración global.
+- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos, configuración global e importaciones autorizadas de catálogos de investigación.
 
 - El módulo de autenticación y autorización determina cómo se autentica una cuenta y cómo se evalúa si puede ejecutar una operación.
 
@@ -189,6 +202,7 @@ Las reglas de este documento dependen de otros módulos únicamente en los sigui
 - **Recursos:** determina las restricciones asociadas a laboratorios, espacios y recursos.
 
 - **Modelo persistente:** define claves, relaciones, restricciones y dependencias entre las entidades administradas.
+- **Researchs:** conserva la propiedad de proyectos, semilleros y sus vinculaciones; Administration solo ejecuta la importación autorizada.
 
 ---
 

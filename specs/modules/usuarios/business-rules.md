@@ -45,6 +45,10 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **RN-USR-05:** La vinculación con `usuarios.usuarios` no concede permisos administrativos sobre reservas de terceros.
 
 - **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos, pasantías, trabajos de grado y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación.
+- **RN-USR-07:** En el primer ingreso autenticado, el Usuario debe completar la actualización inicial de sus datos personales y contar con al menos una vinculación académica o investigativa activa y válida a un proyecto, semillero, pasantía o trabajo de grado.
+- **RN-USR-08:** Mientras la actualización inicial esté pendiente, el Usuario solo puede acceder a las operaciones necesarias para completar su perfil, seleccionar o mantener sus vinculaciones y cerrar sesión; no puede crear reservas ni ejecutar otras operaciones de negocio que requieran el perfil completo.
+- **RN-USR-09:** La actualización inicial puede cumplirse con una o más vinculaciones de cualquier tipo admitido; no exige tener una vinculación de cada tipo. Una actividad institucional no cuenta como vinculación académica o investigativa.
+- **RN-USR-10:** Los proyectos y semilleros deben seleccionarse desde los catálogos existentes de `investigacion`; el Usuario no puede crearlos ni ingresar sus nombres o códigos libremente.
 
 
 ---

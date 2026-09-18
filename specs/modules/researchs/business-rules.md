@@ -11,10 +11,18 @@ Contrato funcional del dominio `investigacion`, alojado en el módulo `researchs
 - **RN-INV-03:** Un trabajo de grado debe registrar nombre y correo del director.
 - **RN-INV-04:** Las vinculaciones de usuarios con proyectos, semilleros, pasantías y trabajos de grado pueden estar activas o inactivas.
 - **RN-INV-05:** La desactivación de una vinculación no elimina su historial.
+- **RN-INV-06:** `proyectos` y `semilleros` son catálogos administrados centralmente; sus códigos e identidades son persistentes y no pueden crearse ni modificarse desde el perfil del Usuario ni desde una reserva.
+- **RN-INV-07:** El Usuario solo puede seleccionar proyectos y semilleros existentes del catálogo y solicitar o mantener una vinculación válida conforme a las reglas de `investigacion`.
+
+## Actividades institucionales — RN-ACT
+
+- **RN-ACT-01:** Una actividad institucional debe registrar `nombre` y `dependencia`.
+- **RN-ACT-02:** Solo una actividad institucional con `estado = true` puede utilizarse en una nueva reserva.
+- **RN-ACT-03:** Desactivar una actividad institucional no elimina su registro ni las referencias históricas de reservas existentes.
 
 ## Relación con reservas
 
-Las reglas [RN-CTX](../reservations/business-rules.md#contexto-de-la-reserva--rn-ctx) determinan qué combinaciones de contexto admite una reserva. Researchs proporciona las entidades y las vinculaciones activas y válidas del usuario para su selección. Una vinculación académica o investigativa no concede permisos administrativos sobre reservas.
+Las reglas [RN-CTX](../reservations/business-rules.md#contexto-de-la-reserva--rn-ctx) determinan qué combinaciones de contexto admite una reserva. Researchs proporciona las entidades, las actividades activas y las vinculaciones activas y válidas del usuario para su selección. Administration puede cargar proyectos y semilleros mediante el flujo autorizado de importación, pero no duplica sus tablas ni su propiedad funcional. Una vinculación académica o investigativa no concede permisos administrativos sobre reservas.
 
 Desactivar una vinculación conserva su registro y las referencias históricas existentes; no modifica retroactivamente el contexto de reservas anteriores.
 

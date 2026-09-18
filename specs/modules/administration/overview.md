@@ -17,6 +17,7 @@ El módulo cubre:
 - gestión de permisos;
 - habilitación y deshabilitación administrativa de entidades cuando corresponda;
 - configuración global del sistema;
+- importación administrativa de proyectos y semilleros hacia los catálogos de `investigacion`;
 - trazabilidad de operaciones administrativas.
 
 ## Responsibilities
@@ -32,6 +33,7 @@ El módulo es responsable de:
 - validar dependencias antes de modificar o deshabilitar entidades administrativas;
 - preservar la consistencia de los datos administrativos;
 - registrar operaciones administrativas relevantes;
+- importar catálogos de investigación mediante archivos Excel, sin duplicar su propiedad funcional;
 - evitar modificaciones que contradigan reglas funcionales pertenecientes a otros módulos.
 
 ## Owned Concepts
@@ -44,6 +46,7 @@ El módulo es propietario funcional de los siguientes conceptos:
 - unidad organizacional;
 - permiso;
 - configuración global;
+- importación de catálogos de proyectos y semilleros;
 - estado administrativo de habilitación o deshabilitación.
 
 Las entidades persistentes concretas asociadas a estos conceptos se definen en `docs/data-model.md`.
@@ -72,6 +75,10 @@ Administration no decide estados, disponibilidad, aprobación, rechazo o cancela
 El módulo depende de Resources cuando una operación administrativa involucra laboratorios, espacios, equipos, mobiliarios u otros recursos.
 
 Administration no redefine las reglas funcionales propias de dichos elementos.
+
+### Researchs
+
+Administration utiliza el contrato de Researchs para escribir los catálogos de proyectos y semilleros durante una importación autorizada. No crea copias de las entidades ni administra sus vinculaciones.
 
 ### Notifications
 
@@ -110,6 +117,8 @@ No pertenece a este módulo:
 - administrar reglas funcionales de recursos;
 - generar notificaciones;
 - calcular reportes;
+- administrar directamente las vinculaciones académicas o investigativas de los usuarios;
+- crear proyectos o semilleros fuera del flujo de importación autorizado;
 - modificar directamente la lógica interna de otros módulos.
 
 ## Module Boundary

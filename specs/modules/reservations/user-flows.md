@@ -6,6 +6,12 @@ Este documento describe los flujos de interacción del dominio de reservas. Las 
 
 Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera y servicio no permiten acompañantes.
 
+## Condición común de disponibilidad
+
+Los flujos de creación, modificación, asignación de elementos y aprobación aplican RN-DIS. Al confirmar la operación, el sistema revalida disponibilidad y guarda de forma transaccional con protección frente a concurrencia; si otra reserva bloquea un elemento obligatorio, informa del conflicto y no confirma los cambios. Al modificar o aprobar se excluye la propia reserva de la comparación. El mecanismo técnico está pendiente de implementación según el data-model.
+
+Solo las asignaciones con periodo definido y un estado bloqueante conforme a RN-EST-02 y RN-EST-03 ocupan disponibilidad. Una solicitud sin periodo, como lista de espera, no ocupa franjas futuras; al asignarle un periodo se aplica la misma validación. Los recursos complementarios no disponibles siguen la excepción RN-TIP-PE-14.
+
 ---
 
 ## UF-RES-01 — Crear reserva por espacio
@@ -23,7 +29,7 @@ Usuario.
 7. El usuario selecciona fecha, hora de inicio y hora de finalización.
 8. El sistema valida disponibilidad del espacio.
 9. El sistema muestra la disponibilidad de los recursos asociados.
-10. La falta de disponibilidad de recursos asociados no impide continuar con la reserva del espacio.
+10. Los recursos complementarios no disponibles quedan sin asignar para ese periodo y se muestran como no disponibles, conforme a RN-TIP-PE-14; el usuario puede continuar con la reserva del espacio.
 11. Si entre los equipos seleccionados alguno tiene `requiere_apoyo = true`, el sistema selecciona automáticamente “requiere técnico” y el usuario no puede desmarcarlo.
 12. Si ningún equipo exige apoyo, el usuario puede seleccionar voluntariamente “requiere técnico”.
 13. El usuario diligencia los campos adicionales obligatorios, cuando existan.
@@ -31,12 +37,12 @@ Usuario.
 15. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
 16. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
 17. El Usuario aplica la condición común de acompañantes; puede continuar sin seleccionar ninguno.
-19. El usuario puede registrar una observación para el Técnico.
-20. El usuario envía la solicitud.
-21. El sistema revalida las reglas aplicables.
-22. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
-23. Si no está habilitada, la reserva queda en `SOLICITADA`.
-24. El sistema genera las notificaciones correspondientes.
+18. El usuario puede registrar una observación para el Técnico.
+19. El usuario envía la solicitud.
+20. El sistema revalida las reglas aplicables.
+21. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
+22. Si no está habilitada, la reserva queda en `SOLICITADA`.
+23. El sistema genera las notificaciones correspondientes.
 
 ---
 
@@ -330,18 +336,19 @@ Se acerca la fecha/hora de inicio de una reserva en estado `APROBADA`.
 
 ---
 
-## UF-RES-17 — Enviar, actualizar o cancelar la invitación de calendario
+## UF-RES-17 — Generar y adjuntar el archivo de calendario
 
 ### Actor principal
 Sistema.
 
 ### Disparador
-Una reserva pasa a `APROBADA`, se reprograma estando `APROBADA` o `EN_EJECUCION`, o pasa a `RECHAZADA`/`CANCELADA` teniendo una invitación previa.
+Una reserva pasa a `APROBADA`, o se modifica y requiere el envío de una nueva confirmación.
 
 ### Flujo
-1. Cuando la reserva queda `APROBADA`, el sistema genera y envía una invitación de calendario a los interesados, con opción de aceptar o rechazar desde su propio cliente de correo.
-2. Si la reserva se reprograma, el sistema actualiza la invitación conservando el mismo identificador de evento.
-3. Si la reserva se cancela o rechaza teniendo una invitación previamente enviada, el sistema envía la cancelación de esa invitación.
+1. Cuando la reserva queda `APROBADA`, el sistema genera un archivo `.ics` con la fecha, horario, ubicación o espacio cuando aplique y descripción de la reserva.
+2. El sistema adjunta el archivo `.ics` al correo de confirmación de la reserva.
+3. Si la reserva es modificada y se envía una nueva confirmación, el sistema genera un nuevo archivo `.ics` con la información vigente y lo adjunta a ese correo.
+4. El flujo no sincroniza directamente calendarios externos ni persiste identificadores de eventos externos.
 
 ---
 
@@ -355,6 +362,38 @@ Técnico de la unidad o Administrador.
 2. Selecciona la opción de exportar y el formato (CSV o Excel).
 3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
 4. El sistema entrega el archivo para su descarga.
+
+---
+
+## UF-RES-19 — Consultar disponibilidad
+
+### Roles participantes
+
+Usuario.
+
+### Flujo
+
+1. El Usuario selecciona la unidad, el espacio o recurso y el periodo que desea consultar.
+2. El sistema muestra los horarios configurados y las franjas disponibles conforme a RN-DIS-07.
+3. Para las franjas ocupadas, el sistema consulta las opciones de visibilidad de la unidad y muestra el estado o el nombre del reservista únicamente cuando la opción correspondiente está habilitada.
+4. Si ambas opciones están desactivadas, la franja sigue apareciendo como no disponible, sin estado ni nombre del reservista. Esta consulta no permite abrir el detalle completo de reservas ajenas.
+5. El Usuario selecciona un periodo y continúa con el flujo del tipo de reserva. La consulta no garantiza la asignación hasta confirmar la operación según la condición común de disponibilidad.
+
+---
+
+## UF-RES-20 — Configurar visibilidad de disponibilidad
+
+### Roles participantes
+
+Técnico de la unidad o Administrador.
+
+### Flujo
+
+1. El Técnico abre la configuración de su propia unidad o el Administrador selecciona la unidad que desea configurar.
+2. El sistema muestra las opciones «Mostrar estado de la reserva» y «Mostrar reservista», inicialmente desactivadas.
+3. El Técnico o Administrador activa o desactiva cada opción de forma independiente y guarda los cambios.
+4. El backend valida los permisos y el ámbito de la unidad conforme a RN-DIS-09, guarda la configuración y registra el cambio para trazabilidad.
+5. Las siguientes consultas del Usuario aplican la configuración vigente conforme a RN-DIS-10.
 
 ---
 

@@ -94,7 +94,7 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-COR-05:** El estado de un envío de correo se conserva y consulta de forma independiente del estado de lectura de la notificación in-app asociada al mismo evento, cuando ambas existan.
 
-- **RN-COR-06:** Un envío de correo puede incluir un archivo adjunto cuando el tipo de evento lo requiera (por ejemplo, una invitación de calendario), conforme a lo definido en RN-CAL y RN-CNT.
+- **RN-COR-06:** Un envío de correo puede incluir un archivo adjunto cuando el tipo de evento lo requiera (por ejemplo, un archivo de calendario `.ics`), conforme a lo definido en RN-CAL y RN-CNT.
 
 ---
 
@@ -124,15 +124,11 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 ---
 
-## Invitaciones de calendario — RN-CAL
+## Archivos de calendario — RN-CAL
 
-- **RN-CAL-01:** La aprobación de una reserva que deba reflejarse en un calendario externo genera un envío de correo con un archivo adjunto de invitación de calendario, además de la notificación definida en RN-EVT-02.
-
-- **RN-CAL-02:** Una modificación notificable de una reserva con invitación de calendario vigente genera un envío de correo con una actualización de dicha invitación.
-
-- **RN-CAL-03:** La cancelación de una reserva con invitación de calendario vigente genera un envío de correo con la cancelación de dicha invitación.
-
-- **RN-CAL-04:** El contenido del archivo adjunto de calendario debe corresponder al estado vigente de la reserva al momento de generarse, conforme a RN-INT-03.
+- **RN-CAL-01:** Reservations determina cuándo debe generarse el archivo `.ics` y qué información vigente debe contener, conforme a sus reglas RN-CAL.
+- **RN-CAL-02:** Cuando corresponda enviar el correo de confirmación, Notifications adjunta el archivo `.ics` generado para la aprobación o modificación de la reserva.
+- **RN-CAL-03:** El envío del archivo `.ics` no implica sincronización directa con calendarios externos ni exige persistir identificadores de eventos externos.
 
 ---
 

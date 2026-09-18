@@ -104,6 +104,24 @@ El catálogo raíz `reservas.recursos` y la relación 1:1 con equipos, mobiliari
 
 Índices `(recurso_id, fecha_inicio_uso, fecha_fin_uso)` y `(reserva_id, recurso_id, created_at)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas. La aplicación exige exactamente un `PRINCIPAL` por reserva en todos los tipos; `ADICIONAL`es se admiten en `INTERNO`, `ESPACIO`, `CAMPUS` y `EXTERNO`. Para `CAMPUS` y `EXTERNO`, todo `ADICIONAL` comparte las fechas de salida/devolución del `PRINCIPAL` (`reserva_recurso_campus`/`reserva_recurso_externo`) y aparece listado en la misma orden de salida.
 
+## Disponibilidad y configuración por unidad
+
+El cálculo aplica [RN-DIS](business-rules.md#disponibilidad--rn-dis); los estados bloqueantes y no bloqueantes se definen únicamente en RN-EST-02 y RN-EST-03.
+
+La asignación del espacio corresponde a `reserva_espacio.espacio_id`, con el periodo definido por `fecha`, `hora_inicio` y `hora_fin`. Para recursos, la asignación efectiva corresponde a una fila de `reserva_recursos` con `estado_asignacion = 'ASIGNADO'` y un periodo definido. Este estado de asignación es independiente de la aprobación de la reserva: puede asignarse un recurso al registrar la solicitud, antes de su aprobación. Las filas `SOLICITADO`, `NO_DISPONIBLE` y `RETIRADO` no representan asignaciones bloqueantes.
+
+El periodo del recurso se obtiene del detalle de su tipo o de `fecha_inicio_uso` y `fecha_fin_uso` cuando corresponda a su uso efectivo; las fechas deben ser consistentes con el detalle. La comparación conserva la semántica horaria o por días de RN-DIS-01 y RN-DIS-02. Sin periodo definido no se genera un bloqueo temporal, incluso para solicitudes de lista de espera. Asignar un periodo posteriormente exige la misma validación transaccional.
+
+Los recursos complementarios no disponibles se conservan como `NO_DISPONIBLE`, sin asignación para el periodo incompatible, conforme a RN-TIP-PE-14. No impiden guardar la reserva del espacio. Al modificar o aprobar, la comparación excluye las asignaciones de la propia reserva.
+
+Las opciones `mostrar_estado_reserva` y `mostrar_reservista` se almacenan únicamente en [reservas.laboratorios_config](../resources/data-model.md#reservaslaboratorios_config), ambas `boolean NOT NULL DEFAULT false`, por `id_unidad`. Reservations consulta esa configuración conforme a RN-DIS-07 a RN-DIS-10; no duplica esos campos en cada reserva. El backend filtra la respuesta de disponibilidad antes de enviarla al Usuario.
+
+### Garantía transaccional — pendiente de implementación
+
+Validar conflictos y escribir la reserva, el detalle y las asignaciones debe constituir una operación atómica protegida frente a concurrencia, conforme a RN-DIS-05. Dos operaciones incompatibles no pueden confirmar ambas. Un fallo de validación revierte las escrituras de la operación.
+
+Queda pendiente seleccionar e implementar el mecanismo de protección en backend y PostgreSQL, incluyendo creación, reprogramación, cambio de elementos y aprobación. Una transacción sin protección específica frente a concurrencia, una consulta previa o los índices ordinarios no acreditan esta garantía. Esta documentación define el requisito, no una protección ya implementada.
+
 ## Contexto y campos de espacio
 
 ### `reservas.reserva_contexto`
@@ -117,9 +135,9 @@ Una fila máxima por reserva. El contexto cumple las reglas [RN-CTX](business-ru
 | `semillero_id` | integer | NULL, FK a `investigacion.semilleros(id_semillero)` |
 | `pasantia_id` | integer | NULL, FK a `investigacion.pasantias(id_pasantia)` |
 | `trabajo_grado_id` | integer | NULL, FK a `investigacion.trabajos_grado(id_trabajo_grado)` |
-| `actividad_institucional_id` | integer | NULL, FK al catálogo correspondiente, pendiente de definir |
+| `actividad_institucional_id` | integer | NULL, FK a `investigacion.actividades_institucionales(id_actividad)` |
 
-`investigacion` administra las entidades y vinculaciones académicas/investigativas descritas en el [modelo general](../../docs/data-model.md#schema-investigacion). `reservas` registra las entidades que justificaron la reserva; sus FK apuntan a las entidades, no a las tablas de vinculación. Las nuevas tablas y sus FK están definidas en el modelo y pendientes de aplicar en la base de datos.
+`investigacion` administra las entidades, las actividades institucionales y las vinculaciones académicas/investigativas descritas en el [modelo general](../../docs/data-model.md#schema-investigacion). `reservas` registra las entidades que justificaron la reserva; sus FK apuntan a las entidades, no a las tablas de vinculación. La disponibilidad de una actividad institucional para nuevas reservas se valida conforme a RN-ACT del módulo Researchs; reservas no duplica esa regla. Las nuevas tablas y sus FK están definidas en el modelo y pendientes de aplicar en la base de datos.
 
 Se permite cualquier combinación no vacía de proyecto, semillero, pasantía y trabajo de grado. Una actividad institucional solo puede registrarse si los cuatro campos académicos/investigativos son `NULL`. La restricción propuesta para cada fila es:
 
@@ -234,8 +252,8 @@ La aplicación comprueba que la orden coincide con el tipo de reserva y que `ord
 
 - Definir atributos de `SERVICIO`, catálogo de actividades y estructura exacta de campos de espacios.
 - Definir migración 1:1 de equipos, mobiliarios y otros hacia `recursos`.
-- Precisar la garantía transaccional contra solapamientos.
-- Propuestas/contrapropuestas, recordatorios e invitaciones de calendario quedan fuera hasta contar con especificación funcional.
+- Implementar y verificar el mecanismo contra solapamientos descrito en «Garantía transaccional — pendiente de implementación» y migrar las opciones de visibilidad por unidad.
+- Propuestas/contrapropuestas y recordatorios quedan fuera hasta contar con especificación funcional. El archivo `.ics` de confirmación se genera y adjunta al correo sin una tabla propia, sin sincronización directa con calendarios externos y sin persistir identificadores de eventos externos, conforme a RN-CAL.
 - Cédula y contacto (ubicación, correo, teléfono/celular) del responsable de la solicitud para el FGL 030: no están definidos en `usuarios.usuarios`, `personal.personal` ni `auth.cuentas`; requieren definición en esos módulos, no en reservas.
 
 ## Inventario de reservas procedente del principal

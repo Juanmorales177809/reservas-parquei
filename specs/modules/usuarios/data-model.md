@@ -18,6 +18,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `estado` | boolean | NN | DEFAULT `true` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
+| `perfil_actualizado_at` | timestamptz | Sí | NULL mientras la actualización inicial esté pendiente |
 
 ### `personal.personal`
 
@@ -32,6 +33,8 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `estado` | boolean | Sí | — |
 
 La tabla ya no contiene `supabase_id`.
+
+`perfil_actualizado_at` registra que el Usuario completó la actualización inicial obligatoria. El valor no se establece hasta que los datos obligatorios estén válidos y exista al menos una vinculación académica o investigativa activa y válida confirmada por `investigacion`. No duplica las vinculaciones ni reemplaza sus estados.
 
 ## Relaciones y límites
 

@@ -73,6 +73,10 @@ Una categoría puede agrupar varios equipos. La relación se define mediante `eq
 | `modalidad_reserva` | varchar(50) | Sí | — |
 | `correo` | varchar(255) | Sí | — |
 | `notificar_por_correo` | boolean | NN | DEFAULT `false` |
+| `mostrar_estado_reserva` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
+| `mostrar_reservista` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
+
+Las dos opciones de visibilidad se guardan en la configuración única de cada unidad (`id_unidad`). Su comportamiento y permisos se definen en [RN-DIS de Reservations](../reservations/business-rules.md#disponibilidad--rn-dis). Estos campos son parte del diseño objetivo y no se consideran aplicados en la base de datos.
 
 ### `recursos.mobiliarios`
 

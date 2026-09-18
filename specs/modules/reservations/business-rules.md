@@ -18,6 +18,7 @@ El modelo persistente se define en [data-model](data-model.md), los espacios en 
 - **RN-RES-08:** Crear o modificar una reserva debe revalidar las reglas aplicables a su tipo de reserva.
 - **RN-RES-09:** Cuando un equipo incluido en la reserva tenga `requiere_apoyo = true`, la reserva debe persistir `requiere_apoyo = true` automáticamente y el Usuario no puede desmarcar la opción “requiere técnico”.
 - **RN-RES-10:** Cuando ningún equipo incluido exija apoyo, el Usuario puede solicitar voluntariamente apoyo técnico; el valor efectivo se persiste en `reservas.reservas.requiere_apoyo`.
+- **RN-RES-11:** Para crear una reserva, la cuenta Usuario debe haber completado la actualización inicial de su perfil conforme a RN-USR-07 y RN-USR-08. Las vinculaciones seleccionadas como contexto se validan nuevamente conforme a RN-CTX-05.
 
 ---
 
@@ -56,7 +57,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-11:** Cuando la reserva no se asocie a ningún elemento académico/investigativo, debe registrarse una actividad institucional habilitada. Esta no puede coexistir con los demás elementos de contexto, conforme a `RN-CTX-04`.
 - **RN-TIP-PE-12:** Al seleccionar un espacio, el sistema debe cargar los recursos asociados y los campos adicionales configurados para ese espacio.
 - **RN-TIP-PE-13:** El sistema debe indicar cuáles recursos asociados al espacio se encuentran disponibles y cuáles no están disponibles para la fecha y horario solicitados.
-- **RN-TIP-PE-14:** La falta de disponibilidad de uno o más recursos asociados al espacio no impide crear la reserva del espacio.
+- **RN-TIP-PE-14:** La falta de disponibilidad de uno o más recursos complementarios asociados al espacio no impide crear la reserva del espacio; esos recursos no pueden quedar asignados durante el periodo incompatible.
 - **RN-TIP-PE-15:** La reserva por espacio debe permitir registrar una observación para comunicar al Técnico  necesidades, restricciones o información adicional relacionada con los recursos requeridos.
 - **RN-TIP-PE-16:** Al revisar la solicitud, el Técnico  debe visualizar la disponibilidad de los recursos asociados al espacio y la observación registrada por el usuario.
 - **RN-TIP-PE-17:** Antes de aprobar la reserva, el Técnico  puede modificar los recursos asociados a la solicitud para ajustarla según la disponibilidad existente, sin alterar el espacio solicitado salvo que el flujo de gestión lo permita expresamente.
@@ -180,10 +181,14 @@ Los únicos estados globales válidos son:
 
 - **RN-DIS-01:** Para reservas con franja horaria, los intervalos se interpretan como `[hora_inicio, hora_fin)`. Dos reservas contiguas no se consideran solapadas cuando una termina exactamente a la hora en que inicia la otra.
 - **RN-DIS-02:** Para reservas de recursos por días, el periodo comprende la fecha de salida o inicio y la fecha de devolución o finalización. Dos reservas se consideran solapadas cuando comparten al menos una fecha del periodo reservado.
-- **RN-DIS-03:** La disponibilidad se valida de forma independiente para el espacio y para cada recurso individual asociado, salvo los recursos complementarios de una reserva por espacio cuya falta de disponibilidad no bloquee la reserva según `RN-TIP-PE-14`.
+- **RN-DIS-03:** El sistema debe impedir crear, modificar o aprobar una reserva cuando su espacio o un recurso obligatorio se solape con otra reserva bloqueante. La disponibilidad se valida de forma independiente para cada elemento y excluye la propia reserva al modificarla o aprobarla. Para recursos complementarios de una reserva por espacio se aplica la excepción de `RN-TIP-PE-14`.
 - **RN-DIS-04:** Un equipo debe encontrarse operativo según la información vigente del sistema de origen correspondiente al momento de crear o aprobar la reserva.
-- **RN-DIS-05:** Crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva deben utilizar la garantía transaccional definida en [data-model](data-model.md). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
-- **RN-DIS-06:** La validación de disponibilidad debe considerar como bloqueantes únicamente las reservas en estados definidos como bloqueantes por `RN-EST-02`.
+- **RN-DIS-05:** La validación de disponibilidad y el registro de la reserva y sus asignaciones deben realizarse en una misma transacción con protección contra solicitudes concurrentes incompatibles. Esta garantía aplica al crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva, conforme al [data-model](data-model.md). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
+- **RN-DIS-06:** Un espacio o recurso solo bloquea disponibilidad cuando está efectivamente asignado a la reserva, tiene un periodo definido y la reserva se encuentra en un estado bloqueante conforme a `RN-EST-02` y `RN-EST-03`. Una solicitud sin periodo definido no bloquea franjas futuras por su estado solamente.
+- **RN-DIS-07:** El Usuario siempre puede consultar los horarios configurados y las franjas disponibles del espacio o recurso; las opciones de visibilidad no pueden ocultar esa información.
+- **RN-DIS-08:** Cada unidad puede configurar de forma independiente `mostrar_estado_reserva` y `mostrar_reservista`, ambas desactivadas por defecto, para mostrar al Usuario el estado y el nombre del reservista de la reserva que ocupa una franja no disponible.
+- **RN-DIS-09:** El Técnico solo puede modificar estas opciones para su propia unidad organizacional. El Administrador puede modificarlas para cualquier unidad, conforme a los permisos de `auth`.
+- **RN-DIS-10:** Las opciones de visibilidad solo determinan la información presentada al Usuario; no modifican la disponibilidad ni las reglas de bloqueo, ni permiten consultar el detalle completo de reservas ajenas. El backend aplica estas opciones al responder las consultas de disponibilidad.
 
 ---
 
@@ -191,7 +196,7 @@ Los únicos estados globales válidos son:
 
 - **RN-PRO-01:** La cuenta usuario puede consultar sus propias reservas independientemente de su estado.
 - **RN-PRO-02:** La cuenta usuario puede editar sus propias reservas únicamente cuando el estado de la reserva y las reglas de negocio permitan la modificación.
-- **RN-PRO-03:** Una cuenta sin permisos administrativos no puede consultar, modificar, aprobar, rechazar ni cancelar reservas pertenecientes a terceros.
+- **RN-PRO-03:** Una cuenta sin permisos administrativos no puede consultar el detalle completo, modificar, aprobar, rechazar ni cancelar reservas pertenecientes a terceros. La consulta de disponibilidad puede mostrar únicamente la información de terceros autorizada por `RN-DIS-08` y `RN-DIS-10`.
 - **RN-PRO-04:** El Técnico puede consultar y gestionar reservas de terceros únicamente dentro de su propia unidad organizacional. El Administrador puede hacerlo dentro de cualquier unidad organizacional.
 - **RN-PRO-05:** La autenticación y la validación de permisos se rigen por las reglas definidas en el módulo `auth`. Las reglas de este dominio determinan qué acciones requieren dichos permisos y sobre qué unidad organizacional deben aplicarse.
 
@@ -242,17 +247,19 @@ Los únicos estados globales válidos son:
 
 ---
 
-## Invitación de calendario — RN-CAL
+## Archivo de calendario — RN-CAL
 
-- **RN-CAL-01:** Al quedar una reserva en estado `APROBADA`, el sistema envía a los interesados una invitación de calendario que permite aceptar o rechazar el evento desde su propio cliente de correo.
-- **RN-CAL-02:** Si la reserva se reprograma, la invitación de calendario se actualiza conservando el mismo identificador de evento.
-- **RN-CAL-03:** Si la reserva se cancela o rechaza, se envía una cancelación de la invitación de calendario previamente enviada.
+- **RN-CAL-01:** Cuando una reserva sea aprobada, el sistema debe generar un archivo de calendario en formato iCalendar (`.ics`).
+- **RN-CAL-02:** El archivo `.ics` debe incluir como mínimo la fecha, hora de inicio, hora de finalización, ubicación o espacio cuando aplique y una descripción de la reserva.
+- **RN-CAL-03:** Cuando corresponda enviar el correo de confirmación de la reserva, el archivo `.ics` debe adjuntarse a ese correo.
+- **RN-CAL-04:** Si una reserva es modificada y se envía una nueva confirmación, el sistema debe generar un nuevo archivo `.ics` con la información vigente.
+- **RN-CAL-05:** No se requiere sincronización directa con calendarios externos ni persistencia de identificadores de eventos externos.
 
 ---
 
 ## Contexto de la reserva — RN-CTX
 
-El módulo [Researchs](../researchs/overview.md), propietario del dominio `investigacion`, es dueño del contexto académico/investigativo y de las vinculaciones del usuario. `reservas` únicamente registra cuáles de esos contextos justificaron la reserva y conserva su información histórica.
+El módulo [Researchs](../researchs/overview.md), propietario del dominio `investigacion`, es dueño del contexto académico/investigativo, de las actividades institucionales y de las vinculaciones del usuario. `reservas` únicamente registra cuáles de esos contextos justificaron la reserva y conserva su información histórica; la disponibilidad de una actividad para nuevas reservas se rige por RN-ACT del módulo Researchs.
 
 - **RN-CTX-01:** Toda reserva que requiera contexto deberá estar asociada al menos a un contexto académico/investigativo o a una actividad institucional.
 - **RN-CTX-02:** El contexto académico/investigativo puede estar compuesto por uno o más de los siguientes elementos: semillero, proyecto, pasantía y trabajo de grado.

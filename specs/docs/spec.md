@@ -17,7 +17,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 ### Solicitudes de reserva
 
 - El usuario puede consultar los espacios, equipos y recursos disponibles.
-- El usuario puede crear una solicitud indicando tipo de reserva, fecha, horario, asistentes, proyecto, semillero, motivo y recursos requeridos.
+- El usuario puede crear una solicitud seleccionando el tipo de reserva, fecha, horario, asistentes, proyecto y semillero del catálogo, además del motivo y los recursos requeridos.
 - El sistema valida los datos de la solicitud y registra su estado inicial.
 - El usuario indica si la reserva es dentro o fuera del laboratorio; si es fuera, debe indicar la ubicación de uso.
 - Una misma solicitud puede combinar un espacio, varios recursos del inventario institucional.
@@ -86,10 +86,10 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 - El administrador puede gestionar usuarios, cuentas, perfiles, unidades organizacionales y permisos.
 - El sistema registra notificaciones y un historial de cambios asociados a las operaciones relevantes.
-- Un usuario puede autorregistrarse sin invitación previa, completar su perfil (documento, teléfono, institución, vinculación, dependencia), y recuperar su contraseña de forma autónoma.
+- Un usuario puede autorregistrarse sin invitación previa y, en su primer ingreso, debe completar sus datos obligatorios y seleccionar al menos una vinculación académica o investigativa activa y válida. Los proyectos y semilleros se seleccionan del catálogo administrado por Researchs; después puede recuperar su contraseña de forma autónoma.
 - El administrador puede invitar cuentas, reenviar una invitación no completada, y promover o degradar a una persona entre reservista y personal administrativo sin perder su historial.
 - El sistema nunca elimina ni degrada la última cuenta con permisos de administrador.
-- Las notificaciones se envían tanto dentro de la aplicación como por correo (confirmación, aprobación, rechazo, cancelación, recordatorio antes de la reserva, invitación de calendario), y cada persona puede optar por no recibir el correo (la notificación dentro de la app no se apaga).
+- Las notificaciones se envían tanto dentro de la aplicación como por correo (confirmación, aprobación, rechazo, cancelación, recordatorio antes de la reserva y confirmación con archivo de calendario `.ics`), y cada persona puede optar por no recibir el correo (la notificación dentro de la app no se apaga).
 
 ### Datos maestros institucionales
 
@@ -122,7 +122,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 
 1. El solicitante inicia sesión y accede al módulo de reservas.
 2. Consulta los espacios, equipos y recursos disponibles para su unidad.
-3. Selecciona la fecha, el horario, el tipo de uso, el espacio, el proyecto, el semillero y los recursos requeridos.
+3. Selecciona la fecha, el horario, el tipo de uso, el espacio, el proyecto y el semillero del catálogo, además de los recursos requeridos.
 4. Completa los asistentes, el motivo de la solicitud y la ubicación cuando corresponda.
 5. Envía la solicitud y el sistema valida los datos y registra la reserva en estado pendiente.
 6. El sistema muestra la confirmación y notifica al solicitante que la solicitud fue recibida.
@@ -220,4 +220,4 @@ Usuario → Next.js (React) → FastAPI → PostgreSQL → FastAPI → Next.js �
 
 - No incluye aplicaciones móviles nativas para Android o iOS.
 - No incluye pagos, cobros ni facturación asociados a las reservas.
-- No incluye integración con calendarios externos (más allá de una invitación de calendario enviada por correo como adjunto `.ics` al aprobar una reserva — ver Funcionalidades → Usuarios y trazabilidad) ni soporte multiidioma.
+- No incluye integración con calendarios externos; solo genera y adjunta un archivo `.ics` al correo de confirmación cuando se aprueba una reserva — ver Funcionalidades → Usuarios y trazabilidad. Tampoco incluye soporte multiidioma.

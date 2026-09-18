@@ -23,5 +23,6 @@ El módulo `auth` administra las cuentas, credenciales, sesiones y decisiones de
 - **RN-AUTH-SES-01:** Las sesiones se registran en `auth.sesiones` y una sesión revocada o vencida no puede continuar operaciones.
 - **RN-AUTH-SES-02:** Cerrar sesión revoca la sesión correspondiente.
 - **RN-AUTH-SES-03:** Los cambios de cuenta, identidad o permisos aplican a nuevas decisiones de autorización y no alteran la trazabilidad histórica.
+- **RN-AUTH-SES-04:** Después de autenticar una cuenta de Usuario, el sistema debe consultar si la actualización inicial del perfil está pendiente y dirigirla al flujo obligatorio de `usuarios`; la autenticación por sí sola no habilita operaciones de negocio restringidas por RN-USR-07 y RN-USR-08.
 
 Las entidades persistentes se detallan en [data-model.md](data-model.md). Los controles técnicos de seguridad se detallan en [security.md](security.md).

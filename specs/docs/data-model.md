@@ -4,7 +4,7 @@
 
 Documentación de la estructura activa de `reservas_db` (PostgreSQL 13.23), verificada contra la instancia. Se excluye completamente `reservas_legacy`.
 
-El modelo incorpora como cambios pendientes de aplicar en la base de datos el catálogo común `recursos.recursos`, la relación `equipos.equipos.recurso_id`, las tablas especializadas `recursos.mobiliarios` y `recursos.otros_recursos`, la tabla `equipos.categoria`, la FK desde `equipos.equipos.id_categoria`, las tablas `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado` e `investigacion.usuario_trabajos_grado`, y los campos `requiere_apoyo` de equipos y reservas. El inventario verificado de la instancia indicado a continuación no incluye estas incorporaciones.
+El modelo incorpora como cambios pendientes de aplicar en la base de datos el catálogo común `recursos.recursos`, la relación `equipos.equipos.recurso_id`, las tablas especializadas `recursos.mobiliarios` y `recursos.otros_recursos`, la tabla `equipos.categoria`, la FK desde `equipos.equipos.id_categoria`, las tablas `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado` e `investigacion.usuario_trabajos_grado`, el campo `usuarios.usuarios.perfil_actualizado_at` y los campos `requiere_apoyo` de equipos y reservas. El inventario verificado de la instancia indicado a continuación no incluye estas incorporaciones.
 
 La base verificada tenía 9 schemas visibles; el modelo objetivo agrega el schema `recursos`. `public` existe, pero no contiene tablas del modelo activo. El inventario verificado comprende 8 schemas con tablas y 28 tablas; las incorporaciones objetivo se documentan separadamente y quedan pendientes de migración. `reservas_legacy` ya no existe en la instancia verificada. No hay tipos `ENUM`; los estados y tipos son `varchar` o `boolean` con `CHECK` cuando aplica.
 
@@ -23,7 +23,7 @@ Los modelos de módulo centralizan el detalle por responsabilidad funcional. Est
 | [resources](../modules/resources/data-model.md) | `equipos.equipos`, `equipos.categoria`, `recursos.recursos`, `recursos.mobiliarios`, `recursos.otros_recursos`, `reservas.laboratorios_config` |
 | [notifications](../modules/notifications/data-model.md) | `reservas.notificaciones` |
 | [reservations](../modules/reservations/data-model.md) | `reservas.tipos_reserva`, `reservas.motivos_solicitud`, `reservas.reservas`, `reservas.reserva_acompanantes`, `reservas.reserva_equipos`, `reservas.reserva_mobiliarios`, `reservas.reserva_otros` |
-| [researchs](../modules/researchs/data-model.md) | `investigacion.modalidades_vinculacion`, `investigacion.perfiles`, `investigacion.proyectos`, `investigacion.semilleros`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado`, `investigacion.usuario_trabajos_grado`, `investigacion.usuario_modalidades_vinculacion`, `investigacion.usuario_perfiles`, `investigacion.usuario_proyectos`, `investigacion.usuario_semilleros` |
+| [researchs](../modules/researchs/data-model.md) | `investigacion.modalidades_vinculacion`, `investigacion.perfiles`, `investigacion.proyectos`, `investigacion.semilleros`, `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado`, `investigacion.usuario_trabajos_grado`, `investigacion.usuario_modalidades_vinculacion`, `investigacion.usuario_perfiles`, `investigacion.usuario_proyectos`, `investigacion.usuario_semilleros` |
 | [reports](../modules/reports/data-model.md) | Sin tablas propias; fuentes de consulta |
 
 El catálogo unificado objetivo `reservas.recursos` se define en Resources; las asignaciones y detalles objetivo se definen en Reservations. Los modelos de módulo identifican las diferencias con las reglas y los cambios pendientes. Antes de retirar el inventario de este archivo, debe conservarse una referencia histórica de la estructura de origen.
@@ -157,6 +157,10 @@ La tabla ya no contiene `supabase_id`.
 | `modalidad_reserva` | varchar(50) | Sí | — |
 | `correo` | varchar(255) | Sí | — |
 | `notificar_por_correo` | boolean | NN | DEFAULT `false` |
+| `mostrar_estado_reserva` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
+| `mostrar_reservista` | boolean | NN | DEFAULT `false`; incorporación objetivo pendiente de migración |
+
+Las opciones de visibilidad son incorporaciones objetivo por unidad, pendientes de aplicar en la base de datos. Sus reglas se centralizan en [RN-DIS de Reservations](../modules/reservations/business-rules.md#disponibilidad--rn-dis) y su definición se mantiene alineada con [Resources](../modules/resources/data-model.md#reservaslaboratorios_config).
 
 ## `reservas.espacios`
 
@@ -291,6 +295,7 @@ UQ `uq_reserva_otro(reserva_id, otro_id)`; índice `ix_reserva_otros_otro(otro_i
 | `estado` | boolean | NN | DEFAULT `true` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
+| `perfil_actualizado_at` | timestamptz | Sí | NULL mientras la actualización inicial obligatoria esté pendiente |
 
 ## Schema `auth`
 
@@ -325,7 +330,7 @@ El check `ck_auth_cuentas_identidad` exige exactamente una identidad: para `USUA
 
 El dominio pertenece al módulo [Researchs](../modules/researchs/overview.md). Sus [reglas RN-INV](../modules/researchs/business-rules.md) y [modelo detallado](../modules/researchs/data-model.md) se mantienen alineados con esta sección.
 
-`investigacion` es dueño de las entidades académicas/investigativas y de sus vinculaciones con `usuarios.usuarios`. `reservas` únicamente registra cuáles de esos contextos justificaron la reserva, mediante las referencias definidas en [reservas.reserva_contexto](../modules/reservations/data-model.md#reservasreserva_contexto), y conserva su información histórica.
+`investigacion` es dueño de las entidades académicas/investigativas, de las actividades institucionales y de sus vinculaciones con `usuarios.usuarios`. `reservas` únicamente registra cuáles de esos contextos justificaron la reserva, mediante las referencias definidas en [reservas.reserva_contexto](../modules/reservations/data-model.md#reservasreserva_contexto), y conserva su información histórica.
 
 ### `investigacion.modalidades_vinculacion`
 
@@ -361,6 +366,17 @@ El dominio pertenece al módulo [Researchs](../modules/researchs/overview.md). S
 | `id_semillero` | integer | NN | PK `pk_semilleros` |
 | `codigo` | varchar(50) | NN | UQ `uq_semilleros_codigo` |
 | `nombre` | varchar(150) | NN | — |
+| `estado` | boolean | NN | DEFAULT `true` |
+
+### `investigacion.actividades_institucionales`
+
+Nueva entidad del modelo, pendiente de aplicar en la base de datos. Researchs administra el catálogo, sus datos obligatorios y su estado; reservas solo conserva la referencia al contexto seleccionado.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id_actividad` | integer | NN | PK `pk_actividades_institucionales`; identity BY DEFAULT |
+| `nombre` | varchar(255) | NN | — |
+| `dependencia` | varchar(255) | NN | — |
 | `estado` | boolean | NN | DEFAULT `true` |
 
 ### `investigacion.pasantias`
