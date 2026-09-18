@@ -20,6 +20,8 @@ La estructura persistente se define en [data-model](../core/data-model.md), las 
 
 - **RN-LAB-06:** Una unidad organizacional puede existir sin tener habilitado el servicio de Reservas. La existencia de la unidad no implica que pueda recibir reservas.
 
+- **RN-LAB-07:** `notificar_por_correo` determina si la unidad tiene habilitado el envío de correo saliente para las notificaciones asociadas a sus reservas y recursos. Esta configuración es propia de la unidad, se aplica a todas las personas relacionadas con ella y es independiente de la preferencia de correo que cada persona pueda configurar individualmente (ver [notifications](../business-rules%20(1).md)). Deshabilitarla no afecta la generación de notificaciones in-app.
+
 ---
 
 ## Espacios — RN-ESP
@@ -34,7 +36,7 @@ La estructura persistente se define en [data-model](../core/data-model.md), las 
 
 - **RN-ESP-05:** Deshabilitar un espacio conserva el registro, sus relaciones y el historial de reservas.
 
-- **RN-ESP-06:** Cuando un espacio sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben identificarse como afectadas y generar el tratamiento o notificación correspondiente.
+- **RN-ESP-06:** Cuando un espacio sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
 
 - **RN-ESP-07:** La exclusividad temporal del espacio se rige por las reglas de disponibilidad definidas en [bookings](bookings.md).
 
@@ -62,7 +64,11 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-REC-08:** Deshabilitar un recurso conserva su registro, sus relaciones y el historial de reservas.
 
-- **RN-REC-09:** Cuando un recurso sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben identificarse como afectadas y generar el tratamiento o notificación correspondiente.
+- **RN-REC-09:** Cuando un recurso sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
+
+- **RN-REC-10:** `requiere_apoyo_auxiliar` es un atributo propio del catálogo del recurso, configurado por la unidad organizacional responsable. Determina si el recurso exige acompañamiento técnico y su efecto sobre la reserva se rige por las reglas definidas en [bookings](bookings.md).
+
+- **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los recursos con `acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado `boolean = true` u operativo.
 
 ---
 
@@ -120,8 +126,20 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-DES-02:** Deshabilitar un laboratorio, espacio o recurso impide su utilización en nuevas reservas mientras permanezca deshabilitado.
 
-- **RN-DES-03:** La desactivación no cancela automáticamente reservas existentes.
+- **RN-DES-03:** La desactivación de un laboratorio, espacio o recurso cancela automáticamente las reservas futuras `PENDIENTE` o `APROBADA` que dependan de él, conforme a las reglas de cancelación definidas en [bookings]. No afecta reservas ya finalizadas, rechazadas o canceladas.
 
-- **RN-DES-04:** Las reservas futuras afectadas por una desactivación deben conservarse y recibir el tratamiento definido por el dominio de Reservas.
+- **RN-DES-04:** Las reservas futuras afectadas por una desactivación se cancelan automáticamente y se notifican a los usuarios afectados, registrando la desactivación como motivo, conforme a las reglas de cancelación definidas en [bookings].
 
 - **RN-DES-05:** Las reservas históricas conservan la referencia al espacio o recurso utilizado aunque posteriormente este sea deshabilitado.
+
+---
+
+## Importación masiva de inventario — RN-IMP
+
+- **RN-IMP-01:** El sistema permite importar equipos institucionales de forma masiva a partir de una planilla.
+
+- **RN-IMP-02:** La importación es idempotente por placa: un registro cuya placa ya exista se actualiza con los datos de la planilla en lugar de duplicarse; un registro con placa nueva se crea.
+
+- **RN-IMP-03:** Un registro de la planilla sin placa, o con una placa inválida, no se importa y debe reportarse como error de la importación sin afectar el resto de los registros válidos.
+
+- **RN-IMP-04:** La importación no modifica retroactivamente las reservas históricas asociadas a un equipo actualizado (ver RN-EQP-05).

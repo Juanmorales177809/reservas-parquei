@@ -6,19 +6,23 @@ Las notificaciones informan a los usuarios sobre eventos relevantes generados po
 
 Las reglas que determinan cuándo ocurre un evento pertenecen al módulo propietario correspondiente.
 
+Un mismo evento puede dar lugar a dos registros independientes: una notificación in-app (ver RN-EST) y un envío de correo saliente (ver RN-COR). Ambos se derivan del mismo evento, pero cada uno tiene su propio ciclo de vida — la existencia, el contenido o el estado de uno no condiciona la existencia, el contenido o el estado del otro.
+
 ---
 
 ## Creación de notificaciones — RN-NOT
 
-- **RN-NOT-01:** Toda notificación debe estar asociada a un evento identificable generado por una operación válida del sistema.
+- **RN-NOT-01:** Toda notificación debe estar asociada a un evento identificable, generado ya sea por una operación válida del sistema o por una condición temporal verificada por un proceso automático (por ejemplo, un recordatorio previo al inicio de una reserva o la expiración de un plazo en lista de espera).
 
-- **RN-NOT-02:** La creación de una notificación no puede modificar el resultado de la operación que la originó.
+- **RN-NOT-02:** La creación de una notificación no puede modificar el resultado de la operación o condición que la originó.
 
 - **RN-NOT-03:** Una notificación debe identificar como mínimo el destinatario, el tipo de evento, la fecha y hora de generación y la referencia al elemento relacionado cuando corresponda.
 
 - **RN-NOT-04:** El contenido de una notificación debe corresponder al evento que la originó y no debe inferir estados o resultados distintos de los registrados por el módulo propietario.
 
-- **RN-NOT-05:** Una misma operación no debe generar notificaciones duplicadas para el mismo destinatario, evento y referencia funcional.
+- **RN-NOT-05:** Una misma operación o condición no debe generar notificaciones duplicadas para el mismo destinatario, evento, canal y referencia funcional.
+
+- **RN-NOT-06:** Un evento puede originar, según corresponda, una notificación in-app, un envío de correo, ambos o ninguno. La determinación de qué canales aplican para cada tipo de evento pertenece a la configuración del sistema y a las preferencias vigentes del destinatario (ver RN-PREF).
 
 ---
 
@@ -54,19 +58,43 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-EVT-07:** La modificación de una reserva solo genera una nueva notificación cuando el cambio corresponda a un evento definido como notificable.
 
+- **RN-EVT-08:** El registro de una propuesta de horario alternativo, y el registro de una contrapropuesta, generan cada uno una notificación para la contraparte del intercambio.
+
+- **RN-EVT-09:** La incorporación de un recurso adicional a una reserva ya aprobada genera una notificación para el reservista indicando el recurso agregado.
+
+- **RN-EVT-10:** La liberación de un cupo para un solicitante en lista de espera genera una notificación informando la disponibilidad y el plazo para confirmarla.
+
+- **RN-EVT-11:** El vencimiento del plazo de un recordatorio automático previo al inicio de una reserva genera una notificación para el reservista, sin que esto constituya una operación sobre la reserva.
+
 ---
 
-## Estado de las notificaciones — RN-EST
+## Estado de las notificaciones in-app — RN-EST
 
-- **RN-EST-01:** Una notificación debe conservar su estado de lectura de manera independiente del estado del elemento que la originó.
+- **RN-EST-01:** Una notificación in-app debe conservar su estado de lectura de manera independiente del estado del elemento que la originó.
 
-- **RN-EST-02:** Una notificación nueva se registra inicialmente como no leída.
+- **RN-EST-02:** Una notificación in-app nueva se registra inicialmente como no leída.
 
-- **RN-EST-03:** El destinatario puede marcar una notificación propia como leída.
+- **RN-EST-03:** El destinatario puede marcar una notificación in-app propia como leída.
 
-- **RN-EST-04:** Marcar una notificación como leída no modifica el estado de la reserva, recurso u operación relacionada.
+- **RN-EST-04:** Marcar una notificación in-app como leída no modifica el estado de la reserva, recurso, operación relacionada ni de un envío de correo asociado al mismo evento.
 
-- **RN-EST-05:** El sistema debe permitir distinguir entre notificaciones leídas y no leídas.
+- **RN-EST-05:** El sistema debe permitir distinguir entre notificaciones in-app leídas y no leídas.
+
+---
+
+## Correo saliente — RN-COR
+
+- **RN-COR-01:** Un envío de correo asociado a un evento notificable se registra inicialmente en estado pendiente.
+
+- **RN-COR-02:** Un envío de correo pasa a estado enviado cuando el mecanismo de entrega confirma su transmisión, o a estado fallido cuando la transmisión no puede completarse.
+
+- **RN-COR-03:** Un envío de correo en estado fallido debe reintentarse automáticamente conforme a la política de reintentos vigente, sin requerir una nueva operación sobre el evento que lo originó.
+
+- **RN-COR-04:** El agotamiento de los reintentos de un envío de correo no invalida la operación de negocio que originó el evento (ver RN-INT-04) ni el registro histórico de la notificación asociada.
+
+- **RN-COR-05:** El estado de un envío de correo se conserva y consulta de forma independiente del estado de lectura de la notificación in-app asociada al mismo evento, cuando ambas existan.
+
+- **RN-COR-06:** Un envío de correo puede incluir un archivo adjunto cuando el tipo de evento lo requiera (por ejemplo, una invitación de calendario), conforme a lo definido en RN-CAL y RN-CNT.
 
 ---
 
@@ -86,11 +114,35 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-CNT-01:** El contenido de una notificación debe ser comprensible sin requerir acceso a información interna de implementación.
 
-- **RN-CNT-02:** Una notificación no debe contener credenciales, tokens, hashes de contraseñas, secretos ni información técnica sensible.
+- **RN-CNT-02:** Una notificación no debe contener credenciales, hashes de contraseñas, secretos de sesión ni información técnica sensible. Esta restricción no aplica a un token de un solo uso incluido intencionalmente en un correo para completar un flujo específico (por ejemplo, invitación inicial o recuperación de contraseña, ver RN-CAL y dependencias de autenticación), siempre que dicho token no otorgue acceso más allá del flujo para el que fue emitido.
 
 - **RN-CNT-03:** La notificación debe utilizar información suficiente para identificar el evento sin duplicar innecesariamente toda la información de la entidad relacionada.
 
 - **RN-CNT-04:** Cuando el contenido incluya datos que puedan cambiar posteriormente, la notificación debe conservar la información necesaria para representar correctamente el evento ocurrido.
+
+- **RN-CNT-05:** Un envío de correo puede incluir uno o más archivos adjuntos cuando el tipo de evento lo requiera. El adjunto está sujeto a las mismas restricciones de contenido que el resto de la notificación (RN-CNT-01, RN-CNT-02).
+
+---
+
+## Invitaciones de calendario — RN-CAL
+
+- **RN-CAL-01:** La aprobación de una reserva que deba reflejarse en un calendario externo genera un envío de correo con un archivo adjunto de invitación de calendario, además de la notificación definida en RN-EVT-02.
+
+- **RN-CAL-02:** Una modificación notificable de una reserva con invitación de calendario vigente genera un envío de correo con una actualización de dicha invitación.
+
+- **RN-CAL-03:** La cancelación de una reserva con invitación de calendario vigente genera un envío de correo con la cancelación de dicha invitación.
+
+- **RN-CAL-04:** El contenido del archivo adjunto de calendario debe corresponder al estado vigente de la reserva al momento de generarse, conforme a RN-INT-03.
+
+---
+
+## Preferencias de envío — RN-PREF
+
+- **RN-PREF-01:** Un destinatario puede configurar si desea recibir por correo las notificaciones de un tipo de evento determinado. Esta preferencia no afecta la generación ni la consulta de la notificación in-app correspondiente.
+
+- **RN-PREF-02:** Un laboratorio o unidad organizacional puede deshabilitar el envío de correo para el conjunto de eventos asociados a sus reservas o recursos, sin que ello afecte el registro de notificaciones in-app.
+
+- **RN-PREF-03:** Las preferencias de envío no aplican a comunicaciones de autenticación (invitación, recuperación de contraseña) definidas por el módulo correspondiente.
 
 ---
 
@@ -114,7 +166,7 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-INT-03:** La estrategia técnica utilizada para coordinar la operación principal y la generación de la notificación debe preservar la consistencia entre ambos registros.
 
-- **RN-INT-04:** Si el mecanismo de entrega o visualización falla, la operación de negocio original no debe considerarse inválida únicamente por dicha falla, salvo que una regla global establezca lo contrario.
+- **RN-INT-04:** Si el mecanismo de entrega o visualización falla, la operación de negocio original no debe considerarse inválida únicamente por dicha falla, salvo que una regla global establezca lo contrario. Para el canal de correo, el comportamiento esperado ante la falla es el reintento automático definido en RN-COR-03, no la invalidación de la operación.
 
 ---
 
@@ -126,7 +178,7 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - El módulo de autenticación y autorización determina la identidad de la cuenta y los permisos aplicables.
 
-- El módulo de notificaciones determina qué mensaje se registra, quién lo recibe y cuál es su estado de lectura.
+- El módulo de notificaciones determina qué mensaje se registra, quién lo recibe, por qué canal (in-app y/o correo) se entrega, y cuál es el estado de lectura o de envío correspondiente.
 
 - El módulo de notificaciones no modifica estados de reservas, permisos, recursos ni identidades.
 
@@ -140,7 +192,7 @@ Las reglas de este documento dependen de otros módulos únicamente en los sigui
 
 - **Recursos:** determina cuándo un espacio o recurso ha sido deshabilitado o cambia de condición.
 
-- **Autenticación y autorización:** determina la identidad de las cuentas y, cuando corresponda, qué personal se encuentra autorizado dentro de un ámbito organizacional.
+- **Autenticación y autorización:** determina la identidad de las cuentas, qué personal se encuentra autorizado dentro de un ámbito organizacional, y los eventos notificables propios de identidad (invitación inicial, reenvío de invitación, recuperación de contraseña, confirmación de cambio de contraseña). El módulo de notificaciones registra y entrega estas comunicaciones bajo las mismas reglas de contenido e integridad que el resto, pero no determina cuándo ocurren.
 
 - **Modelo persistente:** define las claves, relaciones y restricciones utilizadas para asociar una notificación con su destinatario y con el elemento relacionado.
 
@@ -159,3 +211,5 @@ Las reglas de este documento dependen de otros módulos únicamente en los sigui
 5. El estado de lectura pertenece exclusivamente a la notificación y no modifica la entidad relacionada.
 
 6. La generación de notificaciones debe evitar duplicados y mantener consistencia con la operación que las origina.
+
+7. La notificación in-app y el envío de correo son registros independientes derivados de un mismo evento; ninguno sustituye ni condiciona al otro.

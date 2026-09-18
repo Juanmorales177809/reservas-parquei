@@ -44,7 +44,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-USR-05:** La vinculación con `usuarios.usuarios` no concede permisos administrativos sobre reservas de terceros.
 
-- **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación.
+- **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos, pasantías, trabajos de grado y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación.
 
 - **RN-USR-07:** Una cuenta vinculada a `usuarios.usuarios` debe completar los datos mínimos de perfil requeridos antes de poder crear una reserva.
 
@@ -69,6 +69,8 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **RN-PER-08:** La vinculación simultánea con `usuarios.usuarios` y `personal.personal` representa una única cuenta con dos relaciones funcionales; no crea cuentas duplicadas ni identidades independientes.
 
 - **RN-PER-09:** Siempre debe existir al menos una cuenta vinculada a `personal.personal` con permisos de administración global vigentes. Ninguna operación puede eliminar, degradar o inhabilitar la última cuenta que los posee.
+
+- **RN-PER-10:** Una cuenta vinculada a `personal.personal` no puede realizar reservas en unidades organizacionales distintas a las que que pertenece con `id_unidad`.
 
 ---
 
@@ -137,7 +139,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **Reservas:** define qué acciones sobre reservas requieren autorización y bajo qué condiciones funcionales.
 - **Personal y cargos:** determinan la relación del personal con cargos, unidades organizacionales y permisos.
 - **Usuarios:** contiene la información funcional del reservista que no pertenece al dominio de autenticación.
-- **Investigación:** administra perfiles académicos, proyectos, semilleros y modalidades de vinculación.
+- **Investigación:** administra perfiles académicos, proyectos, semilleros, pasantías, trabajos de grado y sus vinculaciones con el usuario, así como las modalidades de vinculación.
 - **Notificaciones:** gestiona la entrega de notificaciones derivadas de eventos del dominio de identidad y autorización.
 - **Modelo persistente:** [data-model](../core/data-model.md) define claves, relaciones, restricciones e integridad referencial.
 

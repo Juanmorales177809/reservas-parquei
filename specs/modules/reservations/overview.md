@@ -48,6 +48,7 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 ## Dependencies
 
 - auth: identidad y autorización;
+- [researchs](../researchs/overview.md): contexto académico/investigativo y vinculaciones válidas del usuario;
 - resources: espacios y recursos;
 - notifications: comunicación de eventos.
 

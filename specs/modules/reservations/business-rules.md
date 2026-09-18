@@ -16,6 +16,7 @@ El modelo persistente se define en [data-model](../core/data-model.md), los espa
 - **RN-RES-06:** Los elementos asociados a una reserva deben pertenecer o estar disponibles para la unidad organizacional receptora, según corresponda.
 - **RN-RES-07:** Una misma cuenta puede mantener varias reservas simultáneas siempre que no exista una restricción específica del tipo de reserva ni conflicto sobre los elementos reservados.
 - **RN-RES-08:** Crear o modificar una reserva debe revalidar las reglas aplicables a su tipo de reserva.
+- **RN-RES-09:** Cuando un recurso incluido en la reserva exija acompañamiento de personal auxiliar o técnico, la reserva queda marcada con ese requisito de forma automática, sin que el usuario pueda quitarlo.
 
 ---
 
@@ -46,12 +47,12 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-03:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo espacio.
 - **RN-TIP-PE-04:** La reserva debe estar asociada a un espacio habilitado para reservas.
 - **RN-TIP-PE-05:** La cantidad de personas asociadas a la reserva no podrá superar la capacidad habilitada del espacio.
-- **RN-TIP-PE-06:** Toda reserva por espacio debe registrar al menos un contexto de uso: proyecto, semillero o actividad institucional.
-- **RN-TIP-PE-07:** El usuario solo puede asociar proyectos y semilleros en los que tenga una vinculación activa registrada en su perfil.
-- **RN-TIP-PE-08:** Cuando el usuario seleccione proyecto o semillero y exista una única opción disponible, esta se selecciona automáticamente.
-- **RN-TIP-PE-09:** Cuando existan varias opciones disponibles para el contexto seleccionado, el usuario debe seleccionar una.
-- **RN-TIP-PE-10:** Una reserva puede asociarse simultáneamente a un proyecto y a un semillero.
-- **RN-TIP-PE-11:** Cuando la reserva no se asocie a proyecto ni semillero, debe registrarse una actividad institucional.
+- **RN-TIP-PE-06:** Toda reserva por espacio debe registrar un contexto de uso conforme a `RN-CTX`: uno o más elementos académicos/investigativos, o una actividad institucional independiente.
+- **RN-TIP-PE-07:** El usuario solo puede asociar proyectos, semilleros, pasantías y trabajos de grado para los que tenga una vinculación válida conforme a `RN-CTX-05`.
+- **RN-TIP-PE-08:** Cuando el usuario seleccione un elemento de contexto académico/investigativo y exista una única opción válida disponible, esta se selecciona automáticamente.
+- **RN-TIP-PE-09:** Cuando existan varias opciones válidas para un elemento de contexto seleccionado, el usuario debe seleccionar una para ese elemento.
+- **RN-TIP-PE-10:** Una reserva puede asociarse simultáneamente a un proyecto, un semillero, una pasantía y un trabajo de grado, conforme a `RN-CTX-03`.
+- **RN-TIP-PE-11:** Cuando la reserva no se asocie a ningún elemento académico/investigativo, debe registrarse una actividad institucional habilitada. Esta no puede coexistir con los demás elementos de contexto, conforme a `RN-CTX-04`.
 - **RN-TIP-PE-12:** Al seleccionar un espacio, el sistema debe cargar los recursos asociados y los campos adicionales configurados para ese espacio.
 - **RN-TIP-PE-13:** El sistema debe indicar cuáles recursos asociados al espacio se encuentran disponibles y cuáles no están disponibles para la fecha y horario solicitados.
 - **RN-TIP-PE-14:** La falta de disponibilidad de uno o más recursos asociados al espacio no impide crear la reserva del espacio.
@@ -61,6 +62,9 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-18:** Cuando el espacio tenga campos adicionales configurados como obligatorios, el usuario debe diligenciarlos antes de enviar la solicitud.
 - **RN-TIP-PE-19:** Si el espacio no tiene campos adicionales configurados, la reserva continúa sin solicitar información adicional.
 - **RN-TIP-PE-20:** Los valores diligenciados en los campos adicionales deben conservarse asociados a la reserva como parte de su información histórica.
+- **RN-TIP-PE-21:** El gestor puede agregar recursos asociados a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
+- **RN-TIP-PE-22:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
+- **RN-TIP-PE-23:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
 
 ---
 
@@ -75,6 +79,9 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RI-07:** La entrega del recurso al usuario requiere la aprobación previa del gestor.
 - **RN-TIP-RI-08:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
 - **RN-TIP-RI-09:** Al recibir nuevamente el recurso o finalizar su uso dentro del laboratorio, el gestor debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RI-10:** El gestor puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
+- **RN-TIP-RI-11:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
+- **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
 
 ---
 
@@ -90,6 +97,11 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del gestor y la recepción del recurso por parte del usuario.
 - **RN-TIP-RC-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
 - **RN-TIP-RC-10:** Al recibir nuevamente el recurso, el gestor debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RC-11:** La orden de salida (`RN-TIP-RC-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
+- **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
+- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RC-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física del recurso no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
+- **RN-TIP-RC-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga del recurso.
 
 ---
 
@@ -105,6 +117,11 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del gestor y la recepción del recurso por parte del usuario.
 - **RN-TIP-RE-09:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
 - **RN-TIP-RE-10:** Al recibir nuevamente el recurso, el gestor debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RE-11:** La orden de salida externa (`RN-TIP-RE-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
+- **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados el equipo o herramienta, y el nombre de la actividad o evento cuando aplique según el contexto.
+- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante (unidad receptora), fecha de retiro y fecha de regreso, actividad asociada (proyecto de investigación, semillero, proyecto académico, servicio de extensión, docencia, calibración, mantenimiento u otro, según el contexto registrado en `RN-CTX`), código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la cuenta usuario. Los datos técnicos del recurso (placa, descripción, bodega, centro de costo y fecha de compra) se prellenan a partir del inventario de recursos.
+- **RN-TIP-RE-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física del recurso no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
+- **RN-TIP-RE-15:** Cuando la reserva se reprograme extendiendo su fecha de devolución, la orden de salida debe reflejar la fecha de prórroga del recurso.
 
 ---
 
@@ -192,6 +209,18 @@ Los únicos estados globales válidos son:
 
 ---
 
+## Propuesta y contrapropuesta de horario — RN-PROP
+
+- **RN-PROP-01:** En lugar de rechazar una reserva en estado `SOLICITADA`, el gestor puede proponer un horario o fecha alternativa, indicando un motivo.
+- **RN-PROP-02:** Una propuesta de horario notifica a la cuenta usuario y no cambia el estado de la reserva.
+- **RN-PROP-03:** La cuenta usuario puede aceptar la propuesta, rechazarla, o presentar una contrapropuesta con su propio motivo.
+- **RN-PROP-04:** Ante una contrapropuesta, únicamente el gestor puede aceptarla o rechazarla.
+- **RN-PROP-05:** Aceptar cualquier propuesta o contrapropuesta revalida las reglas aplicables al tipo de reserva (disponibilidad, horario o fechas, capacidad) antes de reprogramarla.
+- **RN-PROP-06:** Rechazar una propuesta o contrapropuesta conserva la reserva en estado `SOLICITADA` con su horario original, sin generar una nueva solicitud.
+- **RN-PROP-07:** Solo puede existir una propuesta o contrapropuesta vigente a la vez por reserva.
+
+---
+
 ## Cancelación — RN-CAN
 
 - **RN-CAN-01:** Cancelar una reserva conserva el registro y libera inmediatamente los espacios y recursos asociados para efectos de disponibilidad futura.
@@ -204,14 +233,46 @@ Los únicos estados globales válidos son:
 
 ---
 
-## Contexto académico e institucional — RN-CTX
+## Recordatorios — RN-REC
 
-- **RN-CTX-01:** Una reserva puede asociarse al contexto académico, investigativo o institucional bajo el cual se realiza.
-- **RN-CTX-02:** Cuando se asocie un perfil, semillero o proyecto, la cuenta usuario debe estar relacionada válidamente con dicho elemento al momento de crear la reserva.
-- **RN-CTX-03:** Cuando el tipo de reserva exija un contexto y el usuario no esté vinculado a un proyecto ni a un semillero, la reserva podrá asociarse a una actividad institucional habilitada.
-- **RN-CTX-04:** El contexto asociado a una reserva debe conservarse históricamente aunque posteriormente cambien los perfiles, proyectos, semilleros, actividades institucionales o modalidades de vinculación del usuario.
-- **RN-CTX-05:** Una reserva no requiere simultáneamente perfil, semillero, proyecto y modalidad. Solo se registran los elementos que correspondan al contexto real y a las reglas de su tipo de reserva.
+- **RN-REC-01:** El sistema envía un recordatorio automático a la cuenta usuario antes del inicio previsto de una reserva en estado `APROBADA` segun las reglas establecidas en [].
+- **RN-REC-02:** El recordatorio se envía una única vez por reserva y no se repite si ya fue enviado.
+- **RN-REC-03:** Reprogramar o cancelar la reserva antes del envío del recordatorio anula el envío pendiente para ese horario.
+
+---
+
+## Invitación de calendario — RN-CAL
+
+- **RN-CAL-01:** Al quedar una reserva en estado `APROBADA`, el sistema envía a los interesados una invitación de calendario que permite aceptar o rechazar el evento desde su propio cliente de correo.
+- **RN-CAL-02:** Si la reserva se reprograma, la invitación de calendario se actualiza conservando el mismo identificador de evento.
+- **RN-CAL-03:** Si la reserva se cancela o rechaza, se envía una cancelación de la invitación de calendario previamente enviada.
+
+---
+
+## Contexto de la reserva — RN-CTX
+
+El módulo [Researchs](../researchs/overview.md), propietario del dominio `investigacion`, es dueño del contexto académico/investigativo y de las vinculaciones del usuario. `reservas` únicamente registra cuáles de esos contextos justificaron la reserva y conserva su información histórica.
+
+- **RN-CTX-01:** Toda reserva que requiera contexto deberá estar asociada al menos a un contexto académico/investigativo o a una actividad institucional.
+- **RN-CTX-02:** El contexto académico/investigativo puede estar compuesto por uno o más de los siguientes elementos: semillero, proyecto, pasantía y trabajo de grado.
+- **RN-CTX-03:** Semillero, proyecto, pasantía y trabajo de grado pueden coexistir dentro de una misma reserva.
+- **RN-CTX-04:** Una actividad institucional constituye un contexto independiente y no puede coexistir en la misma reserva con semillero, proyecto, pasantía ni trabajo de grado.
+- **RN-CTX-05:** Solo pueden seleccionarse vinculaciones académicas o investigativas activas y válidas del usuario, conforme al dominio `investigacion`, responsable de dicha información.
 - **RN-CTX-06:** El contexto académico, investigativo o institucional de una reserva no otorga por sí mismo permisos administrativos sobre reservas.
+- **RN-CTX-07:** El contexto asociado a una reserva debe conservarse históricamente aunque posteriormente cambien los proyectos, semilleros, pasantías, trabajos de grado, actividades institucionales o vinculaciones del usuario.
+
+---
+
+## Acompañante — RN-ACO
+
+- **RN-ACO-01:** El acompañante de una reserva es la persona que supervisa y orienta al reservista en el desarrollo del proyecto o tarea asociada, dentro del contexto académico o investigativo registrado en la reserva.
+- **RN-ACO-02:** El acompañante debe corresponder a una cuenta existente en el sistema.
+- **RN-ACO-03:** Una cuenta solo puede asociarse como acompañante de una reserva si pertenece al mismo proyecto o semillero registrado como contexto de esa reserva.
+- **RN-ACO-04:** Al seleccionar el proyecto o semillero de la reserva, el sistema debe ofrecer como opciones de acompañante únicamente las cuentas asociadas a ese proyecto o semillero.
+- **RN-ACO-05:** Una reserva puede registrar uno o más acompañantes.
+- **RN-ACO-06:** El acompañante asociado a una reserva se conserva históricamente aunque posteriormente deje de pertenecer al proyecto o semillero.
+- **RN-ACO-07:** Ser acompañante de una reserva no otorga por sí mismo permisos administrativos sobre ella; solo la autorización definida en el módulo `auth` determina qué acciones puede ejercer.
+- **RN-ACO-08:** La figura de acompañante aplica a todos los tipos de reserva excepto lista de espera (`RN-TIP-PLE`) y reserva por servicio (`RN-TIP-SER`), que no admiten acompañante.
 
 ---
 
@@ -224,6 +285,14 @@ Los únicos estados globales válidos son:
 
 ---
 
+## Reportes — RN-REP
+
+- **RN-REP-01:** Solo el personal con permisos de gestión o administración puede generar y exportar reportes de reservas. La cuenta usuario no tiene acceso a esta funcionalidad.
+- **RN-REP-02:** El personal autorizado puede exportar reservas y su historial de auditoría dentro de su ámbito de autorización, en formato CSV o Excel.
+- **RN-REP-03:** Un reporte exportado contiene exactamente los datos visibles según el filtro aplicado por quien lo solicita, sin exceder su ámbito de acceso.
+
+---
+
 ## Dependencias funcionales
 
 Las reglas de este documento dependen de otros dominios únicamente en los siguientes aspectos:
@@ -233,7 +302,7 @@ Las reglas de este documento dependen de otros dominios únicamente en los sigui
 - **Recursos:** [business-rules.md](../docs/modules/resources/business-rules.md) determina existencia, habilitación, clasificación y estado operativo de los recursos.
 - **Notificaciones:** [business-rules.md](../docs/modules/notifications/business-rules.md) determina canales, mecanismos y reglas de entrega de las notificaciones generadas por el dominio de reservas.
 - **Modelo persistente:** [data-model](../core/data-model.md) define claves, relaciones, constraints y garantías transaccionales.
-- **Investigación y contexto institucional:** perfiles, semilleros, proyectos, actividades institucionales y modalidades de vinculación son datos de contexto y no sustituyen las reglas de autorización.
+- **Investigación y contexto institucional:** perfiles, semilleros, proyectos, actividades institucionales y modalidades de vinculación son datos de contexto y no sustituyen las reglas de autorización. También determina qué cuentas pertenecen a cada proyecto o semillero, base para ofrecerlas como opciones válidas de acompañante (`RN-ACO`).
 
 ---
 

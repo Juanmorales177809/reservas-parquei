@@ -9,6 +9,13 @@ Esta carpeta contiene la documentación funcional y técnica del sistema usando 
 - [`decisions/`](decisions/): preguntas abiertas y decisiones pendientes.
 - [`lia/`](lia/): documentación del modelo maestro de LIA, en la misma PostgreSQL y con responsabilidad independiente.
 
+## Módulo Researchs — Investigación
+
+El módulo [Researchs](modules/researchs/overview.md) administra el contexto académico/investigativo y las vinculaciones del usuario en el schema `investigacion`.
+
+- [Reglas de negocio RN-INV](modules/researchs/business-rules.md).
+- [Modelo de datos](modules/researchs/data-model.md), alineado con el [modelo general](docs/data-model.md#schema-investigacion).
+
 ## Contratos de Reservas
 
 - [Reservas](features/bookings.md): RN-TIP, RN-RES, RN-EST, RN-DIS, RN-APR, RN-CAN y RN-AUD.
