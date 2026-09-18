@@ -2,6 +2,10 @@
 
 Este documento describe los flujos de interacción del dominio de reservas. Las reglas de negocio asociadas se definen en [business-rules.md](business-rules.md).
 
+## Condición común de acompañantes
+
+Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera y servicio no permiten acompañantes.
+
 ---
 
 ## UF-RES-01 — Crear reserva por espacio
@@ -26,8 +30,7 @@ Usuario.
 14. El usuario selecciona uno o más elementos de contexto académico/investigativo (proyecto, semillero, pasantía y trabajo de grado), o una actividad institucional independiente. El sistema impide combinar la actividad institucional con los demás elementos, conforme a `RN-CTX`.
 15. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
 16. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
-17. Cuando el contexto seleccionado sea un proyecto o semillero, el sistema muestra únicamente las cuentas asociadas a ese proyecto o semillero como opciones válidas de acompañante, conforme a `RN-ACO`.
-18. El usuario selecciona uno o más acompañantes de esa lista.
+17. El Usuario aplica la condición común de acompañantes; puede continuar sin seleccionar ninguno.
 19. El usuario puede registrar una observación para el Técnico.
 20. El usuario envía la solicitud.
 21. El sistema revalida las reglas aplicables.
