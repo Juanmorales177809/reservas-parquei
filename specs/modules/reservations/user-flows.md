@@ -65,12 +65,12 @@ Usuario.
 1. El usuario selecciona el laboratorio o unidad organizacional.
 2. Selecciona `Recurso para uso dentro del laboratorio`.
 3. El sistema muestra los recursos habilitados.
-4. El usuario selecciona uno o varios recursos.
+4. El usuario selecciona uno o varios recursos: un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es (`RN-TIP-RI-01`, `RN-RES-12`).
 5. Si un equipo seleccionado tiene `requiere_apoyo = true`, el sistema selecciona “requiere técnico” y bloquea su desactivación; si ninguno lo exige, el usuario puede solicitarlo voluntariamente.
-5. Selecciona fecha y hora de inicio y fecha y hora de finalización de uso.
-6. El sistema valida disponibilidad durante todo el periodo.
-7. El usuario envía la solicitud.
-8. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración de aprobación automática.
+6. Selecciona la fecha y el horario de inicio y finalización de uso, dentro de un mismo día y aplicables a todos los recursos (`RN-TIP-RI-02`).
+7. El sistema valida la disponibilidad de cada recurso durante todo el periodo.
+8. El usuario envía la solicitud.
+9. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración de aprobación automática.
 
 ### Ejecución
 1. El Técnico  entrega físicamente el recurso.
@@ -259,12 +259,14 @@ Se deshabilita un espacio o recurso.
 
 ### Flujo
 1. El sistema identifica las reservas futuras que dependan del elemento deshabilitado.
-2. Excluye las reservas cuya ejecución ya haya iniciado.
-3. Las reservas afectadas pasan automáticamente a `CANCELADA`.
-4. El sistema registra como motivo la deshabilitación del espacio o recurso.
-5. Se libera la disponibilidad asociada.
-6. El sistema notifica a los usuarios afectados.
-7. La acción queda registrada en auditoría.
+2. Excluye las reservas cuya ejecución ya haya iniciado (`RN-CAN-06`).
+3. El sistema determina, para cada reserva, si el elemento deshabilitado es el objeto de la reserva: el espacio en una reserva por espacio, o el recurso con rol `PRINCIPAL` en una reserva de recurso (`RN-CAN-04`).
+4. Si lo es, la reserva pasa automáticamente a `CANCELADA`.
+5. Si el elemento es un recurso con rol `ADICIONAL`, el sistema lo retira de la reserva conservando su historial de asignación y la reserva continúa vigente (`RN-CAN-05`).
+6. El sistema registra como motivo la deshabilitación del espacio o recurso (`RN-CAN-08`).
+7. Se libera la disponibilidad asociada al elemento retirado o a la reserva cancelada.
+8. El sistema notifica a los usuarios afectados, distinguiendo cancelación de retiro de un recurso complementario (`RN-CAN-07`).
+9. La acción queda registrada en auditoría.
 
 ---
 
@@ -346,7 +348,7 @@ Sistema.
 Una reserva pasa a `APROBADA`, excepto lista de espera, o se modifica y requiere el envío de una nueva confirmación.
 
 ### Flujo
-1. Cuando la reserva queda `APROBADA`, excepto lista de espera que no genera `.ics`, el sistema genera un archivo `.ics` con la fecha, horario, ubicación o espacio cuando aplique y descripción de la reserva.
+1. Cuando la reserva queda `APROBADA`, excepto lista de espera que no genera `.ics`, el sistema genera un archivo `.ics` con la ubicación o espacio cuando aplique y la descripción de la reserva, representando el periodo según `RN-CAL-02`: con horario para espacio y recurso interno, y como evento de día completo para campus y externo.
 2. El sistema adjunta el archivo `.ics` al correo de confirmación de la reserva.
 3. Si la reserva es modificada y se envía una nueva confirmación, el sistema genera un nuevo archivo `.ics` con la información vigente y lo adjunta a ese correo.
 4. El flujo no sincroniza directamente calendarios externos ni persiste identificadores de eventos externos.

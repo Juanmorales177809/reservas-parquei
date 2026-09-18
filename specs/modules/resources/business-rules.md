@@ -36,7 +36,7 @@ La estructura persistente se define en [data-model](data-model.md), las reglas d
 
 - **RN-ESP-05:** Deshabilitar un espacio conserva el registro, sus relaciones y el historial de reservas.
 
-- **RN-ESP-06:** Cuando un espacio sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
+- **RN-ESP-06:** Cuando un espacio sea deshabilitado, las reservas futuras `SOLICITADA` o `APROBADA` que lo utilicen deben tratarse conforme a las reglas de cancelación de [reservas](../reservations/business-rules.md#cancelación--rn-can), `RN-CAN-04` a `RN-CAN-08`, que determinan cuándo la reserva se cancela y cuándo solo se retira el elemento. Resources no define ese efecto.
 
 - **RN-ESP-07:** La exclusividad temporal del espacio se rige por las reglas de disponibilidad definidas en [reservations](../reservations/business-rules.md).
 
@@ -64,11 +64,11 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-REC-08:** Deshabilitar un recurso conserva su registro, sus relaciones y el historial de reservas.
 
-- **RN-REC-09:** Cuando un recurso sea deshabilitado y existan reservas futuras `PENDIENTE` o `APROBADA` que lo utilicen, dichas reservas deben cancelarse automáticamente y notificarse a los usuarios afectados, conforme a las reglas de cancelación definidas en [bookings].
+- **RN-REC-09:** Cuando un recurso sea deshabilitado, las reservas futuras `SOLICITADA` o `APROBADA` que lo utilicen deben tratarse conforme a las reglas de cancelación de [reservas](../reservations/business-rules.md#cancelación--rn-can), `RN-CAN-04` a `RN-CAN-08`, que distinguen el recurso `PRINCIPAL` del `ADICIONAL`. Resources no define ese efecto.
 
 - **RN-REC-10:** `requiere_apoyo` es un atributo propio de `equipos.equipos`, obligatorio y configurado por la unidad organizacional responsable. Indica si el equipo exige acompañamiento técnico durante su uso.
 
-- **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los recursos con `acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado `boolean = true` u operativo.
+- **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los equipos con `equipos.equipos.acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado u operatividad, por estar destinados a ensayos certificados. La acreditación es un atributo exclusivo de equipos: mobiliarios y otros recursos no se filtran por esta condición.
 
 ---
 
@@ -134,11 +134,15 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-DES-02:** Deshabilitar un laboratorio, espacio o recurso impide su utilización en nuevas reservas mientras permanezca deshabilitado.
 
-- **RN-DES-03:** La desactivación de un laboratorio, espacio o recurso cancela automáticamente las reservas futuras `PENDIENTE` o `APROBADA` que dependan de él, conforme a las reglas de cancelación definidas en [bookings]. No afecta reservas ya finalizadas, rechazadas o canceladas.
+- **RN-DES-03:** La desactivación de un laboratorio, espacio o recurso afecta las reservas futuras `SOLICITADA` o `APROBADA` que dependan de él, que se tratan conforme a `RN-CAN-04` a `RN-CAN-08` de [reservas](../reservations/business-rules.md#cancelación--rn-can). No afecta reservas ya finalizadas, rechazadas o canceladas.
 
-- **RN-DES-04:** Las reservas futuras afectadas por una desactivación se cancelan automáticamente y se notifican a los usuarios afectados, registrando la desactivación como motivo, conforme a las reglas de cancelación definidas en [bookings].
+- **RN-DES-04:** La notificación a los usuarios afectados y el registro de la desactivación como motivo corresponden a las reglas de cancelación de [reservas](../reservations/business-rules.md#cancelación--rn-can), que determinan además si la reserva se cancela o si únicamente se retira el elemento desactivado.
 
 - **RN-DES-05:** Las reservas históricas conservan la referencia al espacio o recurso utilizado aunque posteriormente este sea deshabilitado.
+
+- **RN-DES-06:** Cuando una desactivación vaya a cancelar reservas futuras conforme a `RN-CAN-04` del dominio de reservas —por tratarse de un espacio o de un recurso con rol `PRINCIPAL`—, el sistema debe advertirlo antes de ejecutarla. La advertencia indica la cantidad de reservas futuras que se cancelarán y exige una confirmación explícita del actor; si este no confirma, la desactivación no se ejecuta y no se modifica ninguna reserva.
+
+- **RN-DES-07:** La advertencia de `RN-DES-06` no se presenta cuando la desactivación no cancela reservas, es decir, cuando el elemento no tiene reservas futuras o cuando solo participa como recurso `ADICIONAL` y únicamente será retirado conforme a `RN-CAN-05`.
 
 ---
 

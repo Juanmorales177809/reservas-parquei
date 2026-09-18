@@ -4,7 +4,7 @@
 
 - **RN-ESP-01:** Todo espacio debe pertenecer a una unidad organizacional.
 
-- **RN-ESP-02:** Un espacio debe definir su capacidad máxima cuando esta aplique.
+- **RN-ESP-02:** Todo espacio debe definir su capacidad máxima, que es obligatoria y mayor que cero. No se admite un espacio sin capacidad declarada.
 
 - **RN-ESP-03:** Solo el Técnico de la unidad correspondiente puede crear, modificar o deshabilitar espacios; el Administrador puede hacerlo sobre cualquier unidad.
 
@@ -42,7 +42,7 @@
 
 - **RN-ESP-DIS-01:** Un espacio solo puede ofrecerse para nuevas reservas cuando se encuentre habilitado.
 
-- **RN-ESP-DIS-02:** La disponibilidad de un espacio debe considerar su horario configurado y las reservas bloqueantes existentes.
+- **RN-ESP-DIS-02:** Un espacio no tiene horario propio: su disponibilidad debe considerar el horario de atención de su unidad, definido en `reservas.laboratorios_config`, y las reservas bloqueantes existentes. Cambiar el horario de la unidad cambia el de todos sus espacios.
 
 - **RN-ESP-DIS-03:** La capacidad habilitada del espacio limita el número de asistentes permitido en las reservas que utilicen dicho espacio.
 
@@ -57,3 +57,5 @@
 - **RN-ESP-HAB-03:** Cuando se deshabilite un espacio, las reservas futuras que dependan de él deben ser tratadas conforme a las reglas de cancelación del dominio de reservas.
 
 - **RN-ESP-HAB-04:** La deshabilitación de un espacio debe conservar sus asociaciones históricas con reservas, recursos y campos adicionales.
+
+- **RN-ESP-HAB-05:** Deshabilitar un espacio con reservas futuras cancela esas reservas conforme a `RN-CAN-04` del dominio de reservas. Antes de ejecutarla, el sistema debe advertir la cantidad de reservas futuras que se cancelarán y exigir una confirmación explícita del actor, conforme a `RN-DES-06` de recursos. Si el actor no confirma, el espacio permanece habilitado y ninguna reserva se modifica.

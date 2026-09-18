@@ -40,6 +40,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `instalador` | varchar(100) | Sí | — |
 | `estado` | boolean | Sí | — |
 | `requiere_apoyo` | boolean | NN | DEFAULT `false`; indica si exige acompañamiento técnico |
+| `acreditado` | boolean | NN | DEFAULT `false`; equipo acreditado para ensayos certificados, excluido de reserva conforme a `RN-REC-11` |
 | `id_categoria` | integer | Sí | FK `fk_equipos_categoria` → `equipos.categoria(id_categoria)` |
 | `proxima_fecha_calibracion` | date | Sí | — |
 | `proxima_fecha_mantenimiento` | date | Sí | — |

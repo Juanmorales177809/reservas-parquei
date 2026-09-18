@@ -4,7 +4,7 @@
 
 Documentación de la estructura activa de `reservas_db` (PostgreSQL 13.23), verificada contra la instancia. Se excluye completamente `reservas_legacy`.
 
-El modelo incorpora como cambios pendientes de aplicar en la base de datos el catálogo común `recursos.recursos`, la relación `equipos.equipos.recurso_id`, las tablas especializadas `recursos.mobiliarios` y `recursos.otros_recursos`, la tabla `equipos.categoria`, la FK desde `equipos.equipos.id_categoria`, las tablas `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado` e `investigacion.usuario_trabajos_grado`, el campo `usuarios.usuarios.perfil_actualizado_at` y los campos `requiere_apoyo` de equipos y reservas. El inventario verificado de la instancia indicado a continuación no incluye estas incorporaciones.
+El modelo incorpora como cambios pendientes de aplicar en la base de datos el catálogo común `recursos.recursos`, la relación `equipos.equipos.recurso_id`, las tablas especializadas `recursos.mobiliarios` y `recursos.otros_recursos`, la tabla `equipos.categoria`, la FK desde `equipos.equipos.id_categoria`, las tablas `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado` e `investigacion.usuario_trabajos_grado`, el campo `usuarios.usuarios.perfil_actualizado_at`, los campos `requiere_apoyo` de equipos y reservas y el campo `equipos.equipos.acreditado`. El inventario verificado de la instancia indicado a continuación no incluye estas incorporaciones.
 
 La base verificada tenía 9 schemas visibles; el modelo objetivo agrega el schema `recursos`. `public` existe, pero no contiene tablas del modelo activo. El inventario verificado comprende 8 schemas con tablas y 28 tablas; las incorporaciones objetivo se documentan separadamente y quedan pendientes de migración. `reservas_legacy` ya no existe en la instancia verificada. No hay tipos `ENUM`; los estados y tipos son `varchar` o `boolean` con `CHECK` cuando aplica.
 
@@ -75,6 +75,7 @@ El catálogo unificado objetivo `recursos.recursos` se define en Resources; las 
 | `estado` | boolean | Sí | — |
 | `recurso_id` | integer | NN | UQ; FK → `recursos.recursos(id)`; identidad común del equipo |
 | `requiere_apoyo` | boolean | NN | DEFAULT `false` |
+| `acreditado` | boolean | NN | DEFAULT `false`; excluye el equipo del listado reservable |
 | `id_categoria` | integer | Sí | FK `fk_equipos_categoria` → `equipos.categoria(id_categoria)` |
 | `proxima_fecha_calibracion` | date | Sí | — |
 | `proxima_fecha_mantenimiento` | date | Sí | — |

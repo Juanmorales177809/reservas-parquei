@@ -20,6 +20,52 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `descripcion` | text | Sí | — |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
+### `reservas.espacio_recursos`
+
+Asociación entre un espacio y los recursos que forman parte de su configuración (`RN-ESP-REC-01` a `RN-ESP-REC-05`).
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `espacio_id` | integer | NN | PK compuesta; FK → `reservas.espacios(id)` |
+| `recurso_id` | integer | NN | PK compuesta; FK → `recursos.recursos(id)` |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+La PK compuesta impide asociaciones duplicadas. Retirar un recurso deshabilita la asociación en lugar de borrarla, para que las reservas históricas conserven su referencia. La asociación no implica disponibilidad temporal: esta se resuelve en reservas conforme a `RN-ESP-REC-04` y `RN-ESP-REC-05`. Índice `(recurso_id, habilitado)`.
+
+### `reservas.espacio_campos`
+
+Campos adicionales configurados por espacio para recopilar información durante la reserva (`RN-ESP-CAM-01`, `RN-ESP-CAM-02`).
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `espacio_id` | integer | NN | FK → `reservas.espacios(id)` |
+| `nombre` | varchar(150) | NN | CHECK `btrim(nombre) <> ''` |
+| `tipo` | varchar(30) | NN | CHECK sobre los tipos admitidos, incluido `SELECCION` |
+| `obligatorio` | boolean | NN | DEFAULT `false` |
+| `orden` | integer | NN | CHECK `>= 0` |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+| `created_at`, `updated_at` | timestamptz | NN | DEFAULT `now()` |
+
+UQ `(espacio_id, nombre)` para no repetir nombres dentro de un mismo espacio; índice `(espacio_id, orden)` para la presentación. Un campo utilizado en reservas no se elimina: se deshabilita, conforme a `RN-ESP-CAM-05`. El catálogo exacto de valores de `tipo` queda por definir junto con su validación en formulario.
+
+### `reservas.espacio_campo_opciones`
+
+Opciones de un campo de tipo selección (`RN-ESP-CAM-03`).
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `campo_id` | integer | NN | FK → `reservas.espacio_campos(id)` |
+| `valor` | varchar(255) | NN | CHECK `btrim(valor) <> ''` |
+| `orden` | integer | NN | CHECK `>= 0` |
+| `habilitado` | boolean | NN | DEFAULT `true` |
+
+UQ `(campo_id, valor)`; índice `(campo_id, orden)`. Las opciones solo se admiten cuando el campo es de tipo selección, y un campo de selección habilitado debe tener al menos una opción habilitada. Una opción usada en una reserva se deshabilita, nunca se borra.
+
+Estas tres tablas son las que `reservas.reserva_campos_valores` ya presupone: su `campo_id` referencia `espacio_campos(id)` y su `opcion_id` referencia `espacio_campo_opciones(id)`, mientras sus columnas de snapshot conservan la interpretación histórica aunque la configuración cambie después.
+
 ## Relaciones y responsabilidad
 
 Espacios es propietario funcional de `reservas.espacios`, conforme a sus [reglas RN-ESP](busines-rules.md). La pertenencia física al schema `reservas` no cambia esta responsabilidad. El overview previo de Resources agrupa espacios y recursos; para el detalle persistente, la definición de espacios se centraliza aquí y Resources la referencia.
@@ -28,6 +74,8 @@ Cada espacio pertenece a una unidad de [Administration](../administration/data-m
 
 ## Estructuras pendientes
 
-El principal aún no define las tablas de asociación espacio–recurso, campos adicionales ni opciones exigidas por RN-ESP-REC y RN-ESP-CAM. Sus PK, FK, orden, tipos y reglas de conservación deben especificarse antes de implementar. `reserva_campos_valores` depende de este diseño.
+`espacio_recursos`, `espacio_campos` y `espacio_campo_opciones` son incorporaciones objetivo, definidas arriba y pendientes de aplicar en la base de datos. Queda por cerrar el catálogo de valores admitidos en `espacio_campos.tipo` y su validación por tipo en el formulario de reserva.
 
-RN-ESP-02 contempla capacidad cuando aplique, pero el inventario exige capacidad `NOT NULL` y mayor que cero. Se conserva la definición del principal y queda pendiente conciliar esta diferencia.
+No existe tabla de horarios por espacio y no debe crearse: el horario aplicable es el de atención de la unidad, en `reservas.laboratorios_config`, conforme a `RN-ESP-DIS-02`.
+
+`capacidad` es obligatoria y mayor que cero, conforme a RN-ESP-02. El modelo y la regla están alineados: no existe un espacio sin capacidad declarada, por lo que la validación de aforo de `RN-ESP-DIS-03` y `RN-TIP-PE-05` siempre puede aplicarse.

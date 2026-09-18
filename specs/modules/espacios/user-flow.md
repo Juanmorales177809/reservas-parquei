@@ -8,7 +8,9 @@ Roles funcionales usados en este documento:
 - **Usuario:** consulta y utiliza espacios disponibles dentro de los procesos permitidos.
 - **Administrador:** puede intervenir sobre cualquier unidad organizacional.
 
-El módulo `espacios` administra la configuración propia de los espacios: información general, capacidad, disponibilidad, recursos asociados y campos adicionales. El módulo `reservas` consume esta configuración, pero no la administra.
+El módulo `espacios` administra la configuración propia de los espacios: información general, capacidad, recursos asociados y campos adicionales. El módulo `reservas` consume esta configuración, pero no la administra.
+
+Un espacio **no tiene horario propio**: el horario aplicable es el de atención de su unidad, definido en `reservas.laboratorios_config` y configurado desde [Resources](../resources/user-flow.md). Por eso no existe un flujo de configuración de horario en este módulo.
 
 ---
 
@@ -26,13 +28,12 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 2. Selecciona la opción para crear un nuevo espacio.
 3. El sistema solicita la información general del espacio.
 4. El Técnico  diligencia los datos obligatorios.
-5. Define la capacidad, cuando aplique.
-6. Configura la disponibilidad u horario del espacio.
-7. Puede asociar recursos existentes.
-8. Puede configurar cero o más campos adicionales.
-9. El sistema valida la configuración.
-10. El sistema crea el espacio.
-11. El espacio queda disponible según su estado de habilitación.
+5. Define la capacidad, obligatoria y mayor que cero (`RN-ESP-02`).
+6. Puede asociar recursos existentes.
+7. Puede configurar cero o más campos adicionales.
+8. El sistema valida la configuración.
+9. El sistema crea el espacio.
+10. El espacio queda disponible según su estado de habilitación y el horario de atención de su unidad.
 
 **Flujos alternos:**
 
@@ -56,7 +57,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 2. Selecciona la opción de edición.
 3. El sistema muestra los datos editables.
 4. El Técnico  modifica la información general permitida.
-5. Puede modificar la capacidad cuando corresponda.
+5. Puede modificar la capacidad, que debe seguir siendo mayor que cero y no puede quedar vacía (`RN-ESP-02`).
 6. El sistema valida los cambios.
 7. El sistema guarda la actualización.
 8. Las nuevas operaciones utilizan la configuración vigente.
@@ -68,31 +69,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-03 — Configurar disponibilidad u horario
-
-**Rol principal:** Técnico 
-
-**Precondiciones:**
-- El espacio existe.
-- El Técnico  tiene autorización para administrarlo.
-
-**Flujo principal:**
-
-1. El Técnico  accede a la configuración de disponibilidad.
-2. El sistema muestra el horario vigente.
-3. El Técnico  define o modifica días y franjas permitidas.
-4. El sistema valida la coherencia de las franjas.
-5. El sistema guarda la configuración.
-6. Las nuevas reservas se validan contra el horario vigente.
-
-**Flujos alternos:**
-
-- Si una franja es inválida, el sistema no guarda la configuración.
-- Las reservas existentes no se modifican automáticamente; cualquier afectación se resuelve según las reglas del módulo `reservas`.
-
----
-
-## UF-ESP-04 — Asociar recursos a un espacio
+## UF-ESP-03 — Asociar recursos a un espacio
 
 **Rol principal:** Técnico 
 
@@ -118,7 +95,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-05 — Retirar un recurso asociado
+## UF-ESP-04 — Retirar un recurso asociado
 
 **Rol principal:** Técnico 
 
@@ -138,7 +115,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-06 — Configurar un campo adicional
+## UF-ESP-05 — Configurar un campo adicional
 
 **Rol principal:** Técnico 
 
@@ -170,7 +147,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-07 — Configurar opciones de un campo de selección
+## UF-ESP-06 — Configurar opciones de un campo de selección
 
 **Rol principal:** Técnico 
 
@@ -195,7 +172,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-08 — Editar un campo adicional
+## UF-ESP-07 — Editar un campo adicional
 
 **Rol principal:** Técnico 
 
@@ -219,7 +196,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-09 — Deshabilitar un campo adicional
+## UF-ESP-08 — Deshabilitar un campo adicional
 
 **Rol principal:** Técnico 
 
@@ -239,7 +216,7 @@ El módulo `espacios` administra la configuración propia de los espacios: infor
 
 ---
 
-## UF-ESP-10 — Reordenar campos adicionales
+## UF-ESP-09 — Reordenar campos adicionales
 
 **Rol principal:** Técnico 
 
@@ -259,7 +236,7 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 
 ---
 
-## UF-ESP-11 — Habilitar un espacio
+## UF-ESP-10 — Habilitar un espacio
 
 **Rol principal:** Técnico 
 
@@ -279,7 +256,7 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 
 ---
 
-## UF-ESP-12 — Deshabilitar un espacio
+## UF-ESP-11 — Deshabilitar un espacio
 
 **Rol principal:** Técnico 
 
@@ -292,22 +269,25 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 
 1. El Técnico  consulta el espacio.
 2. Selecciona la opción de deshabilitar.
-3. El sistema solicita confirmación.
-4. El Técnico  confirma.
-5. El sistema deshabilita el espacio.
-6. El espacio deja de estar disponible para nuevas reservas.
-7. El módulo `reservas` identifica las reservas futuras afectadas.
-8. `reservas` aplica sus reglas de cancelación y notificación.
-9. La información histórica permanece disponible.
+3. El sistema consulta a `reservas` cuántas reservas futuras se cancelarán por esta deshabilitación.
+4. El sistema advierte esa cantidad y solicita confirmación explícita (`RN-ESP-HAB-05`, `RN-DES-06`).
+5. El Técnico  confirma.
+6. El sistema deshabilita el espacio.
+7. El espacio deja de estar disponible para nuevas reservas.
+8. El módulo `reservas` identifica las reservas futuras afectadas.
+9. `reservas` aplica sus reglas de cancelación y notificación.
+10. La información histórica permanece disponible.
 
 **Flujos alternos:**
 
+- Si el Técnico  no confirma, el espacio permanece habilitado y ninguna reserva se modifica.
+- Si el espacio no tiene reservas futuras, el sistema solicita una confirmación simple, sin advertencia de cancelaciones (`RN-DES-07`).
 - Las reservas en `EN_EJECUCION` no se cancelan automáticamente por este flujo.
 - Si el Técnico  no está autorizado, la operación se rechaza.
 
 ---
 
-## UF-ESP-13 — Consultar espacios
+## UF-ESP-12 — Consultar espacios
 
 **Rol principal:** Usuario
 
@@ -324,7 +304,7 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 
 ---
 
-## UF-ESP-14 — Consultar detalle de un espacio
+## UF-ESP-13 — Consultar detalle de un espacio
 
 **Rol principal:** Usuario
 
@@ -336,14 +316,14 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 1. El usuario selecciona un espacio.
 2. El sistema consulta la información general.
 3. Consulta la capacidad.
-4. Consulta la disponibilidad u horario configurado.
+4. Consulta el horario de atención heredado de su unidad.
 5. Consulta los recursos asociados.
 6. Consulta los campos adicionales habilitados.
 7. El sistema presenta la información consolidada.
 
 ---
 
-## UF-ESP-15 — Utilizar un espacio durante una reserva
+## UF-ESP-14 — Utilizar un espacio durante una reserva
 
 **Rol principal:** Usuario
 
@@ -357,7 +337,7 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 2. El módulo `reservas` consulta la configuración del espacio.
 3. El sistema obtiene:
    - capacidad;
-   - disponibilidad u horario;
+   - horario de atención heredado de su unidad;
    - recursos asociados;
    - campos adicionales habilitados;
    - obligatoriedad y opciones de cada campo.
@@ -380,7 +360,7 @@ El cambio de orden no modifica los valores históricos de reservas anteriores.
 
 ## Separación de responsabilidades
 
-- `espacios` administra espacios, capacidad, disponibilidad, recursos asociados y campos adicionales.
+- `espacios` administra espacios, capacidad, recursos asociados y campos adicionales. No administra horarios: el aplicable es el de atención de la unidad, que pertenece a `recursos`.
 - `recursos` administra la identidad y estado general de los recursos.
 - `reservas` administra disponibilidad temporal, solicitud, aprobación, asignación, ejecución y cancelación de reservas.
 - `auth` determina la identidad autenticada y la autorización.

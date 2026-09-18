@@ -48,7 +48,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-02:** La fecha y el horario solicitados deben encontrarse dentro de la disponibilidad definida para el espacio.
 - **RN-TIP-PE-03:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo espacio.
 - **RN-TIP-PE-04:** La reserva debe estar asociada a un espacio habilitado para reservas.
-- **RN-TIP-PE-05:** La cantidad de personas asociadas a la reserva no podrá superar la capacidad habilitada del espacio.
+- **RN-TIP-PE-05:** La reserva debe declarar el número de `asistentes`, que representa la ocupación total prevista del espacio. Debe ser al menos uno, correspondiente al reservista, y nunca menor que el reservista más el número de acompañantes registrados. No podrá superar la capacidad habilitada del espacio. Las personas que asisten sin cuenta vinculada al proyecto o semillero no pueden registrarse como acompañantes conforme a `RN-ACO-02`, pero sí se cuentan en este total.
 - **RN-TIP-PE-06:** Toda reserva por espacio debe registrar un contexto de uso conforme a `RN-CTX`: uno o más elementos académicos/investigativos, o una actividad institucional independiente.
 - **RN-TIP-PE-07:** El usuario solo puede asociar proyectos, semilleros, pasantías y trabajos de grado para los que tenga una vinculación válida conforme a `RN-CTX-05`.
 - **RN-TIP-PE-08:** Cuando el usuario seleccione un elemento de contexto académico/investigativo y exista una única opción válida disponible, esta se selecciona automáticamente.
@@ -72,15 +72,15 @@ Los tipos de reserva contemplados actualmente son:
 
 ## Recurso para uso dentro del laboratorio — RN-TIP-RI
 
-- **RN-TIP-RI-01:** La reserva corresponde a un único recurso que será utilizado dentro de las instalaciones del laboratorio.
-- **RN-TIP-RI-02:** La reserva requiere seleccionar una fecha de inicio de uso y una fecha de finalización de uso.
-- **RN-TIP-RI-03:** El recurso debe estar disponible durante todo el periodo solicitado.
-- **RN-TIP-RI-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para el mismo recurso durante el periodo solicitado.
+- **RN-TIP-RI-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) que serán utilizados dentro de las instalaciones del laboratorio, conforme a la cardinalidad por tipo de `RN-RES-12`.
+- **RN-TIP-RI-02:** La reserva requiere seleccionar una fecha y un horario de inicio y finalización de uso, comprendidos dentro de un mismo día. Aplican a todos los recursos de la reserva.
+- **RN-TIP-RI-03:** Cada recurso debe estar disponible durante todo el periodo solicitado.
+- **RN-TIP-RI-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para alguno de sus recursos durante el periodo solicitado.
 - **RN-TIP-RI-05:** La reserva de un recurso para uso dentro del laboratorio no requiere asociarlo a una reserva de espacio.
-- **RN-TIP-RI-06:** El recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
-- **RN-TIP-RI-07:** La entrega del recurso al usuario requiere la aprobación previa del Técnico .
-- **RN-TIP-RI-08:** Al entregar físicamente el recurso al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RI-09:** Al recibir nuevamente el recurso o finalizar su uso dentro del laboratorio, el Técnico  debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RI-06:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
+- **RN-TIP-RI-07:** La entrega de los recursos al usuario requiere la aprobación previa del Técnico .
+- **RN-TIP-RI-08:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
+- **RN-TIP-RI-09:** Al recibir nuevamente los recursos o finalizar su uso dentro del laboratorio, el Técnico  debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
 - **RN-TIP-RI-10:** El Técnico  puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-RI-11:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
 - **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
@@ -226,10 +226,11 @@ Los únicos estados globales válidos son:
 - **RN-CAN-01:** Cancelar una reserva conserva el registro y libera inmediatamente los espacios y recursos asociados para efectos de disponibilidad futura.
 - **RN-CAN-02:** Una reserva puede cancelarse mientras no haya iniciado su ejecución. Para reservas con horario, el límite corresponde al inicio de la franja reservada. Para reservas de recursos, el límite corresponde a la entrega física del recurso o al registro de inicio de ejecución, según aplique.
 - **RN-CAN-03:** Toda cancelación registra el actor, el momento de la acción y el motivo cuando corresponda.
-- **RN-CAN-04:** Cuando se deshabilite un espacio o recurso, todas las reservas futuras que dependan de ese elemento deben pasar automáticamente al estado `CANCELADA`.
-- **RN-CAN-05:** La cancelación automática por deshabilitación aplica únicamente a reservas cuya ejecución aún no haya iniciado.
-- **RN-CAN-06:** El sistema debe notificar a los usuarios afectados que la reserva fue cancelada por la deshabilitación del espacio o recurso asociado, conforme a las reglas y canales definidos en [business-rules.md](../notifications/business-rules.md).
-- **RN-CAN-07:** La cancelación automática debe registrar como motivo la deshabilitación del espacio o recurso y conservar la trazabilidad histórica de la reserva.
+- **RN-CAN-04:** La deshabilitación de un espacio o recurso solo cancela automáticamente la reserva cuando desaparece el objeto de esta: el espacio en una reserva por espacio, o el recurso con rol `PRINCIPAL` en una reserva de recurso interno, campus o externo, conforme a `RN-RES-12`.
+- **RN-CAN-05:** Cuando el elemento deshabilitado sea un recurso con rol `ADICIONAL`, la reserva no se cancela: el recurso se retira de la reserva, conserva su historial de asignación y la reserva continúa vigente. Esto es coherente con `RN-TIP-PE-14`, según el cual la falta de recursos complementarios no impide la reserva de un espacio.
+- **RN-CAN-06:** Tanto la cancelación automática como el retiro automático de un recurso aplican únicamente a reservas cuya ejecución aún no haya iniciado.
+- **RN-CAN-07:** El sistema debe notificar a los usuarios afectados, distinguiendo si la reserva fue cancelada o si únicamente se retiró un recurso complementario, conforme a las reglas y canales definidos en [business-rules.md](../notifications/business-rules.md).
+- **RN-CAN-08:** La cancelación o el retiro automáticos deben registrar como motivo la deshabilitación del espacio o recurso y conservar la trazabilidad histórica de la reserva.
 
 ---
 
@@ -244,7 +245,7 @@ Los únicos estados globales válidos son:
 ## Archivo de calendario — RN-CAL
 
 - **RN-CAL-01:** Cuando una reserva sea aprobada, el sistema debe generar un archivo de calendario en formato iCalendar (`.ics`), excepto lista de espera, que no tiene periodo y no genera `.ics`.
-- **RN-CAL-02:** El archivo `.ics` debe incluir como mínimo la fecha, hora de inicio, hora de finalización, ubicación o espacio cuando aplique y una descripción de la reserva.
+- **RN-CAL-02:** El archivo `.ics` debe representar el periodo según la granularidad temporal del tipo de reserva. Las reservas con horario —espacio y recurso interno— incluyen fecha, hora de inicio y hora de finalización. Las reservas definidas solo por fechas —campus y externo— se representan como evento de día completo, desde la fecha de salida hasta la de devolución, sin inventar horas. En ambos casos debe incluir la ubicación o espacio cuando aplique y una descripción de la reserva.
 - **RN-CAL-03:** Cuando corresponda enviar el correo de confirmación de la reserva, el archivo `.ics` debe adjuntarse a ese correo.
 - **RN-CAL-04:** Si una reserva es modificada y se envía una nueva confirmación, el sistema debe generar un nuevo archivo `.ics` con la información vigente.
 - **RN-CAL-05:** No se requiere sincronización directa con calendarios externos ni persistencia de identificadores de eventos externos.
@@ -269,7 +270,7 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 
 - **RN-ACO-01:** Los acompañantes solo aplican cuando la reserva tiene un proyecto o un semillero como contexto.
 - **RN-ACO-02:** Cada acompañante debe ser una cuenta existente vinculada activamente al proyecto o al semillero registrado en la reserva.
-- **RN-ACO-03:** Una reserva puede registrar de cero a N acompañantes; no es obligatorio registrar uno.
+- **RN-ACO-03:** Una reserva puede registrar de cero a N acompañantes; no es obligatorio registrar uno. Los acompañantes registrados cuentan dentro del total de `asistentes` declarado conforme a `RN-TIP-PE-05`.
 - **RN-ACO-04:** Si la reserva tiene proyecto y semillero, las opciones de acompañante son la unión de las cuentas vinculadas activamente a cualquiera de los dos.
 - **RN-ACO-05:** Las reservas de lista de espera no admiten acompañantes.
 - **RN-ACO-06:** Ser acompañante no otorga por sí mismo permisos administrativos sobre la reserva; la autorización se determina en `auth`.

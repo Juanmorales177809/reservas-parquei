@@ -17,10 +17,11 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Precondiciones:**
 - La cuenta fue creada mediante autorregistro.
 - La cuenta está activa y autenticada.
+- La actualización inicial está pendiente, sea por tratarse del primer ingreso o por un intento anterior que quedó incompleto.
 
 **Flujo principal:**
 
-1. El usuario inicia sesión por primera vez.
+1. El usuario inicia sesión. Si la actualización inicial sigue pendiente de un ingreso anterior, `auth` lo conduce nuevamente a este flujo conforme a `RN-AUTH-SES-04`; el recorrido es el mismo y no requiere reiniciar el alta.
 2. El sistema verifica que `perfil_actualizado_at` esté pendiente y bloquea las operaciones de negocio no permitidas.
 3. El sistema presenta nombre, documento, teléfono, institución y dependencia registrados en el alta; el Usuario los revisa, confirma o actualiza aplicando la validación común de datos personales.
 4. El usuario selecciona su perfil o perfiles académicos/investigativos cuando corresponda.
@@ -36,7 +37,7 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 
 - Si faltan datos obligatorios o no existe una vinculación activa y válida, el sistema informa qué debe completarse y mantiene pendiente la actualización.
 - Si una vinculación académica o investigativa no es válida, el módulo `investigacion` rechaza su registro o selección.
-- Si el usuario abandona el proceso antes de finalizar, el alta queda pendiente.
+- Si el usuario abandona el proceso antes de finalizar, el alta queda pendiente: los datos personales registrados en el alta se conservan y `perfil_actualizado_at` permanece NULL. En el siguiente ingreso el sistema retoma este mismo flujo, sin volver a solicitar lo ya registrado ni imponer un plazo de caducidad a la cuenta.
 
 ## UF-USR-02 — Completar actualización inicial después de una invitación
 
@@ -47,10 +48,11 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Precondiciones:**
 - Existe una invitación válida asociada a una cuenta.
 - El usuario completó el proceso de activación de la cuenta.
+- La actualización inicial está pendiente, sea por tratarse del primer ingreso o por un intento anterior que quedó incompleto.
 
 **Flujo principal:**
 
-1. El usuario completa la activación de su cuenta.
+1. El usuario completa la activación de su cuenta. Si ya la había activado y dejó la actualización inicial pendiente, inicia sesión y `auth` lo conduce nuevamente a este flujo conforme a `RN-AUTH-SES-04`.
 2. El sistema autentica al usuario y verifica que `perfil_actualizado_at` esté pendiente.
 3. El sistema presenta nombre, documento, teléfono, institución y dependencia registrados en el alta administrativa para su revisión y actualización, aplicando la validación común de datos personales.
 4. El usuario diligencia la información requerida.
@@ -63,6 +65,7 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 
 - Si la invitación ya no es válida, el flujo de activación se resuelve en el dominio `auth`.
 - Si la información requerida no es válida o no existe una vinculación activa y válida, el sistema solicita corregirla y conserva la actualización pendiente.
+- Si el usuario abandona el proceso antes de finalizar, los datos del alta administrativa se conservan y el sistema retoma este mismo flujo en el siguiente ingreso, sin plazo de caducidad.
 
 ---
 

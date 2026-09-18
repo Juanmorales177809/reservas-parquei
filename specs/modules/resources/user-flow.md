@@ -207,15 +207,17 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 
 1. El actor consulta el recurso.
 2. Selecciona la opción de deshabilitar.
-3. El sistema solicita confirmación.
-4. El actor confirma la operación.
-5. El sistema cambia el recurso a estado deshabilitado.
-6. El recurso deja de estar disponible para nuevas operaciones.
-7. Los registros históricos que lo referencian conservan su relación.
-8. Si existen reservas futuras afectadas, el módulo `reservas` aplica sus reglas correspondientes.
+3. El sistema consulta a `reservas` en cuántas reservas futuras el recurso participa con rol `PRINCIPAL`, es decir, cuántas se cancelarán conforme a `RN-CAN-04`.
+4. Si esa cantidad es mayor que cero, el sistema la advierte y solicita confirmación explícita (`RN-DES-06`); en caso contrario solicita una confirmación simple (`RN-DES-07`).
+5. El actor confirma la operación.
+6. El sistema cambia el recurso a estado deshabilitado.
+7. El recurso deja de estar disponible para nuevas operaciones.
+8. Los registros históricos que lo referencian conservan su relación.
+9. Si existen reservas futuras afectadas, el módulo `reservas` aplica sus reglas correspondientes: cancela aquellas donde el recurso era `PRINCIPAL` y lo retira de aquellas donde era `ADICIONAL` (`RN-CAN-04`, `RN-CAN-05`).
 
 **Flujos alternos:**
 
+- Si el actor no confirma, el recurso permanece habilitado y ninguna reserva se modifica.
 - Si la operación no está autorizada, el recurso permanece sin cambios.
 
 ---

@@ -65,9 +65,9 @@ Cada reserva debe tener exactamente un detalle compatible con su tipo. La cabece
 
 ### `reservas.reserva_espacio`
 
-`reserva_id integer PK/FK`, `espacio_id integer NOT NULL FK a `espacios(id)`, `fecha date NOT NULL`, `hora_inicio time NOT NULL`, `hora_fin time NOT NULL`, `asistentes integer NOT NULL CHECK (asistentes >= 0)`.
+`reserva_id integer PK/FK`, `espacio_id integer NOT NULL FK a `espacios(id)`, `fecha date NOT NULL`, `hora_inicio time NOT NULL`, `hora_fin time NOT NULL`, `asistentes integer NOT NULL CHECK (asistentes >= 1)`.
 
-CHECK `hora_inicio < hora_fin`. Capacidad, habilitación, horario y solapamientos son reglas de negocio.
+CHECK `hora_inicio < hora_fin`. `asistentes` es la ocupación total declarada, incluido el reservista; el CHECK garantiza el mínimo de uno, mientras que la relación con los acompañantes registrados y el tope de capacidad se validan en la aplicación conforme a `RN-TIP-PE-05`. Capacidad, habilitación, horario y solapamientos son reglas de negocio.
 
 ### `reservas.reserva_recurso_interno`
 
