@@ -24,9 +24,17 @@ Esta carpeta contiene la documentación funcional y técnica del sistema usando 
 
 ## Contratos de API
 
-- [auth](contratos/auth/api-contract.md): endpoints de sesión, credenciales, invitaciones y administración de cuentas, más el contrato interno que auth ofrece a los demás módulos.
+Las [convenciones transversales](contratos/README.md) definen formato, errores, autenticación, paginación y concurrencia. Cada contrato de módulo las referencia y solo documenta lo suyo.
 
-Los contratos de los módulos restantes se escriben en `contratos/<módulo>/` cuando su superficie HTTP se defina.
+| Módulo | Contrato |
+|---|---|
+| auth | [sesión, credenciales, invitaciones y administración de cuentas](contratos/auth/api-contract.md) |
+| reservations | [ciclo completo de la reserva](contratos/reservations/api-contract.md) |
+| espacios | [espacios, recursos asociados y campos adicionales](contratos/espacios/api-contract.md) |
+| usuarios | [perfil del reservista y vinculaciones](contratos/usuarios/api-contract.md) |
+| resources | [catálogo de recursos y configuración del laboratorio](contratos/resources/api-contract.md) |
+
+Faltan `administration`, `notifications`, `reports` y `researchs`, que no tienen flujos de usuario de los que derivar su superficie. Registrado como **OQ-08** en [decisiones pendientes](docs/decisions/open-questions.md).
 
 ## Convenciones
 

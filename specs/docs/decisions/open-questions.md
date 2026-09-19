@@ -78,6 +78,18 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ---
 
+## OQ-08 — Superficie de administration, notifications, reports y researchs
+
+**Contexto.** Esos cuatro módulos suman 191 reglas y solo 2 flujos de usuario. Los contratos de auth, reservations, espacios, usuarios y resources se derivaron de sus flujos; para estos cuatro no hay de dónde derivar, y redactar su contrato exigiría inventar la superficie en lugar de traducirla.
+
+**Alternativas.** Escribir primero su `user-flow.md` y derivar después, frente a derivar el contrato directamente de las reglas asumiendo el riesgo de inventar endpoints que nadie pidió.
+
+**Impacto.** Sin contrato, esos módulos no son implementables por un equipo distinto al que escribió sus reglas. Afecta especialmente a notifications, del que ya dependen reservations (recordatorios y confirmaciones) y auth (invitaciones y recuperación).
+
+**Estado.** Abierta. Decidido en su momento posponerlos; el orden sugerido por dependencia es notifications, administration, reports y researchs.
+
+---
+
 ## OQ-07 — Destino de `motivos_solicitud`
 
 **Contexto.** `reservas.motivos_solicitud` existe en el inventario y `reservas.reservas.motivo_solicitud_id` lo referencia, pero el diseño objetivo no lo contempla: el "por qué" de una reserva pasó a resolverse con el contexto de `RN-CTX`.

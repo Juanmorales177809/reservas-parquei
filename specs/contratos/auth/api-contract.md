@@ -6,53 +6,20 @@ Este documento no redefine reglas de negocio ni controles de seguridad: los trad
 
 ---
 
-## 1. Convenciones generales
+## 1. Convenciones
 
-| Aspecto | Definición |
+Este contrato aplica las [convenciones transversales](../README.md): formato, fechas, envolvente de error, catálogo común de códigos, paginación y concurrencia. Aquí solo se documenta lo propio de auth.
+
+| Aspecto | Valor |
 |---|---|
 | Base path | `/api/auth` |
-| Formato | `application/json` en solicitudes y respuestas |
-| Fechas | ISO 8601 en UTC (`2026-09-18T14:03:11Z`) |
-| Identificadores | `id_cuenta` entero de 64 bits; `id_sesion` UUID |
-| Transporte | HTTPS obligatorio en toda ruta autenticada (`SEC-INF-01`, `SEC-SES-06`) |
-| Caché | Las respuestas que establecen o contienen información de sesión declaran `Cache-Control: no-store` (`SEC-SES-11`) |
+| Identificadores propios | `id_cuenta` entero de 64 bits; `id_sesion` UUID |
 
-Las operaciones que modifican estado nunca se exponen mediante `GET` (`SEC-CSRF-03`).
-
-### Envolvente de error
-
-Toda respuesta de error usa la misma estructura (`architecture.md` §12):
-
-```json
-{
-  "error": {
-    "codigo": "CREDENCIALES_INVALIDAS",
-    "mensaje": "No fue posible iniciar sesión con los datos suministrados.",
-    "detalles": []
-  }
-}
-```
-
-`detalles` se usa solo para errores de validación de campos y nunca contiene trazas internas, SQL, secretos ni variables de entorno (`SEC-INF-04`).
-
-### Catálogo de códigos de error
+Códigos de error adicionales a los del catálogo común, propios de este módulo:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
-| 400 | `SOLICITUD_INVALIDA` | Cuerpo malformado o parámetros incompatibles |
-| 401 | `NO_AUTENTICADO` | Falta sesión válida, o venció o fue revocada (`SEC-SES-07`) |
-| 401 | `CREDENCIALES_INVALIDAS` | Autenticación fallida, sin distinguir la causa (`SEC-ABU-02`) |
-| 401 | `REAUTENTICACION_REQUERIDA` | Operación sensible sin autenticación reciente (`SEC-REAUTH-01`) |
-| 403 | `NO_AUTORIZADO` | Permiso ausente, fuera de ámbito o recurso ajeno (`SEC-AUTZ-02`, `SEC-AUTZ-04`, `SEC-AUTZ-06`) |
-| 403 | `PERFIL_INICIAL_PENDIENTE` | La operación requiere haber completado la actualización inicial del Usuario (`RN-USR-08`) |
-| 404 | `NO_ENCONTRADO` | Recurso inexistente dentro del ámbito visible del actor |
-| 409 | `CONFLICTO` | Conflicto de negocio, por ejemplo correo ya registrado |
-| 410 | `TOKEN_NO_VIGENTE` | Token vencido, ya utilizado o revocado (`SEC-TOK-05`, `SEC-INV-02`) |
-| 422 | `VALIDACION` | Campos inválidos según el esquema |
-| 429 | `DEMASIADOS_INTENTOS` | Límite contra abuso superado (`SEC-ABU-01`) |
-| 500 | `ERROR_INTERNO` | Error no controlado, sin detalle interno |
-
-`403 NO_AUTORIZADO` no distingue entre "sin permiso", "fuera de ámbito" y "recurso ajeno", para no facilitar enumeración. Un recurso existente pero fuera del ámbito del actor responde `404 NO_ENCONTRADO` cuando revelar su existencia constituya una fuga.
+| 410 | `TOKEN_NO_VIGENTE` | Token de invitación o recuperación vencido, utilizado o revocado (`SEC-TOK-05`, `SEC-INV-02`) |
 
 ---
 
