@@ -124,7 +124,7 @@ Las opciones `mostrar_estado_reserva` y `mostrar_reservista` se almacenan única
 
 Validar conflictos y escribir la reserva, el detalle y las asignaciones debe constituir una operación atómica protegida frente a concurrencia, conforme a RN-DIS-05. Dos operaciones incompatibles no pueden confirmar ambas. Un fallo de validación revierte las escrituras de la operación.
 
-Queda pendiente seleccionar e implementar el mecanismo de protección en backend y PostgreSQL, incluyendo creación, reprogramación, cambio de elementos y aprobación. Una transacción sin protección específica frente a concurrencia, una consulta previa o los índices ordinarios no acreditan esta garantía. Esta documentación define el requisito, no una protección ya implementada.
+El mecanismo está decidido en [ADR-001](../../docs/decisions/adr-001-doble-reserva.md): una restricción de exclusión de PostgreSQL sobre `reserva_espacio` y `reserva_recursos`, con un rango generado y la condición de bloqueo denormalizada. Queda pendiente su implementación y las pruebas de concurrencia que el ADR enumera, para creación, reprogramación, cambio de elementos y aprobación. Una transacción sin protección específica frente a concurrencia, una consulta previa o los índices ordinarios no acreditan esta garantía. Esta documentación define el requisito, no una protección ya implementada.
 
 ## Contexto y campos de espacio
 

@@ -49,4 +49,4 @@ Salvo donde se indique otro módulo, las reglas citadas son de reservations. El 
 
 ## Dependencia bloqueante
 
-El tercer criterio de aceptación depende de **OQ-06**: el mecanismo transaccional que impide la doble reserva concurrente todavía no está elegido. Sin él, esta funcionalidad puede implementarse pero no puede darse por correcta bajo concurrencia.
+El tercer criterio de aceptación depende de [ADR-001](../../docs/decisions/adr-001-doble-reserva.md), que define la restricción de exclusión contra la doble reserva. Esta funcionalidad puede implementarse antes, pero no puede darse por correcta bajo concurrencia hasta que la restricción exista y pasen las pruebas que el ADR enumera. Depende además de **OQ-09**, que define quién escribe el periodo de uso de un recurso: sin esa regla la restricción sobre recursos no protege nada.

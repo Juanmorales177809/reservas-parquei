@@ -74,7 +74,19 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. Requiere un ADR conforme a `architecture.md` §17. La especificación de producto ya acota la decisión: exige la garantía **a nivel de base de datos, no solo de aplicación**, por lo que un bloqueo resuelto únicamente en el backend no satisface el requisito. Lo que queda por elegir es el mecanismo de PostgreSQL, no el nivel.
 
-**Estado.** Abierta. Bloquea dar por correcta la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) bajo concurrencia.
+**Estado.** Resuelta a nivel de diseño por [ADR-001](adr-001-doble-reserva.md), que adopta una restricción de exclusión de PostgreSQL. Pendiente de aprobación y de implementación: hasta que existan las pruebas de concurrencia que el ADR enumera, la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) no puede darse por correcta bajo concurrencia.
+
+---
+
+## OQ-07 — Destino de `motivos_solicitud`
+
+**Contexto.** `reservas.motivos_solicitud` existe en el inventario y `reservas.reservas.motivo_solicitud_id` lo referencia, pero el diseño objetivo no lo contempla: el "por qué" de una reserva pasó a resolverse con el contexto de `RN-CTX`.
+
+**Alternativas.** Retirarlo por quedar superado por el contexto, frente a conservarlo como catálogo complementario e independiente del contexto académico.
+
+**Impacto.** Afecta la migración del inventario y la lista de diferencias pendientes del modelo de reservations. Mientras no se decida, el catálogo queda sin propietario en el diseño objetivo.
+
+**Estado.** Abierta.
 
 ---
 
@@ -90,12 +102,12 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ---
 
-## OQ-07 — Destino de `motivos_solicitud`
+## OQ-09 — Derivación del periodo de uso de un recurso
 
-**Contexto.** `reservas.motivos_solicitud` existe en el inventario y `reservas.reservas.motivo_solicitud_id` lo referencia, pero el diseño objetivo no lo contempla: el "por qué" de una reserva pasó a resolverse con el contexto de `RN-CTX`.
+**Contexto.** `reservas.reserva_recursos.fecha_inicio_uso` y `fecha_fin_uso` son nulables y el modelo no define quién las escribe ni cuándo a partir del detalle de cada tipo de reserva. Detectado al redactar [ADR-001](adr-001-doble-reserva.md).
 
-**Alternativas.** Retirarlo por quedar superado por el contexto, frente a conservarlo como catálogo complementario e independiente del contexto académico.
+**Alternativas.** Derivarlas en el servicio al crear o modificar la reserva, frente a generarlas en base de datos desde el detalle correspondiente.
 
-**Impacto.** Afecta la migración del inventario y la lista de diferencias pendientes del modelo de reservations. Mientras no se decida, el catálogo queda sin propietario en el diseño objetivo.
+**Impacto.** Sin esa regla, el rango generado sobre `reserva_recursos` sería siempre `NULL` y la restricción de exclusión de recursos no protegería nada, aunque exista. Afecta directamente la eficacia de ADR-001.
 
-**Estado.** Abierta.
+**Estado.** Abierta. Debe resolverse junto con la implementación de ADR-001.

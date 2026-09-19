@@ -614,6 +614,10 @@ Un ADR debe utilizarse cuando una decisión:
 
 Este documento debe referenciar dichas decisiones cuando sean incorporadas a la arquitectura aceptada.
 
+Decisiones registradas:
+
+- [ADR-001 — Mecanismo contra la doble reserva concurrente](decisions/adr-001-doble-reserva.md): adopta una restricción de exclusión de PostgreSQL para la exigencia de la sección 10. Propuesto, pendiente de aprobación.
+
 ---
 
 ## 18. Relationship with Other Documentation

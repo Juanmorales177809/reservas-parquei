@@ -121,7 +121,7 @@ Un listado nunca devuelve elementos fuera del ámbito autorizado del actor: el f
 
 Las operaciones que dependen de disponibilidad —crear, reprogramar o aprobar una reserva— revalidan sus condiciones dentro de la transacción de escritura. Que el cliente haya consultado disponibilidad antes no garantiza nada: un conflicto detectado al guardar responde `409 CONFLICTO`, incluso si la consulta previa fue satisfactoria.
 
-El mecanismo concreto que impide la doble reserva concurrente está pendiente de decidir y registrado como **OQ-06** en [decisiones pendientes](../docs/decisions/open-questions.md). Hasta resolverlo, ningún contrato puede afirmar que esa garantía esté satisfecha.
+El mecanismo que impide la doble reserva concurrente está decidido en [ADR-001](../docs/decisions/adr-001-doble-reserva.md): una restricción de exclusión de PostgreSQL. Hasta que se implemente y existan sus pruebas de concurrencia, ningún contrato puede afirmar que esa garantía esté satisfecha.
 
 Una operación que afecte varias entidades relacionadas es atómica: o se escriben todas o ninguna (`RN-INT-01` de administration, `architecture.md` §9).
 
