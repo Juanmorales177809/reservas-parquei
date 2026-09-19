@@ -14,7 +14,7 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Impacto.** Bloquea la implementación de `exigir_permiso` del contrato de auth y la administración de asignaciones. Afecta a `RN-PER-01`, `RN-PER-03` de administration y `SEC-AUTZ-04`.
 
-**Estado.** Abierta. Conviene resolverla al implementar el primer módulo administrativo, no en abstracto.
+**Estado.** Resuelta. Se adopta un código por área funcional distinguiendo el verbo solo donde hay un caso real de separarlo; el catálogo inicial de trece códigos está en [auth/data-model.md](../../modules/auth/data-model.md#authpermisos) y los contratos ya citan el código que exige cada operación. La granularidad responde a que la asignación es directa y sin roles: dar de alta a un Técnico son cuatro asignaciones, no una por endpoint.
 
 ---
 

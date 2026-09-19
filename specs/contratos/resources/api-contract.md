@@ -7,7 +7,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/recursos` para el catálogo; `/api/laboratorios` para la configuración de unidad |
-| Permiso administrativo | administrar recursos de la unidad; el Administrador tiene alcance global |
+| Permiso administrativo | `recursos.administrar` sobre la unidad; los equipos exigen `recursos.administrar_equipos` |
 
 Códigos de error propios:
 
@@ -93,7 +93,7 @@ Conteo previo para poblar la confirmación, sin ejecutar nada.
 
 ### 1.7 `PATCH /api/recursos/{id}/unidad`
 
-Cambia la unidad responsable. Flujo `UF-REC-10`. Permiso: alcance global.
+Cambia la unidad responsable. Flujo `UF-REC-10`. Permiso: `recursos.reasignar_unidad`.
 
 ```json
 { "id_unidad": 12 }
@@ -131,7 +131,7 @@ La lectura del horario es pública para cualquier cuenta autenticada: el Usuario
 
 ### 2.2 `PATCH /api/laboratorios/{id_unidad}/configuracion`
 
-Modifica la configuración. Permiso: administrar la unidad.
+Modifica la configuración. Permiso: `laboratorios.configurar` sobre la unidad.
 
 Cambiar el horario **cambia el de todos los espacios de la unidad**, porque ninguno define uno propio. La validación de reservas futuras usa la configuración vigente al crear, modificar o aprobar (`RN-HOR-07` de reservations); un cambio de horario no reinterpreta automáticamente las reservas ya aprobadas.
 

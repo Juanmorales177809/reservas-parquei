@@ -90,6 +90,32 @@ Catálogo de permisos administrativos, conforme a `RN-PER-01` y `RN-PER-02` de a
 
 Los permisos se identifican por `codigo` persistente, nunca por el nombre de un cargo, perfil o tipo de cuenta (`RN-PER-02`, `RN-AUTH-ROL-04`). Un permiso deshabilitado deja de conceder autorización en nuevas decisiones, sin alterar la validez histórica de las acciones ya ejecutadas (`RN-PER-05` de administration).
 
+#### Catálogo inicial
+
+Un código por área funcional, distinguiendo el verbo solo cuando existe un caso real de separarlo. La granularidad es deliberada: con asignación directa y sin roles intermedios, dar de alta a un Técnico debe ser un puñado de asignaciones, no una por endpoint.
+
+| `codigo` | Autoriza | Ámbito habitual |
+|---|---|---|
+| `reservas.administrar` | Aprobar, rechazar, agregar o retirar recursos, iniciar ejecución, finalizar y cancelar reservas ajenas de la unidad | unidad |
+| `reservas.exportar` | Exportar listados e historial de reservas | unidad o global |
+| `espacios.administrar` | Crear, editar y habilitar espacios, sus recursos asociados y sus campos adicionales | unidad |
+| `recursos.administrar` | Crear, editar y habilitar mobiliarios y otros recursos | unidad |
+| `recursos.administrar_equipos` | Administrar equipos del inventario institucional; separado porque el Técnico no crea equipos (`RN-EQP-09` de resources) | global |
+| `recursos.reasignar_unidad` | Cambiar la unidad responsable de un recurso | global |
+| `laboratorios.configurar` | Horario de atención, antelación, aprobación automática, tipos de reserva y visibilidad de la unidad | unidad |
+| `cuentas.administrar` | Invitar, activar, desactivar y cambiar el tipo de identidad de una cuenta | unidad o global |
+| `usuarios.administrar` | Crear, editar y habilitar identidades funcionales | unidad o global |
+| `permisos.asignar` | Otorgar y retirar permisos a otras cuentas (`RN-PER-03` de administration) | global |
+| `unidades.administrar` | Gestionar unidades organizacionales y cargos | global |
+| `importacion.ejecutar` | Importar catálogos masivamente (`RN-IMP-01` de administration) | global |
+| `reportes.consultar` | Consultar informes de ocupación y uso | unidad o global |
+
+La columna de ámbito es orientativa: el ámbito real lo fija `id_unidad` en cada asignación, y un permiso marcado como habitual de unidad puede otorgarse con alcance global si el caso lo justifica. `permisos.asignar` es la excepción que conviene cuidar: quien lo tiene puede ampliar los permisos de cualquiera, incluidos los propios.
+
+Un perfil típico de **Técnico** son cuatro asignaciones sobre su unidad: `reservas.administrar`, `espacios.administrar`, `recursos.administrar` y `laboratorios.configurar`. Un **Administrador** tiene el catálogo completo con `id_unidad NULL`.
+
+Este catálogo crece cuando aparezca una operación que hoy no existe, no cuando se añada un endpoint a un área ya cubierta.
+
 ### `auth.cuenta_permisos`
 
 Asignación directa de un permiso a una cuenta, con su ámbito organizacional.

@@ -293,7 +293,7 @@ Dentro de esa ventana, las operaciones sensibles de §5 y §6 no vuelven a exigi
 
 ### 4.1 `POST /api/auth/invitaciones`
 
-Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Requiere permiso administrativo sobre cuentas y ámbito aplicable.
+Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Requiere el permiso `cuentas.administrar` sobre el ámbito aplicable.
 
 ```json
 {
@@ -435,7 +435,7 @@ Conserva la identidad funcional y el historial de la cuenta (`RN-CUE-01`). El co
 
 ## 6. Administración de cuentas
 
-Requieren permiso administrativo sobre cuentas y ámbito aplicable (`RN-ADM-01`, `SEC-AUTZ-04`).
+Requieren el permiso `cuentas.administrar` sobre el ámbito aplicable (`RN-ADM-01`, `SEC-AUTZ-04`).
 
 ### 6.1 `PATCH /api/auth/cuentas/{id_cuenta}/estado`
 
@@ -567,4 +567,4 @@ Valores por defecto, configurables conforme a `SEC-SES-09`:
 | Vigencia de una invitación | 7 días |
 | Vigencia de un token de recuperación | 1 hora |
 
-Queda por definir el catálogo inicial de códigos de `auth.permisos`, es decir qué operaciones administrativas concretas se controlan y con qué granularidad.
+El catálogo inicial de códigos de `auth.permisos` está definido en [data-model.md](../../modules/auth/data-model.md#catálogo-inicial): trece códigos por área funcional. Cada endpoint de los contratos declara el que exige.

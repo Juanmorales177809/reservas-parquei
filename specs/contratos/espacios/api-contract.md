@@ -7,7 +7,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/espacios` |
-| Permiso administrativo | administrar espacios de la unidad; el Administrador tiene alcance global (`RN-ESP-03` de espacios) |
+| Permiso administrativo | `espacios.administrar` sobre la unidad; el Administrador lo tiene con alcance global (`RN-ESP-03` de espacios) |
 
 Códigos de error propios:
 

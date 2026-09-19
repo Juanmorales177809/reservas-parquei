@@ -139,7 +139,7 @@ Esta consulta **no reserva ni garantiza nada**: la disponibilidad se revalida al
 
 ### 3.1 `POST /api/reservas/{id}/aprobacion`
 
-Aprueba una reserva. Flujo `UF-RES-07`. Permiso: administrar reservas de la unidad.
+Aprueba una reserva. Flujo `UF-RES-07`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
 ```json
 { "observacion": "Aprobada con el equipo sustituido" }
@@ -161,7 +161,7 @@ Aprobar revalida disponibilidad, horario y capacidad (`RN-APR-06`). Para lista d
 
 ### 3.3 `POST /api/reservas/{id}/recursos`
 
-Agrega recursos a una reserva ya creada. Flujos `UF-RES-09` y `UF-RES-10`. Permiso: administrar reservas de la unidad.
+Agrega recursos a una reserva ya creada. Flujos `UF-RES-09` y `UF-RES-10`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
 ```json
 { "recursos": [{ "recurso_id": 55, "rol": "ADICIONAL" }] }
@@ -210,7 +210,7 @@ Propone un horario alternativo. Flujo `UF-RES-15`. Lo usa el Técnico para propo
 
 ### 5.1 `POST /api/reservas/{id}/ejecucion`
 
-Registra la entrega física y pasa la reserva a `EN_EJECUCION`. Flujo `UF-RES-13`. Permiso: administrar reservas de la unidad.
+Registra la entrega física y pasa la reserva a `EN_EJECUCION`. Flujo `UF-RES-13`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
 ```json
 {
@@ -285,7 +285,7 @@ Las reservas con horario generan evento con hora; campus y externo generan event
 
 ### 7.2 `GET /api/reservas/exportacion?formato=csv`
 
-Exporta el listado con los filtros aplicados. Flujo `UF-RES-18`. Permiso: administrar reservas de la unidad o alcance global.
+Exporta el listado con los filtros aplicados. Flujo `UF-RES-18`. Permiso: `reservas.exportar`.
 
 `formato` admite `csv` y `excel`, conforme a `RN-EXP-05` de reports, propietario de esa decisión. El archivo contiene exactamente lo visible según el filtro y el ámbito del actor (`RN-REP-03`).
 

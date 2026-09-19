@@ -71,7 +71,7 @@ Resuelta durante la revisión de specs. `auth.invitaciones` y `auth.tokens_recup
 
 Resuelta durante la revisión de specs. `auth.permisos` y `auth.cuenta_permisos` están definidas en [data-model.md](data-model.md), con el ámbito en la PK compuesta y `id_unidad NULL` como alcance global. El rol se deriva de las asignaciones vigentes y no se almacena. Ya no bloquea AUTH-A6 ni AUTH-B4.
 
-Queda un pendiente que no bloquea el diseño pero sí la implementación: el catálogo de códigos concretos de `auth.permisos`, registrado como **OQ-01** en [open-questions.md](../../docs/decisions/open-questions.md).
+El catálogo de códigos de `auth.permisos` también quedó definido (OQ-01), así que `AUTH-A6` ya no tiene dependencias de diseño abiertas.
 
 ### AUTH-A1 — Modelo y migración de `auth.sesiones`
 

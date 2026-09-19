@@ -181,7 +181,7 @@ Es una preferencia de conveniencia: **no concede ningún permiso administrativo*
 
 ## 5. Administración de identidades
 
-Requieren permiso administrativo sobre usuarios (`RN-USR-01` de administration).
+Requieren el permiso `usuarios.administrar` sobre el ámbito correspondiente (`RN-USR-01` de administration).
 
 ### 5.1 `POST /api/usuarios`
 
