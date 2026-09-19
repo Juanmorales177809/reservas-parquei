@@ -38,6 +38,7 @@ Perfil consolidado del actor. Flujo `UF-USR-03`.
   "correo": "persona@correo.itm.edu.co",
   "actualizacion_inicial_pendiente": false,
   "perfil_actualizado_at": "2026-09-19T14:03:11Z",
+  "perfiles": [{ "id_perfil": 2, "nombre": "Investigador" }],
   "vinculaciones": {
     "proyectos": [{ "id_proyecto": 12, "codigo": "PRY-001", "nombre": "Ensayos no destructivos", "estado": true }],
     "semilleros": [],
@@ -48,7 +49,9 @@ Perfil consolidado del actor. Flujo `UF-USR-03`.
 }
 ```
 
-`vinculaciones` se obtiene de `researchs`; este módulo no las almacena ni decide su validez (`RN-INV-08` de researchs).
+`perfiles` y `vinculaciones` se obtienen de `researchs`; este módulo no los almacena ni decide su validez (`RN-INV-08` de researchs).
+
+Un **perfil** académico o investigativo (`investigacion.perfiles`) describe la situación de la persona —por ejemplo investigador o estudiante— y es distinto de una **vinculación**, que la asocia a un proyecto, semillero, pasantía o trabajo de grado concretos. Solo las vinculaciones cuentan para `RN-USR-07` y `RN-USR-11`: tener un perfil no habilita a reservar.
 
 ### 1.2 `PATCH /api/perfil`
 
@@ -78,15 +81,41 @@ Mientras la actualización esté pendiente, las demás operaciones de negocio re
 
 ---
 
-## 2. Vinculaciones académicas e investigativas
+## 2. Perfiles académicos e investigativos
+
+### 2.0 `GET /api/perfil/perfiles/catalogo`
+
+Perfiles disponibles en `investigacion.perfiles`. Solo se devuelven los habilitados.
+
+```json
+{ "datos": [{ "id_perfil": 2, "nombre": "Investigador" }] }
+```
+
+### 2.1 `PUT /api/perfil/perfiles`
+
+Actualiza los perfiles del Usuario. Flujo `UF-USR-05`. Reemplaza el conjunto completo: lo que no venga en la lista queda desactivado.
+
+```json
+{ "perfiles": [2, 5] }
+```
+
+`researchs` valida las opciones seleccionadas y rechaza las combinaciones que sus reglas no permitan. Desactivar un perfil conserva su historial (`RN-INV-05` de researchs).
+
+**`200 OK`** con los perfiles vigentes.
+
+**Errores:** `409 CONFLICTO` si la combinación no está permitida, `404 NO_ENCONTRADO` si un perfil no existe o está deshabilitado.
+
+---
+
+## 3. Vinculaciones académicas e investigativas
 
 Estas rutas orquestan `researchs`. Los proyectos y semilleros **solo se seleccionan del catálogo**: no pueden crearse ni escribirse por nombre libre (`RN-USR-10`, `RN-INV-06` de researchs).
 
-### 2.1 `GET /api/perfil/vinculaciones/catalogo?tipo=proyectos`
+### 3.1 `GET /api/perfil/vinculaciones/catalogo?tipo=proyectos`
 
 Catálogo disponible para vincular. `tipo` admite `proyectos` y `semilleros`. Listado paginado con filtro `busqueda` sobre código y nombre.
 
-### 2.2 `POST /api/perfil/vinculaciones/proyectos`
+### 3.2 `POST /api/perfil/vinculaciones/proyectos`
 
 Asocia un proyecto existente. Flujo `UF-USR-06`.
 
@@ -96,11 +125,11 @@ Asocia un proyecto existente. Flujo `UF-USR-06`.
 
 **`201 Created`**. **Errores:** `409 VINCULACION_DUPLICADA` si ya existe, `404 NO_ENCONTRADO` si el proyecto no existe o está deshabilitado.
 
-### 2.3 `POST /api/perfil/vinculaciones/semilleros`
+### 3.3 `POST /api/perfil/vinculaciones/semilleros`
 
 Igual que la anterior, con `id_semillero`. Flujo `UF-USR-07`.
 
-### 2.4 `POST /api/perfil/vinculaciones/pasantias`
+### 3.4 `POST /api/perfil/vinculaciones/pasantias`
 
 Registra una pasantía y la vincula. Flujo `UF-USR-08`.
 
@@ -116,11 +145,11 @@ A diferencia de proyectos y semilleros, la pasantía **se crea** en este flujo p
 
 **`201 Created`** con la pasantía y su vinculación.
 
-### 2.5 `POST /api/perfil/vinculaciones/trabajos-grado`
+### 3.5 `POST /api/perfil/vinculaciones/trabajos-grado`
 
 Registra un trabajo de grado con `director_nombre` y `director_correo`. Flujo `UF-USR-09`.
 
-### 2.6 `DELETE /api/perfil/vinculaciones/{tipo}/{id}`
+### 3.6 `DELETE /api/perfil/vinculaciones/{tipo}/{id}`
 
 Desactiva una vinculación. Flujo `UF-USR-10`. **`204 No Content`**.
 
@@ -136,9 +165,9 @@ No bloquea la operación ni cierra la sesión, y no reinicia la actualización i
 
 ---
 
-## 3. Preferencias
+## 4. Preferencias
 
-### 3.1 `PUT /api/perfil/unidades-interes`
+### 4.1 `PUT /api/perfil/unidades-interes`
 
 Unidades o laboratorios donde el Usuario espera reservar. Flujo `UF-USR-11`.
 
@@ -150,31 +179,31 @@ Es una preferencia de conveniencia: **no concede ningún permiso administrativo*
 
 ---
 
-## 4. Administración de identidades
+## 5. Administración de identidades
 
 Requieren permiso administrativo sobre usuarios (`RN-USR-01` de administration).
 
-### 4.1 `POST /api/usuarios`
+### 5.1 `POST /api/usuarios`
 
 Crea la identidad funcional de un Usuario, paso previo a invitarlo. Exige los cinco datos obligatorios de `RN-DAT-01`: la invitación no usa datos ficticios para completar el perfil (`RN-USR-06` de administration).
 
 **`201 Created`** con la identidad creada. La cuenta se crea después, desde el contrato de [auth](../auth/api-contract.md).
 
-### 4.2 `GET /api/usuarios` y `GET /api/usuarios/{id_usuario}`
+### 5.2 `GET /api/usuarios` y `GET /api/usuarios/{id_usuario}`
 
 Listado paginado y detalle. Filtros: `estado`, `busqueda` sobre nombre, documento y correo.
 
-### 4.3 `PATCH /api/usuarios/{id_usuario}`
+### 5.3 `PATCH /api/usuarios/{id_usuario}`
 
 Modifica datos de una identidad. No altera retroactivamente reservas ni registros históricos (`RN-USR-02` de administration).
 
-### 4.4 `PATCH /api/usuarios/{id_usuario}/estado`
+### 5.4 `PATCH /api/usuarios/{id_usuario}/estado`
 
 Habilita o deshabilita. Deshabilitar impide nuevas operaciones que requieran identidad activa, sin eliminar información histórica (`RN-USR-03` de administration).
 
 ---
 
-## 5. Lo que este contrato no expone
+## 6. Lo que este contrato no expone
 
 - **Cuenta, credenciales y sesión**: pertenecen a [auth](../auth/api-contract.md). Este módulo administra la identidad, no la autenticación.
 - **Creación de proyectos y semilleros**: son catálogos centrales; se importan desde administration y aquí solo se seleccionan.

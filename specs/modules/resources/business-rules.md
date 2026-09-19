@@ -24,23 +24,13 @@ La estructura persistente se define en [data-model](data-model.md), las reglas d
 
 ---
 
-## Espacios — RN-ESP
+## Espacios
 
-- **RN-ESP-01:** Cada espacio pertenece a una única unidad organizacional mediante `id_unidad`.
+Los espacios pertenecen al módulo [espacios](../espacios/business-rules.md), propietario funcional de `reservas.espacios`. Sus reglas de pertenencia a una unidad, capacidad, unicidad del nombre, habilitación, recursos asociados y campos adicionales se definen allí; resources no las duplica.
 
-- **RN-ESP-02:** Solo los espacios con `habilitado = true` pueden incorporarse a nuevas reservas o agregarse durante una modificación.
+Lo que sí pertenece a resources es la **configuración de la unidad** a la que pertenece el espacio —horario de atención, antelación, aprobación automática y visibilidad—, definida en `RN-LAB` y en `reservas.laboratorios_config`. Un espacio no tiene horario propio: hereda el de su unidad conforme a `RN-ESP-DIS-02` de espacios.
 
-- **RN-ESP-03:** `capacidad` debe ser mayor que cero. Cuando una reserva utilice un espacio, el número de asistentes no puede superar su capacidad.
-
-- **RN-ESP-04:** El nombre del espacio es único dentro de cada unidad mediante `UNIQUE (id_unidad, nombre)`.
-
-- **RN-ESP-05:** Deshabilitar un espacio conserva el registro, sus relaciones y el historial de reservas.
-
-- **RN-ESP-06:** Cuando un espacio sea deshabilitado, las reservas futuras `SOLICITADA` o `APROBADA` que lo utilicen deben tratarse conforme a las reglas de cancelación de [reservas](../reservations/business-rules.md#cancelación--rn-can), `RN-CAN-04` a `RN-CAN-08`, que determinan cuándo la reserva se cancela y cuándo solo se retira el elemento. Resources no define ese efecto.
-
-- **RN-ESP-07:** La exclusividad temporal del espacio se rige por las reglas de disponibilidad definidas en [reservations](../reservations/business-rules.md).
-
-- **RN-ESP-08:** Una reserva puede no contener espacio cuando su composición lo permita conforme a [reservations](../reservations/business-rules.md).
+Los efectos de deshabilitar un espacio sobre las reservas futuras los determinan `RN-CAN-04` a `RN-CAN-08` de [reservations](../reservations/business-rules.md#cancelación--rn-can); la advertencia previa y la confirmación explícita se rigen por `RN-DES-06` y `RN-DES-07` de este módulo.
 
 ---
 

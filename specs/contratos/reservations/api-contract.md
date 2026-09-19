@@ -24,7 +24,7 @@ Códigos de error propios, adicionales al catálogo común:
 
 ### 1.1 `POST /api/reservas`
 
-Crea una solicitud de reserva de cualquier tipo. Flujos [UF-RES-01](../../modules/reservations/user-flows.md) a `UF-RES-05` según el tipo, y `UF-RES-08` cuando la crea un Técnico.
+Crea una solicitud de reserva de cualquier tipo. Flujos por tipo: [UF-RES-01](../../modules/reservations/user-flows.md) para espacio, `UF-RES-02` para recurso interno, `UF-RES-03` para campus, `UF-RES-04` para externo y `UF-RES-05` para lista de espera. `UF-RES-08` cubre la creación por un Técnico.
 
 El cuerpo tiene una parte común y un bloque `detalle` cuya forma depende del tipo:
 
