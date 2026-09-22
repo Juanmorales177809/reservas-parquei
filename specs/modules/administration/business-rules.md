@@ -34,7 +34,7 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 - **RN-USR-05:** La información administrativa de un usuario debe mantenerse separada de sus credenciales de autenticación cuando dichas responsabilidades pertenezcan a estructuras distintas del sistema.
 - **RN-USR-06:** El alta y la edición administrativa de Usuarios aplican RN-DAT del módulo Usuarios. Para invitar una cuenta de tipo `USUARIO`, debe existir previamente una identidad con esos datos obligatorios y válidos; la invitación y el alta administrativa no completan la actualización inicial por el Usuario.
-- **RN-USR-07:** Antes de invitar una cuenta de tipo `PERSONAL`, Administración debe registrar o verificar una ficha activa y completa en `personal.personal` conforme a RN-PER-11 de Usuarios. Después solicita la invitación a Auth con el correo de esa ficha y la unidad de su cargo; Auth resuelve y vincula el `id_persona`. Administración no crea credenciales ni duplica la identidad en Auth.
+- **RN-USR-07:** Antes de invitar una cuenta de tipo `PERSONAL`, Administración debe registrar o verificar una ficha activa y completa en `personal.personal` conforme a RN-PRS-05 de Usuarios. Después solicita la invitación a Auth con el correo de esa ficha y la unidad de su cargo; Auth resuelve y vincula el `id_persona`. Administración no crea credenciales ni duplica la identidad en Auth.
 
 ---
 
@@ -133,6 +133,10 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 - **RN-AUD-04:** La auditoría debe conservarse aunque posteriormente se desactive la cuenta o entidad relacionada.
 
 - **RN-AUD-05:** Los registros de auditoría no deben modificarse para reflejar valores actuales cuando ello altere la representación histórica de la acción ejecutada.
+
+- **RN-AUD-06:** Un cambio de cargo, unidad organizacional o permisos vigentes de una cuenta vinculada a `personal.personal` debe quedar registrado en auditoría.
+
+- **RN-AUD-07:** La auditoría no crea duplicados de `usuarios.usuarios`, `personal.personal` ni `auth.cuentas`. El actor se identifica mediante `actor_cuenta_id`, y su representación histórica se conserva porque esas identidades no se eliminan físicamente conforme a `RN-USR-04` y `RN-HAB-01`.
 
 ---
 

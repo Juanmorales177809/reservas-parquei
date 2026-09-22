@@ -53,7 +53,7 @@ Este documento describe los flujos administrativos del módulo `administration`.
 
 1. El Administrador abre la gestión de identidades de Personal.
 2. Para una ficha nueva, registra nombre, documento, correo, teléfono y cargo. Si la ficha ya existe, la localiza por su correo y verifica los datos; no crea un duplicado.
-3. El dominio de Usuarios valida los campos obligatorios, la unicidad de documento, correo y teléfono, la existencia del cargo y su unidad organizacional, y guarda o actualiza la ficha en `personal.personal` (`RN-PER-11`). La ficha queda activa para recibir la invitación.
+3. El dominio de Usuarios valida los campos obligatorios, la unicidad de documento, correo y teléfono, la existencia del cargo y su unidad organizacional, y guarda o actualiza la ficha en `personal.personal` (`RN-PRS-05`). La ficha queda activa para recibir la invitación.
 4. El Administrador elige invitar la cuenta y proporciona el correo de la ficha y la unidad derivada del cargo.
 5. Auth resuelve la ficha por correo único, confirma que el correo y la unidad coincidan, almacena `id_persona` en la invitación y envía el enlace conforme a `UF-AUTH-02`.
 6. La persona invitada define su contraseña al activar la cuenta. La ficha de Personal ya existente no se vuelve a crear ni se reemplaza.

@@ -38,7 +38,7 @@ Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus
 | `telefono` | varchar(20) | NN | UQ `uq_personal_telefono` |
 | `estado` | boolean | Sí | — |
 
-La tabla ya no contiene `supabase_id`. Las altas o modificaciones administrativas de estas fichas validan nombre, documento, correo, teléfono y cargo conforme a `RN-PER-11`; Auth utiliza el correo único para resolver la identidad y vincula su `id_persona` a la invitación de tipo `PERSONAL`. La ficha debe estar activa para emitir y activar esa invitación. Cuando existe una cuenta asociada, ambos correos coinciden y no pueden modificarse.
+La tabla ya no contiene `supabase_id`. Las altas o modificaciones administrativas de estas fichas validan nombre, documento, correo, teléfono y cargo conforme a `RN-PRS-05`; Auth utiliza el correo único para resolver la identidad y vincula su `id_persona` a la invitación de tipo `PERSONAL`. La ficha debe estar activa para emitir y activar esa invitación. Cuando existe una cuenta asociada, ambos correos coinciden y no pueden modificarse.
 
 `perfil_actualizado_at` registra que el Usuario completó la actualización inicial obligatoria. El valor no se establece hasta que los datos obligatorios estén válidos y exista al menos una vinculación académica o investigativa activa y válida confirmada por `investigacion`. No duplica las vinculaciones ni reemplaza sus estados.
 

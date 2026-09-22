@@ -1,36 +1,17 @@
-# Identidad y autorización
+# Usuarios y personal
 
 La estructura persistente está en [data-model](data-model.md) y las reglas del dominio de reservas en [business-rules.md](../reservations/business-rules.md).
 
-La autenticación pertenece al schema `auth`. Las identidades funcionales se representan mediante `usuarios.usuarios` y `personal.personal`. Una cuenta corresponde a una sola de esas identidades. La autorización administrativa del personal se determina a partir de su cargo, unidad organizacional y permisos vigentes.
+Este módulo es propietario de las **identidades funcionales**: `usuarios.usuarios` representa a quien reserva y `personal.personal` al personal institucional. Define sus datos obligatorios, su estado y su relación con el cargo.
 
+No define credenciales, autenticación, sesiones, roles, permisos ni autorización: esos conceptos pertenecen a [Auth](../auth/business-rules.md), que resuelve qué cuenta actúa y qué puede hacer. La auditoría administrativa pertenece a [Administration](../administration/business-rules.md). Las reglas sobre quién puede consultar, editar, aprobar, rechazar o cancelar reservas pertenecen a [Reservations](../reservations/business-rules.md).
 ---
 
-## Cuentas e identidades — RN-ID
+## Identidad de cuenta y autenticación
 
-- **RN-ID-01:** Toda operación que requiera autenticación debe realizarse mediante una cuenta activa registrada en `auth.cuentas`.
+La relación entre una cuenta y su identidad funcional la define Auth: `RN-AUTH-ID-01` a `RN-AUTH-ID-12` cubren la cuenta activa, la exclusividad entre `usuarios.usuarios` y `personal.personal`, la inmutabilidad y coincidencia del correo, las vías de alta y la conservación del historial. Las sesiones se rigen por `RN-AUTH-SES` y la autorización administrativa por `RN-AUTH-ROL`.
 
-- **RN-ID-02:** Una cuenta puede estar asociada a un único registro de `usuarios.usuarios`.
-
-- **RN-ID-03:** Una cuenta puede estar asociada a un único registro de `personal.personal`.
-
-- **RN-ID-04:** Una cuenta no puede estar vinculada simultáneamente a `usuarios.usuarios` y `personal.personal`; corresponde funcionalmente a una sola identidad.
-
-- **RN-ID-05:** La creación o cambio de identidad de una cuenta debe respetar la exclusividad entre `usuarios.usuarios` y `personal.personal`.
-
-- **RN-ID-06:** La vinculación de una cuenta con `usuarios.usuarios` o `personal.personal` no concede por sí misma permisos administrativos.
-
-- **RN-ID-07:** Una cuenta inactiva no puede iniciar nuevas operaciones autenticadas. Su desactivación no elimina ni modifica información histórica asociada.
-
-- **RN-ID-08:** La identidad autenticada se determina exclusivamente a partir de una cuenta validada. No se identifica a una persona por nombre, correo enviado por el cliente u otro dato no verificado.
-
-- **RN-ID-09:** Una cuenta se crea por una de dos vías: invitación emitida por una cuenta con permiso de administración, o autorregistro abierto sin aprobación previa. El autorregistro solo permite crear una cuenta vinculada inicialmente como usuario y nunca permite autoasignarse permisos administrativos ni una vinculación como personal.
-- **RN-ID-10:** Una cuenta que no completó su proceso de alta puede recibir una nueva invitación sin que eso duplique su identidad ni impida reintentar el alta.
-
-- **RN-ID-11:** El historial de reservas, notificaciones y auditoría debe mantenerse asociado a la misma cuenta aunque la identidad funcional permanezca inactiva.
-
-- **RN-ID-12:** Cuando una identidad ya tenga una cuenta asociada, su correo y el de la cuenta son el mismo valor inmutable. Antes de crear la cuenta, la identidad puede corregirse mediante la gestión administrativa aplicable.
-
+Este módulo no repite esas reglas. Aporta únicamente las identidades que Auth referencia.
 ---
 
 ## Usuarios — RN-USR
@@ -61,79 +42,30 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **RN-DAT-02:** Documento y teléfono deben ser únicos, cada uno por separado, entre los registros de `usuarios.usuarios`, incluidos los inactivos. El backend valida la unicidad al crear y modificar, excluyendo el propio registro en una edición; la base de datos la garantiza mediante restricciones `UNIQUE`. Un conflicto rechaza la operación y no debe sobrescribir ni fusionar identidades.
 - **RN-DAT-03:** Institución y dependencia describen la afiliación del Usuario y se almacenan en su perfil. No conceden permisos administrativos ni sustituyen una vinculación académica o investigativa. Sus valores no son únicos.
 
-## Personal — RN-PER
+## Personal — RN-PRS
 
-- **RN-PER-01:** `personal.personal` representa personal o contratistas vinculados a las unidades organizacionales correspondientes.
+- **RN-PRS-01:** `personal.personal` representa personal o contratistas vinculados a las unidades organizacionales correspondientes.
 
-- **RN-PER-02:** El ámbito organizacional del personal se obtiene mediante la relación `personal -> cargo -> unidad_organizacional`, salvo que el modelo persistente defina una relación adicional explícita.
+- **RN-PRS-02:** El ámbito organizacional del personal se obtiene mediante la relación `personal -> cargo -> unidad_organizacional`, salvo que el modelo persistente defina una relación adicional explícita.
 
-- **RN-PER-03:** El cargo determina únicamente la unidad organizacional de pertenencia del Personal. Las acciones autorizadas se determinan exclusivamente mediante `auth.cuenta_permisos` y su alcance.
+- **RN-PRS-03:** El cargo determina únicamente la unidad organizacional de pertenencia del Personal. Las acciones autorizadas se determinan exclusivamente mediante `auth.cuenta_permisos` y su alcance, conforme a `RN-AUTH-ROL` de Auth.
 
-- **RN-PER-04:** Pertenecer a una unidad organizacional no concede automáticamente todas las acciones administrativas disponibles en dicha unidad.
+- **RN-PRS-04:** Personal inactivo no puede realizar nuevas operaciones administrativas. Las acciones históricas realizadas anteriormente se conservan.
 
-- **RN-PER-05:** Una cuenta vinculada a `personal.personal` solo puede ejercer permisos administrativos cuando la cuenta esté activa, el registro de personal esté activo y la relación de cargo, unidad organizacional y permisos que sustenta la autorización sea válida.
+- **RN-PRS-05:** Toda ficha de `personal.personal` debe registrar nombre, documento, correo, teléfono y cargo. Documento, correo y teléfono deben ser únicos en la tabla; el cargo debe existir y determina la unidad organizacional del personal. Administración captura y valida estos datos mediante este dominio antes de solicitar a Auth una invitación `PERSONAL`; Auth no crea ni completa la ficha.
 
-- **RN-PER-06:** Personal inactivo no puede realizar nuevas operaciones administrativas. Las acciones históricas realizadas anteriormente se conservan.
+Las condiciones bajo las cuales una cuenta vinculada a `personal.personal` puede ejercer permisos administrativos, el ámbito en que puede hacerlo y la exclusividad frente a `usuarios.usuarios` se definen en `RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07` y `RN-AUTH-ID-03` de Auth. Las condiciones bajo las cuales una cuenta `PERSONAL` puede crear reservas se definen en `RN-RES-15` de Reservations.
 
-- **RN-PER-07:** Una cuenta vinculada a `personal.personal` puede realizar reservas propias dentro del laboratorio asociado a su unidad organizacional mediante el cargo vigente, además de las operaciones administrativas que le hayan sido autorizadas. Para reservar en otra unidad debe utilizarse una cuenta de tipo `USUARIO`; las reglas de contexto aplicables a la reserva se definen en `reservas` (RN-CTX).
 
-- **RN-PER-08:** Una cuenta de `personal.personal` no se vincula simultáneamente a `usuarios.usuarios`.
+## Autenticación, autorización y auditoría
 
-- **RN-PER-09:** Siempre debe existir al menos una cuenta vinculada a `personal.personal` con permisos de administración global vigentes. Ninguna operación puede eliminar, degradar o inhabilitar la última cuenta que los posee.
+Ninguno de estos conceptos se define en este módulo.
 
-- **RN-PER-10:** El Técnico no puede ejecutar operaciones administrativas sobre unidades organizacionales distintas de la unidad de su registro de personal.
+- **Credenciales, autenticación y sesiones:** `RN-AUTH-ID` y `RN-AUTH-SES` de [Auth](../auth/business-rules.md). Las credenciales se administran exclusivamente en el schema `auth` y nunca en `usuarios.usuarios` ni en `personal.personal`.
+- **Roles, permisos, ámbito y autorización administrativa:** `RN-AUTH-ROL` de Auth, junto con `RN-PER` de [Administration](../administration/business-rules.md), que define cómo se representan y asignan los permisos.
+- **Auditoría administrativa:** `RN-AUD` de Administration.
+- **Autorización sobre reservas:** `RN-RES`, `RN-APR` y `RN-CAN` de [Reservations](../reservations/business-rules.md).
 
-- **RN-PER-11:** Toda ficha de `personal.personal` debe registrar nombre, documento, correo, teléfono y cargo. Documento, correo y teléfono deben ser únicos en la tabla; el cargo debe existir y determina la unidad organizacional del personal. Administración captura y valida estos datos mediante este dominio antes de solicitar a Auth una invitación `PERSONAL`; Auth no crea ni completa la ficha.
-
----
-
-## Autenticación — RN-AUT
-
-- **RN-AUT-01:** Las credenciales de acceso se administran exclusivamente en el dominio `auth` y no en `usuarios.usuarios` ni en `personal.personal`.
-
-- **RN-AUT-02:** Toda autenticación válida establece una identidad verificable asociada a `auth.cuentas`.
-
-- **RN-AUT-03:** Las sesiones autenticadas se administran mediante `auth.sesiones`.
-
-- **RN-AUT-04:** Una sesión revocada o vencida no puede utilizarse para continuar una operación autenticada ni para establecer una nueva sesión válida.
-
-- **RN-AUT-05:** La autenticación confirma qué cuenta realiza una operación, pero no determina por sí sola qué operaciones están autorizadas.
-
-- **RN-AUT-06:** Cerrar sesión debe finalizar la sesión autenticada correspondiente en `auth.sesiones`.
-
----
-
-## Autorización — RN-AUTZ
-
-- **RN-AUTZ-01:** Toda acción administrativa requiere una cuenta activa vinculada a `personal.personal`.
-
-- **RN-AUTZ-02:** La autorización debe comprobar como mínimo la cuenta autenticada, el estado del personal, el cargo, la unidad organizacional, el permiso requerido y el ámbito de actuación.
-
-- **RN-AUTZ-03:** La autorización administrativa se evalúa con información vigente al momento de ejecutar la operación.
-
-- **RN-AUTZ-04:** El cargo no debe evaluarse mediante comparaciones de nombres fijos en la aplicación; las acciones permitidas deben derivarse del modelo de permisos definido para el sistema.
-
-- **RN-AUTZ-05:** El Técnico solo puede ejercer operaciones administrativas dentro de la unidad organizacional asociada a su registro activo de personal mediante el cargo vigente; Auth valida esta correspondencia con los permisos (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`). El Administrador tiene alcance global únicamente mediante una cuenta `PERSONAL` activa con permiso global vigente, conforme a Auth (`RN-AUTH-ROL-03`).
-
-- **RN-AUTZ-06:** Una cuenta vinculada a `personal.personal` sin el permiso requerido se comporta como una cuenta sin autorización administrativa para dicha operación.
-
-- **RN-AUTZ-07:** Las reglas específicas de quién puede consultar, editar, aprobar, rechazar o cancelar reservas se establecen en el dominio de reservas.
-
-- **RN-AUTZ-08:** Un cambio de cargo, unidad organizacional o permisos vigentes de una cuenta vinculada a personal debe quedar registrado en auditoría.
-
----
-
-## Auditoría de identidad y autorización — RN-AUD
-
-- **RN-AUD-01:** Toda operación administrativa sensible debe identificar la cuenta autenticada que la ejecutó.
-
-- **RN-AUD-02:** La auditoría debe conservar como mínimo actor, acción y momento de ejecución, además de la información necesaria para representar históricamente al actor.
-
-- **RN-AUD-03:** La auditoría no crea duplicados de `usuarios.usuarios`, `personal.personal` ni `auth.cuentas`.
-
-- **RN-AUD-04:** La desactivación posterior de una cuenta, usuario, personal, cargo o unidad organizacional no elimina ni altera el historial de auditoría.
-
----
 
 ## Separación de responsabilidades
 
@@ -141,8 +73,8 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - `auth.sesiones` responde: **qué sesiones están vigentes**.
 - `usuarios.usuarios` responde: **quién es el usuario que reserva**.
 - `personal.personal` responde: **quién es el personal institucional**.
-- `cargos.cargo` y el modelo de permisos responden: **qué acciones administrativas puede realizar el personal**.
-- `unidadOrganizacional.unidad_organizacional` responde: **en qué ámbito puede ejercer dichas acciones**.
+- `cargos.cargo` responde: **a qué unidad organizacional pertenece el personal**, conforme a `RN-PRS-03`.
+- `auth.permisos` y `auth.cuenta_permisos` responden: **qué acciones administrativas puede realizar y en qué ámbito**, conforme a `RN-AUTH-ROL` de Auth.
 - `investigacion.*` describe el contexto académico o investigativo del usuario y no concede permisos administrativos.
 
 ---
