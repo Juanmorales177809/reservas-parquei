@@ -134,7 +134,7 @@ CREATE UNIQUE INDEX uq_espacio_recursos_recurso_activo
 
 # 4. Campos adicionales configurables
 
-## `reservas.espacios_campos`
+## `reservas.espacio_campos`
 
 Define campos dinámicos que el Usuario debe o puede diligenciar al reservar un espacio.
 
@@ -203,14 +203,14 @@ UNIQUE (espacio_id, nombre)
 
 # 5. Opciones de campos de selección
 
-## `reservas.espacios_campos_opciones`
+## `reservas.espacio_campo_opciones`
 
 Define las opciones disponibles para campos `SELECCION`.
 
 | Campo | Tipo | Null | Restricción / descripción |
 |---|---|---:|---|
 | `id` | integer | No | PK; identity |
-| `campo_id` | integer | No | FK → `reservas.espacios_campos(id)` |
+| `campo_id` | integer | No | FK → `reservas.espacio_campos(id)` |
 | `valor` | varchar(255) | No | Valor visible |
 | `orden` | integer | No | Orden de presentación |
 | `habilitado` | boolean | No | DEFAULT `true` |
@@ -258,9 +258,9 @@ definida en el módulo `reservas`.
 Relación conceptual:
 
 ```text
-reservas.espacios_campos
+reservas.espacio_campos
         |
-        +---- reservas.espacios_campos_opciones
+        +---- reservas.espacio_campo_opciones
         |
         v
 reservas.reserva_campos_valores
@@ -287,9 +287,9 @@ unidadOrganizacional.unidad_organizacional
              |
              +--> espacio_recursos --> recursos.recursos
              |
-             +--> espacios_campos
+             +--> espacio_campos
                        |
-                       +--> espacios_campos_opciones
+                       +--> espacio_campo_opciones
                        |
                        +--> reserva_campos_valores
 ```
@@ -307,11 +307,11 @@ espacios 1 ─── N espacio_recursos
 recursos 1 ─── 0..1 asociación habilitada
         mediante espacio_recursos
 
-espacios 1 ─── N espacios_campos
+espacios 1 ─── N espacio_campos
 
-espacios_campos 1 ─── N espacios_campos_opciones
+espacio_campos 1 ─── N espacio_campo_opciones
 
-espacios_campos 1 ─── N reserva_campos_valores
+espacio_campos 1 ─── N reserva_campos_valores
 ```
 
 ---

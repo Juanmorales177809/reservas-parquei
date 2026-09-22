@@ -159,3 +159,15 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 **Impacto.** Determina si `UF-RES-13` y `POST /api/reservas/{id}/ejecucion` admiten el tipo `ESPACIO`, y si `RN-TIP-PE-21` y `RN-TIP-PE-23` describen un estado alcanzable para ese tipo. No afecta la disponibilidad, que se evalúa por intervalo conforme a `RN-DIS-11`. La tercera alternativa obligaría a revisar esas dos reglas.
 
 **Estado.** Abierta.
+
+---
+
+## OQ-14 — Tipos de adjunto admitidos en una reserva
+
+**Contexto.** `reservas.reserva_adjuntos.tipo_adjunto` clasifica el archivo que el Usuario carga con su requerimiento, pero no existe un catálogo aprobado de valores. La única fuente es [spec.md](../spec.md), que menciona «un archivo CAD, imagen u otro archivo técnico» sin cerrar la lista, y `UF-RES-05`, que la repite. Por eso la columna se documentó sin `CHECK`.
+
+**Alternativas.** Un catálogo cerrado en `CHECK` o en una tabla de tipos, frente a dejar la clasificación abierta y validar únicamente `content_type` y tamaño.
+
+**Impacto.** Sin catálogo, `tipo_adjunto` admite cualquier texto y no puede filtrarse de forma fiable. Queda además por decidir qué tipos MIME se aceptan en `content_type`, dado que el archivo lo carga un Usuario autenticado y se almacena tal cual. No afecta el límite de tamaño, que sí está aprobado en 5 MB.
+
+**Estado.** Abierta.

@@ -204,24 +204,40 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 
 ## Adjuntos, ejecución y salida
 
-`reservas.reserva_adjuntos`: `id integer PK`, `reserva_id integer FK`, `tipo_adjunto`, `nombre_original`, `storage_key`, `content_type`, `size_bytes`, `uploaded_by bigint FK a cuentas`, `created_at`.
+### `reservas.reserva_adjuntos`
+
+Archivos que el Usuario adjunta a su requerimiento. El único flujo que hoy los produce es `UF-RES-05`, la creación de una reserva de lista de espera, donde se adjunta un archivo CAD, una imagen u otro archivo técnico.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` |
+| `tipo_adjunto` | varchar(30) | NN | sin CHECK: el catálogo de tipos admitidos no está definido (`OQ-14`) |
+| `nombre_original` | varchar(255) | NN | nombre del archivo tal como lo cargó el Usuario; CHECK `btrim(nombre_original) <> ''` |
+| `storage_key` | varchar(255) | NN | UQ `uq_reserva_adjuntos_storage_key`; identifica el objeto almacenado, que no se comparte entre filas |
+| `content_type` | varchar(100) | NN | tipo MIME declarado al cargar |
+| `size_bytes` | integer | NN | CHECK `size_bytes > 0 AND size_bytes <= 5242880` |
+| `uploaded_by` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+El límite de `size_bytes` son los 5 MB que exige [spec.md](../../docs/spec.md) para el archivo del requerimiento. El backend valida el tamaño antes de almacenar el objeto; el CHECK impide que una fila registre un archivo que exceda el límite. `uploaded_by` usa FK real a `auth.cuentas` conforme a las decisiones de integridad de este modelo. La estructura admite varias filas por reserva. Índice `(reserva_id, created_at)`.
 
 ### `reservas.reserva_ejecucion_recursos`
 
 Registro de entrega y devolución física para `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, independiente de la asignación temporal y de las firmas físicas del FGL 030.
 
-| Campo | Tipo | Restricción |
-|---|---|---|
-| `id` | integer | PK |
-| `reserva_recurso_id` | integer | NOT NULL, FK a `reservas.reserva_recursos(id)` |
-| `entregado_por` | bigint | NOT NULL, FK a `auth.cuentas(id_cuenta)` |
-| `recibido_por` | bigint | NULL, FK a `auth.cuentas(id_cuenta)` |
-| `entregado_at` | timestamptz | NOT NULL |
-| `devuelto_at` | timestamptz | NULL; debe ser mayor o igual que `entregado_at` |
-| `observacion_entrega` | text | NULL |
-| `observacion_devolucion` | text | NULL |
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `reserva_recurso_id` | integer | NN | FK → `reservas.reserva_recursos(id)` |
+| `entregado_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `recibido_por` | bigint | Sí | FK → `auth.cuentas(id_cuenta)` |
+| `entregado_at` | timestamptz | NN | — |
+| `devuelto_at` | timestamptz | Sí | CHECK `devuelto_at >= entregado_at` cuando tiene valor |
+| `observacion_entrega` | text | Sí | — |
+| `observacion_devolucion` | text | Sí | — |
 
-`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso. No puede existir más de una entrega abierta por `reserva_recurso_id`. Para una reserva con recursos que requieren devolución, la finalización registra la devolución de todos ellos en una misma operación; no se permite cerrar parcialmente la reserva. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
+`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso: CHECK que exige que ambos sean NULL o ambos tengan valor. Un índice único parcial sobre `(reserva_recurso_id)` para las filas con `devuelto_at IS NULL` impide más de una entrega abierta por recurso asignado, que es lo que sostiene la disponibilidad física de `RN-DIS-06`. Para una reserva con recursos que requieren devolución, la finalización registra la devolución de todos ellos en una misma operación; no se permite cerrar parcialmente la reserva. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
 
 ### `reservas.reserva_datos_salida`
 
@@ -264,7 +280,7 @@ Prellenados y copiados como snapshot desde su fuente al generar el documento:
 | `fecha_retiro_snapshot` | date | NOT NULL — de `reserva_recurso_campus`/`reserva_recurso_externo.fecha_salida` |
 | `fecha_regreso_snapshot` | date | NOT NULL — de `...fecha_devolucion_estimada` |
 | `proyecto_codigo_snapshot` | varchar(60) | NULL, obligatorio cuando entre las actividades marcadas figure `PROYECTO_INVESTIGACION` — de `reserva_contexto` |
-| `responsable_nombre_snapshot` | varchar(150) | NOT NULL — `nombre` de la identidad asociada a `reservas.id_cuenta` |
+| `responsable_nombre_snapshot` | varchar(150) | NOT NULL — `nombre` de la identidad asociada a `reservas.reservas.id_cuenta` |
 | `responsable_cedula_snapshot` | varchar(20) | NOT NULL — `documento` de esa identidad |
 | `responsable_correo_snapshot` | varchar(255) | NOT NULL — correo de esa identidad |
 | `responsable_telefono_snapshot` | varchar(20) | NOT NULL — teléfono de esa identidad |
@@ -350,7 +366,21 @@ Una contrapropuesta marca la propuesta anterior como `SUSTITUIDA` y crea una fil
 
 ## Estados
 
-`reservas.reserva_historial_estado` registra únicamente transiciones: `id integer PK`, `reserva_id integer FK`, `estado_anterior_id integer FK NULL`, `estado_nuevo_id integer FK`, `actor_cuenta_id bigint NOT NULL FK a `auth.cuentas`, `motivo`, `created_at`.
+### `reservas.reserva_historial_estado`
+
+Registra únicamente transiciones del ciclo de vida de la reserva.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | integer | NN | PK; identity |
+| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` |
+| `estado_anterior_id` | integer | Sí | FK → `reservas.estados_reserva(id)`; NULL en la fila que registra la creación |
+| `estado_nuevo_id` | integer | NN | FK → `reservas.estados_reserva(id)`; CHECK `estado_nuevo_id <> estado_anterior_id` cuando el anterior tiene valor |
+| `actor_cuenta_id` | bigint | Sí | FK → `auth.cuentas(id_cuenta)`; NULL identifica una transición ejecutada por el sistema |
+| `motivo` | text | Sí | — |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+`actor_cuenta_id` admite NULL porque no toda transición tiene un actor humano: la finalización automática de una reserva por espacio la ejecuta el sistema al alcanzar `hora_fin`, conforme a `RN-TIP-PE-25` y `UF-RES-21`. Toda transición originada por una persona registra su cuenta con FK real. Índice `(reserva_id, created_at)` para reconstruir el ciclo de vida en orden.
 
 La auditoría de Reservations, incluidos `reserva_auditoria` y los snapshots del actor, está fuera del alcance funcional actual y queda pendiente de diseño futuro. `reserva_historial_estado` conserva únicamente las transiciones necesarias para el ciclo de vida de la reserva.
 

@@ -36,9 +36,11 @@ Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus
 | `documento` | varchar(20) | NN | UQ `uq_personal_documento` |
 | `correo` | varchar(255) | NN | UQ `uq_personal_correo` |
 | `telefono` | varchar(20) | NN | UQ `uq_personal_telefono` |
-| `estado` | boolean | Sí | — |
+| `estado` | boolean | NN | DEFAULT `true` |
 
 La tabla ya no contiene `supabase_id`. Las altas o modificaciones administrativas de estas fichas validan nombre, documento, correo, teléfono y cargo conforme a `RN-PRS-05`; Auth utiliza el correo único para resolver la identidad y vincula su `id_persona` a la invitación de tipo `PERSONAL`. La ficha debe estar activa para emitir y activar esa invitación. Cuando existe una cuenta asociada, ambos correos coinciden y no pueden modificarse.
+
+`estado` no admite `NULL`: la ficha está activa o inactiva, sin un tercer valor indeterminado. Toda alta nace activa por el `DEFAULT`, y `RN-PRS-04`, `RN-USR-07` de administration y la emisión de invitaciones `PERSONAL` se resuelven con una comprobación booleana. La migración debe fijar en `true` las filas existentes con `NULL` antes de aplicar la restricción, sin deducir el valor de otros campos.
 
 `perfil_actualizado_at` registra que el Usuario completó la actualización inicial obligatoria. El valor no se establece hasta que los datos obligatorios estén válidos y exista al menos una vinculación académica o investigativa activa y válida confirmada por `investigacion`. No duplica las vinculaciones ni reemplaza sus estados.
 
