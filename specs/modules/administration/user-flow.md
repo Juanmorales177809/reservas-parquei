@@ -1,6 +1,6 @@
 # User Flows — Administration
 
-Este documento describe los flujos administrativos del módulo `administration`. La importación escribe los catálogos propios de `investigacion`; Researchs conserva la propiedad de las entidades y de las vinculaciones.
+Este documento describe los flujos administrativos del módulo `administration`. La importación masiva se orquesta aquí, pero escribe siempre en el módulo propietario: `investigacion` para proyectos y semilleros, `recursos` para equipos. Researchs y Resources conservan la propiedad de sus entidades, de sus validaciones y de las vinculaciones.
 
 ## UF-ADM-01 — Importar proyectos o semilleros mediante Excel
 
@@ -65,11 +65,42 @@ Este documento describe los flujos administrativos del módulo `administration`.
 - Si no existe una ficha activa que coincida con el correo, o la unidad no coincide con la unidad del cargo o el ámbito del emisor, Auth rechaza la invitación.
 - Si la ficha está inactiva, debe reactivarse mediante la gestión administrativa correspondiente antes de invitar.
 
+## UF-ADM-04 — Importar equipos institucionales
+
+**Actor principal:** Administrador
+
+**Precondiciones:**
+
+- La cuenta está autenticada, activa y tiene alcance global (`RN-IMP-01`).
+- El archivo corresponde al catálogo de equipos.
+
+**Flujo principal:**
+
+1. El Administrador selecciona «Importar catálogo» y elige el catálogo `EQUIPOS`.
+2. Carga la planilla de equipos.
+3. El sistema valida el formato del archivo, sus columnas y las placas duplicadas dentro de la planilla (`RN-IMP-03`).
+4. Por cada fila, Resources valida la placa y los datos obligatorios del equipo conforme a `RN-IMP-02` y `RN-IMP-03` de ese módulo.
+5. El sistema compara las placas con el inventario existente y muestra un resumen de equipos nuevos y actualizados, junto con las filas en error.
+6. El Administrador revisa el resultado y confirma la importación.
+7. Al confirmar, Resources crea o actualiza cada equipo conforme a `UF-REC-03`, escribiendo `recursos.recursos` y `recursos.equipos` en una sola transacción por equipo (`RN-IMP-05` de Resources).
+8. La importación no modifica las reservas históricas asociadas a un equipo actualizado (`RN-IMP-04` de Resources).
+9. El sistema registra el resultado de cada fila procesada. Al confirmar, registra además la operación, el Administrador, la fecha, el catálogo `EQUIPOS`, la referencia del archivo y sus totales (`RN-IMP-08`).
+
+**Flujos alternos:**
+
+- Si el archivo no cumple el formato, el sistema rechaza la confirmación y muestra los errores sin escribir equipos.
+- Si una placa ya existe, se actualiza ese equipo; no se crea un duplicado (`RN-IMP-02` de Resources).
+- Si una fila no trae placa o su placa es inválida, se reporta como fila en error (`RN-IMP-03` de Resources).
+- Si la cuenta no tiene alcance global, el sistema rechaza la operación.
+
+**Decisiones pendientes.** Las columnas de la planilla de equipos (`OQ-10`), el tratamiento de una carga que contiene filas en error (`OQ-11`) y el efecto de la importación sobre la habilitación de un equipo (`OQ-12`) no están definidos. Este flujo no los presupone.
+
 ---
 
 ## Separación de responsabilidades
 
-- Administration autoriza, valida y ejecuta la carga.
+- Administration autoriza, valida el archivo, orquesta la carga y conserva su trazabilidad, conforme a `RN-IMP-10`.
 - Researchs conserva las entidades `proyectos` y `semilleros`, sus identificadores y sus vinculaciones.
-- La importación no asigna usuarios a proyectos o semilleros.
+- Resources conserva las entidades `recursos` y `equipos`, la identificación por placa y las validaciones del equipo.
+- La importación no asigna usuarios a proyectos o semilleros, ni crea reservas o asignaciones de equipos.
 - Los Usuarios seleccionan registros existentes; no crean proyectos ni semilleros desde su perfil o una reserva.

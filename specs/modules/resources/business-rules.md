@@ -140,10 +140,14 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 ## Importación masiva de inventario — RN-IMP
 
-- **RN-IMP-01:** El sistema permite importar equipos institucionales de forma masiva a partir de una planilla.
+La carga masiva de equipos la inicia, autoriza, valida en su formato y registra [Administration](../administration/business-rules.md#importación-masiva-de-catálogos--rn-imp) conforme a su familia `RN-IMP`, con el catálogo `EQUIPOS`. Este módulo define únicamente la identificación del equipo, sus validaciones propias y el efecto de la escritura sobre `recursos.recursos` y `recursos.equipos`.
 
-- **RN-IMP-02:** La importación es idempotente por placa: un registro cuya placa ya exista se actualiza con los datos de la planilla en lugar de duplicarse; un registro con placa nueva se crea.
+- **RN-IMP-01:** El sistema permite importar equipos institucionales de forma masiva a partir de una planilla. La ejecuta el Administrador desde Administration; este módulo no define un mecanismo de carga propio ni una vía alterna que eluda esa orquestación.
 
-- **RN-IMP-03:** Un registro de la planilla sin placa, o con una placa inválida, no se importa y debe reportarse como error de la importación sin afectar el resto de los registros válidos.
+- **RN-IMP-02:** La importación es idempotente por placa: un registro cuya placa ya exista se actualiza con los datos de la planilla en lugar de duplicarse; un registro con placa nueva se crea. La placa cumple para el equipo la misma función identificadora que el `codigo` normalizado cumple para los catálogos de investigación.
+
+- **RN-IMP-03:** Un registro de la planilla sin placa, o con una placa inválida, no se importa y se reporta como fila con resultado `ERROR` en la trazabilidad de la carga. Si el resto de las filas válidas puede confirmarse pese a ese error, o si la carga completa se rechaza, lo determina `RN-IMP-06` de administration y está pendiente de decisión (`OQ-11`).
 
 - **RN-IMP-04:** La importación no modifica retroactivamente las reservas históricas asociadas a un equipo actualizado (ver RN-EQP-05).
+
+- **RN-IMP-05:** Cada equipo creado o actualizado por la importación se escribe conforme a `UF-REC-03`: `recursos.recursos` y `recursos.equipos` en una sola transacción. Una fila que no pueda escribirse completa no deja ninguna de las dos filas.

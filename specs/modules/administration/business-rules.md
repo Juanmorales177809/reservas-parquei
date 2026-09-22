@@ -145,23 +145,24 @@ La autorización aplicable es la general de este módulo: gestionar el catálogo
 
 ---
 
-## Importación de catálogos de investigación — RN-IMP
+## Importación masiva de catálogos — RN-IMP
 
-- **RN-IMP-01:** Solo el Administrador puede importar proyectos y semilleros mediante un archivo Excel, con autorización global vigente.
-- **RN-IMP-02:** El archivo debe identificar cada registro mediante `codigo`, incluir `nombre` y `estado`, y señalar el tipo de catálogo que se importa. La columna `estado` admite únicamente los valores `ACTIVO` e `INACTIVO`, sin distinguir mayúsculas y recortando los espacios circundantes; cualquier otro valor, incluido el vacío, invalida la fila.
-- **RN-IMP-03:** Antes de guardar, el sistema debe validar columnas, campos obligatorios, estados permitidos, códigos duplicados dentro del archivo y el formato del archivo.
-- **RN-IMP-04:** El `codigo` se normaliza recortando espacios y convirtiendo a mayúsculas, tanto para comparar como para almacenar. Un código existente actualiza el registro correspondiente; un código nuevo crea un registro en `investigacion`, cuya clave primaria genera la base de datos. Reimportar el mismo archivo no crea duplicados, y dos filas cuyo código normalizado coincida se rechazan como duplicadas conforme a `RN-IMP-03`.
+- **RN-IMP-01:** Solo el Administrador puede ejecutar una importación masiva, con autorización global vigente. Los catálogos importables son `PROYECTOS`, `SEMILLEROS` y `EQUIPOS`. Administration autoriza, orquesta y registra la carga en los tres casos; las entidades se escriben siempre en el módulo propietario: `investigacion` para proyectos y semilleros, `recursos` para equipos.
+- **RN-IMP-02:** Para los catálogos `PROYECTOS` y `SEMILLEROS`, el archivo debe identificar cada registro mediante `codigo`, incluir `nombre` y `estado`, y señalar el tipo de catálogo que se importa. La columna `estado` admite únicamente los valores `ACTIVO` e `INACTIVO`, sin distinguir mayúsculas y recortando los espacios circundantes; cualquier otro valor, incluido el vacío, invalida la fila. Las columnas de la planilla de equipos no están definidas (`OQ-10`).
+- **RN-IMP-03:** Antes de guardar, el sistema debe validar el formato del archivo, sus columnas, los campos obligatorios y los registros duplicados dentro del archivo. Para proyectos y semilleros valida además los estados permitidos y los códigos duplicados. Las validaciones propias de cada catálogo las define su módulo propietario conforme a `RN-IMP-10`.
+- **RN-IMP-04:** Para proyectos y semilleros, el `codigo` se normaliza recortando espacios y convirtiendo a mayúsculas, tanto para comparar como para almacenar. Un código existente actualiza el registro correspondiente; un código nuevo crea un registro en `investigacion`, cuya clave primaria genera la base de datos. Reimportar el mismo archivo no crea duplicados, y dos filas cuyo código normalizado coincida se rechazan como duplicadas conforme a `RN-IMP-03`. Para equipos, la clave de identificación e idempotencia es la placa, conforme a `RN-IMP-02` de [Resources](../resources/business-rules.md#importación-masiva-de-inventario--rn-imp).
 - **RN-IMP-05:** La importación no crea ni modifica vinculaciones de usuarios y no permite al Administrador reemplazar las reglas de Researchs sobre dichas vinculaciones.
-- **RN-IMP-06:** Una importación con errores no debe dejar cambios parciales; el Administrador debe revisar el resultado de validación antes de confirmar.
-- **RN-IMP-07:** Desactivar un proyecto o semillero conserva su registro, sus vinculaciones y las referencias históricas de reservas.
-- **RN-IMP-08:** Cada carga procesada conserva el resultado de cada fila: número, código cuando pueda identificarse, resultado y detalle de error cuando corresponda. Cuando la importación se confirma, registra además Administrador, fecha, catálogo, archivo o referencia de carga y sus totales.
-- **RN-IMP-09:** La importación es incremental: un registro existente que no aparezca en el archivo permanece sin cambios. Desactivar un proyecto o semillero requiere incluirlo expresamente con estado `INACTIVO`; la ausencia de una fila nunca desactiva registros.
+- **RN-IMP-06:** Una importación con errores no debe dejar cambios parciales; el Administrador debe revisar el resultado de validación antes de confirmar. Si una carga que contiene filas en error puede confirmarse para las filas válidas o debe rechazarse completa está pendiente de decisión (`OQ-11`).
+- **RN-IMP-07:** Desactivar un proyecto o semillero conserva su registro, sus vinculaciones y las referencias históricas de reservas. El efecto de una importación sobre la habilitación de un equipo no está definido (`OQ-12`).
+- **RN-IMP-08:** Cada carga procesada conserva el resultado de cada fila: número, identificador de la fila cuando pueda determinarse, resultado y detalle de error cuando corresponda. Cuando la importación se confirma, registra además Administrador, fecha, catálogo, archivo o referencia de carga y sus totales.
+- **RN-IMP-09:** La importación es incremental: un registro existente que no aparezca en el archivo permanece sin cambios, en cualquier catálogo. Desactivar un proyecto o semillero requiere incluirlo expresamente con estado `INACTIVO`; la ausencia de una fila nunca desactiva registros.
+- **RN-IMP-10:** Administration valida el archivo, orquesta la carga, presenta el resumen y conserva la trazabilidad; no define las reglas propias de cada catálogo. La identificación del registro, sus validaciones específicas y el efecto de la escritura corresponden al módulo propietario: `RN-INV` de [Researchs](../researchs/business-rules.md) para proyectos y semilleros, y `RN-IMP` de [Resources](../resources/business-rules.md#importación-masiva-de-inventario--rn-imp) para equipos. La importación no escribe esas entidades eludiendo sus reglas, conforme a `RN-INT-04`.
 
 ---
 
 ## Separación de responsabilidades
 
-- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos e importaciones autorizadas de catálogos de investigación.
+- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos e importaciones masivas autorizadas, tanto de los catálogos de investigación como del inventario de equipos.
 
 - El módulo de autenticación y autorización determina cómo se autentica una cuenta y cómo se evalúa si puede ejecutar una operación.
 

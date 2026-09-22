@@ -111,3 +111,39 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 **Impacto.** La restricción de exclusión requiere comparar el periodo del recurso junto con su asignación en la misma tabla, y debe conservar la indisponibilidad de un recurso en ejecución hasta registrar la devolución física.
 
 **Estado.** Resuelta a nivel de diseño por la propuesta de [ADR-001](adr-001-doble-reserva.md): el periodo se mantiene como rango técnico en `reserva_recursos`, sincronizado transaccionalmente desde el detalle del tipo y `reserva_ejecucion_recursos.devuelto_at`; un recurso en ejecución sin devolución tiene rango superior abierto. La aprobación formal, la migración, los disparadores y las pruebas siguen pendientes.
+
+---
+
+## OQ-10 — Columnas de la planilla de importación de equipos
+
+**Contexto.** `RN-IMP-02` de administration fija las columnas `codigo`, `nombre` y `estado` para los catálogos de investigación. Esas columnas no aplican al equipo, cuya identidad es la placa (`RN-IMP-02` de resources), y no existe un conjunto de columnas aprobado para la planilla de equipos. `UF-ADM-04` describe la carga sin presuponerlas.
+
+**Alternativas.** Reutilizar la estructura de los catálogos de investigación sustituyendo `codigo` por `placa`, frente a definir una planilla propia con los datos especializados que `UF-REC-03` exige al registrar un equipo.
+
+**Impacto.** Sin ella no puede implementarse la validación del paso 3 de `UF-ADM-04` ni determinarse qué datos del equipo actualiza una reimportación. Afecta a `RN-IMP-02` de administration y a `RN-IMP-02` de resources.
+
+**Estado.** Abierta.
+
+---
+
+## OQ-11 — Tratamiento de una importación con filas en error
+
+**Contexto.** `RN-IMP-06` de administration exige que una importación con errores no deje cambios parciales y que el Administrador revise el resultado antes de confirmar. No queda claro si eso significa que la carga completa se rechaza cuando alguna fila falla, o que la escritura es atómica y las filas válidas sí se confirman. La redacción anterior de `RN-IMP-03` de resources afirmaba lo segundo para equipos, lo que contradecía la primera lectura; esa afirmación se retiró y la decisión quedó centralizada aquí.
+
+**Alternativas.** Rechazo total cuando exista al menos una fila en error, frente a confirmación de las filas válidas reportando las erróneas.
+
+**Impacto.** Determina el paso 6 de `UF-ADM-01` y de `UF-ADM-04`, el significado de los totales de `administration.importaciones` y si una carga confirmada puede convivir con filas `ERROR` en `importacion_resultados`. Afecta a `RN-IMP-06` de administration y a `RN-IMP-03` de resources.
+
+**Estado.** Abierta.
+
+---
+
+## OQ-12 — Desactivación de equipos por importación
+
+**Contexto.** `RN-IMP-09` de administration permite desactivar un proyecto o semillero incluyéndolo con estado `INACTIVO`, y `administration.importaciones` cuenta `registros_desactivados`. Resources no define si la planilla de equipos puede deshabilitar un equipo, y hacerlo tendría el efecto de `RN-DES-03`: afectar reservas futuras que dependan de él.
+
+**Alternativas.** Admitir la desactivación masiva con la advertencia y confirmación que exige `RN-DES-06`, frente a restringir la importación a altas y actualizaciones y dejar la desactivación al flujo individual.
+
+**Impacto.** Una desactivación masiva silenciosa podría cancelar reservas futuras sin la confirmación explícita que `RN-DES-06` exige. Afecta a `RN-IMP-07` y `RN-IMP-09` de administration, a `RN-DES-03` y `RN-DES-06` de resources, y al contador `registros_desactivados`.
+
+**Estado.** Abierta.

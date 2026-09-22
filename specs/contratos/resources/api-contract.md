@@ -175,6 +175,6 @@ Lo que resources sí provee internamente:
 
 ## 4. Lo que este contrato no expone
 
-- **Importación masiva de equipos**: pertenece a administration (`RN-IMP`), pendiente de contrato.
+- **Importación masiva de equipos**: la orquesta administration conforme a `RN-IMP-01` y `UF-ADM-04` de ese módulo, y su contrato sigue pendiente. Este módulo aporta las validaciones del equipo (`RN-IMP-02` a `RN-IMP-05`) y la escritura de `UF-REC-03`, no un endpoint de carga propio.
 - **Disponibilidad**: la resuelve [reservations](../reservations/api-contract.md).
 - **Espacios**: tienen su propio [contrato](../espacios/api-contract.md); resources administra la configuración de la unidad a la que pertenecen.

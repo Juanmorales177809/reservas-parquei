@@ -69,6 +69,7 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 **Precondiciones:**
 - El actor es Administrador o un proceso de importación autorizado.
 - Se cuenta con la información general del recurso y los datos especializados obligatorios del equipo.
+- Cuando el origen es una carga masiva, la orquesta Administration conforme a `UF-ADM-04`; este flujo describe el registro de un equipo y se ejecuta una vez por cada fila confirmada.
 
 **Flujo principal:**
 
@@ -81,7 +82,8 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 **Flujos alternos:**
 
 - El Técnico no puede ejecutar este flujo. Puede editar equipos existentes de su unidad mediante `UF-REC-12`, pero no crearlos ni eliminarlos.
-- Si la placa ya existe, la importación actualiza el registro correspondiente en lugar de crear un duplicado, conforme a `RN-IMP-02`.
+- Si la placa ya existe, la importación actualiza el registro correspondiente en lugar de crear un duplicado, conforme a `RN-IMP-02` de este módulo.
+- Si la fila no trae placa o su placa es inválida, el equipo no se registra y la fila se reporta en error conforme a `RN-IMP-03` de este módulo.
 - Si falla la creación de cualquiera de las dos filas, la transacción se revierte completa.
 
 ---

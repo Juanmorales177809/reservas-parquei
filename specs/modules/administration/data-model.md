@@ -54,7 +54,7 @@ Resultado resumido de cada importación masiva procesada (`RN-IMP-08`). Los cont
 |---|---|---|---|
 | `id` | integer | NN | PK; identity |
 | `actor_cuenta_id` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
-| `catalogo` | varchar(40) | NN | CHECK sobre los catálogos importables, por ejemplo `PROYECTOS`, `SEMILLEROS`, `EQUIPOS` |
+| `catalogo` | varchar(40) | NN | CHECK `PROYECTOS`, `SEMILLEROS` o `EQUIPOS`, los catálogos importables de `RN-IMP-01` |
 | `archivo_referencia` | varchar(255) | NN | nombre o referencia de la carga |
 | `registros_creados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `registros_actualizados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
@@ -72,7 +72,7 @@ Resultado de cada fila procesada durante la validación de una importación conf
 | `id` | bigint | NN | PK; identity |
 | `importacion_id` | integer | NN | FK → `administration.importaciones(id)` |
 | `numero_fila` | integer | NN | UQ compuesta con `importacion_id`; CHECK `numero_fila > 0` |
-| `codigo` | varchar(255) | Sí | valor identificado en la fila, incluso si es inválido |
+| `codigo` | varchar(255) | Sí | identificador de la fila, incluso si es inválido: `codigo` para proyectos y semilleros, `placa` para equipos (`RN-IMP-04`) |
 | `resultado` | varchar(20) | NN | CHECK `CREADO`, `ACTUALIZADO`, `DESACTIVADO` o `ERROR` |
 | `detalle` | text | Sí | motivo del error o resultado de procesamiento |
 
@@ -84,7 +84,7 @@ El módulo define la estructura institucional (unidades y cargos) y es propietar
 
 La gestión administrativa de cuentas, usuarios y perfiles utiliza los modelos propietarios de [Auth](../auth/data-model.md), [Usuarios](../usuarios/data-model.md) y [Researchs](../researchs/data-model.md), respectivamente. No se crean copias de esas entidades.
 
-La importación administrativa de proyectos y semilleros no crea tablas propias en Administration. El flujo autorizado escribe las tablas `investigacion.proyectos` o `investigacion.semilleros` mediante los identificadores y restricciones del [modelo de Researchs](../researchs/data-model.md), y registra su trazabilidad en el mecanismo de auditoría administrativa disponible. Las vinculaciones de usuarios permanecen bajo la responsabilidad de Researchs.
+La importación masiva no crea tablas de catálogo propias en Administration. El flujo autorizado escribe `investigacion.proyectos` o `investigacion.semilleros` mediante los identificadores y restricciones del [modelo de Researchs](../researchs/data-model.md), y `recursos.recursos` junto con `recursos.equipos` mediante los del [modelo de Resources](../resources/data-model.md), conforme a `RN-IMP-10`. Administration conserva únicamente la trazabilidad de la carga en `importaciones` e `importacion_resultados`, además del registro en la auditoría administrativa. Las vinculaciones de usuarios permanecen bajo la responsabilidad de Researchs.
 
 ## Diferencias pendientes
 
