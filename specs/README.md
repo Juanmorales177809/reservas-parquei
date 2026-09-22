@@ -18,9 +18,9 @@ Esta carpeta contiene la documentación funcional y técnica del sistema usando 
 | [reservations](modules/reservations/overview.md) | [RN-RES, RN-TIP, RN-CTX, RN-EST, RN-APR, RN-CAN](modules/reservations/business-rules.md) | [modelo](modules/reservations/data-model.md) | [flujos](modules/reservations/user-flows.md) |
 | [espacios](modules/espacios/overview.md) | [RN-ESP](modules/espacios/business-rules.md) | [modelo](modules/espacios/data-model.md) | [flujos](modules/espacios/user-flow.md) |
 | [resources](modules/resources/overview.md) | [RN-REC, RN-EQP, RN-DES, RN-IMP](modules/resources/business-rules.md) | [modelo](modules/resources/data-model.md) | [flujos](modules/resources/user-flow.md) |
-| [researchs](modules/researchs/overview.md) | [RN-INV, RN-ACT](modules/researchs/business-rules.md) | [modelo](modules/researchs/data-model.md) | — |
-| [notifications](modules/notifications/overview.md) | [RN-NOT, RN-EVT, RN-COR, RN-PREF](modules/notifications/business-rules.md) | [modelo](modules/notifications/data-model.md) | — |
-| [reports](modules/reports/overview.md) | [RN-OCU, RN-EXP](modules/reports/business-rules.md) | [modelo](modules/reports/data-model.md) | — |
+| [researchs](modules/researchs/overview.md) | [RN-INV, RN-ACT](modules/researchs/business-rules.md) | [modelo](modules/researchs/data-model.md) | [flujos](modules/researchs/user-flow.md) |
+| [notifications](modules/notifications/overview.md) | [RN-NOT, RN-EVT, RN-COR, RN-PREF](modules/notifications/business-rules.md) | [modelo](modules/notifications/data-model.md) | [flujos](modules/notifications/user-flow.md) |
+| [reports](modules/reports/overview.md) | [RN-OCU, RN-EXP](modules/reports/business-rules.md) | [modelo](modules/reports/data-model.md) | [flujos](modules/reports/user-flow.md) |
 
 ## Contratos de API
 
@@ -34,7 +34,7 @@ Las [convenciones transversales](contratos/README.md) definen formato, errores, 
 | usuarios | [perfil del reservista y vinculaciones](contratos/usuarios/api-contract.md) |
 | resources | [catálogo de recursos y configuración del laboratorio](contratos/resources/api-contract.md) |
 
-Faltan `administration`, `notifications`, `reports` y `researchs`, que no tienen flujos de usuario de los que derivar su superficie. Registrado como **OQ-08** en [decisiones pendientes](docs/decisions/open-questions.md).
+Faltan `administration`, `notifications`, `reports` y `researchs`. Los cuatro ya tienen flujos de usuario de los que derivar su superficie, así que el bloqueo original de **OQ-08** quedó levantado; escribir los contratos sigue pendiente. Ver [decisiones pendientes](docs/decisions/open-questions.md).
 
 ## Convenciones
 

@@ -98,7 +98,7 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Impacto.** Sin contrato, esos módulos no son implementables por un equipo distinto al que escribió sus reglas. Afecta especialmente a notifications, del que ya dependen reservations (recordatorios y confirmaciones) y auth (invitaciones y recuperación).
 
-**Estado.** Abierta. Decidido en su momento posponerlos; el orden sugerido por dependencia es notifications, administration, reports y researchs.
+**Estado.** Abierta, pero el bloqueo original quedó levantado. Los cuatro módulos ya tienen flujos de usuario de los que derivar su superficie: `UF-ADM-01` a `UF-ADM-04` en administration, `UF-INV-01` en researchs, `UF-NOT-01` a `UF-NOT-03` en notifications y `UF-REP-01` y `UF-REP-02` en reports. Escribir los contratos sigue pendiente; el orden sugerido por dependencia es notifications, administration, reports y researchs.
 
 ---
 
@@ -169,5 +169,17 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 **Alternativas.** Un catálogo cerrado en `CHECK` o en una tabla de tipos, frente a dejar la clasificación abierta y validar únicamente `content_type` y tamaño.
 
 **Impacto.** Sin catálogo, `tipo_adjunto` admite cualquier texto y no puede filtrarse de forma fiable. Queda además por decidir qué tipos MIME se aceptan en `content_type`, dado que el archivo lo carga un Usuario autenticado y se almacena tal cual. No afecta el límite de tamaño, que sí está aprobado en 5 MB.
+
+**Estado.** Abierta.
+
+---
+
+## OQ-15 — Mecanismo que ejecuta la entrega y el reintento de correo
+
+**Contexto.** `RN-COR-03` fija la política de reintento —hasta cinco intentos con espera de 1, 5, 15, 60 y 240 minutos— y `notificaciones.envios_correo` la soporta con `intentos`, `proximo_intento_at` y un índice `(estado, proximo_intento_at)` descrito como «para el proceso que reintenta». `UF-NOT-03` documenta la secuencia, pero ninguna decisión aprobada nombra el mecanismo que la ejecuta.
+
+**Alternativas.** Una tarea programada que consulta periódicamente los envíos vencidos, una cola de trabajos con reintento propio, o un worker dedicado. La elección afecta a quién pertenece el control del reintento: si lo lleva la cola, `intentos` y `proximo_intento_at` pasan a ser un reflejo y no la fuente.
+
+**Impacto.** Determina si la política de `RN-COR-03` se implementa en la aplicación o se delega a la infraestructura, y si un envío puede quedar bloqueado sin que nadie lo detecte. Afecta a `UF-NOT-03` y al índice que lo soporta. Corresponde formalizarlo mediante un ADR conforme a `architecture.md`, como se hizo con la concurrencia en ADR-001.
 
 **Estado.** Abierta.

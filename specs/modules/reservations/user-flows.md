@@ -361,16 +361,11 @@ Una reserva `ESPACIO` o `RECURSO_INTERNO` para uso dentro de la unidad organizac
 
 ---
 
-## UF-RES-18 — Exportar reportes
+## UF-RES-18 — Exportar reportes *(trasladado)*
 
-### Roles participantes
-Técnico de la unidad o Administrador.
+Este flujo se trasladó a [`UF-REP-02 — Exportar un reporte`](../reports/user-flow.md#uf-rep-02--exportar-un-reporte) de Reports, propietario de las reglas `RN-EXP` que ya citaba. El identificador se conserva sin reasignar para no desplazar `UF-RES-19` ni `UF-RES-20`.
 
-### Flujo
-1. El Técnico consulta el reporte de su unidad o el Administrador consulta el reporte global que necesita.
-2. Selecciona la opción de exportar y uno de los formatos admitidos por `RN-EXP-05` de reportes (CSV o Excel).
-3. El sistema genera el archivo con exactamente los datos visibles según el filtro aplicado, sin exceder el ámbito autorizado del actor.
-4. El sistema entrega el archivo para su descarga.
+La superficie HTTP sigue en el contrato de reservations, porque lo que se exporta es el listado de reservas.
 
 ---
 

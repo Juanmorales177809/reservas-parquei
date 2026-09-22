@@ -68,6 +68,25 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-EVT-11:** El vencimiento del plazo de un recordatorio automático previo al inicio de una reserva genera una notificación para el reservista, sin que esto constituya una operación sobre la reserva.
 
+### Correspondencia entre eventos y flujos productores
+
+Cada evento lo origina el flujo del módulo propietario de la operación. Notifications no documenta esas secuencias: las referencia. Los flujos de este módulo, en [user-flow.md](user-flow.md), cubren únicamente la interacción del destinatario y la entrega del correo.
+
+| Regla | Evento | Flujo que lo produce |
+|---|---|---|
+| `RN-EVT-01` | Solicitud de reserva registrada | `UF-RES-01` a `UF-RES-05`, `UF-RES-08` |
+| `RN-EVT-02` | Reserva aprobada | `UF-RES-07` |
+| `RN-EVT-03`, `RN-EVT-04` | Reserva rechazada, con su motivo cuando esté registrado | `UF-RES-07` |
+| `RN-EVT-05` | Reserva cancelada | `UF-RES-11` |
+| `RN-EVT-06` | Reserva futura afectada por una deshabilitación | `UF-RES-12` |
+| `RN-EVT-07` | Modificación notificable | Regla de acotación: no define un evento propio, limita cuáles de los anteriores se disparan al modificar |
+| `RN-EVT-08` | Propuesta y contrapropuesta de periodo | `UF-RES-15` |
+| `RN-EVT-09` | Recurso adicional incorporado a una reserva aprobada | `UF-RES-09`, `UF-RES-10` |
+| `RN-EVT-10` | Cambios de estado de una reserva de lista de espera | `UF-RES-05`, `UF-RES-07`, `UF-RES-13`, `UF-RES-14` |
+| `RN-EVT-11` | Recordatorio previo al inicio | `UF-RES-16` |
+| `RN-CAL-02` | Adjunto `.ics` del correo de confirmación | `UF-RES-17` |
+| `RN-DES-06` | Correo a una dirección sin cuenta asociada | `UF-AUTH-02`, `UF-AUTH-07` |
+
 ---
 
 ## Estado de las notificaciones in-app — RN-EST

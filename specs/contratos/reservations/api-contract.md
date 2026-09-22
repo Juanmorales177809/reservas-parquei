@@ -302,7 +302,7 @@ Archivo iCalendar de una reserva aprobada de tipo `ESPACIO` o `RECURSO_INTERNO` 
 
 ### 7.2 `GET /api/reservas/exportacion?formato=csv`
 
-Exporta el listado con los filtros aplicados. Flujo `UF-RES-18`. Permiso: `reservas.exportar`.
+Exporta el listado con los filtros aplicados. Flujo `UF-REP-02` de reports. Permiso: `reservas.exportar`.
 
 `formato` admite `csv` y `excel`, conforme a `RN-EXP-05` de reports, propietario de esa decisión. El archivo contiene exactamente lo visible según el filtro y el ámbito del actor (`RN-REP-03`).
 
