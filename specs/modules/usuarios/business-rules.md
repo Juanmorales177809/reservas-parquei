@@ -92,7 +92,11 @@ Ninguno de estos conceptos se define en este módulo.
 
 ## Preguntas abiertas
 
-- ¿Un registro de `personal.personal` puede tener más de un cargo o unidad organizacional vigente simultáneamente, o exactamente uno a la vez?
-- ¿Cómo se relaciona el ámbito de una `unidad_organizacional` con la configuración local de reservas de un laboratorio, como horario y aprobación automática?
-- ¿El dominio `investigacion.*` requiere reglas propias de autorización para administrar proyectos y semilleros?
-- ¿Una cuenta vinculada a `personal.personal` inactiva conserva explícitamente su relación histórica con cargo y unidad organizacional para efectos de auditoría?
+El registro único de preguntas abiertas es [docs/decisions/open-questions.md](../../docs/decisions/open-questions.md). Este módulo no mantiene un registro propio.
+
+Las cuatro preguntas que figuraban aquí quedaron resueltas por el estado actual de la especificación y se retiraron:
+
+- **Cargos y unidades del personal.** Un registro de `personal.personal` tiene exactamente un cargo vigente: `id_cargo` es un único FK obligatorio, y el ámbito organizacional se deriva de él conforme a `RN-PRS-02` y `RN-PRS-03`.
+- **Ámbito de la unidad frente a la configuración del laboratorio.** El horario y la aprobación automática se configuran por unidad organizacional, no por espacio: `RN-ESP-DIS-02` de Espacios y `RN-APR-02` de Reservations.
+- **Autorización sobre el dominio de investigación.** La define Researchs en `RN-INV-15` y `RN-INV-16`; la importación de los catálogos corresponde a `RN-IMP-01` de Administration, y el Usuario solo selecciona registros existentes conforme a `RN-USR-10`.
+- **Personal inactivo y auditoría.** La relación histórica con cargo y unidad se conserva: `RN-PRS-04` mantiene las acciones ya realizadas, y `RN-AUD-04` y `RN-AUD-06` de Administration conservan el registro aunque la cuenta o la entidad se desactiven después.

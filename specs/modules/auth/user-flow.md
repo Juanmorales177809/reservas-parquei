@@ -325,7 +325,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujos alternos:**
 
 - **Reactivación:** el Administrador reactiva la cuenta; esta conserva su identificador y relaciones previas, sin crear una identidad nueva (`RN-HAB-04`).
-- El sistema no permite desactivar ni degradar la última cuenta con permisos de administrador.
+- El sistema no permite desactivar la última cuenta con una asignación de permiso de alcance global vigente, ni retirarle esa asignación, ni cambiar su tipo de cuenta, ni desactivar su identidad de personal, conforme a `RN-AUTH-ROL-09`.
 - Si la operación queda fuera del ámbito autorizado, se deniega (`SEC-AUTZ-04`).
 
 ---

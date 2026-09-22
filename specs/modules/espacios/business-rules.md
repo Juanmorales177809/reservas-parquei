@@ -58,8 +58,8 @@
 
 - **RN-ESP-HAB-02:** Deshabilitar un espacio no elimina su información ni su historial.
 
-- **RN-ESP-HAB-03:** Cuando se deshabilite un espacio, las reservas futuras que dependan de él deben ser tratadas conforme a las reglas de cancelación del dominio de reservas.
-
 - **RN-ESP-HAB-04:** La deshabilitación de un espacio debe conservar sus asociaciones históricas con reservas, recursos y campos adicionales.
 
 - **RN-ESP-HAB-05:** Deshabilitar un espacio con reservas futuras cancela esas reservas conforme a `RN-CAN-04` del dominio de reservas. Antes de ejecutarla, el sistema debe advertir la cantidad de reservas futuras que se cancelarán y exigir una confirmación explícita del actor, conforme a `RN-DES-06` de recursos. Si el actor no confirma, el espacio permanece habilitado y ninguna reserva se modifica.
+
+El identificador `RN-ESP-HAB-03` quedó retirado: enunciaba de forma genérica el mismo comportamiento que `RN-ESP-HAB-05` define completo, con la regla de cancelación citada, la advertencia previa y el efecto de no confirmar. La numeración no se reasigna, para que las referencias vigentes a `RN-ESP-HAB-04` y `RN-ESP-HAB-05` sigan apuntando a la misma regla.

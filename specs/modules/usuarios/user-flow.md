@@ -96,8 +96,8 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Flujo principal:**
 
 1. El usuario accede a la edición de su perfil.
-2. El sistema muestra los datos personales editables y el estado de actualización inicial.
-3. El usuario modifica uno o más datos.
+2. El sistema muestra los datos personales editables y el estado de actualización inicial. **El correo se muestra como dato de solo lectura y no forma parte de los campos editables**: una vez creada la cuenta es un valor inmutable compartido con `auth.cuentas`, conforme a `RN-AUTH-ID-02`, `RN-AUTH-ID-03` y `RN-AUTH-ID-12` de Auth.
+3. El usuario modifica uno o más de los datos editables.
 4. El sistema aplica la validación común de datos personales, incluida la unicidad de documento y teléfono sin considerar el propio registro como duplicado.
 5. El sistema guarda los cambios.
 6. El sistema confirma la actualización.
@@ -105,6 +105,7 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Flujos alternos:**
 
 - Si un dato obligatorio queda vacío o inválido, el sistema rechaza la actualización.
+- Si la solicitud incluye un correo distinto al registrado, el sistema la rechaza y no modifica ningún dato. Corregir el correo de una identidad solo es posible mientras no tenga cuenta asociada, mediante la gestión administrativa de `RN-AUTH-ID-12`.
 
 ---
 
