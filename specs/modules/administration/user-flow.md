@@ -40,6 +40,33 @@ Este documento describe los flujos administrativos del módulo `administration`.
 4. El sistema guarda la identidad y registra la acción administrativa. Si hay datos faltantes, inválidos o duplicados, rechaza la operación sin guardar cambios parciales.
 5. Para un alta nueva, el Administrador puede continuar con UF-AUTH-02 para invitar la cuenta usando el correo de esa identidad. El Usuario revisará sus datos y completará las vinculaciones en su primer ingreso; el alta administrativa no marca la actualización inicial como completada.
 
+## UF-ADM-03 — Registrar la identidad de Personal e invitar su cuenta
+
+**Actor principal:** Administrador con permiso `usuarios.administrar` sobre la unidad del cargo y autorización para invitar cuentas conforme a Auth.
+
+**Precondiciones:**
+
+- El cargo existe y pertenece a la unidad que se asignará a la persona.
+- La ficha de Personal no está ya registrada, o el Administrador puede localizar y verificar la ficha existente.
+
+**Flujo principal:**
+
+1. El Administrador abre la gestión de identidades de Personal.
+2. Para una ficha nueva, registra nombre, documento, correo, teléfono y cargo. Si la ficha ya existe, la localiza por su correo y verifica los datos; no crea un duplicado.
+3. El dominio de Usuarios valida los campos obligatorios, la unicidad de documento, correo y teléfono, la existencia del cargo y su unidad organizacional, y guarda o actualiza la ficha en `personal.personal` (`RN-PER-11`). La ficha queda activa para recibir la invitación.
+4. El Administrador elige invitar la cuenta y proporciona el correo de la ficha y la unidad derivada del cargo.
+5. Auth resuelve la ficha por correo único, confirma que el correo y la unidad coincidan, almacena `id_persona` en la invitación y envía el enlace conforme a `UF-AUTH-02`.
+6. La persona invitada define su contraseña al activar la cuenta. La ficha de Personal ya existente no se vuelve a crear ni se reemplaza.
+7. La asignación de permisos administrativos, si corresponde, se realiza por separado en Administration; la invitación no concede permisos.
+
+**Flujos alternos:**
+
+- Si faltan datos, hay valores duplicados o el cargo no es válido para la unidad, la ficha no se guarda y no se emite la invitación.
+- Si no existe una ficha activa que coincida con el correo, o la unidad no coincide con la unidad del cargo o el ámbito del emisor, Auth rechaza la invitación.
+- Si la ficha está inactiva, debe reactivarse mediante la gestión administrativa correspondiente antes de invitar.
+
+---
+
 ## Separación de responsabilidades
 
 - Administration autoriza, valida y ejecuta la carga.

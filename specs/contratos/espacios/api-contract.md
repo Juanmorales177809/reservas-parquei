@@ -133,9 +133,9 @@ Asocia recursos existentes. Flujo `UF-ESP-03`.
 { "recursos": [41, 55] }
 ```
 
-Asociar no crea recursos ni implica disponibilidad temporal (`RN-ESP-REC-02`, `RN-ESP-REC-04`).
+Asociar no crea recursos ni implica disponibilidad temporal (`RN-ESP-REC-02`, `RN-ESP-REC-04`). Cada recurso debe pertenecer a la misma unidad del espacio y no puede tener otra asociación habilitada (`RN-ESP-REC-06`, `RN-ESP-REC-07`).
 
-**`201 Created`** con las asociaciones. **Errores:** `409 CONFLICTO` si la asociación ya existe y está habilitada.
+**`201 Created`** con las asociaciones. **Errores:** `409 CONFLICTO` si la asociación ya existe o el recurso ya está asociado activamente a otro espacio; `409 UNIDAD_INCOMPATIBLE` si el recurso pertenece a otra unidad.
 
 ### 2.2 `DELETE /api/espacios/{id}/recursos/{recurso_id}`
 
@@ -197,6 +197,6 @@ Edita el valor, el orden o la habilitación de una opción. Una opción usada en
 - **Disponibilidad temporal**: la resuelve reservations en `GET /api/reservas/disponibilidad`, porque depende de las reservas, no de la configuración del espacio (`RN-ESP-REC-05`).
 - **Uso del espacio durante una reserva** (`UF-ESP-14`): es un flujo de reservations.
 
-## 5. Pendientes
+## 5. Catálogo de tipos de campo
 
-El catálogo de valores admitidos en `tipo` de un campo adicional está pendiente y registrado como **OQ-02**. Hasta cerrarlo, los ejemplos de este contrato usan `TEXTO` y `SELECCION` como ilustración, no como lista definitiva.
+Los valores admitidos para `tipo` son `TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`. El valor `SELECCION` identifica un campo cuyas opciones se administran mediante el endpoint de opciones.

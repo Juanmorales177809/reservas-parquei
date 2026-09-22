@@ -59,7 +59,7 @@ Invitaciones de alta de cuenta (`SEC-INV-01` a `SEC-INV-04`). Incorporación obj
 | `creada_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-Vigencia por defecto **7 días**. El mismo CHECK de exclusividad de identidad que `auth.cuentas` aplica aquí según `tipo_cuenta`. Una invitación es utilizable solo si `usada_at` y `revocada_at` son NULL y no ha expirado (`SEC-INV-02`). Emitir una nueva invitación para el mismo proceso de alta marca `revocada_at` en la anterior (`SEC-INV-03`). Índice único parcial sobre `(correo)` para invitaciones utilizables. El token se compara por hash, nunca se devuelve en una respuesta (`SEC-TOK-02`).
+Vigencia por defecto **7 días**. El CHECK de exclusividad de identidad aplica según `tipo_cuenta`: `USUARIO` requiere `id_usuario` y deja `id_persona` en NULL; `PERSONAL` requiere `id_persona` y deja `id_usuario` en NULL. Para `PERSONAL`, `id_persona` referencia una ficha activa y completa de `personal.personal`, resuelta por el correo único; `correo` debe coincidir con el correo de esa ficha. Una invitación es utilizable solo si `usada_at` y `revocada_at` son NULL y no ha expirado (`SEC-INV-02`). Emitir una nueva invitación para el mismo proceso de alta marca `revocada_at` en la anterior (`SEC-INV-03`). Índice único parcial sobre `(correo)` para invitaciones utilizables. El token se compara por hash, nunca se devuelve en una respuesta (`SEC-TOK-02`).
 
 ### `auth.tokens_recuperacion`
 
@@ -100,7 +100,8 @@ Un código por área funcional, distinguiendo el verbo solo cuando existe un cas
 | `reservas.exportar` | Exportar listados e historial de reservas | unidad o global |
 | `espacios.administrar` | Crear, editar y habilitar espacios, sus recursos asociados y sus campos adicionales | unidad |
 | `recursos.administrar` | Crear, editar y habilitar mobiliarios y otros recursos | unidad |
-| `recursos.administrar_equipos` | Administrar equipos del inventario institucional; separado porque el Técnico no crea equipos (`RN-EQP-09` de resources) | global |
+| `recursos.editar_equipos` | Editar datos y estados de equipos existentes de la unidad; no permite crearlos, eliminarlos ni cambiar su unidad responsable (`RN-EQP-09` de resources) | unidad |
+| `recursos.administrar_equipos` | Registrar y administrar globalmente equipos del inventario institucional; crear equipos e intervenir sobre cualquier unidad | global |
 | `recursos.reasignar_unidad` | Cambiar la unidad responsable de un recurso | global |
 | `laboratorios.configurar` | Horario de atención, antelación, aprobación automática, tipos de reserva y visibilidad de la unidad | unidad |
 | `cuentas.administrar` | Invitar, activar, desactivar y cambiar el tipo de identidad de una cuenta | unidad o global |
@@ -110,9 +111,9 @@ Un código por área funcional, distinguiendo el verbo solo cuando existe un cas
 | `importacion.ejecutar` | Importar catálogos masivamente (`RN-IMP-01` de administration) | global |
 | `reportes.consultar` | Consultar informes de ocupación y uso | unidad o global |
 
-La columna de ámbito es orientativa: el ámbito real lo fija `id_unidad` en cada asignación, y un permiso marcado como habitual de unidad puede otorgarse con alcance global si el caso lo justifica. `permisos.asignar` es la excepción que conviene cuidar: quien lo tiene puede ampliar los permisos de cualquiera, incluidos los propios.
+La columna de ámbito describe el uso previsto; el alcance efectivo se fija con `id_unidad` en cada asignación. Una cuenta `USUARIO` nunca puede recibir permisos administrativos. Una asignación global (`id_unidad IS NULL`) solo puede activar el rol `ADMINISTRADOR` en una cuenta activa de tipo `PERSONAL` vinculada a personal activo. Las asignaciones por unidad de una cuenta `PERSONAL` deben coincidir con la unidad que resulta de su cargo vigente; las demás se rechazan al asignarse y nunca se consideran autorizadas durante una operación. `permisos.asignar` permite gestionar asignaciones, pero no omitir estas restricciones ni ampliar el ámbito propio del actor.
 
-Un perfil típico de **Técnico** son cuatro asignaciones sobre su unidad: `reservas.administrar`, `espacios.administrar`, `recursos.administrar` y `laboratorios.configurar`. Un **Administrador** tiene el catálogo completo con `id_unidad NULL`.
+Un perfil típico de **Técnico** son cinco asignaciones sobre la única unidad vigente asociada a su registro de `personal.personal`: `reservas.administrar`, `espacios.administrar`, `recursos.administrar`, `recursos.editar_equipos` y `laboratorios.configurar`. Un **Administrador** es una cuenta `PERSONAL` activa con al menos una asignación global (`id_unidad NULL`).
 
 Este catálogo crece cuando aparezca una operación que hoy no existe, no cuando se añada un endpoint a un área ya cubierta.
 
@@ -122,13 +123,14 @@ Asignación directa de un permiso a una cuenta, con su ámbito organizacional.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
-| `permiso_id` | integer | NN | PK compuesta; FK → `auth.permisos(id)` |
-| `id_unidad` | integer | Sí | PK compuesta; FK → `unidadOrganizacional.unidad_organizacional(id_unidad)`; `NULL` significa alcance global |
+| `id_cuenta_permiso` | bigint | NN | PK `pk_auth_cuenta_permisos`; identity BY DEFAULT |
+| `id_cuenta` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
+| `permiso_id` | integer | NN | FK → `auth.permisos(id)` |
+| `id_unidad` | integer | Sí | FK → `unidadOrganizacional.unidad_organizacional(id_unidad)`; `NULL` significa alcance global |
 | `otorgado_por` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-La PK compuesta incluye `id_unidad`, de modo que una misma cuenta puede tener el mismo permiso sobre varias unidades sin duplicar filas. `id_unidad NULL` representa alcance global y no se deduce de ningún otro dato: un permiso sobre una unidad nunca se extiende a otras (`RN-PER-06`). Retirar un permiso elimina la asignación y afecta solo a las decisiones posteriores (`RN-PER-04` de administration); la trazabilidad del cambio queda en la auditoría administrativa. Índice `(id_cuenta, permiso_id)`.
+`id_unidad` no forma parte de la PK, porque debe admitir `NULL` para representar una asignación global. La unicidad de asignaciones se protege con dos índices únicos parciales: `(id_cuenta, permiso_id, id_unidad) WHERE id_unidad IS NOT NULL` impide repetir el permiso en una misma unidad, y `(id_cuenta, permiso_id) WHERE id_unidad IS NULL` impide repetir la asignación global. Esta solución es compatible con PostgreSQL 13. Un permiso con `id_unidad NULL` tiene alcance global; un permiso con una unidad concreta solo aplica a esa unidad y nunca se extiende a otras (`RN-PER-06`). Retirar un permiso elimina la asignación y afecta solo a las decisiones posteriores (`RN-PER-04` de administration); la trazabilidad del cambio queda en la auditoría administrativa. Se conserva además el índice de consulta `(id_cuenta, permiso_id)` si se requiere para el patrón de lectura; los índices únicos parciales también comienzan por esas columnas.
 
 ### Derivación del rol funcional
 
@@ -136,11 +138,11 @@ Los roles de `RN-AUTH-ROL-01` no se almacenan: se derivan de las asignaciones vi
 
 | Rol | Condición |
 |---|---|
-| `ADMINISTRADOR` | tiene al menos una asignación con `id_unidad IS NULL` |
-| `TECNICO` | tiene asignaciones, todas acotadas a unidades concretas |
-| `USUARIO` | no tiene ninguna asignación |
+| `ADMINISTRADOR` | cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, con al menos una asignación vigente donde `id_unidad IS NULL` |
+| `TECNICO` | cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, sin asignación global y con al menos un permiso vigente asignado a la unidad asociada a su cargo vigente |
+| `USUARIO` | cuenta de tipo `USUARIO`, o cuenta `PERSONAL` que no cumple las condiciones para un rol administrativo |
 
-Las unidades autorizadas de un Técnico son las `id_unidad` distintas de sus asignaciones. Esta derivación se evalúa con información vigente en cada operación y nunca se copia al token (`RN-AUTH-ROL-05`, `SEC-JWT-04`).
+La unidad autorizada de un Técnico se obtiene de la relación vigente `personal.personal -> cargos.cargo -> unidad organizacional`, y solo son efectivos los permisos asignados para esa misma unidad. El backend no deriva las unidades autorizadas de todas las filas `id_unidad` de `auth.cuenta_permisos`: una asignación que no coincida con la unidad vigente no otorga acceso. La identidad, el cargo, la unidad y los permisos se revalidan en cada operación, y el resultado nunca se copia al token (`RN-AUTH-ROL-05` a `RN-AUTH-ROL-07`, `SEC-JWT-04`).
 
 ## Relaciones y diferencias pendientes
 

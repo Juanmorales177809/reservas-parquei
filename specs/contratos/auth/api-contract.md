@@ -199,7 +199,7 @@ Identidad autenticada vigente. Sustenta el paso 2 de [UF-AUTH-10](../../modules/
 }
 ```
 
-`unidades_autorizadas` contiene las unidades sobre las que el actor puede ejercer operaciones administrativas: una lista para `TECNICO` (`RN-AUTH-ROL-02`) y `"GLOBAL"` para `ADMINISTRADOR` (`RN-AUTH-ROL-03`). Para `USUARIO` es una lista vacía (`RN-AUTH-ROL-04`).
+En este ejemplo, la unidad 7 coincide con la unidad asociada al cargo vigente del registro de personal. `unidades_autorizadas` contiene únicamente la unidad que resulta de esa relación para `TECNICO`; las asignaciones a otras unidades no amplían ese ámbito (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`). `"GLOBAL"` solo se devuelve a una cuenta activa `PERSONAL` vinculada a personal activo que tenga una asignación global vigente (`RN-AUTH-ROL-03`). Para una cuenta `USUARIO`, o una cuenta `PERSONAL` sin permisos administrativos efectivos, es una lista vacía. Este resumen no sustituye la validación de cada permiso y unidad al ejecutar operaciones protegidas.
 
 Esta respuesta sirve para adaptar la interfaz, **nunca como control de autorización**: el servidor revalida permiso y ámbito en cada operación (`SEC-AUTZ-01`).
 
@@ -307,6 +307,8 @@ Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Re
 
 Para `tipo_cuenta = "USUARIO"`, debe existir una identidad creada previamente mediante el alta administrativa de Usuarios conforme a RN-DAT. El servidor la resuelve por el correo único del destinatario y valida sus datos obligatorios antes de emitir la invitación. La activación utiliza esa identidad existente, sin duplicar el perfil ni crear una identidad con campos vacíos.
 
+Para `tipo_cuenta = "PERSONAL"`, debe existir previamente una ficha activa y completa en `personal.personal`, creada por Administración mediante el dominio de Usuarios conforme a RN-PER-11. El servidor resuelve `id_persona` por coincidencia exacta con el correo único y lo guarda en `auth.invitaciones`; el correo de la solicitud debe coincidir con el de la ficha. Además, la unidad del cargo de la ficha debe coincidir con `id_unidad` y estar dentro del ámbito del emisor. Auth no crea ni completa la ficha. Si no existe, está incompleta o inactiva, si el correo no coincide o si la unidad no corresponde, la invitación se rechaza con `422 VALIDACION`. La activación vuelve a comprobar que la ficha continúe activa y asociada al mismo correo.
+
 **`201 Created`**
 
 ```json
@@ -378,7 +380,7 @@ Activación de la cuenta invitada. Flujo [UF-AUTH-03](../../modules/auth/user-fl
 {
   "id_cuenta": 1109,
   "tipo_cuenta": "PERSONAL",
-  "rol": "TECNICO",
+  "rol": "USUARIO",
   "correo": "nuevo@itm.edu.co",
   "actualizacion_inicial_pendiente": null,
   "id_sesion": "0d5b1a44-92f7-4c33-b0f5-6e0a2c7d1f10",
@@ -388,7 +390,7 @@ Activación de la cuenta invitada. Flujo [UF-AUTH-03](../../modules/auth/user-fl
 
 La cuenta se crea o activa con el tipo e identidad definidos en la invitación almacenada, respetando la exclusividad de identidad (`RN-AUTH-ID-03`), y el token queda marcado como utilizado (`SEC-TOK-05`).
 
-La activación deja la sesión iniciada, sin exigir un inicio de sesión posterior: quien activa acaba de demostrar control del correo y de definir su contraseña. El cliente usa `actualizacion_inicial_pendiente` para decidir a dónde dirigir a la persona: `true` conduce al flujo obligatorio de `usuarios` (`UF-USR-02`), mientras que `null` corresponde a una cuenta `PERSONAL`, que no tiene actualización inicial y accede según sus permisos.
+La activación deja la sesión iniciada, sin exigir un inicio de sesión posterior: quien activa acaba de demostrar control del correo y de definir su contraseña. El cliente usa `actualizacion_inicial_pendiente` para decidir a dónde dirigir a la persona: `true` conduce al flujo obligatorio de `usuarios` (`UF-USR-02`), mientras que `null` corresponde a una cuenta `PERSONAL`, que no tiene actualización inicial y accede según sus permisos. La invitación no concede permisos: una cuenta `PERSONAL` recién creada sin asignaciones administrativas vigentes recibe `rol: "USUARIO"`; cualquier rol administrativo se deriva después de las asignaciones válidas que gestione Administration.
 
 **Errores:** `410 TOKEN_NO_VIGENTE`, `422 VALIDACION`, `429 DEMASIADOS_INTENTOS`.
 
@@ -555,7 +557,7 @@ Todo lo que este contrato expone tiene ya respaldo definido en [data-model.md](.
 | Recuperación de contraseña (§3.6–§3.8) | `auth.tokens_recuperacion` |
 | Permisos y ámbito (§3.4, §7) | `auth.permisos` y `auth.cuenta_permisos` |
 
-`rol` no se almacena: se deriva de las asignaciones vigentes —`ADMINISTRADOR` con alguna asignación de alcance global, `TECNICO` con asignaciones acotadas a unidades, `USUARIO` sin ninguna— y `unidades_autorizadas` son las `id_unidad` distintas de esas asignaciones. La derivación se evalúa en cada operación y nunca viaja en el token (`RN-PER-02` de administration, `SEC-JWT-04`).
+`rol` no se almacena. Se deriva en cada operación considerando tipo y estado de cuenta, identidad y estado de personal, cargo, unidad organizacional vigente y permisos efectivos: `ADMINISTRADOR` requiere cuenta `PERSONAL` activa y al menos una asignación global; `TECNICO` requiere cuenta `PERSONAL` activa y permisos asignados a la única unidad asociada a su cargo vigente; una cuenta `USUARIO` nunca adquiere rol administrativo. `unidades_autorizadas` no se calcula como la unión ciega de las unidades asignadas: para `TECNICO` contiene únicamente la unidad vigente de su registro de personal; para `ADMINISTRADOR` es `"GLOBAL"`. El servidor vuelve a validar permiso, identidad y ámbito en cada operación, y nunca copia esta información al token (`RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`, `RN-PER-02` de administration, `SEC-JWT-04`).
 
 Valores por defecto, configurables conforme a `SEC-SES-09`:
 
@@ -567,4 +569,4 @@ Valores por defecto, configurables conforme a `SEC-SES-09`:
 | Vigencia de una invitación | 7 días |
 | Vigencia de un token de recuperación | 1 hora |
 
-El catálogo inicial de códigos de `auth.permisos` está definido en [data-model.md](../../modules/auth/data-model.md#catálogo-inicial): trece códigos por área funcional. Cada endpoint de los contratos declara el que exige.
+El catálogo inicial de códigos de `auth.permisos` está definido en [data-model.md](../../modules/auth/data-model.md#catálogo-inicial): catorce códigos por área funcional. Cada endpoint de los contratos declara el que exige.

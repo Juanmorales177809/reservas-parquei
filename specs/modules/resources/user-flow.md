@@ -2,9 +2,9 @@
 
 Este documento define los flujos de usuario del módulo `recursos`.
 
-El módulo `recursos` administra el catálogo común de elementos reservables en `recursos.recursos`, `recursos.mobiliarios` y `recursos.otros_recursos`. Los equipos conservan su información especializada en el módulo `equipos`, mientras que cada equipo mantiene una identidad común mediante `equipos.equipos.recurso_id`.
+El módulo `recursos` administra el catálogo común de elementos reservables en `recursos.recursos` y sus especializaciones `recursos.equipos`, `recursos.mobiliarios` y `recursos.otros_recursos`. La fila especializada de cada tipo comparte el mismo `id` del registro raíz como PK/FK.
 
-En todos los flujos administrativos, el Técnico solo puede operar sobre elementos de su propia unidad organizacional. El Administrador tiene alcance global. El Técnico no crea equipos; sí puede crear y administrar mobiliario y otros recursos de su unidad.
+En todos los flujos administrativos, el Técnico solo puede operar sobre elementos de su propia unidad organizacional. El Administrador tiene alcance global. El Técnico no crea ni elimina equipos, pero puede editar equipos existentes de su unidad y cambiar su habilitación y su estado operativo; sí puede crear y administrar mobiliario y otros recursos de su unidad.
 
 ---
 
@@ -67,22 +67,22 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 **Rol principal:** Administrador o proceso de importación autorizado
 
 **Precondiciones:**
-- Existe o se está creando un registro válido en `equipos.equipos`.
-- El equipo debe tener una identidad común como recurso.
+- El actor es Administrador o un proceso de importación autorizado.
+- Se cuenta con la información general del recurso y los datos especializados obligatorios del equipo.
 
 **Flujo principal:**
 
-1. El Administrador o el proceso de importación autorizado inicia el registro o vinculación del equipo.
-2. El sistema crea un registro en `recursos.recursos` con tipo `EQUIPO`.
-3. El sistema obtiene el identificador común del recurso.
-4. El módulo `equipos` asocia `equipos.equipos.recurso_id` con `recursos.recursos.id`, respetando la relación 1:1 definida en el data-model: el recurso debe ser de tipo `EQUIPO`, de la misma unidad y no estar vinculado a otro equipo.
-5. El equipo queda disponible para los procesos que consumen el catálogo de recursos.
+1. El Administrador o el proceso de importación autorizado inicia el registro del equipo.
+2. El sistema crea una fila en `recursos.recursos` con tipo `EQUIPO`, unidad responsable y estado de habilitación.
+3. El sistema crea `recursos.equipos` con el mismo `id` como PK/FK y guarda los datos especializados del equipo, incluida su categoría y los datos de inventario.
+4. La creación de ambas filas se realiza en una sola transacción; si una validación o escritura falla, no se conserva ninguna de las dos.
+5. El equipo queda disponible para los procesos que consumen el catálogo de recursos, sujeto a su habilitación, condición operativa y reglas de reservabilidad.
 
 **Flujos alternos:**
 
-- El Técnico no puede ejecutar este flujo; administra equipos existentes, pero no los crea.
-- Si el equipo ya tiene un `recurso_id` asociado, el sistema no crea un recurso duplicado.
-- Si falla la creación del equipo o del recurso, la operación completa debe revertirse para evitar registros huérfanos.
+- El Técnico no puede ejecutar este flujo. Puede editar equipos existentes de su unidad mediante `UF-REC-12`, pero no crearlos ni eliminarlos.
+- Si la placa ya existe, la importación actualiza el registro correspondiente en lugar de crear un duplicado, conforme a `RN-IMP-02`.
+- Si falla la creación de cualquiera de las dos filas, la transacción se revierte completa.
 
 ---
 
@@ -100,7 +100,7 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 2. El sistema obtiene los recursos correspondientes al ámbito de consulta.
 3. El sistema identifica el tipo de cada recurso.
 4. Cuando se requiere información especializada:
-   - consulta `equipos` para recursos tipo `EQUIPO`;
+   - consulta `recursos.equipos` para recursos tipo `EQUIPO`;
    - consulta `recursos.mobiliarios` para tipo `MOBILIARIO`;
    - consulta `recursos.otros_recursos` para tipo `OTRO`.
 5. El sistema presenta la información consolidada.
@@ -180,9 +180,9 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 **Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
-- El recurso existe.
-- El recurso se encuentra deshabilitado.
-- El actor tiene permiso para administrar recursos en la unidad.
+- El recurso existe y se encuentra deshabilitado.
+- Para equipos, el Técnico tiene `recursos.editar_equipos` en la unidad del equipo; el Administrador tiene `recursos.administrar_equipos` con alcance global.
+- Para los demás recursos, el actor tiene el permiso administrativo correspondiente en la unidad.
 
 **Flujo principal:**
 
@@ -199,9 +199,9 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 **Rol principal:** Técnico de la unidad o Administrador
 
 **Precondiciones:**
-- El recurso existe.
-- El recurso está habilitado.
-- El actor tiene permiso para administrarlo.
+- El recurso existe y está habilitado.
+- Para equipos, el Técnico tiene `recursos.editar_equipos` en la unidad del equipo; el Administrador tiene `recursos.administrar_equipos` con alcance global.
+- Para los demás recursos, el actor tiene el permiso administrativo correspondiente en la unidad.
 
 **Flujo principal:**
 
@@ -247,6 +247,31 @@ En todos los flujos administrativos, el Técnico solo puede operar sobre element
 
 ---
 
+## UF-REC-12 — Actualizar un equipo existente
+
+**Rol principal:** Técnico de la unidad o Administrador
+
+**Precondiciones:**
+- El equipo existe en `recursos.recursos` y tiene su especialización en `recursos.equipos`.
+- El Técnico cuenta con `recursos.editar_equipos` asignado a la unidad del equipo; el Administrador cuenta con `recursos.administrar_equipos` de alcance global.
+
+**Flujo principal:**
+
+1. El actor consulta un equipo existente y selecciona la opción de edición.
+2. El sistema presenta los datos generales y especializados editables, incluidos `recursos.recursos.habilitado` y `recursos.equipos.estado`.
+3. El actor modifica los datos requeridos y, si corresponde, uno o ambos estados.
+4. El sistema valida el permiso, la pertenencia del equipo a la unidad autorizada y las restricciones de los campos. No permite cambiar `id_unidad` mediante este flujo.
+5. El sistema actualiza los datos comunes y especializados en una única operación coherente.
+6. El sistema confirma el cambio y conserva el registro y las relaciones históricas.
+
+**Flujos alternos:**
+
+- Si la validación falla, no se aplica ningún cambio.
+- Si el actor intenta crear o eliminar físicamente el equipo, la operación se rechaza.
+- Si se cambia `habilitado` a `false`, se aplica el flujo `UF-REC-09` y sus efectos sobre reservas futuras. Cambiar el estado operativo no sustituye la validación de disponibilidad temporal de `reservas`.
+
+---
+
 ## UF-REC-11 — Consultar disponibilidad desde otro módulo
 
 **Actor principal:** Otro módulo del sistema
@@ -271,7 +296,7 @@ La disponibilidad temporal de un recurso para una reserva pertenece al módulo `
 ## Separación entre módulos
 
 - `recursos` administra la identidad común de los elementos reservables, su tipo, unidad responsable y estado general.
-- `equipos` administra la información especializada y el ciclo de vida propio de los equipos.
+- `recursos.equipos` conserva los atributos especializados y el estado operativo de los equipos.
 - `reservas` administra la asignación, disponibilidad temporal, uso, entrega y devolución de recursos dentro de una reserva.
 - `auth` determina la identidad autenticada y autorización del actor.
 - `unidadOrganizacional` proporciona el ámbito organizacional al que pertenece el recurso.

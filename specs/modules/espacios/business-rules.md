@@ -22,6 +22,10 @@
 
 - **RN-ESP-REC-05:** La disponibilidad de cada recurso asociado se determina de manera independiente a la disponibilidad del espacio.
 
+- **RN-ESP-REC-06:** El espacio y el recurso asociado deben pertenecer a la misma unidad organizacional.
+
+- **RN-ESP-REC-07:** Un recurso solo puede estar asociado activamente a un espacio. Para asociarlo a otro espacio, el Técnico debe retirar primero la asociación vigente; el retiro deshabilita la fila y conserva el historial.
+
 ---
 
 ## Campos adicionales — RN-ESP-CAM

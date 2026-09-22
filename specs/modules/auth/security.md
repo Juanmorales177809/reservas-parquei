@@ -150,7 +150,7 @@ Estas reglas aplican únicamente cuando el sistema utilice JWT para tokens firma
 
 - **SEC-AUTZ-03:** Los identificadores enviados por el cliente nunca sustituyen la identidad obtenida de la sesión autenticada.
 
-- **SEC-AUTZ-04:** Las operaciones sobre recursos pertenecientes a una unidad organizacional deben validar en el servidor tanto el permiso requerido como el ámbito organizacional aplicable.
+- **SEC-AUTZ-04:** Las operaciones sobre recursos pertenecientes a una unidad organizacional deben validar en el servidor tanto el permiso requerido como el ámbito organizacional aplicable. Para roles administrativos, la cuenta debe ser de tipo `PERSONAL` y su ámbito debe coincidir con la unidad asociada a su identidad de personal activa mediante el cargo vigente (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
 
 - **SEC-AUTZ-05:** Los cambios de cargo, unidad, permisos o estado del personal deben reflejarse en las autorizaciones posteriores sin depender exclusivamente de información almacenada previamente en el cliente.
 

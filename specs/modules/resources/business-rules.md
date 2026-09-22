@@ -56,19 +56,19 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-REC-09:** Cuando un recurso sea deshabilitado, las reservas futuras `SOLICITADA` o `APROBADA` que lo utilicen deben tratarse conforme a las reglas de cancelación de [reservas](../reservations/business-rules.md#cancelación--rn-can), `RN-CAN-04` a `RN-CAN-08`, que distinguen el recurso `PRINCIPAL` del `ADICIONAL`. Resources no define ese efecto.
 
-- **RN-REC-10:** `requiere_apoyo` es un atributo propio de `equipos.equipos`, obligatorio y configurado por la unidad organizacional responsable. Indica si el equipo exige acompañamiento técnico durante su uso.
+- **RN-REC-10:** `requiere_apoyo` es un atributo propio de `recursos.equipos`, obligatorio y configurado por la unidad organizacional responsable. Indica si el equipo exige acompañamiento técnico durante su uso.
 
-- **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los equipos con `equipos.equipos.acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado u operatividad, por estar destinados a ensayos certificados. La acreditación es un atributo exclusivo de equipos: mobiliarios y otros recursos no se filtran por esta condición.
+- **RN-REC-11:** El listado de recursos disponibles para una reserva se limita a los recursos que pertenecen a la unidad organizacional correspondiente. Los equipos con `recursos.equipos.acreditado = true` se excluyen de dicho listado y no son reservables, con independencia de su estado u operatividad, por estar destinados a ensayos certificados. La acreditación es un atributo exclusivo de equipos: mobiliarios y otros recursos no se filtran por esta condición.
 
 ---
 
 ## Equipos — RN-EQP
 
-- **RN-EQP-01:** Los equipos reservables se identifican mediante `equipos.equipos.id_equipo`; Reservas no mantiene una segunda copia del mismo equipo.
+- **RN-EQP-01:** Los equipos reservables se identifican mediante `recursos.equipos.id`, que coincide con `recursos.recursos.id`; Reservas no mantiene una segunda copia del mismo equipo.
 
-- **RN-EQP-02:** `equipos.equipos` contiene la información vigente necesaria para determinar la unidad organizacional y el estado del equipo utilizado por Reservas.
+- **RN-EQP-02:** `recursos.recursos.id_unidad` determina la unidad organizacional del equipo y `recursos.equipos.estado` contiene su condición operativa vigente para las validaciones de Reservations.
 
-- **RN-EQP-03:** Solo equipos habilitados para uso y en estado operativo pueden incorporarse a nuevas reservas o aprobarse.
+- **RN-EQP-03:** Solo equipos con `recursos.recursos.habilitado = true` y `recursos.equipos.estado = true` pueden incorporarse a nuevas reservas o aprobarse.
 
 - **RN-EQP-04:** Estado operativo y disponibilidad temporal son condiciones independientes. Un equipo puede estar operativo y no estar disponible por encontrarse reservado.
 
@@ -78,7 +78,8 @@ Para efectos de Reservas, se consideran recursos reservables los equipos, mobili
 
 - **RN-EQP-07:** Un equipo puede reservarse sin espacio cuando la composición y el `tipo_uso` de la reserva lo permitan.
 - **RN-EQP-08:** Todo equipo debe indicar mediante `requiere_apoyo` si exige acompañamiento técnico durante su uso.
-- **RN-EQP-09:** El Técnico solo administra equipos existentes dentro de su unidad; no puede crear equipos.
+- **RN-EQP-09:** El Técnico puede editar los datos de equipos existentes pertenecientes a su unidad organizacional y modificar tanto `recursos.recursos.habilitado` como `recursos.equipos.estado`, con el permiso `recursos.editar_equipos` asignado a esa unidad. No puede crear ni eliminar físicamente equipos, ni cambiar su unidad responsable. El Administrador puede realizar estas operaciones con alcance global y el permiso `recursos.administrar_equipos`.
+- **RN-EQP-11:** La eliminación física de un equipo no está permitida; para retirarlo de nuevas operaciones se cambia su habilitación (`recursos.recursos.habilitado`) y se conserva su historial. El estado operativo (`recursos.equipos.estado`) expresa si el equipo está en condiciones de uso y también puede actualizarse sin borrar el registro.
 - **RN-EQP-10:** Un equipo puede utilizarse dentro o fuera del campus cuando las reglas de reserva y las políticas aplicables lo permitan.
 
 ---

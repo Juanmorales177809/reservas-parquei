@@ -1,24 +1,24 @@
 # Contrato de API — Resources
 
-Contrato de comunicación del módulo `resources`. Traduce a superficie HTTP los 11 flujos de [user-flow.md](../../modules/resources/user-flow.md), las reglas de [business-rules.md](../../modules/resources/business-rules.md) y las entidades de [data-model.md](../../modules/resources/data-model.md).
+Contrato de comunicación del módulo `resources`. Traduce a superficie HTTP los 12 flujos de [user-flow.md](../../modules/resources/user-flow.md), las reglas de [business-rules.md](../../modules/resources/business-rules.md) y las entidades de [data-model.md](../../modules/resources/data-model.md).
 
 Aplica las [convenciones transversales](../README.md). Aquí solo se documenta lo propio de resources.
 
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/recursos` para el catálogo; `/api/laboratorios` para la configuración de unidad |
-| Permiso administrativo | `recursos.administrar` sobre la unidad; los equipos exigen `recursos.administrar_equipos` |
+| Permiso administrativo | `recursos.administrar` sobre la unidad para mobiliarios y otros recursos; equipos existentes: `recursos.editar_equipos` sobre la unidad para el Técnico y `recursos.administrar_equipos` global para el Administrador; crear equipos requiere `recursos.administrar_equipos` global |
 
 Códigos de error propios:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
 | 409 | `TIPO_INCOMPATIBLE` | La especialización enviada no corresponde al `tipo` del recurso |
-| 409 | `UNIDAD_INCOMPATIBLE` | La unidad del recurso y la de su especialización no coinciden |
+| 409 | `UNIDAD_INCOMPATIBLE` | La unidad del recurso y la de una especialización que mantenga `id_unidad` propio no coinciden |
 
-El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo: equipos, mobiliarios y otros. La creación del recurso y su especialización es **atómica**: o se escriben ambas o ninguna.
+El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo: equipos, mobiliarios y otros. La creación del recurso y su especialización es **atómica**: o se escriben ambas o ninguna. No se ofrece eliminación física de equipos; para impedir su uso futuro se deshabilitan, conservando su historial.
 
-**El Técnico no crea equipos.** Puede crear y administrar mobiliario y otros recursos de su unidad; los equipos provienen del inventario institucional y los administra el Administrador.
+**El Técnico no crea ni elimina físicamente equipos.** Puede editar equipos existentes de su unidad y cambiar tanto su habilitación (`recursos.recursos.habilitado`) como su estado operativo (`recursos.equipos.estado`). El Administrador gestiona equipos con alcance global.
 
 ---
 
@@ -39,7 +39,7 @@ Registra un recurso con su especialización. Flujos `UF-REC-01` (mobiliario), `U
 }
 ```
 
-Para `tipo: "EQUIPO"`, la especialización corresponde a `equipos.equipos` y solo puede enviarla un Administrador.
+Para `tipo: "EQUIPO"`, la especialización corresponde a `recursos.equipos` y comparte el `id` del recurso como PK/FK; su creación requiere el permiso global `recursos.administrar_equipos`.
 
 **`201 Created`**
 
@@ -47,7 +47,7 @@ Para `tipo: "EQUIPO"`, la especialización corresponde a `equipos.equipos` y sol
 { "id": 41, "tipo": "MOBILIARIO", "id_unidad": 7, "habilitado": true }
 ```
 
-**Errores:** `409 TIPO_INCOMPATIBLE`, `409 UNIDAD_INCOMPATIBLE`, `403 NO_AUTORIZADO` si un Técnico intenta crear un equipo.
+**Errores:** `409 TIPO_INCOMPATIBLE`, `409 UNIDAD_INCOMPATIBLE`, `403 NO_AUTORIZADO` si el actor no cuenta con el permiso requerido; el Técnico no puede crear equipos.
 
 ### 1.2 `GET /api/recursos`
 
@@ -61,11 +61,11 @@ Detalle con la especialización correspondiente al tipo. Flujo `UF-REC-05`. Para
 
 ### 1.4 `PATCH /api/recursos/{id}`
 
-Actualiza la especialización. Flujos `UF-REC-06` y `UF-REC-07`. Los campos admitidos dependen del tipo.
+Actualiza la especialización. Flujos `UF-REC-06`, `UF-REC-07` y `UF-REC-12`. Los campos admitidos dependen del tipo. Para equipos, el Técnico requiere `recursos.editar_equipos` en la unidad del equipo y puede actualizar los datos del equipo y `recursos.equipos.estado`; el Administrador requiere `recursos.administrar_equipos` global. Los cambios de equipo no admiten crear ni eliminar el registro ni modificar su unidad responsable. El campo común `recursos.recursos.habilitado` se modifica mediante el endpoint `/estado`.
 
 ### 1.5 `PATCH /api/recursos/{id}/estado`
 
-Habilita o deshabilita. Flujos `UF-REC-08` y `UF-REC-09`.
+Habilita o deshabilita el campo común `recursos.recursos.habilitado`. Flujos `UF-REC-08` y `UF-REC-09`. Para equipos se exige `recursos.editar_equipos` en la unidad del equipo al Técnico o `recursos.administrar_equipos` global al Administrador; para otros recursos se exige el permiso correspondiente a su tipo. Este endpoint no modifica `recursos.equipos.estado`, que se actualiza con `PATCH /api/recursos/{id}`.
 
 ```json
 { "habilitado": false, "confirmado": true }

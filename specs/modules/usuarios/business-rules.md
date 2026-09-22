@@ -74,13 +74,15 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-PER-06:** Personal inactivo no puede realizar nuevas operaciones administrativas. Las acciones históricas realizadas anteriormente se conservan.
 
-- **RN-PER-07:** Una cuenta vinculada a `personal.personal` puede realizar reservas propias además de las operaciones administrativas que le hayan sido autorizadas.
+- **RN-PER-07:** Una cuenta vinculada a `personal.personal` puede realizar reservas propias dentro del laboratorio asociado a su unidad organizacional mediante el cargo vigente, además de las operaciones administrativas que le hayan sido autorizadas. Para reservar en otra unidad debe utilizarse una cuenta de tipo `USUARIO`; las reglas de contexto aplicables a la reserva se definen en `reservas` (RN-CTX).
 
 - **RN-PER-08:** Una cuenta de `personal.personal` no se vincula simultáneamente a `usuarios.usuarios`.
 
 - **RN-PER-09:** Siempre debe existir al menos una cuenta vinculada a `personal.personal` con permisos de administración global vigentes. Ninguna operación puede eliminar, degradar o inhabilitar la última cuenta que los posee.
 
 - **RN-PER-10:** El Técnico no puede ejecutar operaciones administrativas sobre unidades organizacionales distintas de la unidad de su registro de personal.
+
+- **RN-PER-11:** Toda ficha de `personal.personal` debe registrar nombre, documento, correo, teléfono y cargo. Documento, correo y teléfono deben ser únicos en la tabla; el cargo debe existir y determina la unidad organizacional del personal. Administración captura y valida estos datos mediante este dominio antes de solicitar a Auth una invitación `PERSONAL`; Auth no crea ni completa la ficha.
 
 ---
 
@@ -110,7 +112,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-AUTZ-04:** El cargo no debe evaluarse mediante comparaciones de nombres fijos en la aplicación; las acciones permitidas deben derivarse del modelo de permisos definido para el sistema.
 
-- **RN-AUTZ-05:** El Técnico solo puede ejercer operaciones administrativas dentro de la unidad de su registro de personal. El Administrador tiene alcance global.
+- **RN-AUTZ-05:** El Técnico solo puede ejercer operaciones administrativas dentro de la unidad organizacional asociada a su registro activo de personal mediante el cargo vigente; Auth valida esta correspondencia con los permisos (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`). El Administrador tiene alcance global únicamente mediante una cuenta `PERSONAL` activa con permiso global vigente, conforme a Auth (`RN-AUTH-ROL-03`).
 
 - **RN-AUTZ-06:** Una cuenta vinculada a `personal.personal` sin el permiso requerido se comporta como una cuenta sin autorización administrativa para dicha operación.
 

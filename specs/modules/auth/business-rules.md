@@ -10,14 +10,17 @@ El módulo `auth` administra las cuentas, credenciales, sesiones y decisiones de
 - **RN-AUTH-ID-04:** La restricción de exclusividad se conserva mediante `ck_auth_cuentas_identidad` y las restricciones únicas de las referencias de identidad.
 - **RN-AUTH-ID-05:** Desactivar una cuenta o identidad impide nuevas operaciones autenticadas, sin eliminar su historial.
 - **RN-AUTH-ID-06:** El autorregistro solicita los datos obligatorios definidos en RN-DAT de Usuarios junto con correo y contraseña. Usuarios valida y persiste el perfil; Auth crea su cuenta en la misma transacción. El registro no completa por sí solo la actualización inicial ni las vinculaciones obligatorias.
+- **RN-AUTH-ID-07:** Antes de emitir una invitación para `PERSONAL`, debe existir una identidad activa y completa en `personal.personal`. Auth la resuelve por coincidencia exacta del correo único, guarda su `id_persona` en `auth.invitaciones` y valida que `id_unidad` coincida con la unidad derivada de su cargo y esté dentro del ámbito autorizado del emisor. Auth no crea ni completa la ficha de Personal. Al activar la invitación, vuelve a verificar que la identidad siga activa y que el correo coincida.
 
 ## Roles y alcance — RN-AUTH-ROL
 
 - **RN-AUTH-ROL-01:** Los únicos roles funcionales son Usuario, Técnico y Administrador.
-- **RN-AUTH-ROL-02:** El Técnico es personal asociado a una unidad organizacional y solo puede ejecutar operaciones administrativas sobre esa unidad.
-- **RN-AUTH-ROL-03:** El Administrador tiene alcance global sobre las unidades organizacionales.
-- **RN-AUTH-ROL-04:** El Usuario no tiene permisos administrativos por el hecho de poseer una cuenta o una vinculación académica.
+- **RN-AUTH-ROL-02:** El Técnico debe autenticarse mediante una cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, y solo puede ejecutar operaciones administrativas en la unidad organizacional asociada a ese registro mediante su cargo vigente.
+- **RN-AUTH-ROL-03:** El Administrador debe autenticarse mediante una cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, y contar con al menos una asignación de permiso de alcance global. Su alcance administrativo es global.
+- **RN-AUTH-ROL-04:** Una cuenta de tipo `USUARIO` no puede recibir ni ejercer permisos administrativos. La cuenta o una vinculación académica no conceden permisos por sí mismas.
 - **RN-AUTH-ROL-05:** Los permisos y el alcance deben validarse en el servidor con información vigente; no se derivan únicamente del nombre del cargo ni de datos enviados por el cliente.
+- **RN-AUTH-ROL-06:** Toda asignación de permiso con ámbito de unidad a una cuenta `PERSONAL` debe corresponder a la unidad organizacional asociada a su registro de personal mediante el cargo vigente. Una asignación a otra unidad no puede ampliar el ámbito efectivo del Técnico.
+- **RN-AUTH-ROL-07:** La autorización administrativa debe comprobar conjuntamente el tipo y estado de la cuenta, el estado de la identidad `personal.personal`, su unidad organizacional vigente, el permiso requerido y la unidad del recurso. Si alguno no coincide o no puede comprobarse, se deniega la operación.
 
 ## Sesiones — RN-AUTH-SES
 

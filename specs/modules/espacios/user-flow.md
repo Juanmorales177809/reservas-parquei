@@ -33,7 +33,7 @@ Un espacio **no tiene horario propio**: el horario aplicable es el de atención 
 7. Puede configurar cero o más campos adicionales.
 8. El sistema valida la configuración.
 9. El sistema crea el espacio.
-10. El espacio queda disponible según su estado de habilitación y el horario de atención de su unidad.
+10. El espacio utiliza el horario de atención de su unidad mediante `id_unidad`, sin copiar ni crear una configuración horaria propia; queda disponible según su habilitación y las validaciones de Reservations.
 
 **Flujos alternos:**
 
@@ -84,7 +84,7 @@ Un espacio **no tiene horario propio**: el horario aplicable es el de atención 
 2. Selecciona la administración de recursos asociados.
 3. El sistema consulta los recursos disponibles para asociación.
 4. El Técnico  selecciona uno o más recursos.
-5. El sistema valida que los recursos existan y puedan asociarse.
+5. El sistema valida que los recursos existan, pertenezcan a la misma unidad del espacio y no tengan otra asociación habilitada.
 6. El sistema registra las asociaciones.
 7. Los recursos quedan visibles como recursos asociados al espacio.
 
@@ -92,6 +92,8 @@ Un espacio **no tiene horario propio**: el horario aplicable es el de atención 
 
 - La asociación con el espacio no implica disponibilidad temporal.
 - La disponibilidad para una reserva se valida en el módulo `reservas`.
+- Si un recurso ya está asociado activamente a otro espacio, el sistema rechaza la operación. El Técnico debe retirarlo primero desde el espacio actual.
+- Si el recurso pertenece a otra unidad, el sistema rechaza la operación.
 
 ---
 
@@ -109,7 +111,7 @@ Un espacio **no tiene horario propio**: el horario aplicable es el de atención 
 2. Selecciona el recurso que desea retirar.
 3. El sistema solicita confirmación.
 4. El Técnico  confirma.
-5. El sistema elimina o deshabilita la asociación según el modelo definido.
+5. El sistema deshabilita la asociación; no elimina la fila.
 6. El recurso deja de mostrarse como asociado para nuevas reservas.
 7. Las reservas históricas conservan sus referencias.
 

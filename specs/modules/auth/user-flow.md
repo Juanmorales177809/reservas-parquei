@@ -6,9 +6,11 @@ El módulo `auth` administra cuenta, credenciales, sesión y decisiones de autor
 
 Roles funcionales usados en este documento (`RN-AUTH-ROL-01`):
 
-- **Usuario:** cuenta vinculada a `usuarios.usuarios`. No posee permisos administrativos por el hecho de tener cuenta o vinculación académica (`RN-AUTH-ROL-04`).
-- **Técnico:** cuenta vinculada a `personal.personal`. Solo puede ejecutar operaciones administrativas sobre su propia unidad organizacional (`RN-AUTH-ROL-02`).
-- **Administrador:** alcance global sobre las unidades organizacionales (`RN-AUTH-ROL-03`).
+- **Usuario:** no tiene permisos administrativos efectivos. Normalmente es una cuenta de tipo `USUARIO` vinculada a `usuarios.usuarios`; una cuenta `PERSONAL` sin permisos administrativos efectivos también usa este rol funcional para las operaciones sin privilegios administrativos.
+- **Técnico:** cuenta activa de tipo `PERSONAL`, vinculada a personal activo, con permisos vigentes solo para la unidad asociada a su cargo vigente.
+- **Administrador:** cuenta activa de tipo `PERSONAL`, vinculada a personal activo, con al menos una asignación de permiso global.
+
+El tipo de identidad de la cuenta y su rol funcional son datos distintos; solo una cuenta `PERSONAL` puede derivar un rol administrativo (`RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`).
 
 En todos los flujos, la autenticación y la autorización se resuelven en el servidor; ocultar controles en el cliente no constituye un control de acceso (`SEC-AUTZ-01`).
 
@@ -50,18 +52,18 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 
 **Precondiciones:**
 - El Administrador está autenticado y autorizado para administrar cuentas (`RN-ADM-01`, `RN-PER-03` de administration).
-- Existe o se define la identidad funcional que se asociará a la cuenta invitada.
-- Para invitar un Usuario, su identidad se registra previamente en Usuarios con los datos obligatorios de RN-DAT; la invitación no utiliza datos ficticios para completar el perfil.
+- La identidad funcional debe existir antes de emitir la invitación. Para `USUARIO`, debe estar registrada en Usuarios con los datos obligatorios de RN-DAT; para `PERSONAL`, debe existir una ficha activa y completa en `personal.personal`, creada mediante el flujo administrativo correspondiente.
 
 **Flujo principal:**
 
 1. El Administrador accede a la administración de cuentas.
-2. Selecciona la opción de invitar y registra el correo destino y el tipo de cuenta que corresponderá (`USUARIO` o `PERSONAL`).
+2. Selecciona la opción de invitar y registra el correo destino, el tipo de cuenta (`USUARIO` o `PERSONAL`) y, para `PERSONAL`, la unidad asociada al cargo vigente.
 3. El sistema valida que el correo no corresponda a una cuenta activa existente (`RN-AUTH-ID-02`).
-4. El sistema genera un token de invitación impredecible, de vigencia limitada y de un solo uso (`SEC-INV-01`, `SEC-TOK-04`).
-5. El sistema almacena la invitación con el alcance que le corresponde; el token no puede conceder permisos superiores a los definidos en la invitación almacenada (`SEC-INV-04`).
-6. El módulo `notificaciones` entrega el enlace de invitación al correo destino.
-7. El sistema registra la emisión para trazabilidad (`SEC-AUD-02`).
+4. Para `USUARIO`, el sistema resuelve la identidad previamente creada en Usuarios mediante su correo único. Para `PERSONAL`, resuelve la ficha activa de `personal.personal` mediante coincidencia exacta del correo, comprueba que esté completa y que la unidad del cargo coincida con `id_unidad`; el actor debe estar autorizado para esa unidad (`RN-AUTH-ID-07`).
+5. El sistema genera un token de invitación impredecible, de vigencia limitada y de un solo uso (`SEC-INV-01`, `SEC-TOK-04`).
+6. El sistema almacena la invitación ligada al `id_usuario` o `id_persona` resuelto, según corresponda; no crea ni duplica la identidad. El token no concede permisos superiores a los definidos por la invitación almacenada (`SEC-INV-04`).
+7. El módulo `notificaciones` entrega el enlace de invitación al correo destino.
+8. El sistema registra la emisión para trazabilidad (`SEC-AUD-02`).
 
 **Flujos alternos:**
 
@@ -85,15 +87,17 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 3. El sistema solicita definir la contraseña de la cuenta.
 4. La persona define su contraseña.
 5. El sistema valida la longitud admitida y deriva el hash correspondiente (`SEC-PWD-02`, `SEC-PWD-07`).
-6. El sistema crea o activa la cuenta con el tipo y la identidad definidos en la invitación, respetando la exclusividad de identidad (`RN-AUTH-ID-03`).
-7. El sistema marca el token como utilizado; un intento posterior con el mismo token se rechaza (`SEC-TOK-05`).
-8. El sistema registra el evento de activación (`SEC-AUD-02`).
-9. La activación deja la sesión iniciada: el sistema crea la sesión y entrega sus cookies igual que en `UF-AUTH-04`, sin pedir de nuevo la contraseña recién definida. El identificador de sesión se genera regenerado conforme a `SEC-SES-13`.
-10. El recorrido posterior depende del tipo de cuenta: una cuenta `USUARIO` continúa con la actualización inicial de su perfil (`UF-USR-02`, `RN-AUTH-SES-04`); una cuenta `PERSONAL` no tiene actualización inicial y accede directamente a las operaciones que le autoricen sus permisos.
+6. El sistema vuelve a validar que la identidad definida en la invitación exista, siga activa y conserve el correo asociado; para `PERSONAL`, valida además la ficha vinculada por `id_persona` (`RN-AUTH-ID-05`, `RN-AUTH-ID-07`).
+7. El sistema crea o activa la cuenta con el tipo y la identidad definidos en la invitación, respetando la exclusividad de identidad (`RN-AUTH-ID-03`).
+8. El sistema marca el token como utilizado; un intento posterior con el mismo token se rechaza (`SEC-TOK-05`).
+9. El sistema registra el evento de activación (`SEC-AUD-02`).
+10. La activación deja la sesión iniciada: el sistema crea la sesión y entrega sus cookies igual que en `UF-AUTH-04`, sin pedir de nuevo la contraseña recién definida. El identificador de sesión se genera regenerado conforme a `SEC-SES-13`.
+11. El recorrido posterior depende del tipo de cuenta: una cuenta `USUARIO` continúa con la actualización inicial de su perfil (`UF-USR-02`, `RN-AUTH-SES-04`); una cuenta `PERSONAL` no tiene actualización inicial y accede directamente a las operaciones que le autoricen sus permisos.
 
 **Flujos alternos:**
 
 - Si la invitación está vencida, ya fue utilizada o fue revocada, el proceso de alta no se completa y el sistema orienta a solicitar una nueva invitación (`SEC-INV-02`).
+- Si la ficha de `PERSONAL` fue desactivada, eliminada o su correo ya no coincide con el de la invitación, la activación se rechaza; debe corregirse la ficha y emitirse una invitación válida.
 - Si la persona abandona el proceso, la cuenta no queda utilizable hasta completar la activación.
 
 ---
@@ -260,7 +264,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 2. El sistema determina la identidad autenticada a partir de la sesión, no de datos enviados por el cliente (`SEC-AUTZ-03`).
 3. El sistema verifica que la cuenta y la identidad funcional estén activas (`RN-AUTH-ID-01`, `RN-AUTH-ID-05`).
 4. El sistema evalúa el permiso requerido con información vigente, sin derivarlo del nombre del cargo ni de valores enviados por el cliente (`RN-AUTH-ROL-05`, `RN-PER-02` de administration).
-5. El sistema evalúa el ámbito organizacional aplicable: el Técnico solo sobre su unidad (`RN-AUTH-ROL-02`), el Administrador sobre cualquier unidad (`RN-AUTH-ROL-03`).
+5. El sistema confirma que cualquier rol administrativo corresponda a una cuenta `PERSONAL` y a una identidad de personal activa. Para `TECNICO`, obtiene la unidad de la relación vigente personal-cargo-unidad y solo acepta permisos asignados a esa misma unidad; para `ADMINISTRADOR`, exige una asignación global vigente (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-03`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
 6. Cuando la operación recae sobre un recurso identificado por el cliente —una reserva, un perfil, un archivo—, el sistema verifica además que dicho recurso pertenezca o esté explícitamente permitido para la identidad autenticada (`SEC-AUTZ-06`).
 7. Si la cuenta es `USUARIO`, el sistema consulta la condición vigente de actualización inicial en Usuarios. Mientras esté pendiente, solo autoriza las operaciones necesarias para completar el perfil y sus vinculaciones, mantener la sesión para ese fin o cerrarla, conforme a RN-USR-08 de administration. Las demás se rechazan aunque el cliente omita la redirección.
 8. Si el permiso, el ámbito y la condición de perfil lo permiten, `auth` entrega al módulo propietario la identidad y la autorización, y este aplica sus propias reglas funcionales.
@@ -269,7 +273,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujos alternos:**
 
 - Si el permiso requerido no puede comprobarse de forma válida, el sistema deniega por defecto (`SEC-AUTZ-02`).
-- Si la operación queda fuera del ámbito organizacional autorizado, se deniega aunque el permiso exista (`RN-PER-06` de administration, `SEC-AUTZ-04`).
+- Si la cuenta no es `PERSONAL`, su identidad de personal está inactiva, el permiso corresponde a otra unidad o el recurso queda fuera de la unidad vigente del Técnico, se deniega aunque exista una asignación (`RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`, `RN-PER-06` de administration, `SEC-AUTZ-04`).
 - Si el recurso solicitado no pertenece a la identidad autenticada ni le está explícitamente permitido, se deniega aunque posea el permiso general (`SEC-AUTZ-06`).
 - Las operaciones que modifican estado no se ejecutan mediante métodos destinados únicamente a lectura y requieren protección contra solicitudes falsificadas entre sitios (`SEC-CSRF-01`, `SEC-CSRF-03`).
 
@@ -391,4 +395,4 @@ Los flujos anteriores pueden desencadenar operaciones de otros módulos, pero no
 
 ## Estructura persistente pendiente
 
-Los flujos de invitación (`UF-AUTH-02`, `UF-AUTH-03`), recuperación de contraseña (`UF-AUTH-07`, `UF-AUTH-08`) y evaluación de permisos (`UF-AUTH-10`) requieren entidades persistentes que el modelo principal aún no define: tokens de invitación, tokens de recuperación, permisos y sus asignaciones. Conforme a [data-model.md](data-model.md), su estructura queda pendiente de especificar y no se deduce del nombre del cargo ni del tipo de cuenta.
+El modelo objetivo de Auth define las tablas de invitación, recuperación, permisos y asignaciones en [data-model.md](data-model.md), pero esas incorporaciones aún están pendientes de aplicación a la base de datos. Mientras se implementan, la evaluación de permisos debe respetar las reglas de identidad y ámbito de este documento; no se deduce del nombre del cargo ni de asignaciones que contradigan la unidad vigente del personal.

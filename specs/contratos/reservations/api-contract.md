@@ -46,7 +46,7 @@ El cuerpo tiene una parte común y un bloque `detalle` cuya forma depende del ti
     "fecha": "2026-10-14",
     "hora_inicio": "08:00",
     "hora_fin": "12:00",
-    "asistentes": 8
+    "asistentes": 2
   },
   "recursos": [{ "recurso_id": 41, "rol": "ADICIONAL" }],
   "acompanantes": [1099, 1104],
@@ -54,7 +54,11 @@ El cuerpo tiene una parte común y un bloque `detalle` cuya forma depende del ti
 }
 ```
 
+`contexto` es obligatorio para todos los tipos de reserva, incluida `LISTA_ESPERA`. Debe contener uno o más elementos académicos/investigativos o una actividad institucional, pero no una combinación de ambos. Si falta o está vacío, la API responde `422 VALIDACION`.
+
 Forma de `detalle` por tipo:
+
+Los campos de espacio, periodo, asistentes y ubicación se envían únicamente dentro de `detalle`; no forman parte de la cabecera común.
 
 | `tipo_reserva` | Campos de `detalle` |
 |---|---|
@@ -63,7 +67,9 @@ Forma de `detalle` por tipo:
 | `RECURSO_CAMPUS`, `RECURSO_EXTERNO` | `fecha_salida`, `fecha_devolucion`, `razon_solicitud`, `lugar_nombre`, `lugar_direccion`, `nombre_actividad_evento` |
 | `LISTA_ESPERA` | `descripcion_necesidad` |
 
-`recursos` es obligatorio salvo en `ESPACIO`, donde es opcional y solo admite rol `ADICIONAL`. En `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` debe incluir exactamente un `PRINCIPAL` (`RN-RES-12`).
+`recursos` es obligatorio en `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, donde debe incluir exactamente un `PRINCIPAL` (`RN-RES-12`). En `ESPACIO` es opcional y solo admite rol `ADICIONAL`. En `LISTA_ESPERA` no se permite enviar `recursos`.
+
+En una reserva por espacio, `asistentes` es opcional y por defecto es `0`. El valor debe coincidir con la cantidad de cuentas en `acompanantes` y no puede superar la capacidad del espacio. Las cuentas se seleccionan de la lista de vinculaciones activas del proyecto o semillero; no se ingresan manualmente.
 
 **`201 Created`**
 
@@ -173,7 +179,7 @@ Admitido en `SOLICITADA`, `APROBADA` y `EN_EJECUCION` (`RN-TIP-PE-21`). En `EN_E
 
 ### 3.4 `DELETE /api/reservas/{id}/recursos/{reserva_recurso_id}`
 
-Retira un recurso de la reserva. **`204 No Content`**. No borra la asignación: la marca como retirada y conserva el historial (`reserva_recursos.retirado_at`).
+Retira un recurso de la reserva. **`204 No Content`**. No borra la fila: la marca con `estado_asignacion = RETIRADO` y conserva el historial.
 
 ---
 
@@ -218,7 +224,7 @@ Registra la entrega física y pasa la reserva a `EN_EJECUCION`. Flujo `UF-RES-13
 }
 ```
 
-Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. **No** usa `asignado_at`, que representa asignación y no entrega.
+Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. La ejecución física se registra separadamente del estado de asignación del recurso.
 
 **`200 OK`** con `estado: "EN_EJECUCION"`.
 
@@ -255,6 +261,8 @@ Admitida mientras la ejecución no haya iniciado (`RN-CAN-02`). Libera la dispon
 
 Datos prellenados del FGL 030 para reservas `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. Devuelve la cabecera con sus snapshots, las actividades marcadas y los ítems técnicos, uno por recurso.
 
+Las actividades marcadas son las casillas del FGL 030 y se generan desde `reserva_contexto` conforme a `RN-SAL`; no representan nuevos contextos ni se administran desde este endpoint.
+
 **Errores:** `409 CONFLICTO` si el tipo de reserva no genera orden de salida.
 
 ### 6.2 `GET /api/reservas/{id}/orden-salida.pdf`
@@ -263,25 +271,15 @@ Documento listo para imprimir. `Content-Type: application/pdf`.
 
 Las firmas y los recibidos a satisfacción **no** se capturan: se diligencian a mano sobre el documento impreso (`RN-TIP-RC-14`, `RN-TIP-RE-14`).
 
-### 6.3 `PUT /api/reservas/{id}/orden-salida/prorroga`
-
-```json
-{ "fecha_prorroga": "2026-11-02" }
-```
-
-**`200 OK`**. Registra la prórroga sin alterar `fecha_regreso_snapshot`, que conserva la fecha originalmente impresa (`RN-TIP-RC-15`).
-
 ---
 
 ## 7. Calendario y exportación
 
 ### 7.1 `GET /api/reservas/{id}/calendario.ics`
 
-Archivo iCalendar de una reserva aprobada. Flujo `UF-RES-17`. `Content-Type: text/calendar`.
+Archivo iCalendar de una reserva aprobada de tipo `ESPACIO` o `RECURSO_INTERNO` para uso dentro de la unidad organizacional. Flujo `UF-RES-17`. `Content-Type: text/calendar`. Incluye el periodo con hora y la ubicación cuando aplique (`RN-CAL-01`, `RN-CAL-02`).
 
-Las reservas con horario generan evento con hora; campus y externo generan evento de día completo; lista de espera no genera archivo (`RN-CAL-01`, `RN-CAL-02`).
-
-**Errores:** `409 ESTADO_INCOMPATIBLE` si la reserva no está aprobada, `404 NO_ENCONTRADO` para lista de espera.
+**Errores:** `409 ESTADO_INCOMPATIBLE` si la reserva no está aprobada; `409 TIPO_NO_ADMITIDO` para `RECURSO_CAMPUS`, `RECURSO_EXTERNO` o `LISTA_ESPERA`.
 
 ### 7.2 `GET /api/reservas/exportacion?formato=csv`
 
@@ -301,5 +299,5 @@ Exporta el listado con los filtros aplicados. Flujo `UF-RES-18`. Permiso: `reser
 ## 9. Pendientes
 
 1. El esquema exacto de los campos adicionales depende del catálogo de `espacio_campos.tipo`, registrado como **OQ-02**.
-2. La garantía contra doble reserva concurrente está pendiente (**OQ-06**). Hasta resolverla, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
+2. La propuesta seleccionada a nivel de diseño en ADR-001 para la garantía contra doble reserva concurrente sigue pendiente de aprobación formal, implementación y pruebas. Hasta que se completen, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
 3. El destino de `motivos_solicitud` está pendiente (**OQ-07**); este contrato no lo expone, porque el "por qué" de la reserva se resuelve con `contexto`.

@@ -12,7 +12,7 @@ Un contrato de módulo no repite nada de aquí: lo referencia y solo documenta l
 | [reservations](reservations/api-contract.md) | ciclo completo de la reserva | 19 flujos `UF-RES` |
 | [espacios](espacios/api-contract.md) | espacios, recursos asociados y campos adicionales | 14 flujos `UF-ESP` |
 | [usuarios](usuarios/api-contract.md) | perfil del reservista y vinculaciones | 12 flujos `UF-USR` |
-| [resources](resources/api-contract.md) | catálogo de recursos y configuración del laboratorio | 11 flujos `UF-REC` |
+| [resources](resources/api-contract.md) | catálogo de recursos y configuración del laboratorio | 12 flujos `UF-REC` |
 
 Pendientes de escribir: `administration`, `notifications`, `reports` y `researchs`. No se derivan todavía porque sus flujos de usuario no están definidos —entre los cuatro suman 191 reglas y 2 flujos—, y redactar su contrato exigiría inventar la superficie en lugar de traducirla. Requieren primero completar su `user-flow.md`.
 
@@ -121,7 +121,7 @@ Un listado nunca devuelve elementos fuera del ámbito autorizado del actor: el f
 
 Las operaciones que dependen de disponibilidad —crear, reprogramar o aprobar una reserva— revalidan sus condiciones dentro de la transacción de escritura. Que el cliente haya consultado disponibilidad antes no garantiza nada: un conflicto detectado al guardar responde `409 CONFLICTO`, incluso si la consulta previa fue satisfactoria.
 
-El mecanismo que impide la doble reserva concurrente está decidido en [ADR-001](../docs/decisions/adr-001-doble-reserva.md): una restricción de exclusión de PostgreSQL. Hasta que se implemente y existan sus pruebas de concurrencia, ningún contrato puede afirmar que esa garantía esté satisfecha.
+La propuesta de diseño seleccionada en [ADR-001](../docs/decisions/adr-001-doble-reserva.md) es una restricción de exclusión de PostgreSQL. Su aprobación formal, implementación y pruebas de concurrencia siguen pendientes; hasta completarlas, ningún contrato puede afirmar que esa garantía esté satisfecha.
 
 Una operación que afecte varias entidades relacionadas es atómica: o se escriben todas o ninguna (`RN-INT-01` de administration, `architecture.md` §9).
 

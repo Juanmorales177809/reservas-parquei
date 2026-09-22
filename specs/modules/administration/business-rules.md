@@ -34,6 +34,7 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 - **RN-USR-05:** La información administrativa de un usuario debe mantenerse separada de sus credenciales de autenticación cuando dichas responsabilidades pertenezcan a estructuras distintas del sistema.
 - **RN-USR-06:** El alta y la edición administrativa de Usuarios aplican RN-DAT del módulo Usuarios. Para invitar una cuenta de tipo `USUARIO`, debe existir previamente una identidad con esos datos obligatorios y válidos; la invitación y el alta administrativa no completan la actualización inicial por el Usuario.
+- **RN-USR-07:** Antes de invitar una cuenta de tipo `PERSONAL`, Administración debe registrar o verificar una ficha activa y completa en `personal.personal` conforme a RN-PER-11 de Usuarios. Después solicita la invitación a Auth con el correo de esa ficha y la unidad de su cargo; Auth resuelve y vincula el `id_persona`. Administración no crea credenciales ni duplica la identidad en Auth.
 
 ---
 
@@ -100,6 +101,10 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 - **RN-PER-06:** La existencia de un permiso no amplía automáticamente su ámbito organizacional.
 
 - **RN-PER-07:** El ámbito en que puede ejercerse un permiso debe evaluarse conjuntamente con la identidad y contexto organizacional definidos por el módulo de autorización.
+
+- **RN-PER-08:** Solo pueden recibir permisos administrativos las cuentas activas de tipo `PERSONAL`, vinculadas a un registro activo de `personal.personal`. Las cuentas de tipo `USUARIO` no pueden recibir asignaciones de `auth.cuenta_permisos`.
+
+- **RN-PER-09:** Al asignar un permiso acotado a unidad a una cuenta `PERSONAL`, la unidad debe coincidir con la asociada a su cargo vigente. El sistema debe rechazar asignaciones para otra unidad. Una asignación global debe registrarse explícitamente con `id_unidad NULL`; su evaluación se rige por `RN-AUTH-ROL-03` y no puede usarse para ampliar tácitamente el alcance de un Técnico.
 
 ---
 

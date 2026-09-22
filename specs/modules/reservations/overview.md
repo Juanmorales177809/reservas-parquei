@@ -44,6 +44,7 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 - horario;
 - disponibilidad;
 - composición de la reserva.
+- contexto obligatorio de la reserva.
 
 ## Dependencies
 

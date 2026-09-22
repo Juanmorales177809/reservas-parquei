@@ -4,11 +4,15 @@ Este documento describe los flujos de interacción del dominio de reservas. Las 
 
 ## Condición común para crear reservas
 
-En todos los flujos de creación, el sistema aplica RN-RES-11 al iniciar la solicitud y nuevamente al guardarla. Si el Usuario completó su actualización inicial pero ya no tiene ninguna vinculación activa y válida, informa del bloqueo y lo dirige a actualizar sus vinculaciones en el perfil conforme a RN-USR-11. Solo permite continuar cuando `investigacion` confirma al menos una válida. Si la última vinculación deja de ser válida durante el diligenciamiento, rechaza la creación y solicita actualizarla. Esta condición también aplica a reservas con actividad institucional o sin contexto obligatorio.
+En todos los flujos de creación, el sistema determina primero el tipo de cuenta. Para `USUARIO`, aplica RN-RES-11 al iniciar la solicitud y nuevamente al guardarla; si la persona no cumple la actualización inicial o ya no conserva una vinculación activa y válida, informa del bloqueo y dirige a actualizar las vinculaciones según RN-USR-11. Si la última vinculación deja de ser válida durante el diligenciamiento, rechaza la creación. Para `PERSONAL`, no aplica el requisito de actualización inicial ni de vinculación académica mínima: limita la unidad receptora al laboratorio asociado a su cargo vigente, conforme a RN-RES-15. Si necesita reservar en otra unidad, debe iniciar la solicitud con una cuenta de tipo `USUARIO`.
+
+Todos los flujos, incluidos espacio, recurso interno, recurso de campus, recurso externo y lista de espera, requieren seleccionar un contexto antes de enviar. Una cuenta `USUARIO` elige sus contextos conforme a RN-CTX-05; una cuenta `PERSONAL` puede elegir uno o más proyectos y semilleros activos del catálogo general sin vinculación propia, pero no puede elegir pasantías, trabajos de grado ni actividades institucionales, conforme a RN-CTX-08. Si no hay un contexto permitido, el sistema no permite continuar. Esta validación se reejecuta al guardar.
+
+Cada flujo captura el periodo y los datos específicos en el detalle de su tipo. La cabecera solo recibe los datos comunes de la reserva.
 
 ## Condición común de acompañantes
 
-Cuando el contexto de una reserva incluye proyecto o semillero, el Usuario puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera no permiten acompañantes.
+Cuando el contexto de una reserva incluye proyecto o semillero, el reservista (cuenta `USUARIO` o `PERSONAL`) puede registrar cero o más acompañantes. El sistema ofrece únicamente cuentas existentes con vinculación activa al proyecto o semillero; si ambos están presentes, combina la unión de las cuentas vinculadas activamente a cualquiera de los dos. Las reservas de lista de espera no permiten acompañantes.
 
 ## Condición común de composición y ejecución de recursos
 
@@ -27,10 +31,10 @@ Solo las asignaciones con periodo definido y un estado bloqueante conforme a RN-
 ## UF-RES-01 — Crear reserva por espacio
 
 ### Actor principal
-Usuario.
+Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 
 ### Flujo
-1. El usuario selecciona el laboratorio o unidad organizacional.
+1. Si la cuenta es `PERSONAL`, el sistema asigna como unidad receptora su laboratorio asociado al cargo vigente y no permite cambiarlo. Si la cuenta es `USUARIO`, selecciona el laboratorio o unidad organizacional permitidos.
 2. El sistema muestra los tipos de reserva habilitados para el laboratorio.
 3. El usuario selecciona `Reserva por espacio`.
 4. El sistema muestra los espacios habilitados para reservas.
@@ -43,26 +47,26 @@ Usuario.
 11. Si entre los equipos seleccionados alguno tiene `requiere_apoyo = true`, el sistema selecciona automáticamente “requiere técnico” y el usuario no puede desmarcarlo.
 12. Si ningún equipo exige apoyo, el usuario puede seleccionar voluntariamente “requiere técnico”.
 13. El usuario diligencia los campos adicionales obligatorios, cuando existan.
-14. El usuario selecciona uno o más elementos de contexto académico/investigativo (proyecto, semillero, pasantía y trabajo de grado), o una actividad institucional independiente. El sistema impide combinar la actividad institucional con los demás elementos, conforme a `RN-CTX`.
-15. Para cada elemento académico/investigativo seleccionado, el sistema consulta las vinculaciones válidas del usuario en el dominio responsable y, si existe una única opción válida, la selecciona automáticamente.
-16. Si existen varias opciones válidas para un elemento seleccionado, el usuario selecciona una para ese elemento.
-17. El Usuario aplica la condición común de acompañantes; puede continuar sin seleccionar ninguno.
-18. El usuario puede registrar una observación para el Técnico.
-19. El usuario envía la solicitud.
-20. El sistema revalida las reglas aplicables.
-21. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
-22. Si no está habilitada, la reserva queda en `SOLICITADA`.
-23. El sistema genera las notificaciones correspondientes.
+14. El sistema presenta las opciones de contexto según el tipo de cuenta. `USUARIO` puede seleccionar sus contextos válidos y una actividad institucional independiente conforme a `RN-CTX`; `PERSONAL` solo puede seleccionar uno o más proyectos y semilleros activos del catálogo general, sin consulta de vinculación personal.
+15. Para `USUARIO`, el sistema consulta las vinculaciones válidas en `investigacion`; cuando existan varias opciones para el tipo de contexto, el Usuario selecciona las que justifican la reserva. Para `PERSONAL`, el sistema valida que cada proyecto o semillero seleccionado exista y esté activo, sin exigir una fila en las tablas de vinculación de usuarios.
+17. Si la reserva tiene proyecto o semillero, el sistema muestra las cuentas vinculadas activamente a cualquiera de esos contextos.
+18. El usuario selecciona opcionalmente cero o más cuentas de esa lista; el sistema calcula `asistentes` con el número seleccionado y valida que no supere la capacidad del espacio.
+19. El usuario puede registrar una observación para el Técnico.
+20. El usuario envía la solicitud.
+21. El sistema revalida las reglas aplicables.
+22. Si la aprobación automática está habilitada, la reserva queda en `APROBADA`.
+23. Si no está habilitada, la reserva queda en `SOLICITADA`.
+24. El sistema genera las notificaciones correspondientes.
 
 ---
 
 ## UF-RES-02 — Crear reserva de recurso para uso dentro del laboratorio
 
 ### Actor principal
-Usuario.
+Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 
 ### Flujo
-1. El usuario selecciona el laboratorio o unidad organizacional.
+1. Si la cuenta es `PERSONAL`, el sistema asigna como unidad receptora su laboratorio asociado al cargo vigente y no permite cambiarlo. Si la cuenta es `USUARIO`, selecciona el laboratorio o unidad organizacional permitidos.
 2. Selecciona `Recurso para uso dentro del laboratorio`.
 3. El sistema muestra los recursos habilitados.
 4. El usuario selecciona uno o varios recursos: un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es (`RN-TIP-RI-01`, `RN-RES-12`).
@@ -84,10 +88,10 @@ Usuario.
 ## UF-RES-03 — Crear reserva de recurso para uso dentro del campus
 
 ### Actor principal
-Usuario.
+Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 
 ### Flujo
-1. El usuario selecciona el laboratorio o unidad organizacional.
+1. Si la cuenta es `PERSONAL`, el sistema asigna como unidad receptora su laboratorio asociado al cargo vigente y no permite cambiarlo. Si la cuenta es `USUARIO`, selecciona el laboratorio o unidad organizacional permitidos.
 2. Selecciona `Recurso para uso dentro del campus`.
 3. El sistema muestra los recursos habilitados.
 4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
@@ -98,21 +102,22 @@ Usuario.
 
 ### Entrega y devolución
 1. El Técnico  aprueba la entrega.
-2. El sistema genera la orden de salida para uso dentro del campus, listando todos los recursos.
+2. El sistema genera la orden de salida para uso dentro del campus, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` conforme a RN-SAL.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
 5. Al devolverlos, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
+7. Si el Usuario necesita usar los recursos por un periodo posterior, debe crear una nueva reserva conforme a `RN-RES-14`; el sistema valida disponibilidad y aplica las aprobaciones correspondientes.
 
 ---
 
 ## UF-RES-04 — Crear reserva de recurso fuera del campus
 
 ### Actor principal
-Usuario.
+Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 
 ### Flujo
-1. El usuario selecciona el laboratorio o unidad organizacional.
+1. Si la cuenta es `PERSONAL`, el sistema asigna como unidad receptora su laboratorio asociado al cargo vigente y no permite cambiarlo. Si la cuenta es `USUARIO`, selecciona el laboratorio o unidad organizacional permitidos.
 2. Selecciona `Recurso fuera del campus`.
 3. El sistema muestra los recursos autorizados para este tipo de salida.
 4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
@@ -123,39 +128,41 @@ Usuario.
 
 ### Entrega y devolución
 1. El Técnico  aprueba la salida.
-2. El sistema genera la orden de salida externa, listando todos los recursos.
+2. El sistema genera la orden de salida externa, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` conforme a RN-SAL.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
 5. Al devolverlos, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
+7. Si el Usuario necesita usar los recursos por un periodo posterior, debe crear una nueva reserva conforme a `RN-RES-14`; el sistema valida disponibilidad y aplica las aprobaciones correspondientes.
 
 ---
 
 ## UF-RES-05 — Crear reserva tipo lista de espera
 
 ### Actor principal
-Usuario.
+Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 
 ### Flujo
-1. El usuario selecciona el laboratorio o unidad organizacional.
+1. Si la cuenta es `PERSONAL`, el sistema asigna como unidad receptora su laboratorio asociado al cargo vigente y no permite cambiarlo. Si la cuenta es `USUARIO`, selecciona el laboratorio o unidad organizacional permitidos.
 2. Selecciona `Lista de espera`.
-3. Registra la descripción de la necesidad.
-4. Cuando corresponda, adjunta un archivo CAD, imagen u otro archivo técnico.
-5. Envía la solicitud.
-6. La reserva queda en `SOLICITADA`.
-7. El Técnico  revisa la solicitud y determina si es viable.
-8. Si no es viable, la reserva pasa a `RECHAZADA`.
-9. Si es viable, el sistema habilita el formulario complementario.
-10. El usuario diligencia y envía el formulario.
-11. El Técnico  revisa la información.
-12. Cuando se completan las aprobaciones requeridas, el usuario entrega el material.
-13. El Técnico  registra la recepción del material.
-14. La reserva pasa a `APROBADA`.
-15. Las reservas aprobadas permanecen disponibles para selección del Técnico  sin orden cronológico obligatorio.
-16. El Técnico  selecciona la siguiente según prioridad o criterio operativo.
-17. Al iniciar la fabricación o prestación, la reserva pasa a `EN_EJECUCION`.
-18. Al finalizar, el Técnico  registra las horas empleadas.
-19. La reserva pasa a `FINALIZADA`.
+3. El sistema no solicita espacio ni recursos para este tipo de reserva.
+4. Registra la descripción de la necesidad.
+5. Cuando corresponda, adjunta un archivo CAD, imagen u otro archivo técnico.
+6. Envía la solicitud.
+7. La reserva queda en `SOLICITADA`.
+8. El Técnico  revisa la solicitud y determina si es viable.
+9. Si no es viable, la reserva pasa a `RECHAZADA`.
+10. Si es viable, el sistema habilita el formulario complementario.
+11. El usuario diligencia y envía el formulario.
+12. El Técnico  revisa la información.
+13. Cuando se completan las aprobaciones requeridas, el usuario entrega el material.
+14. El Técnico  registra la recepción del material.
+15. La reserva pasa a `APROBADA`.
+16. Las reservas aprobadas permanecen disponibles para selección del Técnico  sin orden cronológico obligatorio.
+17. El Técnico  selecciona la siguiente según prioridad o criterio operativo.
+18. Al iniciar la fabricación o prestación, la reserva pasa a `EN_EJECUCION`.
+19. Al finalizar, el Técnico  registra las horas empleadas.
+20. La reserva pasa a `FINALIZADA`.
 
 ---
 
@@ -345,10 +352,10 @@ Se acerca la fecha/hora de inicio de una reserva en estado `APROBADA`.
 Sistema.
 
 ### Disparador
-Una reserva pasa a `APROBADA`, excepto lista de espera, o se modifica y requiere el envío de una nueva confirmación.
+Una reserva `ESPACIO` o `RECURSO_INTERNO` para uso dentro de la unidad organizacional pasa a `APROBADA`, o se modifica y requiere el envío de una nueva confirmación.
 
 ### Flujo
-1. Cuando la reserva queda `APROBADA`, excepto lista de espera que no genera `.ics`, el sistema genera un archivo `.ics` con la ubicación o espacio cuando aplique y la descripción de la reserva, representando el periodo según `RN-CAL-02`: con horario para espacio y recurso interno, y como evento de día completo para campus y externo.
+1. Cuando una reserva `ESPACIO` o `RECURSO_INTERNO` queda `APROBADA`, el sistema genera un archivo `.ics` con la fecha, hora de inicio, hora de finalización, ubicación cuando aplique y descripción. Las reservas de campus, externas y de lista de espera no generan este archivo.
 2. El sistema adjunta el archivo `.ics` al correo de confirmación de la reserva.
 3. Si la reserva es modificada y se envía una nueva confirmación, el sistema genera un nuevo archivo `.ics` con la información vigente y lo adjunta a ese correo.
 4. El flujo no sincroniza directamente calendarios externos ni persiste identificadores de eventos externos.

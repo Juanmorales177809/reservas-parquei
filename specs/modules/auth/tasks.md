@@ -69,7 +69,7 @@ Resuelta durante la revisión de specs. `auth.invitaciones` y `auth.tokens_recup
 
 ### AUTH-D2 — Definir persistencia de permisos y ámbito ✅ CERRADA
 
-Resuelta durante la revisión de specs. `auth.permisos` y `auth.cuenta_permisos` están definidas en [data-model.md](data-model.md), con el ámbito en la PK compuesta y `id_unidad NULL` como alcance global. El rol se deriva de las asignaciones vigentes y no se almacena. Ya no bloquea AUTH-A6 ni AUTH-B4.
+Resuelta en el modelo objetivo de [data-model.md](data-model.md). `auth.cuenta_permisos` tiene una PK sustituta `id_cuenta_permiso`; `id_unidad` queda nullable fuera de la PK, y dos índices únicos parciales evitan duplicados para asignaciones por unidad y globales. El rol se deriva considerando cuenta, identidad activa, cargo, unidad vigente y permisos; una asignación no puede ampliar el ámbito del Técnico. Esta definición ya no bloquea AUTH-A6 ni AUTH-B4; su aplicación a la base de datos corresponde a las tareas de implementación del esquema.
 
 El catálogo de códigos de `auth.permisos` también quedó definido (OQ-01), así que `AUTH-A6` ya no tiene dependencias de diseño abiertas.
 

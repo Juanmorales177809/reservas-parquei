@@ -61,7 +61,7 @@ Resultado de cada importación masiva confirmada (`RN-IMP-08`). Los conteos se g
 | `registros_desactivados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-La importación escribe las entidades en el módulo propietario (`investigacion`, `equipos`) y registra aquí únicamente su trazabilidad. Índice `(catalogo, created_at)`.
+La importación escribe las entidades en el módulo propietario (`investigacion`, `recursos`) y registra aquí únicamente su trazabilidad. Índice `(catalogo, created_at)`.
 
 ## Relaciones y responsabilidad
 

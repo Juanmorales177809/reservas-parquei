@@ -11,7 +11,6 @@ El módulo administra:
 - información general del espacio;
 - pertenencia a una unidad organizacional;
 - capacidad;
-- disponibilidad horaria;
 - recursos asociados;
 - campos adicionales configurables;
 - opciones de campos de selección.
@@ -42,7 +41,7 @@ Representa un espacio reservable perteneciente a una unidad organizacional.
 | `id_unidad` | integer | No | FK → `unidadOrganizacional.unidad_organizacional(id_unidad)` |
 | `nombre` | varchar(100) | No | Nombre del espacio |
 | `ubicacion` | varchar(255) | Sí | Ubicación física |
-| `capacidad` | integer | Sí | Capacidad cuando aplique |
+| `capacidad` | integer | No | Capacidad máxima del espacio; debe ser mayor que cero |
 | `descripcion` | text | Sí | Descripción del espacio |
 | `habilitado` | boolean | No | DEFAULT `true` |
 | `created_at` | timestamptz | No | Fecha de creación |
@@ -55,7 +54,7 @@ UNIQUE (id_unidad, nombre)
 ```
 
 ```sql
-CHECK (capacidad IS NULL OR capacidad > 0)
+CHECK (capacidad > 0)
 ```
 
 ### Reglas de integridad
@@ -63,7 +62,7 @@ CHECK (capacidad IS NULL OR capacidad > 0)
 - Todo espacio pertenece a una única unidad organizacional.
 - Un espacio deshabilitado no puede utilizarse en nuevas reservas.
 - Deshabilitar un espacio no elimina su historial.
-- `capacidad` puede ser `NULL` cuando no aplique al espacio.
+- `capacidad` siempre debe estar declarada y ser mayor que cero.
 
 ### Índices recomendados
 
@@ -74,62 +73,13 @@ CHECK (capacidad IS NULL OR capacidad > 0)
 
 ---
 
-# 2. Disponibilidad horaria del espacio
+# 2. Horario compartido de la unidad
 
-## `reservas.espacio_horarios`
+El espacio utiliza el horario de atención de su unidad, conforme a RN-ESP-DIS-02. La configuración se almacena una sola vez por unidad en [`reservas.laboratorios_config`](../resources/data-model.md#reservaslaboratorios_config), administrada por Resources, y aplica tanto a espacios como a recursos.
 
-Permite definir una o varias franjas de disponibilidad por día de la semana.
+Al crear un espacio, `reservas.espacios.id_unidad` determina la configuración que se consulta mediante `laboratorios_config.id_unidad`. No se crean filas de horario ni se copian días o franjas al espacio. El módulo Espacios no tiene una tabla de horarios ni permite sobrescribir el horario de la unidad.
 
-| Campo | Tipo | Null | Restricción / descripción |
-|---|---|---:|---|
-| `id` | integer | No | PK; identity |
-| `espacio_id` | integer | No | FK → `reservas.espacios(id)` |
-| `dia_semana` | smallint | No | Día de la semana |
-| `hora_inicio` | time | No | Inicio de la franja |
-| `hora_fin` | time | No | Fin de la franja |
-| `habilitado` | boolean | No | DEFAULT `true` |
-| `created_at` | timestamptz | No | Fecha de creación |
-| `updated_at` | timestamptz | No | Última actualización |
-
-### Restricciones
-
-```sql
-CHECK (dia_semana BETWEEN 1 AND 7)
-```
-
-Convención:
-
-```text
-1 = lunes
-2 = martes
-3 = miércoles
-4 = jueves
-5 = viernes
-6 = sábado
-7 = domingo
-```
-
-```sql
-CHECK (hora_inicio < hora_fin)
-```
-
-```sql
-UNIQUE (espacio_id, dia_semana, hora_inicio, hora_fin)
-```
-
-### Reglas de integridad
-
-- Un espacio puede tener cero o más franjas configuradas.
-- Puede existir más de una franja para el mismo día.
-- Las nuevas reservas por espacio deben encontrarse dentro de alguna franja habilitada.
-- La validación de solapamientos entre reservas pertenece al módulo `reservas`.
-- Deshabilitar una franja no elimina las reservas históricas.
-
-### Índice recomendado
-
-```text
-(espacio_id, dia_semana, habilitado)
-```
+Reservations consulta esta configuración compartida y las reservas bloqueantes para calcular la disponibilidad de cada espacio o recurso. Las fechas y horas de una reserva siguen perteneciendo a Reservations y no constituyen una configuración de horario independiente.
 
 ---
 
@@ -156,6 +106,8 @@ PRIMARY KEY (espacio_id, recurso_id)
 ### Reglas de integridad
 
 - El recurso debe existir previamente en `recursos.recursos`.
+- El espacio y el recurso deben pertenecer a la misma unidad organizacional.
+- Un recurso solo puede tener una asociación habilitada con un espacio. Para asociarlo a otro espacio, primero debe deshabilitarse su asociación vigente.
 - Asociar un recurso a un espacio no crea el recurso.
 - La asociación indica que el recurso puede formar parte del uso habitual del espacio.
 - La asociación no garantiza disponibilidad temporal.
@@ -168,6 +120,14 @@ PRIMARY KEY (espacio_id, recurso_id)
 ```text
 (recurso_id, habilitado)
 (espacio_id, habilitado)
+```
+
+La unicidad de la asociación activa se garantiza con un índice único parcial:
+
+```sql
+CREATE UNIQUE INDEX uq_espacio_recursos_recurso_activo
+    ON reservas.espacio_recursos (recurso_id)
+    WHERE habilitado = true;
 ```
 
 ---
@@ -197,7 +157,7 @@ TEXTO
 TEXTO_LARGO
 NUMERO
 BOOLEANO
-SELECT
+SELECCION
 ```
 
 No deben agregarse nuevos tipos sin necesidad funcional.
@@ -211,7 +171,7 @@ CHECK (
         'TEXTO_LARGO',
         'NUMERO',
         'BOOLEANO',
-        'SELECT'
+        'SELECCION'
     )
 )
 ```
@@ -245,7 +205,7 @@ UNIQUE (espacio_id, nombre)
 
 ## `reservas.espacios_campos_opciones`
 
-Define las opciones disponibles para campos `SELECT`.
+Define las opciones disponibles para campos `SELECCION`.
 
 | Campo | Tipo | Null | Restricción / descripción |
 |---|---|---:|---|
@@ -269,8 +229,8 @@ UNIQUE (campo_id, valor)
 
 ### Reglas de integridad
 
-- Solo los campos `SELECT` pueden tener opciones.
-- Un campo `SELECT` habilitado debe tener al menos una opción habilitada.
+- Solo los campos `SELECCION` pueden tener opciones.
+- Un campo `SELECCION` habilitado debe tener al menos una opción habilitada.
 - Una opción solo puede pertenecer a un campo.
 - Una opción deshabilitada no puede seleccionarse en nuevas reservas.
 - Las opciones utilizadas históricamente deben conservarse para interpretar reservas anteriores.
@@ -320,19 +280,18 @@ El módulo `reservas` debe garantizar que:
 
 ```text
 unidadOrganizacional.unidad_organizacional
-                    |
-                    v
-            reservas.espacios
-              /      |      \
-             /       |       \
-            v        v        v
- espacio_horarios  espacio_recursos  espacios_campos
-                       |                  |
-                       v                  v
-             recursos.recursos   espacios_campos_opciones
-                                          |
-                                          v
-                              reserva_campos_valores
+    |
+    +--> reservas.laboratorios_config (horario compartido; Resources)
+    |
+    +--> reservas.espacios
+             |
+             +--> espacio_recursos --> recursos.recursos
+             |
+             +--> espacios_campos
+                       |
+                       +--> espacios_campos_opciones
+                       |
+                       +--> reserva_campos_valores
 ```
 
 ---
@@ -342,9 +301,10 @@ unidadOrganizacional.unidad_organizacional
 ```text
 unidad_organizacional 1 ─── N espacios
 
-espacios 1 ─── N espacio_horarios
+unidad_organizacional 1 ─── 0..1 laboratorios_config (Resources)
 
-espacios N ─── N recursos
+espacios 1 ─── N espacio_recursos
+recursos 1 ─── 0..1 asociación habilitada
         mediante espacio_recursos
 
 espacios 1 ─── N espacios_campos
@@ -365,9 +325,9 @@ Crear espacio
     |
     +--> información general
     |
-    +--> capacidad, cuando aplique
+    +--> capacidad máxima (obligatoria y mayor que cero)
     |
-    +--> disponibilidad horaria
+    +--> consulta del horario compartido mediante id_unidad
     |
     +--> asociar 0..N recursos existentes
     |
@@ -378,7 +338,7 @@ Crear espacio
               +--> orden
               +--> habilitado
               |
-              +--> 0..N opciones si tipo = SELECT
+              +--> 0..N opciones si tipo = SELECCION
 ```
 
 Esta configuración se consume posteriormente desde el flujo de reserva por espacio.
@@ -393,7 +353,6 @@ Es responsable de:
 
 - existencia y configuración del espacio;
 - capacidad;
-- horario;
 - asociación con recursos;
 - definición de campos adicionales;
 - definición de opciones.
@@ -406,6 +365,8 @@ Es responsable de:
 - tipo de recurso;
 - estado general;
 - información especializada del recurso.
+
+También administra la configuración de atención de la unidad en `reservas.laboratorios_config`, incluido el horario compartido que consumen todos sus espacios y recursos.
 
 ## Reservas
 
@@ -425,12 +386,12 @@ Es responsable de:
 
 # 11. Decisiones de integridad
 
-1. `capacidad` es opcional y, cuando exista, debe ser mayor que cero.
+1. `capacidad` es obligatoria y debe ser mayor que cero.
 2. Un espacio puede existir sin recursos asociados.
 3. Un espacio puede existir sin campos adicionales.
 4. Un espacio puede tener varios recursos asociados.
 5. Un espacio puede tener múltiples campos dinámicos.
-6. Un campo `SELECT` utiliza opciones almacenadas de forma independiente.
+6. Un campo `SELECCION` utiliza opciones almacenadas de forma independiente.
 7. Los recursos deben existir antes de ser asociados al espacio.
 8. La asociación espacio–recurso no representa una asignación en una reserva.
 9. La disponibilidad temporal no se almacena en `espacio_recursos`; se determina desde el dominio de reservas.
@@ -438,6 +399,8 @@ Es responsable de:
 11. Las operaciones de configuración administrativa deben respetar el ámbito de autorización:
     - el Técnico administra únicamente espacios de su unidad;
     - el Administrador puede administrar espacios de cualquier unidad.
+12. El horario se consulta desde la configuración de la unidad; crear o editar un espacio no crea ni modifica un horario propio.
+13. Un recurso solo puede tener una asociación habilitada con un espacio y debe pertenecer a la misma unidad organizacional del espacio. Para cambiarlo de espacio, se deshabilita primero la asociación vigente.
 
 ---
 

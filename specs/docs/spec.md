@@ -82,7 +82,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 - Un usuario puede autorregistrarse sin invitación previa y, en su primer ingreso, debe completar sus datos obligatorios y seleccionar al menos una vinculación académica o investigativa activa y válida. Los proyectos y semilleros se seleccionan del catálogo administrado por Researchs; después puede recuperar su contraseña de forma autónoma.
 - El administrador puede invitar cuentas, reenviar una invitación no completada, y promover o degradar a una persona entre reservista y personal administrativo sin perder su historial.
 - El sistema nunca elimina ni degrada la última cuenta con permisos de administrador.
-- Las notificaciones se envían tanto dentro de la aplicación como por correo (confirmación, aprobación, rechazo, cancelación, recordatorio antes de la reserva y confirmación con archivo de calendario `.ics`), y cada persona puede optar por no recibir el correo (la notificación dentro de la app no se apaga).
+- Las notificaciones se envían tanto dentro de la aplicación como por correo (confirmación, aprobación, rechazo, cancelación y recordatorio antes de la reserva). La confirmación de reservas por espacio y de recursos dentro de la unidad organizacional incluye un archivo de calendario `.ics`; cada persona puede optar por no recibir el correo (la notificación dentro de la app no se apaga).
 
 ### Datos maestros institucionales
 
@@ -217,4 +217,4 @@ Usuario → Next.js (React) → FastAPI → PostgreSQL → FastAPI → Next.js �
 
 - No incluye aplicaciones móviles nativas para Android o iOS.
 - No incluye pagos, cobros ni facturación asociados a las reservas.
-- No incluye integración con calendarios externos; solo genera y adjunta un archivo `.ics` al correo de confirmación cuando se aprueba una reserva — ver Funcionalidades → Usuarios y trazabilidad. Tampoco incluye soporte multiidioma.
+- No incluye integración con calendarios externos; genera y adjunta un archivo `.ics` únicamente para reservas aprobadas por espacio o de recursos dentro de la unidad organizacional, conforme a RN-CAL. Tampoco incluye soporte multiidioma.

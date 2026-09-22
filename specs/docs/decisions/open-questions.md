@@ -14,7 +14,7 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Impacto.** Bloquea la implementación de `exigir_permiso` del contrato de auth y la administración de asignaciones. Afecta a `RN-PER-01`, `RN-PER-03` de administration y `SEC-AUTZ-04`.
 
-**Estado.** Resuelta. Se adopta un código por área funcional distinguiendo el verbo solo donde hay un caso real de separarlo; el catálogo inicial de trece códigos está en [auth/data-model.md](../../modules/auth/data-model.md#authpermisos) y los contratos ya citan el código que exige cada operación. La granularidad responde a que la asignación es directa y sin roles: dar de alta a un Técnico son cuatro asignaciones, no una por endpoint.
+**Estado.** Resuelta. Se adopta un código por área funcional distinguiendo el verbo solo donde hay un caso real de separarlo; el catálogo inicial de catorce códigos está en [auth/data-model.md](../../modules/auth/data-model.md#authpermisos) y los contratos ya citan el código que exige cada operación. La granularidad responde a que la asignación es directa y sin roles: dar de alta a un Técnico son cinco asignaciones, no una por endpoint.
 
 ---
 
@@ -68,13 +68,13 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ## OQ-06 — Mecanismo transaccional contra doble reserva
 
-**Contexto.** El modelo exige impedir que dos solicitudes concurrentes ocupen el mismo espacio o recurso en periodos incompatibles, pero el mecanismo concreto no está elegido.
+**Contexto.** El modelo exige impedir que dos solicitudes concurrentes ocupen el mismo espacio o recurso en periodos incompatibles. Esta pregunta se abrió antes de seleccionar la restricción de exclusión documentada en ADR-001.
 
 **Alternativas.** Restricción de exclusión de PostgreSQL sobre rangos, bloqueo pesimista por elemento, o serialización de la transacción.
 
-**Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. Requiere un ADR conforme a `architecture.md` §17. La especificación de producto ya acota la decisión: exige la garantía **a nivel de base de datos, no solo de aplicación**, por lo que un bloqueo resuelto únicamente en el backend no satisface el requisito. Lo que queda por elegir es el mecanismo de PostgreSQL, no el nivel.
+**Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. La selección del mecanismo debe formalizarse mediante un ADR conforme a `architecture.md` §17. La especificación de producto ya acota la decisión: exige la garantía **a nivel de base de datos, no solo de aplicación**, por lo que un bloqueo resuelto únicamente en el backend no satisface el requisito. ADR-001 selecciona una restricción de exclusión de PostgreSQL a nivel de diseño; queda pendiente su aprobación formal, no elegir otra alternativa.
 
-**Estado.** Resuelta a nivel de diseño por [ADR-001](adr-001-doble-reserva.md), que adopta una restricción de exclusión de PostgreSQL. Pendiente de aprobación y de implementación: hasta que existan las pruebas de concurrencia que el ADR enumera, la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) no puede darse por correcta bajo concurrencia.
+**Estado.** Resuelta a nivel de diseño por [ADR-001](adr-001-doble-reserva.md), que selecciona como propuesta el uso de restricciones de exclusión de PostgreSQL con periodos y predicados de bloqueo sincronizados en base de datos. La aprobación formal, la implementación y las pruebas de concurrencia siguen pendientes; hasta completarlas, la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) no puede darse por correcta bajo concurrencia.
 
 ---
 
@@ -104,10 +104,10 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ## OQ-09 — Derivación del periodo de uso de un recurso
 
-**Contexto.** `reservas.reserva_recursos.fecha_inicio_uso` y `fecha_fin_uso` son nulables y el modelo no define quién las escribe ni cuándo a partir del detalle de cada tipo de reserva. Detectado al redactar [ADR-001](adr-001-doble-reserva.md).
+**Contexto.** `reserva_recursos` no contiene fechas de inicio o fin; el periodo de negocio reside en el detalle de cada tipo. Una columna generada en la tabla de asociación no puede leer esas tablas ni representar por sí sola el periodo de una ejecución cuyo recurso aún no se ha devuelto.
 
-**Alternativas.** Derivarlas en el servicio al crear o modificar la reserva, frente a generarlas en base de datos desde el detalle correspondiente.
+**Alternativas.** Copiar fechas de inicio y fin como datos de negocio, frente a mantener una sola proyección técnica del rango desde los detalles y el registro de ejecución.
 
-**Impacto.** Sin esa regla, el rango generado sobre `reserva_recursos` sería siempre `NULL` y la restricción de exclusión de recursos no protegería nada, aunque exista. Afecta directamente la eficacia de ADR-001.
+**Impacto.** La restricción de exclusión requiere comparar el periodo del recurso junto con su asignación en la misma tabla, y debe conservar la indisponibilidad de un recurso en ejecución hasta registrar la devolución física.
 
-**Estado.** Abierta. Debe resolverse junto con la implementación de ADR-001.
+**Estado.** Resuelta a nivel de diseño por la propuesta de [ADR-001](adr-001-doble-reserva.md): el periodo se mantiene como rango técnico en `reserva_recursos`, sincronizado transaccionalmente desde el detalle del tipo y `reserva_ejecucion_recursos.devuelto_at`; un recurso en ejecución sin devolución tiene rango superior abierto. La aprobación formal, la migración, los disparadores y las pruebas siguen pendientes.

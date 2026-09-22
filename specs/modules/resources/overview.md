@@ -50,7 +50,7 @@ El módulo es propietario funcional de los siguientes conceptos:
 - habilitación;
 - estado operativo.
 
-Las entidades persistentes concretas asociadas a estos conceptos se definen en `docs/data-model.md`.
+Las entidades persistentes concretas de Resources se definen en [data-model.md](data-model.md); el modelo general mantiene el mapa de schemas, módulos y relaciones.
 
 ## Dependencies
 
