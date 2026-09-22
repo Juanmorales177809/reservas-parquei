@@ -344,7 +344,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 2. Solicita promoverla a personal administrativo o degradarla a reservista.
 3. El sistema valida que la cuenta quede vinculada a exactamente una identidad, nunca a ambas, y que el correo de la identidad destino coincida con el correo inmutable de la cuenta (`RN-AUTH-ID-02`, `RN-AUTH-ID-03`, `RN-AUTH-ID-04`).
 4. El sistema actualiza el tipo de cuenta y la identidad asociada conservando el historial de la persona (`RN-CUE-01`, `RN-USR-02` de administration).
-5. Los permisos y el ámbito resultantes se administran explícitamente en `administration`; el cambio de tipo no los concede por sí solo (`RN-AUTH-ROL-04`, `RN-PRF-03`).
+5. Los permisos y el ámbito resultantes se administran explícitamente en `administration`; el cambio de tipo no los concede por sí solo (`RN-AUTH-ROL-04`).
 6. El cambio aplica a las nuevas decisiones de autorización y no reinterpreta la trazabilidad histórica (`RN-AUTH-SES-03`, `RN-PER-05` de administration).
 7. El sistema registra el cambio administrativo (`RN-AUD-02` de administration).
 

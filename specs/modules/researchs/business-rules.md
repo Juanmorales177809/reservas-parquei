@@ -18,6 +18,14 @@ Contrato funcional del dominio `investigacion`, alojado en el módulo `researchs
 - **RN-INV-10:** El Administrador con alcance global puede gestionar las vinculaciones de cualquier Usuario e intervenir administrativamente sobre sus pasantías, trabajos de grado y demás contextos propios. Esta facultad no corresponde al Técnico.
 - **RN-INV-11:** Cuando ya exista una vinculación inactiva entre un Usuario y la misma entidad, reactivarla actualiza esa misma relación; no se crea una fila duplicada.
 
+### Perfiles académicos e investigativos
+
+- **RN-INV-12:** Los perfiles académicos o investigativos se gestionan mediante los identificadores persistentes del catálogo `investigacion.perfiles`; no se determinan mediante valores fijos en la aplicación.
+- **RN-INV-13:** Asignar o retirar un perfil no modifica retroactivamente el contexto registrado en operaciones históricas.
+- **RN-INV-14:** Un perfil deshabilitado no puede asignarse en nuevas operaciones mientras permanezca inactivo. Desactivar un perfil conserva las asociaciones existentes conforme a `RN-INV-05`.
+- **RN-INV-15:** Solo un Administrador con alcance global puede crear, modificar, habilitar o desactivar perfiles del catálogo. El Técnico no lo administra, en línea con `RN-INV-10` y `RN-ACT-04`.
+- **RN-INV-16:** El Usuario gestiona únicamente sus propios perfiles y solo puede asociarse a perfiles habilitados del catálogo. Tener un perfil no concede permisos administrativos ni sustituye una vinculación académica o investigativa a un proyecto, semillero, pasantía o trabajo de grado.
+
 En esta especificación, una «vinculación válida» es una vinculación declarada que cumple las condiciones de RN-INV-08 dentro de la aplicación. Esta definición se aplica a la actualización del perfil, la creación de reservas y la selección de acompañantes; no supone consulta a una fuente institucional ni certificación externa de pertenencia.
 
 ## Actividades institucionales — RN-ACT

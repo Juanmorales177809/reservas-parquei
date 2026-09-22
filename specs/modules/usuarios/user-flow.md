@@ -119,16 +119,16 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Flujo principal:**
 
 1. El usuario accede a la sección académica o investigativa de su perfil.
-2. El sistema consulta al módulo `investigacion` los perfiles disponibles.
-3. El usuario selecciona uno o más perfiles que correspondan a su situación.
-4. El módulo `investigacion` valida las opciones seleccionadas.
+2. El sistema consulta al módulo `investigacion` los perfiles habilitados del catálogo; los deshabilitados no se ofrecen (`RN-INV-14`).
+3. El usuario selecciona uno o más perfiles propios que correspondan a su situación (`RN-INV-16`).
+4. El módulo `investigacion` valida las opciones seleccionadas conforme a `RN-INV-12` a `RN-INV-16`; este módulo no redefine esas reglas.
 5. El sistema actualiza las vinculaciones correspondientes.
 6. El perfil consolidado del usuario refleja los cambios.
 
 **Flujos alternos:**
 
 - Si una combinación no está permitida por las reglas de `investigacion`, el sistema rechaza el cambio.
-- Si una vinculación deja de estar vigente, se conserva su historial cuando corresponda.
+- Si una asociación deja de estar vigente, se conserva su historial conforme a `RN-INV-05`, y retirar un perfil no reinterpreta el contexto de reservas anteriores (`RN-INV-13`).
 
 ---
 

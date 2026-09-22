@@ -54,19 +54,12 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 ---
 
-## Perfiles — RN-PRF
+## Perfiles académicos e investigativos
 
-- **RN-PRF-01:** Los perfiles utilizados para clasificar o caracterizar usuarios deben gestionarse mediante identificadores persistentes y no mediante valores hardcodeados en la aplicación.
+Los perfiles académicos o investigativos pertenecen a [Researchs](../researchs/business-rules.md), que define su catálogo, su asociación con usuarios y su desactivación en `RN-INV-12` a `RN-INV-16`. Administration no los administra ni redefine sus reglas.
 
-- **RN-PRF-02:** La asignación o retiro de un perfil no debe modificar retroactivamente el contexto registrado en operaciones históricas.
+La autorización aplicable es la general de este módulo: gestionar el catálogo exige alcance global conforme a `RN-INV-15` de Researchs y `RN-AUTH-ROL-03` de Auth.
 
-- **RN-PRF-03:** Un perfil no concede permisos administrativos por sí mismo salvo que exista una regla explícita de autorización que lo establezca.
-
-- **RN-PRF-04:** Los perfiles deshabilitados no deben asignarse en nuevas operaciones mientras permanezcan inactivos.
-
-- **RN-PRF-05:** Deshabilitar un perfil conserva las relaciones históricas existentes.
-
----
 
 ## Unidades organizacionales — RN-UNI
 

@@ -464,7 +464,7 @@ Se envía `id_persona` para `tipo_cuenta = "PERSONAL"` o `id_usuario` para `"USU
 }
 ```
 
-El cambio conserva el historial de la persona y aplica solo a decisiones de autorización posteriores (`RN-AUTH-SES-03`, `RN-PER-05` de administration). No concede permisos por sí mismo: se administran en `administration` (`RN-PRF-03`).
+El cambio conserva el historial de la persona y aplica solo a decisiones de autorización posteriores (`RN-AUTH-SES-03`, `RN-PER-05` de administration). No concede permisos por sí mismo: se administran en `administration` (`RN-AUTH-ROL-04`).
 
 **Errores:** `401 REAUTENTICACION_REQUERIDA`, `403 NO_AUTORIZADO`, `404 NO_ENCONTRADO` si la identidad destino no existe, `409 CONFLICTO` si la identidad destino está inactiva, ya pertenece a otra cuenta, o el cambio dejaría al sistema sin administradores, `422 VALIDACION`.
 
