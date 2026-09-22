@@ -294,10 +294,13 @@ Técnico .
 ### Actor principal
 Técnico .
 
+### Alcance
+Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`. **Las reservas de tipo `ESPACIO` quedan excluidas**: finalizan automáticamente al alcanzar su `hora_fin` conforme a `RN-TIP-PE-25` y `UF-RES-21`, y no admiten cierre manual.
+
 ### Flujo
-1. El Técnico  selecciona una reserva en `EN_EJECUCION`.
+1. El Técnico  selecciona una reserva en `EN_EJECUCION` de alguno de los tipos incluidos en el alcance.
 2. Registra la información requerida por el tipo de reserva.
-3. Para una reserva de recursos que requiera devolución, registra en la misma operación la devolución de todos los recursos entregados; para lista de espera, registra las horas empleadas; para los demás tipos, registra las observaciones de cierre cuando apliquen.
+3. Para una reserva de recursos que requiera devolución, registra en la misma operación la devolución de todos los recursos entregados; para lista de espera, registra las horas empleadas. Mientras esa devolución no se registre, la reserva no finaliza aunque su `hora_fin` ya haya transcurrido (`RN-TIP-RI-13`).
 4. Confirma la finalización.
 5. La reserva pasa a `FINALIZADA`.
 6. El sistema genera las notificaciones correspondientes cuando aplique.
@@ -400,6 +403,39 @@ Técnico de la unidad o Administrador.
 3. El Técnico o Administrador activa o desactiva cada opción de forma independiente y guarda los cambios.
 4. El backend valida los permisos y el ámbito de la unidad conforme a RN-DIS-09, guarda la configuración y registra el cambio para trazabilidad.
 5. Las siguientes consultas del Usuario aplican la configuración vigente conforme a RN-DIS-10.
+
+---
+
+## UF-RES-21 — Finalizar automáticamente una reserva por espacio
+
+### Actor principal
+
+El sistema. No interviene ningún actor humano: una reserva por espacio no tiene entrega ni devolución física que registrar.
+
+### Alcance
+
+Únicamente reservas de tipo `ESPACIO` (`RN-TIP-PE-25`). Los tipos `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` finalizan con el registro de la devolución física y quedan expresamente fuera de este flujo, conforme a `RN-TIP-RI-13`, `RN-TIP-RC-10` y `RN-TIP-RE-10`. `LISTA_ESPERA` finaliza con el registro de horas de `RN-TIP-PLE-08`.
+
+### Disparador
+
+Se alcanza la `hora_fin` de la franja registrada en `reservas.reserva_espacio`.
+
+### Flujo
+
+1. El sistema identifica las reservas de tipo `ESPACIO` cuya `hora_fin` ya transcurrió y que permanecen en un estado anterior a `FINALIZADA`.
+2. Por cada una, registra la transición a `FINALIZADA` conforme a `RN-TIP-PE-25`, indicando el sistema como origen del cambio y el instante efectivo.
+3. Los recursos complementarios terminan su asignación con la franja, sin entrega ni devolución y sin generar filas en `reservas.reserva_ejecucion_recursos` (`RN-TIP-PE-24`).
+4. La reserva conserva íntegra su información histórica conforme a `RN-EST-04`.
+
+### Lo que este flujo no hace
+
+- **No libera la disponibilidad del intervalo.** La disponibilidad se determina por el periodo reservado y el solapamiento temporal (`RN-TIP-PE-26`, `RN-DIS-11`). Dos reservas consecutivas del mismo espacio se evalúan por sus intervalos conforme a `RN-DIS-01`, con independencia de que este proceso haya corrido.
+- **No es una precondición de nada.** Un retraso o una falla del proceso no impide crear, aprobar ni ejecutar una reserva posterior que no se solapa.
+- **No altera reservas de otros tipos**, ni el comportamiento de lista de espera, recursos dentro del campus o recursos fuera del campus.
+
+### Decisión pendiente
+
+La entrada de una reserva por espacio al estado `EN_EJECUCION` no está definida (`OQ-13`). Este flujo cubre la salida y toma la reserva en el estado en que se encuentre; no presupone que haya pasado por `EN_EJECUCION`.
 
 ---
 

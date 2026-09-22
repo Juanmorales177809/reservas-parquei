@@ -249,6 +249,8 @@ Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. La ejecución
 
 Registra el cierre y pasa a `FINALIZADA`. Para una reserva de recursos que requiera devolución, el arreglo debe contener todos los recursos entregados de esa reserva; no se permite devolución parcial. Flujo `UF-RES-14`.
 
+**No aplica al tipo `ESPACIO`**, que finaliza automáticamente al alcanzar su `hora_fin` conforme a `RN-TIP-PE-25` y `UF-RES-21`. Invocarlo sobre una reserva por espacio responde `409 CONFLICTO`.
+
 ```json
 {
   "recursos": [{ "reserva_recurso_id": 88, "observacion_devolucion": "Sin novedad" }],

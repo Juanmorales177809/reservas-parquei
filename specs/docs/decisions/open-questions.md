@@ -147,3 +147,15 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 **Impacto.** Una desactivación masiva silenciosa podría cancelar reservas futuras sin la confirmación explícita que `RN-DES-06` exige. Afecta a `RN-IMP-07` y `RN-IMP-09` de administration, a `RN-DES-03` y `RN-DES-06` de resources, y al contador `registros_desactivados`.
 
 **Estado.** Abierta.
+
+---
+
+## OQ-13 — Entrada de una reserva por espacio al estado `EN_EJECUCION`
+
+**Contexto.** `RN-TIP-PE-25` y `UF-RES-21` documentan la salida de una reserva por espacio: alcanza `hora_fin` y pasa a `FINALIZADA`. La entrada a `EN_EJECUCION` nunca se definió. `RN-TIP-PE-21` y `RN-TIP-PE-23` presuponen que una reserva por espacio puede encontrarse en ese estado, y `UF-RES-13` no la excluye, pero su contrapartida en el contrato describe la operación como el registro de una entrega física, que en una reserva por espacio no existe.
+
+**Alternativas.** Transición automática al alcanzar `hora_inicio`, registro manual por el Técnico al abrir el espacio, o que `ESPACIO` nunca pase por `EN_EJECUCION` y transite de `APROBADA` directamente a `FINALIZADA`.
+
+**Impacto.** Determina si `UF-RES-13` y `POST /api/reservas/{id}/ejecucion` admiten el tipo `ESPACIO`, y si `RN-TIP-PE-21` y `RN-TIP-PE-23` describen un estado alcanzable para ese tipo. No afecta la disponibilidad, que se evalúa por intervalo conforme a `RN-DIS-11`. La tercera alternativa obligaría a revisar esas dos reglas.
+
+**Estado.** Abierta.

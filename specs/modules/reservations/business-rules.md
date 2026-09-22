@@ -70,7 +70,9 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-21:** El Técnico  puede agregar recursos asociados a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-PE-22:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
 - **RN-TIP-PE-23:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, el sistema debe registrar automáticamente el instante de incorporación y validar su disponibilidad desde ese instante hasta la finalización prevista de la reserva.
-- **RN-TIP-PE-24:** Los recursos complementarios asignados a una reserva por espacio se utilizan exclusivamente durante la franja horaria de `reservas.reserva_espacio`. Al finalizar `hora_fin`, el sistema finaliza la reserva y libera automáticamente el espacio y todos sus recursos complementarios. Estos recursos no requieren entrega ni devolución física y no generan registros en `reservas.reserva_ejecucion_recursos`.
+- **RN-TIP-PE-24:** Los recursos complementarios asignados a una reserva por espacio se utilizan exclusivamente durante la franja horaria de `reservas.reserva_espacio`. No requieren entrega ni devolución física y no generan registros en `reservas.reserva_ejecucion_recursos`. Su periodo de asignación termina con la franja de la reserva, sin ninguna acción física de cierre.
+- **RN-TIP-PE-25:** Una reserva de tipo `ESPACIO` pasa automáticamente al estado `FINALIZADA` cuando se alcanza la `hora_fin` de su franja. La transición la ejecuta el sistema conforme a `UF-RES-21`; no requiere ni admite un cierre manual del Técnico, porque no hay nada físico que devolver. La entrada de una reserva por espacio al estado `EN_EJECUCION` no está definida (`OQ-13`).
+- **RN-TIP-PE-26:** La transición automática de `RN-TIP-PE-25` no es el mecanismo que libera la disponibilidad del espacio ni de sus recursos complementarios. La disponibilidad se determina siempre por el periodo reservado y el solapamiento temporal, conforme a `RN-DIS-01`, `RN-DIS-06` y `RN-DIS-11`. Un retraso o una falla del proceso automático no puede impedir que se reserve un intervalo posterior que no se solapa.
 
 ---
 
@@ -88,6 +90,7 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RI-10:** El Técnico  puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-RI-11:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
 - **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, el sistema debe registrar automáticamente el instante de incorporación y validar su disponibilidad desde ese instante hasta la finalización prevista de la reserva.
+- **RN-TIP-RI-13:** Una reserva de `RECURSO_INTERNO` no finaliza automáticamente por tiempo. La `hora_fin` de `RN-TIP-RI-02` delimita el periodo solicitado y la disponibilidad, pero no dispara ninguna transición de estado: la reserva pasa a `FINALIZADA` únicamente cuando el Técnico registra la devolución física de todos los recursos entregados conforme a `RN-TIP-RI-09`. La finalización automática de `RN-TIP-PE-25` aplica exclusivamente al tipo `ESPACIO`. Mientras la devolución no se registre, el recurso continúa indisponible conforme a `RN-DIS-06`, aunque su `hora_fin` ya haya pasado.
 
 ---
 
@@ -192,6 +195,7 @@ Los únicos estados globales válidos son:
 - **RN-DIS-08:** Cada unidad puede configurar de forma independiente `mostrar_estado_reserva` y `mostrar_reservista`, ambas desactivadas por defecto, para mostrar al Usuario el estado y el nombre del reservista de la reserva que ocupa una franja no disponible.
 - **RN-DIS-09:** El Técnico solo puede modificar estas opciones para su propia unidad organizacional. El Administrador puede modificarlas para cualquier unidad, conforme a los permisos de `auth`.
 - **RN-DIS-10:** Las opciones de visibilidad solo determinan la información presentada al Usuario; no modifican la disponibilidad ni las reglas de bloqueo, ni permiten consultar el detalle completo de reservas ajenas. El backend aplica estas opciones al responder las consultas de disponibilidad.
+- **RN-DIS-11:** El bloqueo de disponibilidad corresponde al periodo asignado, no al elemento ni al instante en que la reserva cambia de estado. Una reserva cuyo periodo ya terminó no bloquea intervalos posteriores aunque todavía no haya alcanzado `FINALIZADA`, y dos reservas consecutivas se evalúan por sus intervalos conforme a `RN-DIS-01` sin depender de que se haya ejecutado ningún proceso automático. Esta regla no altera la indisponibilidad de un recurso pendiente de devolución física, que `RN-DIS-06` mantiene mientras la entrega siga abierta.
 
 ---
 
