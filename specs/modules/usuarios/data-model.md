@@ -24,7 +24,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
 | `perfil_actualizado_at` | timestamptz | Sí | NULL mientras la actualización inicial esté pendiente |
 
-Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus restricciones y el CHECK de nombre, son cambios objetivo pendientes de migración. Antes de exigirlos sobre datos existentes se deben completar los faltantes y resolver duplicados sin inventar valores. El alta solicita los cinco datos conforme a RN-DAT; `perfil_actualizado_at` permanece NULL hasta completar la revisión inicial y las vinculaciones. Institución y dependencia son atributos del perfil, sin FK a las unidades receptoras de reservas.
+Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus restricciones y el CHECK de nombre, son cambios objetivo pendientes de migración. Antes de exigirlos sobre datos existentes se deben completar los faltantes y resolver duplicados sin inventar valores. El alta solicita los cinco datos conforme a RN-DAT; `perfil_actualizado_at` permanece NULL hasta completar la revisión inicial y las vinculaciones. Institución y dependencia son atributos del perfil, sin FK a las unidades receptoras de reservas. Cuando existe una cuenta asociada, `correo` coincide con el de `auth.cuentas` y ambos son inmutables.
 
 ### `personal.personal`
 
@@ -34,11 +34,11 @@ Los campos `documento`, `telefono`, `institucion` y `dependencia`, junto con sus
 | `nombre` | varchar(50) | NN | — |
 | `id_cargo` | integer | NN | FK `fk_personal_cargo` → `cargos.cargo(id_cargo)` |
 | `documento` | varchar(20) | NN | UQ `uq_personal_documento` |
-| `correo` | varchar(150) | NN | UQ `uq_personal_correo` |
+| `correo` | varchar(255) | NN | UQ `uq_personal_correo` |
 | `telefono` | varchar(20) | NN | UQ `uq_personal_telefono` |
 | `estado` | boolean | Sí | — |
 
-La tabla ya no contiene `supabase_id`. Las altas o modificaciones administrativas de estas fichas validan nombre, documento, correo, teléfono y cargo conforme a `RN-PER-11`; Auth utiliza el correo único para resolver la identidad y vincula su `id_persona` a la invitación de tipo `PERSONAL`. La ficha debe estar activa para emitir y activar esa invitación.
+La tabla ya no contiene `supabase_id`. Las altas o modificaciones administrativas de estas fichas validan nombre, documento, correo, teléfono y cargo conforme a `RN-PER-11`; Auth utiliza el correo único para resolver la identidad y vincula su `id_persona` a la invitación de tipo `PERSONAL`. La ficha debe estar activa para emitir y activar esa invitación. Cuando existe una cuenta asociada, ambos correos coinciden y no pueden modificarse.
 
 `perfil_actualizado_at` registra que el Usuario completó la actualización inicial obligatoria. El valor no se establece hasta que los datos obligatorios estén válidos y exista al menos una vinculación académica o investigativa activa y válida confirmada por `investigacion`. No duplica las vinculaciones ni reemplaza sus estados.
 
@@ -52,4 +52,4 @@ El personal referencia un cargo de [Administration](../administration/data-model
 
 ## Diferencias pendientes
 
-El modelo no define todavía las tablas persistentes de permisos. La distinción entre Técnico y Administrador debe resolverse mediante permisos y alcance global, no mediante la coexistencia de identidades.
+Las tablas persistentes `auth.permisos` y `auth.cuenta_permisos` se definen en Auth como parte del modelo objetivo. La distinción entre Técnico y Administrador se resuelve mediante esas asignaciones y su alcance, no mediante la coexistencia de identidades.

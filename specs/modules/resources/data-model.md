@@ -83,6 +83,23 @@ Esta configuración es única por unidad y contiene el horario de atención comp
 
 Las dos opciones de visibilidad se guardan en la configuración única de cada unidad (`id_unidad`). Su comportamiento y permisos se definen en [RN-DIS de Reservations](../reservations/business-rules.md#disponibilidad--rn-dis). Estos campos son parte del diseño objetivo y no se consideran aplicados en la base de datos.
 
+### `reservas.laboratorios_config_historico`
+
+Conserva las versiones del horario de atención de cada unidad para calcular indicadores históricos. No es una configuración global ni crea horarios propios para espacios o recursos.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `id_unidad` | integer | NN | FK → `unidadOrganizacional.unidad_organizacional(id_unidad)` |
+| `dias_atencion` | jsonb | NN | — |
+| `hora_apertura` | time | NN | CHECK `hora_apertura < hora_cierre` |
+| `hora_cierre` | time | NN | — |
+| `horario_atencion` | jsonb | NN | — |
+| `vigente_desde` | timestamptz | NN | — |
+| `vigente_hasta` | timestamptz | Sí | CHECK `vigente_hasta > vigente_desde` cuando exista |
+
+Para una misma unidad, los intervalos de vigencia no se solapan y solo una versión puede tener `vigente_hasta` nulo. El horario vigente permanece accesible en `reservas.laboratorios_config`; esta tabla conserva las versiones anteriores y la vigente para consultas históricas.
+
 ### `recursos.mobiliarios`
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |

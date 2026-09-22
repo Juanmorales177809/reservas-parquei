@@ -30,14 +30,14 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 
 ### `administration.auditoria`
 
-Auditoría de las operaciones administrativas (`RN-AUD-01` a `RN-AUD-05`). Sustituye a `reservas.control_cambios` del inventario y adopta el mismo patrón que `reservas.reserva_auditoria`, para que el sistema tenga una sola forma de auditar. Incorporación objetivo pendiente de aplicar.
+Auditoría de las operaciones administrativas (`RN-AUD-01` a `RN-AUD-05`). Sustituye a `reservas.control_cambios` del inventario. Incorporación objetivo pendiente de aplicar.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id` | bigint | NN | PK; identity |
 | `actor_cuenta_id` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `entidad` | varchar(80) | NN | — |
-| `entidad_id` | varchar(80) | Sí | identificador de la entidad afectada, como texto para admitir PK de distintos tipos |
+| `entidad_id` | varchar(80) | NN | identificador obligatorio de la entidad afectada, como texto para admitir PK de distintos tipos |
 | `accion` | varchar(40) | NN | — |
 | `datos_anteriores` | jsonb | Sí | — |
 | `datos_nuevos` | jsonb | Sí | — |
@@ -48,7 +48,7 @@ Auditoría de las operaciones administrativas (`RN-AUD-01` a `RN-AUD-05`). Susti
 
 ### `administration.importaciones`
 
-Resultado de cada importación masiva confirmada (`RN-IMP-08`). Los conteos se guardan estructurados, no dentro de un texto libre.
+Resultado resumido de cada importación masiva procesada (`RN-IMP-08`). Los conteos se guardan estructurados, y el resultado de cada fila se conserva en `administration.importacion_resultados`, incluso cuando la validación impide confirmar la carga.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
@@ -61,7 +61,22 @@ Resultado de cada importación masiva confirmada (`RN-IMP-08`). Los conteos se g
 | `registros_desactivados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-La importación escribe las entidades en el módulo propietario (`investigacion`, `recursos`) y registra aquí únicamente su trazabilidad. Índice `(catalogo, created_at)`.
+Cuando se confirma, la importación escribe las entidades en el módulo propietario (`investigacion`, `recursos`) y registra aquí sus totales. Una carga rechazada conserva únicamente su resultado de validación y no escribe datos de catálogo. Índice `(catalogo, created_at)`.
+
+### `administration.importacion_resultados`
+
+Resultado de cada fila procesada durante la validación de una importación confirmada o rechazada.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `importacion_id` | integer | NN | FK → `administration.importaciones(id)` |
+| `numero_fila` | integer | NN | UQ compuesta con `importacion_id`; CHECK `numero_fila > 0` |
+| `codigo` | varchar(255) | Sí | valor identificado en la fila, incluso si es inválido |
+| `resultado` | varchar(20) | NN | CHECK `CREADO`, `ACTUALIZADO`, `DESACTIVADO` o `ERROR` |
+| `detalle` | text | Sí | motivo del error o resultado de procesamiento |
+
+La restricción única `(importacion_id, numero_fila)` conserva un único resultado por fila. Los totales de la cabecera se derivan de estas filas para la importación confirmada.
 
 ## Relaciones y responsabilidad
 
@@ -74,6 +89,5 @@ La importación administrativa de proyectos y semilleros no crea tablas propias 
 ## Diferencias pendientes
 
 - Los permisos y sus asignaciones se definen en [Auth](../auth/data-model.md#authpermisos) como `auth.permisos` y `auth.cuenta_permisos`. Administration los administra mediante operaciones autorizadas; Auth los evalúa. No se duplican aquí.
-- La configuración global sigue sin tabla propia; falta su diseño persistente conforme a `RN-CFG-02`.
 - `administration.auditoria` reemplaza a `reservas.control_cambios`, cuyo `actor_id integer` sin FK no identificaba la cuenta exigida por `RN-AUD-01`. Como no hay datos en producción, la transición no requiere migrar registros históricos.
-- La auditoría administrativa y `reservas.reserva_auditoria` conviven por ámbito: cada módulo audita sus propias operaciones con el mismo patrón de campos. Administration no registra cambios de reservas ni viceversa.
+- La auditoría de Reservations está fuera del alcance funcional actual; Administration solo conserva la auditoría de sus propias operaciones.

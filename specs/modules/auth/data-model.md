@@ -22,7 +22,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
 
-El check `ck_auth_cuentas_identidad` exige exactamente una identidad: para `USUARIO`, `id_usuario` no NULL e `id_persona` NULL; para `PERSONAL`, `id_persona` no NULL e `id_usuario` NULL.
+El check `ck_auth_cuentas_identidad` exige exactamente una identidad: para `USUARIO`, `id_usuario` no NULL e `id_persona` NULL; para `PERSONAL`, `id_persona` no NULL e `id_usuario` NULL. `correo` es inmutable después de crear la cuenta y debe coincidir con el correo de la identidad referenciada, conforme a RN-AUTH-ID-02.
 
 ### `auth.sesiones`
 
@@ -104,14 +104,14 @@ Un código por área funcional, distinguiendo el verbo solo cuando existe un cas
 | `recursos.administrar_equipos` | Registrar y administrar globalmente equipos del inventario institucional; crear equipos e intervenir sobre cualquier unidad | global |
 | `recursos.reasignar_unidad` | Cambiar la unidad responsable de un recurso | global |
 | `laboratorios.configurar` | Horario de atención, antelación, aprobación automática, tipos de reserva y visibilidad de la unidad | unidad |
-| `cuentas.administrar` | Invitar, activar, desactivar y cambiar el tipo de identidad de una cuenta | unidad o global |
-| `usuarios.administrar` | Crear, editar y habilitar identidades funcionales | unidad o global |
+| `cuentas.administrar` | Invitar, activar, desactivar y cambiar el tipo de identidad de una cuenta | global |
+| `usuarios.administrar` | Crear, editar y habilitar identidades funcionales de Usuario | global |
 | `permisos.asignar` | Otorgar y retirar permisos a otras cuentas (`RN-PER-03` de administration) | global |
 | `unidades.administrar` | Gestionar unidades organizacionales y cargos | global |
 | `importacion.ejecutar` | Importar catálogos masivamente (`RN-IMP-01` de administration) | global |
 | `reportes.consultar` | Consultar informes de ocupación y uso | unidad o global |
 
-La columna de ámbito describe el uso previsto; el alcance efectivo se fija con `id_unidad` en cada asignación. Una cuenta `USUARIO` nunca puede recibir permisos administrativos. Una asignación global (`id_unidad IS NULL`) solo puede activar el rol `ADMINISTRADOR` en una cuenta activa de tipo `PERSONAL` vinculada a personal activo. Las asignaciones por unidad de una cuenta `PERSONAL` deben coincidir con la unidad que resulta de su cargo vigente; las demás se rechazan al asignarse y nunca se consideran autorizadas durante una operación. `permisos.asignar` permite gestionar asignaciones, pero no omitir estas restricciones ni ampliar el ámbito propio del actor.
+La columna de ámbito describe el uso previsto; el alcance efectivo se fija con `id_unidad` en cada asignación. `cuentas.administrar` y `usuarios.administrar` solo admiten asignaciones globales (`id_unidad IS NULL`), por lo que un Técnico no puede ejercerlas. Una cuenta `USUARIO` nunca puede recibir permisos administrativos. Una asignación global (`id_unidad IS NULL`) solo puede activar el rol `ADMINISTRADOR` en una cuenta activa de tipo `PERSONAL` vinculada a personal activo. Las asignaciones por unidad de una cuenta `PERSONAL` deben coincidir con la unidad que resulta de su cargo vigente; las demás se rechazan al asignarse y nunca se consideran autorizadas durante una operación. `permisos.asignar` permite gestionar asignaciones, pero no omitir estas restricciones ni ampliar el ámbito propio del actor.
 
 Un perfil típico de **Técnico** son cinco asignaciones sobre la única unidad vigente asociada a su registro de `personal.personal`: `reservas.administrar`, `espacios.administrar`, `recursos.administrar`, `recursos.editar_equipos` y `laboratorios.configurar`. Un **Administrador** es una cuenta `PERSONAL` activa con al menos una asignación global (`id_unidad NULL`).
 
@@ -150,4 +150,4 @@ Las cuentas referencian las identidades definidas en [Usuarios](../usuarios/data
 
 El CHECK `ck_auth_cuentas_identidad` exige exactamente una identidad: una cuenta es de tipo `USUARIO` o `PERSONAL`, nunca ambas. El correo electrónico es único en `auth.cuentas` y representa la identificación funcional de la persona dentro del acceso autenticado.
 
-El principal no define tablas de invitaciones ni de recuperación de contraseña. Su estructura persistente queda pendiente de especificar conforme a las reglas. Los permisos y sus asignaciones sí están definidos arriba como incorporación objetivo: no se deducen del nombre del cargo ni del tipo de cuenta.
+Aunque el modelo principal no detalla invitaciones ni recuperación de contraseña, sus estructuras objetivo se definen en este documento como `auth.invitaciones` y `auth.tokens_recuperacion`. Los permisos y sus asignaciones también están definidos arriba como incorporaciones objetivo; no se deducen del nombre del cargo ni del tipo de cuenta.

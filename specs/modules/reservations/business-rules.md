@@ -21,7 +21,7 @@ El modelo persistente se define en [data-model](data-model.md), los espacios en 
 - **RN-RES-11:** Para crear una reserva con una cuenta de tipo `USUARIO`, su titular debe haber completado la actualización inicial del perfil conforme a RN-USR-07 y RN-USR-08, y conservar al menos una vinculación activa y válida conforme a RN-USR-11. El backend revalida ambas condiciones al registrar cada nueva reserva. Las vinculaciones seleccionadas como contexto se validan además conforme a RN-CTX-05. Esta condición de perfil y vinculación mínima no aplica a cuentas de tipo `PERSONAL`.
 - **RN-RES-12:** Una reserva por espacio admite cero o más recursos complementarios y no exige un recurso principal. Las reservas de recurso interno, campus y externo requieren un recurso principal y admiten adicionales conforme a sus reglas específicas. `LISTA_ESPERA` no selecciona ni registra recursos, por lo que no tiene recursos `PRINCIPAL` ni `ADICIONAL`.
 - **RN-RES-13:** `reservas.reservas` solo contiene datos comunes. El espacio, el periodo, los asistentes y la ubicación se registran exclusivamente en el detalle correspondiente al tipo de reserva; no se duplican en la cabecera.
-- **RN-RES-14:** Las reservas de recursos no admiten prórroga de la fecha prevista de devolución. Si el Usuario necesita los recursos por más tiempo, debe devolverlos; el Técnico registra la devolución y la reserva se finaliza. El Usuario debe crear una nueva reserva para el periodo posterior, sujeta a disponibilidad y a las validaciones y aprobaciones aplicables.
+- **RN-RES-14:** Las reservas de recursos no admiten prórroga de la fecha estimada de devolución. Si el Usuario necesita los recursos por más tiempo, debe devolverlos; el Técnico registra la devolución y la reserva se finaliza. Puede registrar una nueva solicitud para un periodo posterior antes de esa devolución, siempre que no se solape con otro periodo solicitado; para aprobarla o entregarla se aplican las condiciones de disponibilidad física de `RN-DIS-06`.
 - **RN-RES-15:** Una cuenta de tipo `PERSONAL` solo puede crear reservas para la unidad organizacional (laboratorio) asociada a su registro de personal mediante su cargo vigente. Si necesita reservar en otra unidad, debe hacerlo mediante una cuenta de tipo `USUARIO`; una cuenta `PERSONAL` no puede seleccionar otra unidad como receptora.
 
 ---
@@ -69,7 +69,8 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-PE-20:** Los valores diligenciados en los campos adicionales deben conservarse asociados a la reserva como parte de su información histórica.
 - **RN-TIP-PE-21:** El Técnico  puede agregar recursos asociados a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-PE-22:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
-- **RN-TIP-PE-23:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
+- **RN-TIP-PE-23:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, el sistema debe registrar automáticamente el instante de incorporación y validar su disponibilidad desde ese instante hasta la finalización prevista de la reserva.
+- **RN-TIP-PE-24:** Los recursos complementarios asignados a una reserva por espacio se utilizan exclusivamente durante la franja horaria de `reservas.reserva_espacio`. Al finalizar `hora_fin`, el sistema finaliza la reserva y libera automáticamente el espacio y todos sus recursos complementarios. Estos recursos no requieren entrega ni devolución física y no generan registros en `reservas.reserva_ejecucion_recursos`.
 
 ---
 
@@ -83,47 +84,47 @@ Los tipos de reserva contemplados actualmente son:
 - **RN-TIP-RI-06:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
 - **RN-TIP-RI-07:** La entrega de los recursos al usuario requiere la aprobación previa del Técnico .
 - **RN-TIP-RI-08:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RI-09:** Al recibir nuevamente los recursos o finalizar su uso dentro del laboratorio, el Técnico  debe registrar la devolución o finalización y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RI-09:** Al finalizar una reserva, el Técnico debe registrar en la misma operación la devolución o finalización de todos los recursos entregados que requieran devolución. No se permite una devolución parcial durante la ejecución; solo entonces la reserva pasa a `FINALIZADA`.
 - **RN-TIP-RI-10:** El Técnico  puede agregar recursos adicionales a una reserva en estado `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 - **RN-TIP-RI-11:** Todo recurso agregado debe encontrarse habilitado, operativo y disponible durante el periodo de uso requerido por la reserva.
-- **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, la disponibilidad debe validarse desde el momento de su incorporación hasta la finalización prevista de la reserva.
+- **RN-TIP-RI-12:** Cuando se agregue un recurso a una reserva en estado `EN_EJECUCION`, el sistema debe registrar automáticamente el instante de incorporación y validar su disponibilidad desde ese instante hasta la finalización prevista de la reserva.
 
 ---
 
 ## Recurso para uso dentro del campus — RN-TIP-RC
 
-- **RN-TIP-RC-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) que saldrán del laboratorio, pero permanecerán dentro del campus autorizado. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución.
-- **RN-TIP-RC-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución, aplicable a todos sus recursos.
-- **RN-TIP-RC-03:** Cada recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
+- **RN-TIP-RC-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) que saldrán del laboratorio, pero permanecerán dentro del campus autorizado. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución estimada.
+- **RN-TIP-RC-02:** La reserva requiere seleccionar una fecha de salida y una fecha estimada de devolución, aplicable a todos sus recursos. La fecha estimada sirve para planificar el periodo solicitado; no acredita que el recurso haya regresado al laboratorio.
+- **RN-TIP-RC-03:** Al crear o modificar la solicitud, cada recurso debe tener un periodo solicitado compatible con las demás reservas bloqueantes. La aprobación y la entrega requieren adicionalmente que el recurso esté físicamente disponible conforme a `RN-DIS-06`.
 - **RN-TIP-RC-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para alguno de sus recursos durante el periodo solicitado.
 - **RN-TIP-RC-05:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
 - **RN-TIP-RC-06:** La entrega de los recursos al usuario requiere la aprobación previa del Técnico .
 - **RN-TIP-RC-07:** El sistema debe generar la orden de salida correspondiente al uso de los recursos dentro del campus y fuera del laboratorio, listando todos los recursos de la reserva.
 - **RN-TIP-RC-08:** La orden de salida debe registrar la aprobación del Técnico  y la recepción de los recursos por parte del usuario.
 - **RN-TIP-RC-09:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RC-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RC-10:** Al recibir nuevamente los recursos, el Técnico debe registrar en la misma operación la devolución de todos los recursos entregados. No se permite una devolución parcial durante la ejecución; solo entonces la reserva pasa a `FINALIZADA`.
 - **RN-TIP-RC-11:** La orden de salida (`RN-TIP-RC-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
-- **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos se copian como snapshot desde Resources: para equipos, `descripcion_snapshot` toma `recursos.equipos.nombre_equipo`, `placa_snapshot` toma `recursos.equipos.placa` y bodega, centro de costo y fecha de compra toman `recursos.equipos.bodega`, `centro_costo` y `fecha_compra`; para mobiliarios y otros recursos, la descripción toma su campo `nombre` y los datos exclusivos de equipos quedan nulos.
+- **RN-TIP-RC-12:** Al crear la reserva, el usuario debe registrar en `reserva_datos_salida` la razón de la solicitud, el nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto. Estos datos se conservan asociados a la reserva antes de generar la orden.
+- **RN-TIP-RC-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula, correo y teléfono del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos se copian como snapshot desde Resources: para equipos, `descripcion_snapshot` toma `recursos.equipos.nombre_equipo`, `placa_snapshot` toma `recursos.equipos.placa` y bodega, centro de costo y fecha de compra toman `recursos.equipos.bodega`, `centro_costo` y `fecha_compra`; para mobiliarios y otros recursos, la descripción toma su campo `nombre` y los datos exclusivos de equipos quedan nulos.
 - **RN-TIP-RC-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
 
 ---
 
 ## Recurso fuera del campus — RN-TIP-RE
 
-- **RN-TIP-RE-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) autorizados para salir del campus. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución.
-- **RN-TIP-RE-02:** La reserva requiere seleccionar una fecha de salida y una fecha de devolución, aplicable a todos sus recursos.
-- **RN-TIP-RE-03:** Cada recurso debe estar disponible durante todo el periodo comprendido entre la fecha de salida y la fecha de devolución solicitadas.
+- **RN-TIP-RE-01:** La reserva corresponde a uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es) autorizados para salir del campus. Todos los recursos de la reserva comparten la misma fecha de salida y de devolución estimada.
+- **RN-TIP-RE-02:** La reserva requiere seleccionar una fecha de salida y una fecha estimada de devolución, aplicable a todos sus recursos. La fecha estimada sirve para planificar el periodo solicitado; no acredita que el recurso haya regresado al laboratorio.
+- **RN-TIP-RE-03:** Al crear o modificar la solicitud, cada recurso debe tener un periodo solicitado compatible con las demás reservas bloqueantes. La aprobación y la entrega requieren adicionalmente que el recurso esté físicamente disponible conforme a `RN-DIS-06`.
 - **RN-TIP-RE-04:** No se podrá crear una reserva que se solape con otra reserva bloqueante para alguno de sus recursos durante el periodo solicitado.
 - **RN-TIP-RE-05:** Cada recurso reservado puede corresponder a un equipo con placa de identificación o a un recurso sin placa, según su clasificación en el inventario.
 - **RN-TIP-RE-06:** La salida de los recursos requiere la aprobación previa del Técnico .
 - **RN-TIP-RE-07:** El sistema debe generar la orden de salida externa correspondiente al retiro de los recursos fuera del campus, listando todos los recursos de la reserva.
 - **RN-TIP-RE-08:** La orden de salida externa debe registrar la aprobación del Técnico  y la recepción de los recursos por parte del usuario.
 - **RN-TIP-RE-09:** Al entregar físicamente los recursos al usuario, la reserva debe pasar al estado `EN_EJECUCION`.
-- **RN-TIP-RE-10:** Al recibir nuevamente los recursos, el Técnico  debe registrar su devolución y la reserva debe pasar al estado `FINALIZADA`.
+- **RN-TIP-RE-10:** Al recibir nuevamente los recursos, el Técnico debe registrar en la misma operación la devolución de todos los recursos entregados. No se permite una devolución parcial durante la ejecución; solo entonces la reserva pasa a `FINALIZADA`.
 - **RN-TIP-RE-11:** La orden de salida externa (`RN-TIP-RE-07`) debe poder exportarse prellenada en el formato institucional "FGL 030 Orden de salida equipos y herramientas".
-- **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar adicionalmente: razón de la solicitud, nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto.
-- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula y contacto del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos se copian como snapshot desde Resources: para equipos, `descripcion_snapshot` toma `recursos.equipos.nombre_equipo`, `placa_snapshot` toma `recursos.equipos.placa` y bodega, centro de costo y fecha de compra toman `recursos.equipos.bodega`, `centro_costo` y `fecha_compra`; para mobiliarios y otros recursos, la descripción toma su campo `nombre` y los datos exclusivos de equipos quedan nulos.
+- **RN-TIP-RE-12:** Al crear la reserva, el usuario debe registrar en `reserva_datos_salida` la razón de la solicitud, el nombre y dirección del lugar al cual serán desplazados los equipos o herramientas, y el nombre de la actividad o evento cuando aplique según el contexto. Estos datos se conservan asociados a la reserva antes de generar la orden.
+- **RN-TIP-RE-13:** Los siguientes datos se prellenan a partir de información ya existente en la reserva, sin solicitarse nuevamente: dependencia solicitante, entendida como la afiliación de quien solicita y no como la unidad receptora de la reserva, fecha de retiro y fecha de regreso, actividad o actividades asociadas, que pueden marcarse varias a la vez sobre las ocho casillas del formato según el contexto registrado en `RN-CTX`; pasantía y trabajo de grado se marcan como «otro» y se detallan en el nombre de la actividad, código del proyecto de investigación cuando corresponda, y nombre, cédula, correo y teléfono del responsable de la solicitud, tomados del perfil de la identidad asociada a la cuenta: `usuarios.usuarios` para cuentas de Usuario y `personal.personal` para cuentas de Personal. Los datos técnicos se copian como snapshot desde Resources: para equipos, `descripcion_snapshot` toma `recursos.equipos.nombre_equipo`, `placa_snapshot` toma `recursos.equipos.placa` y bodega, centro de costo y fecha de compra toman `recursos.equipos.bodega`, `centro_costo` y `fecha_compra`; para mobiliarios y otros recursos, la descripción toma su campo `nombre` y los datos exclusivos de equipos quedan nulos.
 - **RN-TIP-RE-14:** Las firmas, cargos de los autorizantes y los registros de entrega o devolución física de los recursos no se prellenan; se diligencian manualmente o se registran en el momento correspondiente del flujo de aprobación y ejecución.
 
 ## Casillas del FGL 030 — RN-SAL
@@ -139,9 +140,9 @@ Los tipos de reserva contemplados actualmente son:
 
 - **RN-TIP-PLE-01:** La reserva no requiere seleccionar fecha ni horario de ejecución al momento de la solicitud.
 - **RN-TIP-PLE-02:** La solicitud debe incluir una descripción de la necesidad y podrá incluir un archivo CAD, una imagen u otro archivo técnico asociado cuando corresponda. La lista de espera no permite asociar espacio ni recursos.
-- **RN-TIP-PLE-03:** El formulario complementario solo se habilita después de que el Técnico  determine que la solicitud es viable.
-- **RN-TIP-PLE-04:** La evaluación de viabilidad y la aprobación del formulario complementario forman parte del flujo interno de revisión y no constituyen estados globales de la reserva.
-- **RN-TIP-PLE-05:** La reserva pasa al estado `APROBADA` cuando se han completado las aprobaciones requeridas y el Técnico  registra la recepción del material necesario para su ejecución.
+- **RN-TIP-PLE-03:** El formulario complementario solo se habilita después de que el Técnico determine que la solicitud es viable. Se persiste en `reserva_lista_espera_formulario` asociado a la reserva.
+- **RN-TIP-PLE-04:** El Usuario diligencia su parte del formulario y el Técnico lo revisa y completa la información que le corresponde. El formulario no tiene una aprobación independiente ni introduce estados globales.
+- **RN-TIP-PLE-05:** La reserva pasa al estado `APROBADA` cuando el Técnico ha revisado y completado el formulario, y registra la recepción del material necesario para su ejecución.
 - **RN-TIP-PLE-06:** Las reservas de tipo lista de espera en estado `APROBADA` no siguen un orden cronológico obligatorio. El Técnico  selecciona la siguiente reserva a ejecutar según la prioridad o los criterios operativos aplicables.
 - **RN-TIP-PLE-07:** Cuando el Técnico  inicia la fabricación o prestación correspondiente, la reserva debe pasar al estado `EN_EJECUCION`.
 - **RN-TIP-PLE-08:** Al finalizar la ejecución, el Técnico  debe registrar las horas empleadas y la reserva debe pasar al estado `FINALIZADA`.
@@ -182,11 +183,11 @@ Los únicos estados globales válidos son:
 ## Disponibilidad — RN-DIS
 
 - **RN-DIS-01:** Para reservas con franja horaria, los intervalos se interpretan como `[hora_inicio, hora_fin)`. Dos reservas contiguas no se consideran solapadas cuando una termina exactamente a la hora en que inicia la otra.
-- **RN-DIS-02:** Para reservas de recursos por días, el periodo comprende la fecha de salida o inicio y la fecha de devolución o finalización. Dos reservas se consideran solapadas cuando comparten al menos una fecha del periodo reservado.
-- **RN-DIS-03:** El sistema debe impedir crear, modificar o aprobar una reserva cuando su espacio o un recurso obligatorio se solape con otra reserva bloqueante. La disponibilidad se valida de forma independiente para cada elemento y excluye la propia reserva al modificarla o aprobarla. Para recursos complementarios de una reserva por espacio se aplica la excepción de `RN-TIP-PE-14`.
+- **RN-DIS-02:** Para reservas de recursos por días, el periodo solicitado comprende la fecha de salida o inicio y la fecha estimada de devolución o finalización. Dos reservas se consideran solapadas cuando comparten al menos una fecha del periodo solicitado.
+- **RN-DIS-03:** El sistema debe impedir crear o modificar una reserva cuando su espacio o un recurso obligatorio se solape con otra reserva bloqueante. Al aprobar, además de esa validación, debe verificar la disponibilidad física de los recursos conforme a `RN-DIS-06`. La disponibilidad se valida de forma independiente para cada elemento y excluye la propia reserva al modificarla o aprobarla. Para recursos complementarios de una reserva por espacio se aplica la excepción de `RN-TIP-PE-14`.
 - **RN-DIS-04:** Un equipo debe encontrarse operativo según la información vigente del sistema de origen correspondiente al momento de crear o aprobar la reserva.
 - **RN-DIS-05:** La validación de disponibilidad y el registro de la reserva y sus asignaciones deben realizarse en una misma transacción con protección contra solicitudes concurrentes incompatibles. Esta garantía aplica al crear, modificar horario o fechas, agregar o cambiar elementos y aprobar una reserva, conforme al [data-model](data-model.md). Consultar disponibilidad antes de guardar no constituye por sí solo una garantía suficiente.
-- **RN-DIS-06:** Un espacio o recurso solo bloquea disponibilidad cuando está efectivamente asignado a la reserva, tiene un periodo definido y la reserva se encuentra en un estado bloqueante conforme a `RN-EST-02` y `RN-EST-03`. Una solicitud sin periodo definido no bloquea franjas futuras por su estado solamente. Un recurso entregado que continúa en `EN_EJECUCION` permanece ocupado hasta registrar su devolución física; su periodo efectivo se extiende hasta `devuelto_at` y vuelve a estar disponible desde esa marca temporal, aunque otros recursos de la reserva sigan en ejecución.
+- **RN-DIS-06:** Un espacio o recurso solo bloquea periodos solicitados cuando está efectivamente asignado a la reserva, tiene un periodo definido y la reserva se encuentra en un estado bloqueante conforme a `RN-EST-02` y `RN-EST-03`. Una solicitud sin periodo definido no bloquea franjas futuras por su estado solamente. Para aprobar o entregar un recurso de `RECURSO_CAMPUS` o `RECURSO_EXTERNO`, este debe estar físicamente en el laboratorio: no puede existir una entrega abierta sin `devuelto_at` ni una reserva anterior en `APROBADA` o `EN_EJECUCION` pendiente de ejecutarse o finalizar para ese recurso. Una devolución estimada cumplida no sustituye el registro de devolución física. La devolución se registra para todos los recursos entregados en el cierre único de la reserva; solo entonces quedan disponibles para solicitudes posteriores compatibles.
 - **RN-DIS-07:** El Usuario siempre puede consultar el horario de atención de la unidad y las franjas disponibles del espacio o recurso; las opciones de visibilidad no pueden ocultar esa información.
 - **RN-DIS-08:** Cada unidad puede configurar de forma independiente `mostrar_estado_reserva` y `mostrar_reservista`, ambas desactivadas por defecto, para mostrar al Usuario el estado y el nombre del reservista de la reserva que ocupa una franja no disponible.
 - **RN-DIS-09:** El Técnico solo puede modificar estas opciones para su propia unidad organizacional. El Administrador puede modificarlas para cualquier unidad, conforme a los permisos de `auth`.
@@ -197,7 +198,7 @@ Los únicos estados globales válidos son:
 ## Propiedad y acceso — RN-PRO
 
 - **RN-PRO-01:** La cuenta usuario puede consultar sus propias reservas independientemente de su estado.
-- **RN-PRO-02:** La cuenta usuario puede editar sus propias reservas únicamente cuando el estado de la reserva y las reglas de negocio permitan la modificación.
+- **RN-PRO-02:** La cuenta Usuario puede editar directamente sus propias reservas solo en estado `SOLICITADA`. Los cambios que afecten disponibilidad se revalidan conforme a RN-DIS. En `APROBADA` no puede cambiar directamente fecha, horario, espacio ni recursos: debe utilizar propuestas y contrapropuestas. Las reservas `EN_EJECUCION`, `FINALIZADA` y `CANCELADA` no son editables por el reservista.
 - **RN-PRO-03:** Una cuenta sin permisos administrativos no puede consultar el detalle completo, modificar, aprobar, rechazar ni cancelar reservas pertenecientes a terceros. La consulta de disponibilidad puede mostrar únicamente la información de terceros autorizada por `RN-DIS-08` y `RN-DIS-10`.
 - **RN-PRO-04:** El Técnico puede consultar y gestionar reservas de terceros únicamente dentro de su propia unidad organizacional. El Administrador puede hacerlo dentro de cualquier unidad organizacional.
 - **RN-PRO-05:** La autenticación y la validación de permisos se rigen por las reglas definidas en el módulo `auth`. Las reglas de este dominio determinan qué acciones requieren dichos permisos y sobre qué unidad organizacional deben aplicarse.
@@ -208,23 +209,24 @@ Los únicos estados globales válidos son:
 
 - **RN-APR-01:** Solo una cuenta autenticada con permiso para gestionar reservas de la unidad receptora puede aprobar o rechazar una reserva.
 - **RN-APR-02:** La aprobación automática de reservas creadas por Usuarios puede habilitarse o deshabilitarse por el Técnico desde la configuración de su propia unidad organizacional.
-- **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo. Esta vía no aplica a lista de espera, que siempre inicia en `SOLICITADA` conforme a RN-TIP-PLE-05.
+- **RN-APR-03:** Cuando la aprobación automática esté habilitada para la unidad organizacional, la reserva creada por un usuario se registra directamente en estado `APROBADA`, siempre que cumpla las validaciones aplicables a su tipo. Una reserva de `RECURSO_CAMPUS` o `RECURSO_EXTERNO` que aún no cumple la disponibilidad física de `RN-DIS-06` inicia en `SOLICITADA`. Esta vía no aplica a lista de espera, que siempre inicia en `SOLICITADA` conforme a RN-TIP-PLE-05.
 - **RN-APR-04:** Cuando la aprobación automática no esté habilitada, la reserva creada por un usuario se registra en estado `SOLICITADA` y requiere revisión del Técnico .
-- **RN-APR-05:** Las reservas creadas por un Técnico dentro de su propia unidad organizacional se registran directamente en estado `APROBADA`, excepto lista de espera. El Técnico no puede autoaprobar una lista de espera al crearla; esta siempre inicia en `SOLICITADA` y solo pasa a `APROBADA` conforme a RN-TIP-PLE-05.
+- **RN-APR-05:** Las reservas creadas por un Técnico dentro de su propia unidad organizacional se registran directamente en estado `APROBADA`, excepto lista de espera y las de `RECURSO_CAMPUS` o `RECURSO_EXTERNO` que aún no cumplen la disponibilidad física de `RN-DIS-06`; estas últimas inician en `SOLICITADA`. El Técnico no puede autoaprobar una lista de espera al crearla; esta siempre inicia en `SOLICITADA` y solo pasa a `APROBADA` conforme a RN-TIP-PLE-05.
 - **RN-APR-06:** La aprobación automática, tanto para usuarios como para Técnico es, no omite las validaciones aplicables al tipo de reserva, incluyendo disponibilidad, horario o fechas, capacidad, estado operativo, habilitación y pertenencia a la unidad cuando correspondan.
-- **RN-APR-07:** Aprobar una reserva manualmente debe revalidar las condiciones aplicables a su tipo.
+- **RN-APR-07:** Aprobar una reserva manualmente debe revalidar las condiciones aplicables a su tipo. En `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, no puede aprobarse mientras alguno de sus recursos obligatorios no cumpla la disponibilidad física de `RN-DIS-06`.
 - **RN-APR-08:** Rechazar una reserva conserva toda su información histórica y debe registrar el motivo del rechazo.
+- **RN-APR-09:** Al registrar la devolución física de un recurso de `RECURSO_CAMPUS` o `RECURSO_EXTERNO`, el sistema identifica la siguiente solicitud compatible pendiente para ese recurso. Si la unidad tiene aprobación automática, revalida todas sus condiciones y la aprueba solo si su periodo solicitado sigue vigente; si no la tiene, la solicitud queda disponible para revisión del Técnico. Una solicitud cuyo periodo ya terminó no se aprueba automáticamente y debe reprogramarse.
 
 ---
 
 ## Propuesta y contrapropuesta de horario — RN-PROP
 
-- **RN-PROP-01:** En lugar de rechazar una reserva en estado `SOLICITADA`, el Técnico  puede proponer un horario o fecha alternativa, indicando un motivo.
-- **RN-PROP-02:** Una propuesta de horario notifica a la cuenta usuario y no cambia el estado de la reserva.
+- **RN-PROP-01:** En lugar de rechazar una reserva temporal en estado `SOLICITADA`, el Técnico puede proponer un periodo alternativo, indicando un motivo. Aplica a `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`; `LISTA_ESPERA` no admite propuestas.
+- **RN-PROP-02:** Una propuesta de periodo notifica a la cuenta usuario y no cambia el estado de la reserva.
 - **RN-PROP-03:** La cuenta usuario puede aceptar la propuesta, rechazarla, o presentar una contrapropuesta con su propio motivo.
 - **RN-PROP-04:** Ante una contrapropuesta, únicamente el Técnico  puede aceptarla o rechazarla.
-- **RN-PROP-05:** Aceptar cualquier propuesta o contrapropuesta revalida las reglas aplicables al tipo de reserva (disponibilidad, horario o fechas, capacidad) antes de reprogramarla.
-- **RN-PROP-06:** Rechazar una propuesta o contrapropuesta conserva la reserva en estado `SOLICITADA` con su horario original, sin generar una nueva solicitud.
+- **RN-PROP-05:** Aceptar cualquier propuesta o contrapropuesta revalida las reglas aplicables al tipo de reserva antes de reprogramarla: fecha y horario para `ESPACIO` y `RECURSO_INTERNO`; fecha de salida y devolución estimada para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`.
+- **RN-PROP-06:** Rechazar una propuesta o contrapropuesta conserva la reserva en estado `SOLICITADA` con su periodo original, sin generar una nueva solicitud.
 - **RN-PROP-07:** Solo puede existir una propuesta o contrapropuesta vigente a la vez por reserva.
 
 ---
@@ -244,9 +246,9 @@ Los únicos estados globales válidos son:
 
 ## Recordatorios — RN-REC
 
-- **RN-REC-01:** El sistema envía un recordatorio automático a la cuenta usuario antes del inicio previsto de una reserva en estado `APROBADA`. La anticipación es configurable por unidad en `reservas.laboratorios_config.recordatorio_horas_antes`, y la generación y entrega de la notificación se rigen por [RN-EVT-11](../notifications/business-rules.md) del módulo de notificaciones.
-- **RN-REC-02:** El recordatorio se envía una única vez por reserva y no se repite si ya fue enviado. La constancia del envío es la propia notificación de recordatorio registrada para esa reserva; reservas no almacena un indicador duplicado.
-- **RN-REC-03:** Reprogramar o cancelar la reserva antes del envío del recordatorio anula el envío pendiente para ese horario.
+- **RN-REC-01:** El sistema envía un recordatorio automático a la cuenta usuario antes del inicio previsto de una reserva `ESPACIO` o `RECURSO_INTERNO` en estado `APROBADA`. La anticipación es configurable por unidad en `reservas.laboratorios_config.recordatorio_horas_antes`, y la generación y entrega de la notificación se rigen por [RN-EVT-11](../notifications/business-rules.md) del módulo de notificaciones. `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA` no generan este recordatorio, porque no tienen una hora de inicio prevista que permita calcularlo.
+- **RN-REC-02:** El recordatorio se genera una única vez por reserva y no se repite. La constancia es la ocurrencia de evento de recordatorio y sus canales registrados en Notifications; reservas no almacena un indicador duplicado.
+- **RN-REC-03:** Reprogramar o cancelar la reserva antes de la transmisión del recordatorio anula los envíos de correo pendientes de esa ocurrencia conforme a RN-COR-07. No se registra el recordatorio como enviado ni se altera el resultado histórico de un envío ya transmitido.
 
 ---
 
@@ -265,11 +267,11 @@ Los únicos estados globales válidos son:
 El módulo [Researchs](../researchs/overview.md), propietario del dominio `investigacion`, administra el contexto académico/investigativo, las actividades institucionales, los catálogos y las vinculaciones de cuentas Usuario. `reservas` registra cuál de esos contextos justifica cada reserva y conserva su información histórica. Las cuentas `USUARIO` y `PERSONAL` tienen reglas distintas de selección, definidas aquí; la disponibilidad de actividades institucionales para nuevas reservas se rige por RN-ACT de Researchs.
 
 - **RN-CTX-01:** Toda reserva, sin importar su tipo (`ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` o `LISTA_ESPERA`), debe estar asociada al menos a un contexto académico/investigativo o a una actividad institucional.
-- **RN-CTX-02:** El contexto académico/investigativo puede estar compuesto por uno o más de los siguientes elementos: semillero, proyecto, pasantía y trabajo de grado.
+- **RN-CTX-02:** El contexto académico/investigativo puede incluir como máximo un proyecto, un semillero, una pasantía y un trabajo de grado.
 - **RN-CTX-03:** Semillero, proyecto, pasantía y trabajo de grado pueden coexistir dentro de una misma reserva.
 - **RN-CTX-04:** Una actividad institucional constituye un contexto independiente y no puede coexistir en la misma reserva con semillero, proyecto, pasantía ni trabajo de grado.
 - **RN-CTX-05:** Para una cuenta `USUARIO`, solo pueden seleccionarse proyectos, semilleros, pasantías y trabajos de grado con vinculación activa y válida de su titular, conforme a `investigacion`. Esta validación se realiza usando el `id_usuario` asociado a la cuenta.
-- **RN-CTX-08:** Una cuenta `PERSONAL` solo puede utilizar como contexto uno o más proyectos y semilleros activos del catálogo general de `investigacion`; no requiere ni se le consulta una vinculación propia con ellos. No puede utilizar pasantías, trabajos de grado ni actividades institucionales como contexto.
+- **RN-CTX-08:** Una cuenta `PERSONAL` solo puede utilizar como contexto máximo un proyecto y máximo un semillero activos del catálogo general de `investigacion`; no requiere ni se le consulta una vinculación propia con ellos. No puede utilizar pasantías, trabajos de grado ni actividades institucionales como contexto.
 - **RN-CTX-09:** La selección del contexto no amplía el ámbito de reserva de una cuenta `PERSONAL`: esta solo puede reservar en el laboratorio de su unidad organizacional asociada, conforme a `RN-RES-15`.
 - **RN-CTX-06:** El contexto académico, investigativo o institucional de una reserva no otorga por sí mismo permisos administrativos sobre reservas.
 - **RN-CTX-07:** El contexto asociado a una reserva debe conservarse históricamente aunque posteriormente cambien los proyectos, semilleros, pasantías, trabajos de grado, actividades institucionales o vinculaciones del usuario.
@@ -288,19 +290,16 @@ El módulo [Researchs](../researchs/overview.md), propietario del dominio `inves
 
 ---
 
-## Auditoría — RN-AUD
+## Auditoría — pendiente de diseño
 
-- **RN-AUD-01:** Crear, modificar, aprobar, rechazar, iniciar ejecución, finalizar y cancelar una reserva genera un registro de auditoría.
-- **RN-AUD-02:** El registro de auditoría incluye como mínimo actor, acción, entidad, identificador de la entidad y fecha/hora.
-- **RN-AUD-03:** Toda acción auditada debe identificar la cuenta autenticada que la ejecutó y conservar una representación histórica suficiente del actor, independientemente de que la cuenta corresponda a un usuario o a personal.
-- **RN-AUD-04:** La trazabilidad histórica no debe depender de que el usuario, personal, cargo, proyecto, semillero, actividad institucional o modalidad permanezcan activos posteriormente.
+La auditoría de Reservations está fuera del alcance funcional actual. Esta iteración no registra una tabla `reserva_auditoria`, no define snapshots del actor ni exige datos de auditoría para las operaciones de reserva. Su diseño se tratará en una decisión futura.
 
 ---
 
 ## Reportes — RN-REP
 
 - **RN-REP-01:** Solo el Técnico dentro de su unidad y el Administrador con alcance global pueden generar y exportar reportes de reservas. El Usuario no tiene acceso a esta funcionalidad.
-- **RN-REP-02:** El Técnico puede exportar reservas y su historial de auditoría de su unidad; el Administrador puede exportar información de cualquier unidad. Los formatos admitidos son los que define [RN-EXP-05](../reports/business-rules.md) del módulo de reportes, propietario de esa decisión.
+- **RN-REP-02:** El Técnico puede exportar reservas de su unidad; el Administrador puede exportar información de cualquier unidad. Los formatos admitidos son los que define [RN-EXP-05](../reports/business-rules.md) del módulo de reportes, propietario de esa decisión.
 - **RN-REP-03:** Un reporte exportado contiene exactamente los datos visibles según el filtro aplicado por quien lo solicita, sin exceder su ámbito de acceso.
 
 ---

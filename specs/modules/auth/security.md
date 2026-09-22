@@ -124,7 +124,7 @@ Estas reglas aplican únicamente cuando el sistema utilice JWT para tokens firma
 
 - **SEC-REAUTH-01:** Las operaciones sensibles deben requerir una autenticación reciente o una reautenticación explícita cuando el nivel de riesgo lo justifique.
 
-- **SEC-REAUTH-02:** Como mínimo, deben considerarse operaciones sensibles el cambio de contraseña, cambio de correo asociado a la cuenta, asignación o modificación de permisos administrativos y otras acciones que puedan alterar el control de la cuenta.
+- **SEC-REAUTH-02:** Como mínimo, deben considerarse operaciones sensibles el cambio de contraseña, la asignación o modificación de permisos administrativos y otras acciones que puedan alterar el control de la cuenta.
 
 - **SEC-REAUTH-03:** La reautenticación debe validar nuevamente un factor de autenticación aceptado por el sistema y no debe basarse únicamente en la existencia de una sesión activa antigua.
 

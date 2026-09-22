@@ -10,7 +10,7 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 |---|---|---|
 | Usuario | Estudiante, docente, investigador o colaborador que utiliza laboratorios, espacios, equipos y otros recursos. | 1. Consulta recursos disponibles 2. Crea solicitudes 3. Consulta sus estados 4. Cancela cuando corresponde 5. Recibe notificaciones 6. Gestiona su cuenta 7. Selecciona tipo, contexto y recursos 8. Responde propuestas de horario del Técnico |
 | Técnico | Personal que administra reservas y recursos únicamente dentro de su propia unidad organizacional. | 1. Consulta las solicitudes de su unidad 2. Aprueba, rechaza o modifica solicitudes indicando el motivo 3. Configura horarios y reglas de reserva 4. Administra espacios, mobiliarios y otros recursos de su unidad 5. Visualiza y descarga informes de su unidad 6. Propone horarios alternativos y resuelve contrapropuestas 7. Edita solicitudes conforme a las reglas aplicables 8. Administra catálogos de su unidad |
-| Secundario: administrador institucional | Usuario con permisos globales para gestionar la configuración general, usuarios, unidades organizacionales y permisos del sistema. | 1. Administra usuarios y cuentas 2. Gestiona unidades, cargos y perfiles 3. Configura permisos y accesos 4. Consulta la actividad general del sistema 5. Supervisa la configuración global de reservas 6. Visualiza y descarga informes de ocupación por laboratorios, espacios, recursos, proyectos, tipos de usuarios o semilleros 7. Consulta el historial y control de cambios 8. Promueve una cuenta a personal administrativo o la degrada de vuelta, sin perder su historial 9. Administra unidades organizacionales, cargos, personal institucional y equipos con jerarquía propia 10. Importa masivamente el inventario institucional de equipos desde una planilla |
+| Secundario: administrador institucional | Usuario con permisos globales para gestionar usuarios, unidades organizacionales y permisos del sistema. | 1. Administra usuarios y cuentas 2. Gestiona unidades, cargos y perfiles 3. Configura permisos y accesos 4. Consulta la actividad general del sistema 5. Visualiza y descarga informes de ocupación por laboratorios, espacios, recursos, proyectos, tipos de usuarios o semilleros 6. Consulta el historial y control de cambios administrativo 7. Promueve una cuenta a personal administrativo o la degrada de vuelta, sin perder su historial 8. Administra unidades organizacionales, cargos, personal institucional y equipos con jerarquía propia 9. Importa masivamente el inventario institucional de equipos desde una planilla |
 
 ## 3. Funcionalidades
 
@@ -154,8 +154,8 @@ Reservas Parquei es una plataforma web para gestionar la reserva de laboratorios
 ### Flujo secundario — Solicitar fabricación o prestación en lista de espera
 
 1. El Usuario registra la necesidad y, cuando corresponda, adjunta un archivo técnico, sin seleccionar fecha ni horario de ejecución.
-2. El Técnico evalúa la viabilidad; si es viable, se habilita el formulario complementario.
-3. Tras completar las aprobaciones requeridas y registrar la recepción del material, la reserva pasa a `APROBADA`.
+2. El Técnico evalúa la viabilidad; si es viable, se habilita el formulario complementario que diligencia el Usuario y completa el Técnico.
+3. Tras revisar y completar el formulario, y registrar la recepción del material, la reserva pasa a `APROBADA`.
 4. El Técnico selecciona la siguiente reserva según RN-TIP-PLE-06 e inicia su ejecución.
 5. Al finalizar, el Técnico registra las horas empleadas y el sistema notifica los cambios de estado conforme a Notifications.
 

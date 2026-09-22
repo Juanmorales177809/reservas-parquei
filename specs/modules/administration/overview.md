@@ -16,7 +16,6 @@ El módulo cubre:
 - gestión de unidades organizacionales;
 - gestión de permisos;
 - habilitación y deshabilitación administrativa de entidades cuando corresponda;
-- configuración global del sistema;
 - importación administrativa de proyectos y semilleros hacia los catálogos de `investigacion`;
 - trazabilidad de operaciones administrativas.
 
@@ -45,7 +44,6 @@ El módulo es propietario funcional de los siguientes conceptos:
 - perfil;
 - unidad organizacional;
 - permiso;
-- configuración global;
 - importación de catálogos de proyectos y semilleros;
 - estado administrativo de habilitación o deshabilitación.
 
@@ -130,7 +128,6 @@ Administration responde principalmente a las siguientes preguntas:
 - ¿Qué perfiles existen?
 - ¿Qué unidades organizacionales existen?
 - ¿Qué permisos están definidos y cómo se asignan?
-- ¿Qué configuración global está vigente?
 
 No responde preguntas como:
 

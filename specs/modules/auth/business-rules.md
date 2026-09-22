@@ -5,8 +5,8 @@ El módulo `auth` administra las cuentas, credenciales, sesiones y decisiones de
 ## Cuentas e identidades — RN-AUTH-ID
 
 - **RN-AUTH-ID-01:** Toda operación autenticada requiere una cuenta activa.
-- **RN-AUTH-ID-02:** El correo electrónico es único y sirve para identificar la cuenta.
-- **RN-AUTH-ID-03:** Una cuenta debe estar vinculada a `usuarios.usuarios` o a `personal.personal`, nunca a ambas.
+- **RN-AUTH-ID-02:** El correo electrónico es único, identifica la cuenta y coincide con el correo de su identidad funcional asociada. Después de crear la cuenta no puede modificarse.
+- **RN-AUTH-ID-03:** Una cuenta debe estar vinculada a `usuarios.usuarios` o a `personal.personal`, nunca a ambas, y el correo de la identidad vinculada debe coincidir con el correo inmutable de la cuenta.
 - **RN-AUTH-ID-04:** La restricción de exclusividad se conserva mediante `ck_auth_cuentas_identidad` y las restricciones únicas de las referencias de identidad.
 - **RN-AUTH-ID-05:** Desactivar una cuenta o identidad impide nuevas operaciones autenticadas, sin eliminar su historial.
 - **RN-AUTH-ID-06:** El autorregistro solicita los datos obligatorios definidos en RN-DAT de Usuarios junto con correo y contraseña. Usuarios valida y persiste el perfil; Auth crea su cuenta en la misma transacción. El registro no completa por sí solo la actualización inicial ni las vinculaciones obligatorias.

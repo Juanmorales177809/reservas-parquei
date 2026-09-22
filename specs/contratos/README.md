@@ -8,13 +8,13 @@ Un contrato de módulo no repite nada de aquí: lo referencia y solo documenta l
 
 | Módulo | Contrato | Derivado de |
 |---|---|---|
-| [auth](auth/api-contract.md) | sesión, credenciales, invitaciones y administración de cuentas | 14 flujos `UF-AUTH` |
+| [auth](auth/api-contract.md) | sesión, credenciales, invitaciones y administración de cuentas | 13 flujos `UF-AUTH` |
 | [reservations](reservations/api-contract.md) | ciclo completo de la reserva | 19 flujos `UF-RES` |
 | [espacios](espacios/api-contract.md) | espacios, recursos asociados y campos adicionales | 14 flujos `UF-ESP` |
-| [usuarios](usuarios/api-contract.md) | perfil del reservista y vinculaciones | 12 flujos `UF-USR` |
+| [usuarios](usuarios/api-contract.md) | perfil del reservista y vinculaciones | 11 flujos `UF-USR` |
 | [resources](resources/api-contract.md) | catálogo de recursos y configuración del laboratorio | 12 flujos `UF-REC` |
 
-Pendientes de escribir: `administration`, `notifications`, `reports` y `researchs`. No se derivan todavía porque sus flujos de usuario no están definidos —entre los cuatro suman 191 reglas y 2 flujos—, y redactar su contrato exigiría inventar la superficie en lugar de traducirla. Requieren primero completar su `user-flow.md`.
+Pendientes de escribir: `administration`, `notifications`, `reports` y `researchs`. Researchs ya define su flujo administrativo, pero aún no define rutas HTTP; redactar su contrato exigiría inventar esa superficie. Los demás módulos requieren primero completar su `user-flow.md`.
 
 ---
 
@@ -127,4 +127,4 @@ Una operación que afecte varias entidades relacionadas es atómica: o se escrib
 
 ## 6. Auditoría
 
-Las operaciones relevantes registran actor, acción, entidad, momento y, cuando corresponda, el cambio realizado. La auditoría pertenece al módulo propietario de la entidad: `reservas.reserva_auditoria` para reservas y `administration.auditoria` para operaciones administrativas. Ningún contrato expone endpoints que permitan modificar registros de auditoría.
+La auditoría administrativa registra actor, acción, entidad, identificador y momento en `administration.auditoria`. Ningún contrato expone endpoints que permitan modificar esos registros. La auditoría de Reservations está fuera del alcance funcional actual; el historial de estados de una reserva no la sustituye ni define un mecanismo de auditoría.

@@ -20,7 +20,9 @@ La estructura persistente se define en [data-model](data-model.md), las reglas d
 
 - **RN-LAB-06:** Una unidad organizacional puede existir sin tener habilitado el servicio de Reservas. La existencia de la unidad no implica que pueda recibir reservas.
 
-- **RN-LAB-07:** `notificar_por_correo` determina si la unidad tiene habilitado el envío de correo saliente para las notificaciones asociadas a sus reservas y recursos. Esta configuración es propia de la unidad, se aplica a todas las personas relacionadas con ella y es independiente de la preferencia de correo que cada persona pueda configurar individualmente (ver [notifications](../notifications/business-rules.md)). Deshabilitarla no afecta la generación de notificaciones in-app.
+- **RN-LAB-07:** `notificar_por_correo` es la única configuración general por unidad que determina si se habilita el envío de correo saliente para las notificaciones asociadas a sus reservas y recursos. Se aplica antes de la preferencia individual que cada persona pueda configurar en Notifications. Deshabilitarla no afecta la generación de notificaciones in-app.
+
+- **RN-LAB-08:** La creación inicial del horario de una unidad y cada modificación posterior deben conservar una versión en `reservas.laboratorios_config_historico`, con su intervalo de vigencia. Las versiones de una misma unidad no pueden solaparse. Las validaciones de nuevas reservas usan la configuración vigente; Reports usa la versión vigente en cada periodo analizado para indicadores históricos.
 
 ---
 

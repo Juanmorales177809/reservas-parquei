@@ -21,7 +21,7 @@ Este documento describe los flujos administrativos del módulo `administration`.
 6. El Administrador revisa el resultado y confirma la importación.
 7. El sistema crea los códigos nuevos y actualiza los códigos existentes en la tabla de `investigacion` correspondiente.
 8. El sistema conserva las identidades, vinculaciones y referencias históricas; no crea ni modifica vinculaciones de usuarios.
-9. El sistema registra la operación, el Administrador, la fecha, el catálogo, la referencia del archivo y el resultado por registro.
+9. El sistema registra el resultado de validación por cada fila procesada. Al confirmar, registra además la operación, el Administrador, la fecha, el catálogo, la referencia del archivo y sus totales.
 
 **Flujos alternos:**
 
@@ -32,7 +32,7 @@ Este documento describe los flujos administrativos del módulo `administration`.
 
 ## UF-ADM-02 — Registrar o actualizar la identidad de un Usuario
 
-**Rol:** Administrador con permiso de gestión de usuarios.
+**Rol:** Administrador con permiso global de gestión de usuarios.
 
 1. El Administrador abre el alta o la edición de un Usuario.
 2. El sistema solicita los datos obligatorios de RN-DAT de Usuarios y el correo de la identidad.
@@ -42,7 +42,7 @@ Este documento describe los flujos administrativos del módulo `administration`.
 
 ## UF-ADM-03 — Registrar la identidad de Personal e invitar su cuenta
 
-**Actor principal:** Administrador con permiso `usuarios.administrar` sobre la unidad del cargo y autorización para invitar cuentas conforme a Auth.
+**Actor principal:** Administrador con permiso global `usuarios.administrar` y autorización global para invitar cuentas conforme a Auth.
 
 **Precondiciones:**
 

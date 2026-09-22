@@ -9,7 +9,7 @@ El [modelo principal](../../docs/data-model.md) no define tablas persistentes pr
 | Fuente | Datos utilizados | Modelo propietario |
 |---|---|---|
 | Reservas y sus detalles | Estados, fechas, horarios, asistentes, asignaciones y contexto histórico | [Reservations](../reservations/data-model.md) |
-| Equipos, mobiliarios, otros y configuración de laboratorios | Inventario, unidades y habilitación | [Resources](../resources/data-model.md) |
+| Equipos, mobiliarios, otros y configuración e historial de horarios de laboratorios | Inventario, unidades, habilitación y horario vigente en cada periodo | [Resources](../resources/data-model.md) |
 | Espacios | Capacidad, nombre y pertenencia organizacional | [Espacios](../espacios/data-model.md) |
 | Proyectos, semilleros, pasantías y trabajos de grado | Dimensiones académicas/investigativas | [Researchs](../researchs/data-model.md) |
 | Usuarios y personal | Identidades funcionales | [Usuarios](../usuarios/data-model.md) |

@@ -95,9 +95,10 @@ Los informes de ocupación pueden organizarse según las dimensiones definidas p
 - **RN-OCU-04:** Solo cuentan como ocupación las reservas en estado `APROBADA`, `EN_EJECUCION` y `FINALIZADA`. Las reservas `SOLICITADA`, `RECHAZADA` y `CANCELADA` se excluyen de todo indicador de ocupación, porque no representan uso efectivo del elemento.
 
 - **RN-OCU-05:** Los indicadores derivados se calculan así:
-  - **Ocupación de un espacio**: horas reservadas en el periodo dividido entre las horas de atención de su unidad en ese mismo periodo, conforme al horario definido en `reservas.laboratorios_config` y a `RN-ESP-DIS-02`.
+  - **Ocupación de un espacio**: horas reservadas en el periodo dividido entre las horas de atención de su unidad en ese mismo periodo, usando las versiones de horario de `reservas.laboratorios_config_historico` conforme a `RN-LAB-08` y `RN-ESP-DIS-02`.
   - **Ocupación de un recurso**: tiempo asignado al recurso en el periodo dividido entre la duración del periodo analizado.
-  - **Uso por recurso**: horas acumuladas de uso efectivo, incluidas las horas registradas al finalizar una lista de espera conforme a `RN-TIP-PLE-08`.
+  - **Uso por recurso**: horas acumuladas de uso efectivo de asignaciones del recurso. No incluye horas de lista de espera.
+  - **Lista de espera**: las `horas_ejecucion` se asocian a cada reserva de lista de espera y pueden agregarse por unidad. Nunca se atribuyen a un recurso.
   - **Solicitudes**: conteo de reservas agrupadas por estado, sin aplicar el filtro de ocupación de `RN-OCU-04`.
 
 - **RN-OCU-06:** No debe inferirse capacidad disponible, tiempo disponible u ocupación porcentual cuando el modelo no contenga la información necesaria para calcularlos. Un elemento sin horario de atención definido no produce porcentaje de ocupación, sino únicamente el total de horas reservadas.

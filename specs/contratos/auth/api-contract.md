@@ -293,7 +293,7 @@ Dentro de esa ventana, las operaciones sensibles de §5 y §6 no vuelven a exigi
 
 ### 4.1 `POST /api/auth/invitaciones`
 
-Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Requiere el permiso `cuentas.administrar` sobre el ámbito aplicable.
+Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Requiere el permiso global `cuentas.administrar`.
 
 ```json
 {
@@ -412,36 +412,13 @@ Cambio de contraseña autenticado. Flujo [UF-AUTH-11](../../modules/auth/user-fl
 
 ---
 
-### 5.2 `PUT /api/auth/cuentas/actual/correo`
-
-Cambio del correo de la cuenta. Flujo [UF-AUTH-12](../../modules/auth/user-flow.md). Operación sensible (`SEC-REAUTH-02`).
-
-```json
-{ "correo": "nuevo.correo@itm.edu.co" }
-```
-
-**`200 OK`**
-
-```json
-{
-  "id_cuenta": 1042,
-  "correo": "nuevo.correo@itm.edu.co"
-}
-```
-
-Conserva la identidad funcional y el historial de la cuenta (`RN-CUE-01`). El correo permanece único (`RN-AUTH-ID-02`).
-
-**Errores:** `401 REAUTENTICACION_REQUERIDA`, `409 CONFLICTO` si el correo pertenece a otra cuenta, `422 VALIDACION`.
-
----
-
 ## 6. Administración de cuentas
 
-Requieren el permiso `cuentas.administrar` sobre el ámbito aplicable (`RN-ADM-01`, `SEC-AUTZ-04`).
+Requieren el permiso global `cuentas.administrar` (`RN-ADM-01`, `SEC-AUTZ-04`).
 
 ### 6.1 `PATCH /api/auth/cuentas/{id_cuenta}/estado`
 
-Desactivación o reactivación. Flujo [UF-AUTH-13](../../modules/auth/user-flow.md).
+Desactivación o reactivación. Flujo [UF-AUTH-12](../../modules/auth/user-flow.md).
 
 ```json
 { "estado": false }
@@ -465,7 +442,7 @@ Desactivar marca la cuenta inactiva sin eliminar historial (`RN-AUTH-ID-05`, `RN
 
 ### 6.2 `PUT /api/auth/cuentas/{id_cuenta}/identidad`
 
-Promoción o degradación entre reservista y personal administrativo. Flujo [UF-AUTH-14](../../modules/auth/user-flow.md). Operación sensible (`SEC-REAUTH-02`).
+Promoción o degradación entre reservista y personal administrativo. Flujo [UF-AUTH-13](../../modules/auth/user-flow.md). Operación sensible (`SEC-REAUTH-02`).
 
 ```json
 {
@@ -474,7 +451,7 @@ Promoción o degradación entre reservista y personal administrativo. Flujo [UF-
 }
 ```
 
-Se envía `id_persona` para `tipo_cuenta = "PERSONAL"` o `id_usuario` para `"USUARIO"`, nunca ambos (`RN-AUTH-ID-03`, `RN-AUTH-ID-04`).
+Se envía `id_persona` para `tipo_cuenta = "PERSONAL"` o `id_usuario` para `"USUARIO"`, nunca ambos. El correo de la identidad destino debe coincidir con el correo inmutable de la cuenta (`RN-AUTH-ID-02`, `RN-AUTH-ID-03`, `RN-AUTH-ID-04`).
 
 **`200 OK`**
 

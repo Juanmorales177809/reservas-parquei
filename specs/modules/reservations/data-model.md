@@ -15,7 +15,7 @@ Modelo cabecera–detalle del dominio. `reservas.reservas` contiene atributos co
 | `id` | integer | PK |
 | `codigo` | varchar(40) | UNIQUE, NOT NULL |
 | `nombre` | varchar(100) | NOT NULL |
-| `descripcion` | text | NULL |
+| `descripcion` | text | NOT NULL; usar `N/A` cuando no exista una descripción aplicable |
 | `habilitado` | boolean | NOT NULL |
 | `created_at`, `updated_at` | timestamptz | NOT NULL |
 
@@ -71,6 +71,15 @@ Cada reserva debe tener exactamente un detalle compatible con su tipo. La cabece
 
 CHECK `hora_inicio < hora_fin`. `asistentes` es la cantidad de cuentas acompañantes seleccionadas para la reserva y puede ser cero. La aplicación valida que coincida con las filas de `reserva_acompanantes` y no supere la capacidad del espacio conforme a `RN-TIP-PE-05`.
 
+### `reservas.reserva_acompanantes`
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `reserva_id` | integer | NN | PK compuesta; FK → `reservas.reservas(id)` |
+| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
+
+La PK compuesta `(reserva_id, id_cuenta)` impide repetir una cuenta en la misma reserva. La aplicación solo permite insertar la asociación cuando la reserva tiene proyecto o semillero y la cuenta mantiene una vinculación activa con al menos uno de ellos; si ambos existen, valida la unión de ambas vinculaciones. Esta es la única estructura de acompañantes del modelo de Reservations.
+
 ### `reservas.reserva_recurso_interno`
 
 `reserva_id integer PK/FK`, `fecha date NOT NULL`, `hora_inicio time NOT NULL`, `hora_fin time NOT NULL`.
@@ -79,11 +88,26 @@ CHECK `hora_inicio < hora_fin`. Debe tener al menos un recurso asociado y puede 
 
 ### `reservas.reserva_recurso_campus` y `reservas.reserva_recurso_externo`
 
-Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `fecha_devolucion date NOT NULL`, CHECK `fecha_devolucion >= fecha_salida`. Cada reserva tiene exactamente un recurso `PRINCIPAL` activo, admite `ADICIONAL`es (`RN-TIP-RC-01`, `RN-TIP-RE-01`) y tiene una orden de salida que lista todos sus recursos. `fecha_salida`/`fecha_devolucion` aplican a todos los recursos de la reserva.
+Cada tabla contiene `reserva_id integer PK/FK`, `fecha_salida date NOT NULL`, `fecha_devolucion_estimada date NOT NULL`, CHECK `fecha_devolucion_estimada >= fecha_salida`. Cada reserva tiene exactamente un recurso `PRINCIPAL` activo, admite `ADICIONAL`es (`RN-TIP-RC-01`, `RN-TIP-RE-01`) y tiene una orden de salida que lista todos sus recursos. `fecha_salida`/`fecha_devolucion_estimada` aplican a todos los recursos de la reserva y definen su periodo solicitado; la devolución física se registra separadamente en `reserva_ejecucion_recursos.devuelto_at`.
 
 ### `reservas.reserva_lista_espera`
 
 `reserva_id integer PK/FK`, `descripcion_necesidad text NOT NULL`, `viable boolean NULL`, `fecha_evaluacion_viabilidad timestamptz NULL`, `fecha_recepcion_material timestamptz NULL`, `prioridad integer NULL`, `horas_ejecucion numeric NULL CHECK (horas_ejecucion >= 0)`. No requiere fecha ni horario de ejecución.
+
+### `reservas.reserva_lista_espera_formulario`
+
+Formulario complementario, una fila por reserva de lista de espera. No tiene estado ni aprobación propios: el estado de la reserva conserva el avance del proceso.
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `reserva_id` | integer | PK, FK a `reservas.reservas(id)` |
+| `datos_usuario` | jsonb | NOT NULL; información diligenciada por el Usuario |
+| `diligenciado_at` | timestamptz | NOT NULL |
+| `datos_tecnico` | jsonb | NULL; información completada por el Técnico durante la revisión |
+| `revisado_por` | bigint | NULL, FK a `auth.cuentas(id_cuenta)` |
+| `revisado_at` | timestamptz | NULL |
+
+`datos_tecnico`, `revisado_por` y `revisado_at` se completan conjuntamente. La tabla no duplica `viable`, recepción de material, prioridad ni horas de ejecución, que pertenecen al detalle `reserva_lista_espera`.
 
 ## Recursos
 
@@ -97,23 +121,24 @@ El catálogo raíz `recursos.recursos` y la relación 1:1 con equipos, mobiliari
 | `reserva_id` | integer | NOT NULL, FK |
 | `recurso_id` | integer | NOT NULL, FK a `recursos.recursos(id)` |
 | `rol` | varchar(20) | NOT NULL, CHECK `PRINCIPAL` o `ADICIONAL` |
-| `estado_asignacion` | varchar(20) | NOT NULL, CHECK `SOLICITADO`, `ASIGNADO`, `NO_DISPONIBLE`, `RETIRADO` |
-| `periodo` | tstzrange | NULL; proyección técnica mantenida desde el detalle del tipo y la ejecución |
+| `estado_asignacion` | varchar(20) | NOT NULL, CHECK `ASIGNADO`, `NO_DISPONIBLE`, `RETIRADO` |
+| `incorporado_at` | timestamptz | NULL; instante registrado automáticamente al agregar el recurso durante `EN_EJECUCION` |
+| `periodo` | tstzrange | NULL; proyección técnica del periodo aplicable, mantenida desde el detalle y, cuando aplique, desde `incorporado_at` |
 | `bloqueante` | boolean | NOT NULL, DEFAULT `false`; proyección técnica mantenida desde estado y asignación |
 
 Índices `(recurso_id, estado_asignacion)` y `(reserva_id, recurso_id)`. No se borran asociaciones: los cambios conservan historial. Índice único parcial sobre `(reserva_id, recurso_id)` para asociaciones activas.
 
 La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. `LISTA_ESPERA` no registra filas en `reserva_recursos`: no tiene espacio ni recursos `PRINCIPAL` o `ADICIONAL`. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
 
-Las fechas de negocio se obtienen del detalle de la reserva y no se duplican como campos de inicio y fin en esta tabla. `periodo` es una proyección técnica mantenida por disparadores para la restricción de exclusión propuesta en ADR-001: refleja el periodo del detalle y, durante una ejecución sin devolución registrada, permanece abierto por el extremo superior. Al registrar `devuelto_at`, su extremo superior se cierra con la hora efectiva de devolución. La entrega y devolución físicas se registran en `reserva_ejecucion_recursos`.
+Las fechas de negocio se obtienen del detalle de la reserva y no se duplican como campos de inicio y fin en esta tabla. `periodo` es una proyección técnica mantenida por disparadores para la restricción de exclusión propuesta en ADR-001. Si un recurso se agrega durante `EN_EJECUCION` a una reserva por espacio o de uso interno, su extremo inicial es `incorporado_at`; si se asigna antes de la ejecución, usa el inicio normal del detalle. La entrega y devolución físicas se registran en `reserva_ejecucion_recursos`; no alteran este periodo planificado.
 
 ## Disponibilidad y configuración por unidad
 
 El cálculo aplica [RN-DIS](business-rules.md#disponibilidad--rn-dis); los estados bloqueantes y no bloqueantes se definen únicamente en RN-EST-02 y RN-EST-03.
 
-La asignación del espacio corresponde a `reserva_espacio.espacio_id`, con el periodo definido por `fecha`, `hora_inicio` y `hora_fin`. Su `periodo tsrange` es una columna generada que devuelve NULL SQL si falta cualquier extremo; `bloqueante` se mantiene según el estado de la reserva y ambos campos participan en la restricción de exclusión propuesta en ADR-001. Para recursos, la asignación efectiva corresponde a una fila de `reserva_recursos` con `estado_asignacion = 'ASIGNADO'` y al periodo definido en el detalle del tipo. Este estado de asignación es independiente de la aprobación de la reserva: puede asignarse un recurso al registrar la solicitud, antes de su aprobación. Las filas `SOLICITADO`, `NO_DISPONIBLE` y `RETIRADO` no representan asignaciones bloqueantes.
+La asignación del espacio corresponde a `reserva_espacio.espacio_id`, con el periodo definido por `fecha`, `hora_inicio` y `hora_fin`. Su `periodo tsrange` es una columna generada que devuelve NULL SQL si falta cualquier extremo; `bloqueante` se mantiene según el estado de la reserva y ambos campos participan en la restricción de exclusión propuesta en ADR-001. Para recursos, la asignación efectiva corresponde a una fila de `reserva_recursos` con `estado_asignacion = 'ASIGNADO'` y al periodo definido en el detalle del tipo. Este estado de asignación es independiente de la aprobación de la reserva: puede asignarse un recurso al registrar la solicitud, antes de su aprobación. Las filas `NO_DISPONIBLE` y `RETIRADO` no representan asignaciones bloqueantes.
 
-El periodo de negocio del recurso se obtiene del detalle de su tipo y no se duplican en `reserva_recursos` los campos de fecha u hora. La proyección técnica `periodo` se sincroniza desde ese detalle y desde `reserva_ejecucion_recursos.devuelto_at` conforme a ADR-001. Un periodo no aplicable o incompleto se representa con NULL SQL. Un recurso entregado y no devuelto conserva un rango abierto hasta que se registre su devolución; entonces vuelve a estar disponible desde `devuelto_at`, sin esperar que finalice el resto de recursos de la reserva. `LISTA_ESPERA` no tiene filas en `reserva_recursos`. Asignar o modificar un periodo posteriormente exige la misma validación transaccional.
+El periodo de negocio del recurso se obtiene del detalle de su tipo y no se duplican en `reserva_recursos` los campos de fecha u hora. La proyección técnica `periodo` se sincroniza desde ese detalle y, cuando exista, desde `incorporado_at` como extremo inicial. Un periodo no aplicable o incompleto se representa con NULL SQL. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, la disponibilidad física no se deduce del rango: se determina a partir de las entregas abiertas en `reserva_ejecucion_recursos` y de compromisos anteriores del mismo recurso, conforme a RN-DIS-06. `LISTA_ESPERA` no tiene filas en `reserva_recursos`. Asignar o modificar un periodo posteriormente exige la misma validación transaccional.
 
 Los recursos complementarios no disponibles se conservan como `NO_DISPONIBLE`, sin asignación para el periodo incompatible, conforme a RN-TIP-PE-14. No impiden guardar la reserva del espacio. Al modificar o aprobar, la comparación excluye las asignaciones de la propia reserva.
 
@@ -152,7 +177,7 @@ Una fila obligatoria por reserva. El contexto cumple las reglas [RN-CTX](busines
 
 `investigacion` administra las entidades, las actividades institucionales y las vinculaciones académicas/investigativas descritas en el [modelo general](../../docs/data-model.md#schema-investigacion). `reservas` registra las entidades que justificaron la reserva; sus FK apuntan a las entidades, no a las tablas de vinculación. La disponibilidad de una actividad institucional para nuevas reservas se valida conforme a RN-ACT del módulo Researchs; reservas no duplica esa regla. Las nuevas tablas y sus FK están definidas en el modelo y pendientes de aplicar en la base de datos.
 
-Se permite cualquier combinación no vacía de proyecto, semillero, pasantía y trabajo de grado. Una actividad institucional solo puede registrarse si los cuatro campos académicos/investigativos son `NULL`. La restricción propuesta para cada fila es:
+Se permite una combinación no vacía de máximo un proyecto, máximo un semillero, una pasantía y un trabajo de grado. Una actividad institucional solo puede registrarse si los cuatro campos académicos/investigativos son `NULL`. La restricción propuesta para cada fila es:
 
 ```sql
 CONSTRAINT ck_reserva_contexto_composicion CHECK (
@@ -196,7 +221,21 @@ Registro de entrega y devolución física para `RECURSO_INTERNO`, `RECURSO_CAMPU
 | `observacion_entrega` | text | NULL |
 | `observacion_devolucion` | text | NULL |
 
-`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso. No puede existir más de una entrega abierta por `reserva_recurso_id`. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
+`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso. No puede existir más de una entrega abierta por `reserva_recurso_id`. Para una reserva con recursos que requieren devolución, la finalización registra la devolución de todos ellos en una misma operación; no se permite cerrar parcialmente la reserva. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
+
+### `reservas.reserva_datos_salida`
+
+Datos obligatorios del FGL 030 capturados al crear una reserva `RECURSO_CAMPUS` o `RECURSO_EXTERNO`, antes de generar su orden de salida.
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `reserva_id` | integer | PK, FK a `reservas.reservas(id)` |
+| `razon_solicitud` | text | NOT NULL |
+| `nombre_actividad_evento` | varchar(255) | NULL; obligatorio cuando el contexto deba representarse como `OTRO` |
+| `lugar_nombre` | varchar(150) | NOT NULL |
+| `lugar_direccion` | varchar(255) | NOT NULL |
+
+La orden copia estos valores como snapshot al generarse; no se capturan por primera vez en `ordenes_salida`.
 
 ### `reservas.ordenes_salida`
 
@@ -208,7 +247,7 @@ Datos con los que el sistema **prellena** el formato "FGL 030 Orden de salida eq
 | `reserva_id` | integer | UNIQUE NOT NULL, FK a `reservas(id)` |
 | `fecha_generacion` | timestamptz | NOT NULL |
 
-**1. Información general** — capturados al crear la reserva, sin fuente previa (`RN-TIP-RC-12`, `RN-TIP-RE-12`):
+**1. Información general** — copiados como snapshot desde `reserva_datos_salida`, capturada al crear la reserva (`RN-TIP-RC-12`, `RN-TIP-RE-12`):
 
 | Campo | Tipo | Restricción |
 |---|---|---|
@@ -223,13 +262,14 @@ Prellenados y copiados como snapshot desde su fuente al generar el documento:
 |---|---|---|
 | `dependencia_solicitante_snapshot` | varchar(255) | NOT NULL — afiliación de quien solicita: `usuarios.usuarios.dependencia` para cuentas `USUARIO`, la unidad del cargo para cuentas `PERSONAL`. No es la unidad receptora de la reserva |
 | `fecha_retiro_snapshot` | date | NOT NULL — de `reserva_recurso_campus`/`reserva_recurso_externo.fecha_salida` |
-| `fecha_regreso_snapshot` | date | NOT NULL — de `...fecha_devolucion` |
+| `fecha_regreso_snapshot` | date | NOT NULL — de `...fecha_devolucion_estimada` |
 | `proyecto_codigo_snapshot` | varchar(60) | NULL, obligatorio cuando entre las actividades marcadas figure `PROYECTO_INVESTIGACION` — de `reserva_contexto` |
 | `responsable_nombre_snapshot` | varchar(150) | NOT NULL — `nombre` de la identidad asociada a `reservas.id_cuenta` |
 | `responsable_cedula_snapshot` | varchar(20) | NOT NULL — `documento` de esa identidad |
-| `responsable_contacto_snapshot` | varchar(255) | NOT NULL — compuesto con `correo` y `telefono` de esa identidad |
+| `responsable_correo_snapshot` | varchar(255) | NOT NULL — correo de esa identidad |
+| `responsable_telefono_snapshot` | varchar(20) | NOT NULL — teléfono de esa identidad |
 
-Los tres se prellenan desde el perfil y nunca se capturan manualmente (`RN-TIP-RC-13`, `RN-TIP-RE-13`). La fuente depende del tipo de cuenta, conforme a `RN-AUTH-ID-03`: para `USUARIO` es `usuarios.usuarios`, que registra `nombre`, `documento`, `telefono` y `correo` obligatorios por `RN-DAT-01`; para `PERSONAL` es `personal.personal`, que ya define `documento`, `correo` y `telefono` como `NOT NULL`. En ambos casos el valor se copia como snapshot al generar la orden.
+Los cuatro datos se prellenan desde el perfil y nunca se capturan manualmente (`RN-TIP-RC-13`, `RN-TIP-RE-13`). La fuente depende del tipo de cuenta, conforme a `RN-AUTH-ID-03`: para `USUARIO` es `usuarios.usuarios`, que registra `nombre`, `documento`, `telefono` y `correo` obligatorios por `RN-DAT-01`; para `PERSONAL` es `personal.personal`, que ya define `documento`, `correo` y `telefono` como `NOT NULL`. En ambos casos el valor se copia como snapshot al generar la orden.
 
 Campos generales restantes del formato:
 
@@ -237,7 +277,7 @@ Campos generales restantes del formato:
 |---|---|---|
 | `observaciones` | text | NULL |
 
-`fecha_regreso_snapshot` conserva la fecha prevista de regreso impresa originalmente en la orden. La devolución efectiva se registra en `reserva_ejecucion_recursos.devuelto_at`; hasta que el Técnico la registre, el recurso sigue ocupado por la reserva en ejecución. Si se requiere un periodo posterior, se tramita mediante una nueva reserva conforme a `RN-RES-14`.
+`fecha_regreso_snapshot` conserva la fecha estimada de regreso impresa originalmente en la orden. La devolución efectiva se registra en `reserva_ejecucion_recursos.devuelto_at`; hasta que el Técnico la registre, el recurso sigue ocupado por la reserva en ejecución. Puede existir una solicitud posterior con periodo compatible, pero no se aprueba ni se entrega hasta que se cumpla RN-DIS-06.
 
 ### `reservas.orden_salida_actividades`
 
@@ -283,19 +323,20 @@ Las secciones 3, 4 y 5 del FGL 030 se firman físicamente sobre el documento. El
 
 La orden no almacena su propio tipo: se deriva de `reserva_id`, que es UNIQUE, hacia `tipos_reserva.codigo`, y solo existe para los tipos `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. La aplicación comprueba que `orden_salida_items` incluye exactamente los recursos activos (`PRINCIPAL` y `ADICIONAL`es) de esa reserva, sin faltantes ni sobrantes.
 
-## Propuestas de horario
+## Propuestas de periodo
 
 ### `reservas.reserva_propuestas`
 
-Propuestas y contrapropuestas de horario o fecha alternativa (`RN-PROP-01` a `RN-PROP-07`). Conserva la negociación completa: las propuestas no se borran ni se sobrescriben.
+Propuestas y contrapropuestas de periodo alternativo (`RN-PROP-01` a `RN-PROP-07`). Conserva la negociación completa: las propuestas no se borran ni se sobrescriben.
 
 | Campo | Tipo | Restricción |
 |---|---|---|
 | `id` | integer | PK |
 | `reserva_id` | integer | NOT NULL, FK a `reservas(id)` |
 | `origen` | varchar(10) | NOT NULL, CHECK (`TECNICO`, `USUARIO`) |
-| `fecha_propuesta` | date | NOT NULL |
-| `hora_inicio`, `hora_fin` | time | NULL; obligatorias cuando el tipo de reserva tenga horario |
+| `fecha_inicio_propuesta` | date | NOT NULL |
+| `fecha_fin_propuesta` | date | NOT NULL |
+| `hora_inicio`, `hora_fin` | time | NULL; obligatorias para `ESPACIO` y `RECURSO_INTERNO`; nulas para `RECURSO_CAMPUS` y `RECURSO_EXTERNO` |
 | `motivo` | text | NOT NULL |
 | `estado` | varchar(15) | NOT NULL, CHECK (`VIGENTE`, `ACEPTADA`, `RECHAZADA`, `SUSTITUIDA`) |
 | `creada_por` | bigint | NOT NULL, FK a `auth.cuentas` |
@@ -303,15 +344,15 @@ Propuestas y contrapropuestas de horario o fecha alternativa (`RN-PROP-01` a `RN
 | `created_at` | timestamptz | NOT NULL |
 | `resuelta_at` | timestamptz | NULL |
 
-CHECK `hora_inicio < hora_fin` cuando ambas tienen valor. Índice único parcial sobre `(reserva_id)` para filas con `estado = 'VIGENTE'`, que garantiza `RN-PROP-07`: una sola propuesta o contrapropuesta vigente a la vez. Índice `(reserva_id, created_at)` para reconstruir la negociación.
+CHECK `fecha_fin_propuesta >= fecha_inicio_propuesta` y `hora_inicio < hora_fin` cuando ambas tienen valor. Para `ESPACIO` y `RECURSO_INTERNO`, las fechas de inicio y fin deben ser iguales; para `RECURSO_CAMPUS` y `RECURSO_EXTERNO` representan salida y devolución estimada. `LISTA_ESPERA` no admite propuestas. Índice único parcial sobre `(reserva_id)` para filas con `estado = 'VIGENTE'`, que garantiza `RN-PROP-07`: una sola propuesta o contrapropuesta vigente a la vez. Índice `(reserva_id, created_at)` para reconstruir la negociación.
 
 Una contrapropuesta marca la propuesta anterior como `SUSTITUIDA` y crea una fila nueva con `origen = 'USUARIO'`, conforme a `RN-PROP-03`. Aceptar una propuesta revalida las reglas del tipo antes de reprogramar la reserva (`RN-PROP-05`); rechazarla deja la reserva en `SOLICITADA` con su horario original (`RN-PROP-06`). Ninguna propuesta cambia por sí misma el estado de la reserva (`RN-PROP-02`).
 
-## Estados y auditoría
+## Estados
 
 `reservas.reserva_historial_estado` registra únicamente transiciones: `id integer PK`, `reserva_id integer FK`, `estado_anterior_id integer FK NULL`, `estado_nuevo_id integer FK`, `actor_cuenta_id bigint NOT NULL FK a `auth.cuentas`, `motivo`, `created_at`.
 
-`reservas.reserva_auditoria` registra creación, modificación, aprobación, rechazo, cambios de recursos, cambios de horario/fechas, cancelación, inicio y finalización: `id integer PK`, `reserva_id integer FK`, `accion varchar(40) NOT NULL`, `actor_cuenta_id bigint NOT NULL FK`, `datos_anteriores jsonb NULL`, `datos_nuevos jsonb NULL`, `motivo text NULL`, `created_at timestamptz NOT NULL`.
+La auditoría de Reservations, incluidos `reserva_auditoria` y los snapshots del actor, está fuera del alcance funcional actual y queda pendiente de diseño futuro. `reserva_historial_estado` conserva únicamente las transiciones necesarias para el ciclo de vida de la reserva.
 
 ## Decisiones de integridad
 
@@ -322,10 +363,8 @@ Una contrapropuesta marca la propuesta anterior como `SUSTITUIDA` y crea una fil
 
 ## Puntos pendientes
 
-- Definir catálogo de actividades y estructura exacta de campos de espacios.
 - Implementar y verificar el mecanismo contra solapamientos descrito en «Garantía transaccional — pendiente de implementación» y migrar las opciones de visibilidad por unidad.
 - Las propuestas y contrapropuestas ya tienen reglas (`RN-PROP`), flujo (`UF-RES-15`) y respaldo persistente en `reserva_propuestas`. Los recordatorios tienen reglas (`RN-REC`), flujo (`UF-RES-16`) y su anticipación configurable en `laboratorios_config.recordatorio_horas_antes`; su constancia de envío pertenece a notificaciones y no se duplica aquí. El archivo `.ics` de confirmación se genera y adjunta al correo sin una tabla propia, sin sincronización directa con calendarios externos y sin persistir identificadores de eventos externos, conforme a RN-CAL.
-- Definir cómo se compone `responsable_contacto_snapshot` a partir de `correo` y `telefono`, dado que el FGL 030 imprime una sola línea de contacto que además contempla ubicación y celular.
 
 ## Inventario de reservas procedente del principal
 
@@ -337,7 +376,7 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 |---|---|---|---|
 | `id` | integer | NN | PK `tipos_reserva_pkey`; identity |
 | `nombre` | varchar(100) | NN | — |
-| `descripcion` | text | Sí | — |
+| `descripcion` | text | NN | usar `N/A` cuando no exista una descripción aplicable |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
 ### `reservas.motivos_solicitud`
@@ -362,16 +401,7 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
 
-Los índices de la cabecera son `(id_cuenta, created_at)`, `(id_unidad, estado_id)` y `(tipo_reserva_id, estado_id)`. Las restricciones de fecha, horario, espacio, ubicación y asistentes pertenecen a los detalles por tipo.
-
-### `reservas.reserva_acompanantes`
-
-| Campo | Tipo | Null | PK/UQ/FK/default/check |
-|---|---|---|---|
-| `reserva_id` | integer | NN | PK compuesta; FK → `reservas.reservas(id)` |
-| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
-
-La PK compuesta `(reserva_id, id_cuenta)` impide repetir una cuenta en la misma reserva. La aplicación solo permite insertar la asociación cuando la reserva tiene proyecto o semillero y la cuenta mantiene una vinculación activa con al menos uno de ellos; si ambos existen, valida la unión de ambas vinculaciones. Esta es la única estructura de acompañantes del modelo de Reservations.
+Los índices de la cabecera son `(id_cuenta, created_at)`, `(id_unidad, estado)` y `(tipo_reserva_id, estado)`. Las restricciones de fecha, horario, espacio, ubicación y asistentes pertenecen a los detalles por tipo.
 
 ## Diferencias que debe resolver la migración
 
@@ -380,6 +410,6 @@ La PK compuesta `(reserva_id, id_cuenta)` impide repetir una cuenta en la misma 
 - Incorporar código y configuración por laboratorio de los tipos; conciliar descripción nullable del inventario con la descripción obligatoria del objetivo.
 - Definir el destino de `motivos_solicitud` y `motivo_solicitud_id`, ausentes del objetivo.
 - Migrar asociaciones de equipos, mobiliarios y otros hacia `reserva_recursos`, preservando referencias históricas.
-- Coordinar notificaciones y auditoría con sus módulos propietarios. Los `ON DELETE CASCADE` del inventario requieren revisión frente a las reglas de conservación histórica.
+- Coordinar notificaciones con su módulo propietario. La auditoría de Reservations queda fuera del alcance actual y pendiente de diseño futuro. Los `ON DELETE CASCADE` del inventario requieren revisión frente a las reglas de conservación histórica.
 
 Los campos abreviados sin tipo, las FK sin destino completo y los índices parciales sin predicado del diseño objetivo deben concretarse antes de generar una migración ejecutable.

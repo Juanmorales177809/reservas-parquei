@@ -24,7 +24,7 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 ## Usuarios — RN-USR
 
-- **RN-USR-01:** El administrador institucional puede crear, consultar, modificar, habilitar o deshabilitar usuarios cuando disponga del permiso correspondiente.
+- **RN-USR-01:** El Administrador con el permiso global correspondiente puede crear, consultar, modificar, habilitar o deshabilitar usuarios. Estas operaciones no tienen alcance por unidad y un Técnico no puede ejecutarlas.
 
 - **RN-USR-02:** La modificación de información de un usuario no debe alterar retroactivamente las reservas, acciones o registros históricos asociados.
 
@@ -108,24 +108,6 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 
 ---
 
-## Configuración global — RN-CFG
-
-- **RN-CFG-01:** Solo usuarios autorizados pueden modificar configuraciones globales del sistema.
-
-- **RN-CFG-02:** Toda configuración debe contar con una representación persistente o mecanismo de configuración claramente definido cuando su modificación afecte el comportamiento del sistema.
-
-- **RN-CFG-03:** Una configuración global no debe utilizarse para reemplazar reglas de negocio que pertenecen a módulos específicos.
-
-- **RN-CFG-04:** Los cambios de configuración deben validarse antes de entrar en vigencia.
-
-- **RN-CFG-05:** Una configuración inválida no debe dejar el sistema en un estado parcialmente actualizado.
-
-- **RN-CFG-06:** Cuando una configuración afecte nuevas operaciones, su modificación no debe reinterpretar automáticamente registros históricos.
-
-- **RN-CFG-07:** Las configuraciones que afecten seguridad, autenticación o autorización deben respetar las restricciones definidas por dichos módulos.
-
----
-
 ## Habilitación y desactivación — RN-HAB
 
 - **RN-HAB-01:** Siempre que el modelo lo permita, la desactivación debe preferirse sobre la eliminación física de elementos con relaciones históricas.
@@ -175,14 +157,14 @@ Las reglas específicas de autenticación y autorización pertenecen al módulo 
 - **RN-IMP-05:** La importación no crea ni modifica vinculaciones de usuarios y no permite al Administrador reemplazar las reglas de Researchs sobre dichas vinculaciones.
 - **RN-IMP-06:** Una importación con errores no debe dejar cambios parciales; el Administrador debe revisar el resultado de validación antes de confirmar.
 - **RN-IMP-07:** Desactivar un proyecto o semillero conserva su registro, sus vinculaciones y las referencias históricas de reservas.
-- **RN-IMP-08:** Cada importación confirmada registra Administrador, fecha, catálogo, archivo o referencia de carga y registros creados, actualizados o desactivados.
+- **RN-IMP-08:** Cada carga procesada conserva el resultado de cada fila: número, código cuando pueda identificarse, resultado y detalle de error cuando corresponda. Cuando la importación se confirma, registra además Administrador, fecha, catálogo, archivo o referencia de carga y sus totales.
 - **RN-IMP-09:** La importación es incremental: un registro existente que no aparezca en el archivo permanece sin cambios. Desactivar un proyecto o semillero requiere incluirlo expresamente con estado `INACTIVO`; la ausencia de una fila nunca desactiva registros.
 
 ---
 
 ## Separación de responsabilidades
 
-- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos, configuración global e importaciones autorizadas de catálogos de investigación.
+- El módulo de administración gestiona usuarios, cuentas, perfiles, unidades organizacionales, permisos e importaciones autorizadas de catálogos de investigación.
 
 - El módulo de autenticación y autorización determina cómo se autentica una cuenta y cómo se evalúa si puede ejecutar una operación.
 

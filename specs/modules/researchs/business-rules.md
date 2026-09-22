@@ -14,6 +14,9 @@ Contrato funcional del dominio `investigacion`, alojado en el módulo `researchs
 - **RN-INV-06:** `proyectos` y `semilleros` son catálogos administrados centralmente; sus códigos e identidades son persistentes y no pueden crearse ni modificarse desde el perfil del Usuario ni desde una reserva.
 - **RN-INV-07:** El Usuario solo puede seleccionar proyectos y semilleros existentes del catálogo y solicitar o mantener una vinculación válida conforme a las reglas de `investigacion`.
 - **RN-INV-08:** Las vinculaciones académicas o investigativas son declaradas por el Usuario bajo su responsabilidad. El sistema verifica que la entidad seleccionada exista, esté habilitada y que la vinculación esté activa, pero no acredita la pertenencia institucional del Usuario. Los proyectos y semilleros se seleccionan exclusivamente de los catálogos administrados; no pueden crearse desde el perfil.
+- **RN-INV-09:** El Usuario puede crear, desactivar y reactivar únicamente sus propias vinculaciones. El Técnico no administra vinculaciones de Usuarios.
+- **RN-INV-10:** El Administrador con alcance global puede gestionar las vinculaciones de cualquier Usuario e intervenir administrativamente sobre sus pasantías, trabajos de grado y demás contextos propios. Esta facultad no corresponde al Técnico.
+- **RN-INV-11:** Cuando ya exista una vinculación inactiva entre un Usuario y la misma entidad, reactivarla actualiza esa misma relación; no se crea una fila duplicada.
 
 En esta especificación, una «vinculación válida» es una vinculación declarada que cumple las condiciones de RN-INV-08 dentro de la aplicación. Esta definición se aplica a la actualización del perfil, la creación de reservas y la selección de acompañantes; no supone consulta a una fuente institucional ni certificación externa de pertenencia.
 
@@ -22,6 +25,7 @@ En esta especificación, una «vinculación válida» es una vinculación declar
 - **RN-ACT-01:** Una actividad institucional debe registrar `nombre` y `dependencia`.
 - **RN-ACT-02:** Solo una actividad institucional con `estado = true` puede utilizarse en una nueva reserva.
 - **RN-ACT-03:** Desactivar una actividad institucional no elimina su registro ni las referencias históricas de reservas existentes.
+- **RN-ACT-04:** Las actividades institucionales solo pueden ser creadas, modificadas, activadas o desactivadas por un Administrador con alcance global. El Técnico no las administra.
 
 ## Relación con reservas
 

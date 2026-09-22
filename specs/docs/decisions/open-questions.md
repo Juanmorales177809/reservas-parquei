@@ -30,15 +30,15 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ---
 
-## OQ-03 — Composición de la línea de contacto del FGL 030
+## OQ-03 — Contacto del responsable en FGL 030
 
-**Contexto.** El formato físico imprime una sola línea de contacto que contempla ubicación, correo electrónico, teléfono y celular. El perfil almacena `correo` y `telefono` por separado, y no registra ubicación ni celular como campos distintos.
+**Contexto.** La concatenación de correo y teléfono en un único campo podía truncar valores válidos.
 
-**Alternativas.** Concatenar correo y teléfono en `responsable_contacto_snapshot`, frente a ampliar el perfil con los datos que faltan.
+**Decisión.** Resuelta. La orden conserva `responsable_correo_snapshot` y `responsable_telefono_snapshot` como campos independientes, cada uno con la longitud de su fuente.
 
 **Impacto.** Afecta el prellenado exigido por `RN-TIP-RC-13` y `RN-TIP-RE-13`.
 
-**Estado.** Abierta.
+**Estado.** Resuelta.
 
 ---
 
@@ -54,15 +54,15 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 ---
 
-## OQ-05 — Representación persistente de la configuración global
+## OQ-05 — Configuración global genérica
 
-**Contexto.** `RN-CFG-02` exige que toda configuración cuente con representación persistente, pero el modelo no define una tabla de configuración global.
+**Contexto.** Se había planteado `RN-CFG` sin identificar una configuración global concreta ni un propietario funcional.
 
-**Alternativas.** Tabla clave-valor tipada, frente a variables de entorno para lo que no cambia en caliente.
+**Decisión.** Resuelta. La configuración global genérica queda fuera de alcance: se elimina `RN-CFG` y no se crea una tabla ni otro mecanismo genérico. Cada configuración necesaria debe definirse en su módulo propietario antes de incorporarse.
 
-**Impacto.** Afecta a `RN-CFG-01` a `RN-CFG-07` y a cualquier parámetro que hoy se describe como configurable sin decir dónde vive.
+**Impacto.** No existe una configuración global que diseñar o administrar en esta iteración.
 
-**Estado.** Abierta.
+**Estado.** Resuelta.
 
 ---
 

@@ -29,9 +29,8 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 6. El usuario selecciona, sin ingresar texto libre, proyectos y semilleros del catálogo existente; las pasantías y trabajos de grado se registran o seleccionan conforme a las reglas vigentes de `investigacion`.
 7. El módulo `investigacion` valida y almacena las vinculaciones académicas o investigativas.
 8. El sistema verifica que exista al menos una vinculación activa y válida.
-9. El usuario selecciona las unidades o laboratorios en los que espera realizar reservas, cuando esta información forme parte de su configuración.
-10. El sistema valida los datos aplicables al alta y registra `perfil_actualizado_at`.
-11. El usuario puede continuar con las funcionalidades permitidas.
+9. El sistema valida los datos aplicables al alta y registra `perfil_actualizado_at`.
+10. El usuario puede continuar con las funcionalidades permitidas.
 
 **Flujos alternos:**
 
@@ -147,13 +146,13 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 2. El sistema consulta los proyectos existentes y vigentes del catálogo de `investigacion`.
 3. El usuario selecciona el proyecto correspondiente; no puede ingresar un nombre o código para crear otro.
 4. El módulo `investigacion` valida la vinculación.
-5. El sistema registra la relación entre usuario y proyecto.
+5. El sistema registra la relación entre usuario y proyecto o reactiva la relación existente si estaba inactiva.
 6. El proyecto queda disponible como contexto en procesos que lo permitan, como reservas.
 
 **Flujos alternos:**
 
 - Si el proyecto no puede vincularse al usuario, el sistema no crea la relación.
-- Si la relación ya existe, el sistema no crea un duplicado.
+- Si la relación ya está activa, el sistema no crea un duplicado.
 
 ---
 
@@ -171,13 +170,13 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 2. El sistema consulta los semilleros existentes y vigentes del catálogo de `investigacion`.
 3. El usuario selecciona el semillero correspondiente; no puede ingresar un nombre o código para crear otro.
 4. El módulo `investigacion` valida la vinculación.
-5. El sistema registra la relación entre usuario y semillero.
+5. El sistema registra la relación entre usuario y semillero o reactiva la relación existente si estaba inactiva.
 6. El semillero queda disponible como contexto en procesos que lo permitan.
 
 **Flujos alternos:**
 
 - Si la relación no es válida, el sistema la rechaza.
-- Si ya existe, no se crea una relación duplicada.
+- Si ya existe una relación activa, no se crea una relación duplicada.
 
 ---
 
@@ -238,7 +237,7 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 
 ## UF-USR-10 — Desactivar una vinculación académica o investigativa
 
-**Actor principal:** Usuario o Técnico/Administrador autorizado, según las reglas del módulo `investigacion`
+**Actor principal:** Usuario titular o Administrador global.
 
 **Precondiciones:**
 - Existe una vinculación vigente entre el usuario y una entidad de investigación.
@@ -246,7 +245,7 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 **Flujo principal:**
 
 1. El actor accede a la vinculación.
-2. El sistema verifica si la operación está permitida.
+2. El sistema verifica que el actor sea el titular de la vinculación o un Administrador global.
 3. El actor solicita desactivar la vinculación.
 4. El módulo `investigacion` conserva el historial de la relación.
 5. La vinculación deja de estar disponible para nuevas operaciones que requieran una relación activa.
@@ -254,36 +253,12 @@ Las altas, la actualización inicial y la edición del perfil aplican RN-DAT: no
 
 **Flujos alternos:**
 
-- Si la operación no está autorizada, el sistema no modifica la vinculación.
+- Si el actor no es el titular ni un Administrador global, el sistema no modifica la vinculación.
 - Si la relación ya está inactiva, no se crea una nueva desactivación.
 
 ---
 
-## UF-USR-11 — Seleccionar unidades o laboratorios de interés
-
-**Actor principal:** Usuario
-
-**Precondiciones:**
-- El usuario está autenticado.
-- Las unidades o laboratorios disponibles existen y están habilitados para el uso correspondiente.
-
-**Flujo principal:**
-
-1. El usuario accede a la configuración de su perfil.
-2. El sistema muestra las unidades o laboratorios disponibles.
-3. El usuario selecciona aquellos con los que tendrá interacción.
-4. El sistema valida que las selecciones sean válidas.
-5. El sistema guarda las asociaciones del perfil.
-6. Las selecciones quedan disponibles para facilitar procesos posteriores, sin conceder permisos administrativos.
-
-**Flujos alternos:**
-
-- Si una unidad o laboratorio deja de estar disponible, no puede seleccionarse para nuevas asociaciones.
-- La asociación funcional no implica autorización administrativa.
-
----
-
-## UF-USR-12 — Iniciar una reserva
+## UF-USR-11 — Iniciar una reserva
 
 **Actor principal:** Usuario
 

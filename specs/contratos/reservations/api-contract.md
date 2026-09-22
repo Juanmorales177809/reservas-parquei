@@ -54,7 +54,7 @@ El cuerpo tiene una parte común y un bloque `detalle` cuya forma depende del ti
 }
 ```
 
-`contexto` es obligatorio para todos los tipos de reserva, incluida `LISTA_ESPERA`. Debe contener uno o más elementos académicos/investigativos o una actividad institucional, pero no una combinación de ambos. Si falta o está vacío, la API responde `422 VALIDACION`.
+`contexto` es obligatorio para todos los tipos de reserva, incluida `LISTA_ESPERA`. Puede contener como máximo un proyecto, un semillero, una pasantía y un trabajo de grado, o una actividad institucional independiente; no puede combinar ambos grupos. Si falta o está vacío, la API responde `422 VALIDACION`.
 
 Forma de `detalle` por tipo:
 
@@ -64,7 +64,7 @@ Los campos de espacio, periodo, asistentes y ubicación se envían únicamente d
 |---|---|
 | `ESPACIO` | `espacio_id`, `fecha`, `hora_inicio`, `hora_fin`, `asistentes` |
 | `RECURSO_INTERNO` | `fecha`, `hora_inicio`, `hora_fin` |
-| `RECURSO_CAMPUS`, `RECURSO_EXTERNO` | `fecha_salida`, `fecha_devolucion`, `razon_solicitud`, `lugar_nombre`, `lugar_direccion`, `nombre_actividad_evento` |
+| `RECURSO_CAMPUS`, `RECURSO_EXTERNO` | `fecha_salida`, `fecha_devolucion_estimada`, `razon_solicitud`, `lugar_nombre`, `lugar_direccion`, `nombre_actividad_evento` |
 | `LISTA_ESPERA` | `descripcion_necesidad` |
 
 `recursos` es obligatorio en `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, donde debe incluir exactamente un `PRINCIPAL` (`RN-RES-12`). En `ESPACIO` es opcional y solo admite rol `ADICIONAL`. En `LISTA_ESPERA` no se permite enviar `recursos`.
@@ -84,7 +84,7 @@ En una reserva por espacio, `asistentes` es opcional y por defecto es `0`. El va
 }
 ```
 
-El estado inicial es `SOLICITADA` o `APROBADA` según la aprobación automática de la unidad (`RN-EST-01`, `RN-APR-03`). `requiere_apoyo` puede volver `true` aunque se haya enviado `false`, si algún equipo lo exige (`RN-RES-09`).
+El estado inicial es `SOLICITADA` o `APROBADA` según la aprobación automática de la unidad (`RN-EST-01`, `RN-APR-03`), excepto `LISTA_ESPERA`, que siempre inicia en `SOLICITADA` y sigue su flujo específico. `requiere_apoyo` puede volver `true` aunque se haya enviado `false`, si algún equipo lo exige (`RN-RES-09`).
 
 La cabecera, el detalle, las asignaciones, el contexto y los valores de campos se escriben en una única transacción: si algo falla, no queda nada escrito (`RN-INT-01` de administration).
 
@@ -101,6 +101,22 @@ Tipos de reserva habilitados para un laboratorio (`RN-TIP-02`, `RN-TIP-03`).
 ```
 
 Si la lista trae un solo elemento, el cliente lo selecciona automáticamente (`RN-TIP-02`). Una lista vacía significa que el laboratorio no admite reservas (`RN-TIP-06`).
+
+### 1.3 `PUT /api/reservas/{id}/lista-espera/formulario`
+
+Persiste el formulario complementario de una reserva `LISTA_ESPERA` que el Técnico ya declaró viable. El Usuario envía su parte:
+
+```json
+{ "datos_usuario": { "campo": "valor" } }
+```
+
+El Técnico de la unidad revisa y completa su parte:
+
+```json
+{ "datos_tecnico": { "campo": "valor" } }
+```
+
+La operación no aprueba la reserva ni crea un estado propio para el formulario. La aprobación posterior exige que ambas partes estén registradas y que el Técnico registre la recepción del material (`RN-TIP-PLE-03` a `RN-TIP-PLE-05`).
 
 ---
 
@@ -183,15 +199,16 @@ Retira un recurso de la reserva. **`204 No Content`**. No borra la fila: la marc
 
 ---
 
-## 4. Propuestas de horario
+## 4. Propuestas de periodo
 
 ### 4.1 `POST /api/reservas/{id}/propuestas`
 
-Propone un horario alternativo. Flujo `UF-RES-15`. Lo usa el Técnico para proponer y el Usuario para contraproponer; `origen` se deriva del rol del actor, no del cuerpo.
+Propone un periodo alternativo para `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS` o `RECURSO_EXTERNO`. No aplica a `LISTA_ESPERA`. Flujo `UF-RES-15`. Lo usa el Técnico para proponer y el Usuario para contraproponer; `origen` se deriva del rol del actor, no del cuerpo.
 
 ```json
 {
-  "fecha_propuesta": "2026-10-16",
+  "fecha_inicio_propuesta": "2026-10-16",
+  "fecha_fin_propuesta": "2026-10-16",
   "hora_inicio": "14:00",
   "hora_fin": "18:00",
   "motivo": "El espacio está ocupado esa mañana"
@@ -204,11 +221,11 @@ Propone un horario alternativo. Flujo `UF-RES-15`. Lo usa el Técnico para propo
 
 **`200 OK`** — revalida las reglas del tipo y reprograma la reserva (`RN-PROP-05`). Solo puede aceptar la contraparte de quien propuso (`RN-PROP-04`).
 
-**Errores:** `409 SOLAPAMIENTO` si el horario propuesto dejó de estar disponible; la propuesta queda vigente y la reserva sin cambios.
+**Errores:** `409 SOLAPAMIENTO` si el periodo propuesto dejó de estar disponible; la propuesta queda vigente y la reserva sin cambios.
 
 ### 4.3 `POST /api/reservas/{id}/propuestas/vigente/rechazo`
 
-**`200 OK`** — la reserva permanece en `SOLICITADA` con su horario original (`RN-PROP-06`).
+**`200 OK`** — la reserva permanece en `SOLICITADA` con su periodo original (`RN-PROP-06`).
 
 ---
 
@@ -230,7 +247,7 @@ Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. La ejecución
 
 ### 5.2 `POST /api/reservas/{id}/finalizacion`
 
-Registra la devolución y pasa a `FINALIZADA`. Flujo `UF-RES-14`.
+Registra el cierre y pasa a `FINALIZADA`. Para una reserva de recursos que requiera devolución, el arreglo debe contener todos los recursos entregados de esa reserva; no se permite devolución parcial. Flujo `UF-RES-14`.
 
 ```json
 {

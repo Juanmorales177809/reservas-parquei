@@ -16,7 +16,7 @@ El módulo ya está implementado contra un contrato anterior. Estas son las dife
 | Transporte del token | `access_token` en el cuerpo, tipo `bearer`, leído por el cliente | Cookie `HttpOnly` (`SEC-SES-03`, `SEC-SES-05`) |
 | Claims del JWT | Incluye `rol` y `role` | Sin rol ni permisos (`SEC-JWT-04`) |
 | Sesiones | No existe el modelo `auth.sesiones`; no hay logout, renovación ni revocación | Sesión persistida y revocable (`SEC-SES-01`, `SEC-SES-07`) |
-| Endpoints | Solo `POST /auth/login` | 17 endpoints (§3–§6 del contrato) |
+| Endpoints | Solo `POST /auth/login` | 16 endpoints (§3–§6 del contrato) |
 | CSRF | Ausente | Doble envío obligatorio (`SEC-CSRF-01`) |
 | Errores | `detail` de FastAPI | Envolvente `error.codigo` (§1) |
 
@@ -184,7 +184,7 @@ El catálogo de códigos de `auth.permisos` también quedó definido (OQ-01), as
 #### AUTH-B5 — Reautenticación y operaciones sensibles
 
 - **Carril:** B
-- **Objetivo:** proteger cambio de contraseña, cambio de correo y cambio de identidad.
+- **Objetivo:** proteger cambio de contraseña y cambio de identidad.
 - **Afectados:** `backend/app/api/auth_cuentas.py`, `backend/app/deps.py` (consumo, no definición).
 - **Dependencias:** AUTH-A6, AUTH-B4.
 - **Aceptación:** una operación sensible sin autenticación reciente responde `401 REAUTENTICACION_REQUERIDA`; la reautenticación exitosa regenera el identificador de sesión; el cambio de contraseña revoca sesiones y notifica.

@@ -164,7 +164,7 @@ Las reglas [RN-INV](business-rules.md#reglas-de-investigación--rn-inv) y [RN-AC
 
 Una actividad institucional requiere `nombre`, `dependencia` y `estado`. Solo las actividades con `estado = true` se ofrecen para nuevas reservas; al desactivarlas se conserva la fila y las referencias históricas.
 
-Desactivar una vinculación actualiza su estado y conserva su registro, conforme a RN-INV-05. No elimina las referencias ni altera las copias históricas de reservas. Los campos `fecha_inicio` y `fecha_fin` se conservan únicamente en las tablas que ya los incluyen; no se agregan a las nuevas vinculaciones.
+Desactivar una vinculación actualiza su estado y conserva su registro, conforme a RN-INV-05. Si se vuelve a vincular al mismo Usuario con la misma entidad, se reactiva la fila existente conforme a RN-INV-11; no se inserta otra relación. No elimina las referencias ni altera las copias históricas de reservas. Los campos `fecha_inicio` y `fecha_fin` se conservan únicamente en las tablas que ya los incluyen; no se agregan a las nuevas vinculaciones.
 
 Las FK verifican la existencia de una entidad, pero no acreditan que el usuario esté vinculado activamente. Esa validación corresponde a investigación y se consulta desde reservas conforme a RN-CTX-05.
 

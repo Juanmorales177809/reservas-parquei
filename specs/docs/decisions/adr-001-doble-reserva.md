@@ -98,8 +98,8 @@ ALTER TABLE reservas.reserva_recursos
 
 El disparador de sincronización de recursos debe:
 
-- Para una reserva `SOLICITADA` o `APROBADA`, derivar el periodo solicitado del detalle: intervalo horario para `RECURSO_INTERNO` y días completos desde `fecha_salida` hasta el inicio del día siguiente a `fecha_devolucion` para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. La conversión a `tstzrange` debe usar una zona horaria operativa explícita y uniforme, no la zona implícita de cada conexión.
-- Al pasar a `EN_EJECUCION`, mantener ocupado cada recurso entregado hasta que se registre su devolución física. Si no existe todavía `devuelto_at`, el rango efectivo es `[inicio, )`, con extremo superior sin límite; cuando se registra `devuelto_at`, se actualiza a `[inicio, devuelto_at)`. Así, el recurso puede volver a reservarse desde el momento de su devolución, aunque otros recursos de la misma reserva sigan en ejecución.
+- Para una reserva `SOLICITADA` o `APROBADA`, derivar el periodo solicitado del detalle: intervalo horario para `RECURSO_INTERNO` y días completos desde `fecha_salida` hasta el inicio del día siguiente a `fecha_devolucion_estimada` para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. La conversión a `tstzrange` debe usar una zona horaria operativa explícita y uniforme, no la zona implícita de cada conexión.
+- Al pasar a `EN_EJECUCION`, mantener ocupados los recursos entregados hasta el cierre único de la reserva. La finalización registra la devolución de todos los recursos entregados en la misma operación; entonces se actualizan sus rangos efectivos y todos quedan disponibles.
 - Dejar `periodo` como **NULL SQL** cuando no exista un periodo aplicable o falte un extremo necesario para definirlo. La ausencia de fecha no se representa pasando límites NULL a `tstzrange`, porque eso construiría un rango sin límite. Una ejecución abierta sin devolución es un caso distinto: tiene inicio y un rango intencionalmente abierto, no un periodo ausente.
 - Recalcular la proyección cuando se inserte o modifique el detalle por tipo, la asociación o `estado_asignacion`, el estado de la reserva, o el registro de entrega/devolución. La actualización ocurre en la misma transacción.
 
@@ -111,11 +111,11 @@ El rango es semiabierto `[)`: una reserva que termina a las 12:00 no choca con o
 
 | Condición | Cómo se satisface |
 |---|---|
-| Asignado efectivamente | En espacios, la fila de `reserva_espacio` contiene el espacio asignado. En recursos, la fila debe tener `estado_asignacion = 'ASIGNADO'`; `SOLICITADO`, `NO_DISPONIBLE` y `RETIRADO` no bloquean. |
+| Asignado efectivamente | En espacios, la fila de `reserva_espacio` contiene el espacio asignado. En recursos, la fila debe tener `estado_asignacion = 'ASIGNADO'`; `NO_DISPONIBLE` y `RETIRADO` no bloquean. |
 | Periodo definido | `periodo` es un NULL SQL si no hay periodo aplicable o falta un extremo requerido. En ejecución, un recurso todavía no devuelto tiene un periodo abierto `[inicio, )` porque sigue ocupado. |
 | Estado bloqueante | `bloqueante` refleja las transiciones de `reservas.reservas.estado_id`; para recursos también incorpora el estado de la asignación. El disparador lo mantiene en ambos tipos de cambio. |
 
-El registro de devolución física se conserva en `reserva_ejecucion_recursos.devuelto_at`. La actualización de ese dato cierra el rango efectivo del recurso en esa marca de tiempo. La finalización global de la reserva no debe retrasar la disponibilidad de un recurso que ya fue devuelto.
+El registro de devolución física se conserva en `reserva_ejecucion_recursos.devuelto_at`. En reservas que requieren devolución, esos valores se registran conjuntamente al cierre: la finalización global y la devolución de todos los recursos entregados ocurren en la misma operación.
 
 ### Lista de espera
 
@@ -144,8 +144,8 @@ La decisión se considera implementada cuando existan pruebas que, con dos trans
 2. la que falla devuelve `409 SOLAPAMIENTO` y no un error interno;
 3. una reserva sin periodo definido no impide otra sobre el mismo elemento;
 4. cancelar o rechazar una reserva libera la franja de inmediato;
-5. un recurso entregado sigue bloqueado hasta registrar su devolución, y queda disponible desde `devuelto_at`;
-6. una asociación `SOLICITADO`, `NO_DISPONIBLE` o `RETIRADO` no bloquea aunque la reserva tenga estado bloqueante;
+5. los recursos entregados siguen bloqueados hasta el cierre único que registra la devolución de todos ellos;
+6. una asociación `NO_DISPONIBLE` o `RETIRADO` no bloquea aunque la reserva tenga estado bloqueante;
 7. una reserva que termina a la misma hora en que otra empieza no se considera solape.
 
 Mientras esas pruebas no existan, `architecture.md` §10 y el contrato de reservations siguen describiendo un requisito, no una garantía satisfecha.

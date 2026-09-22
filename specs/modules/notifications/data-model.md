@@ -8,7 +8,7 @@ Convenciones: `PK` clave primaria; `FK` clave foránea; `UQ` único; `NN` `NOT N
 
 ## Diseño objetivo
 
-Las cuatro tablas siguientes sustituyen a la única tabla del inventario, que no alcanza a sostener las reglas del módulo. Son incorporaciones objetivo pendientes de aplicar en la base de datos.
+Las tablas siguientes sustituyen a la única tabla del inventario, que no alcanza a sostener las reglas del módulo. Son incorporaciones objetivo pendientes de aplicar en la base de datos.
 
 ### `notificaciones.tipos_evento`
 
@@ -24,6 +24,20 @@ Catálogo de los eventos notificables definidos en `RN-EVT-01` a `RN-EVT-11`.
 
 Agregar un evento no exige migrar un CHECK. Un tipo deshabilitado deja de generar notificaciones nuevas, pero se conserva para interpretar las históricas.
 
+### `notificaciones.eventos`
+
+Ocurrencia persistente de un evento notificable. Es la fuente común para los canales in-app y correo, sin exigir que ambos existan.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `tipo_evento_id` | integer | NN | FK → `notificaciones.tipos_evento(id)` |
+| `reserva_id` | integer | Sí | FK → `reservas.reservas(id)`; `NO ACTION` |
+| `ocurrencia_clave` | varchar(160) | NN | UQ; clave estable de idempotencia definida por el proceso que origina el evento |
+| `created_at` | timestamptz | NN | DEFAULT `now()` |
+
+`ocurrencia_clave` identifica una ejecución concreta del evento, no solo su tipo ni la reserva relacionada. Por ejemplo, una propuesta usa el identificador de la propuesta y un recordatorio usa la clave única de recordatorio de la reserva. Crear nuevamente la misma ocurrencia no genera otro evento ni otros envíos. Esta tabla no contiene contenido ni destinatarios: cada canal conserva su propio snapshot.
+
 ### `notificaciones.notificaciones`
 
 Notificación in-app. Una fila por destinatario y evento.
@@ -31,50 +45,67 @@ Notificación in-app. Una fila por destinatario y evento.
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id` | bigint | NN | PK; identity |
+| `evento_id` | bigint | NN | FK → `notificaciones.eventos(id)` |
 | `id_cuenta` | bigint | NN | FK → `auth.cuentas(id_cuenta)`; destinatario conforme a `RN-DES-03` |
-| `tipo_evento_id` | integer | NN | FK → `notificaciones.tipos_evento(id)` |
-| `reserva_id` | integer | Sí | FK → `reservas.reservas(id)`; `NO ACTION` |
 | `titulo` | varchar(255) | NN | — |
 | `cuerpo` | text | NN | — |
 | `leida_at` | timestamptz | Sí | NULL mientras no se haya leído |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-`titulo` y `cuerpo` son el contenido tal como se comunicó, conforme a `RN-CNT` y `RN-HIS-03`: no se recalculan al consultar, aunque la reserva cambie después. `leida_at` sustituye al booleano `leida` para conservar cuándo se leyó. La FK a reservas deja de ser `ON DELETE CASCADE`, porque `RN-HIS-02` exige que el registro histórico sobreviva a la entidad relacionada.
+`titulo` y `cuerpo` son el contenido tal como se comunicó, conforme a `RN-CNT` y `RN-HIS-03`: no se recalculan al consultar, aunque la reserva cambie después. `leida_at` sustituye al booleano `leida` para conservar cuándo se leyó. La referencia a la reserva se obtiene desde `eventos`; su FK no usa `ON DELETE CASCADE`, porque `RN-HIS-02` exige que el registro histórico sobreviva a la entidad relacionada.
 
-Índices `(id_cuenta, leida_at, created_at)` para la bandeja y `(reserva_id)` para la trazabilidad. UQ `(id_cuenta, tipo_evento_id, reserva_id)` cuando el evento admita una sola notificación por reserva, que es lo que permite verificar `RN-REC-02` de reservations sin duplicar estado en reservas.
+Índices `(id_cuenta, leida_at, created_at)` para la bandeja y `(evento_id)` para la trazabilidad. UQ `(evento_id, id_cuenta)` impide duplicar la notificación in-app de una misma ocurrencia para una misma cuenta.
 
 ### `notificaciones.envios_correo`
 
-Envío por correo asociado a una notificación, con su ciclo propio conforme a `RN-COR`.
+Envío por correo asociado directamente a un evento, con su ciclo propio conforme a `RN-COR`. Puede relacionarse opcionalmente con una notificación in-app, pero no depende de ella; por ello admite destinatarios sin cuenta, como una invitación de `auth`.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id` | bigint | NN | PK; identity |
-| `notificacion_id` | bigint | NN | UQ; FK → `notificaciones.notificaciones(id)` |
+| `evento_id` | bigint | NN | FK → `notificaciones.eventos(id)` |
+| `notificacion_id` | bigint | Sí | UQ; FK → `notificaciones.notificaciones(id)` |
 | `destinatario_correo` | varchar(255) | NN | copia del correo al momento del envío |
-| `estado` | varchar(15) | NN | CHECK `PENDIENTE`, `ENVIADO`, `FALLIDO` |
+| `titulo` | varchar(255) | NN | snapshot del contenido enviado |
+| `cuerpo` | text | NN | snapshot del contenido enviado |
+| `estado` | varchar(15) | NN | CHECK `PENDIENTE`, `ENVIADO`, `FALLIDO`, `ANULADO` |
 | `intentos` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `proximo_intento_at` | timestamptz | Sí | NULL cuando no hay reintento programado |
 | `ultimo_error` | text | Sí | sin credenciales ni trazas internas |
-| `adjunto_tipo` | varchar(20) | Sí | por ejemplo `ICS`, conforme a `RN-COR-06` y `RN-CAL` |
 | `enviado_at` | timestamptz | Sí | — |
+| `anulado_at` | timestamptz | Sí | solo para `ANULADO` |
+| `motivo_anulacion` | text | Sí | obligatorio para `ANULADO` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
-La política de reintentos es de hasta **cinco intentos** con espera creciente de 1, 5, 15, 60 y 240 minutos. Agotados, el envío queda en `FALLIDO` definitivo con `proximo_intento_at` en NULL; esto no invalida la operación de negocio ni la notificación in-app, conforme a `RN-COR-04` y `RN-INT-04`. El estado del correo es independiente del estado de lectura in-app (`RN-COR-05`). Índice `(estado, proximo_intento_at)` para el proceso que reintenta.
+UQ `(evento_id, destinatario_correo)` impide duplicar el correo de una misma ocurrencia a la misma dirección. CHECK exige `anulado_at` y `motivo_anulacion` solo si el estado es `ANULADO`; un envío anulado no puede tener `enviado_at` ni reintento pendiente. La política de reintentos es de hasta **cinco intentos** con espera creciente de 1, 5, 15, 60 y 240 minutos. Agotados, el envío queda en `FALLIDO` definitivo con `proximo_intento_at` en NULL; esto no invalida la operación de negocio ni la notificación in-app, conforme a `RN-COR-04` y `RN-INT-04`. El estado del correo es independiente del estado de lectura in-app (`RN-COR-05`). Índice `(estado, proximo_intento_at)` para el proceso que reintenta.
+
+### `notificaciones.envio_correo_adjuntos`
+
+Archivos que se deben incluir en un envío. Una fila por adjunto; un reintento usa las mismas filas y el mismo objeto almacenado.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `envio_correo_id` | bigint | NN | FK → `notificaciones.envios_correo(id)` |
+| `orden` | smallint | NN | CHECK `> 0`; UQ `(envio_correo_id, orden)` |
+| `nombre_original` | varchar(255) | NN | — |
+| `storage_key` | varchar(500) | NN | referencia inmutable al archivo almacenado |
+| `content_type` | varchar(100) | NN | — |
+| `size_bytes` | bigint | NN | CHECK `>= 0` |
+| `contenido_hash` | varchar(128) | NN | identifica la versión exacta enviada |
 
 ### `notificaciones.preferencias`
 
-Preferencias de envío por correo (`RN-PREF-01`, `RN-PREF-02`).
+Preferencias individuales de envío por correo (`RN-PREF-01`). La habilitación general por unidad tiene una única fuente: `reservas.laboratorios_config.notificar_por_correo`, propiedad de Resources.
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id` | integer | NN | PK; identity |
-| `id_cuenta` | bigint | Sí | FK → `auth.cuentas(id_cuenta)` |
-| `id_unidad` | integer | Sí | FK → unidad organizacional |
+| `id_cuenta` | bigint | NN | FK → `auth.cuentas(id_cuenta)` |
 | `tipo_evento_id` | integer | Sí | FK → `notificaciones.tipos_evento(id)`; NULL aplica a todos los eventos |
 | `correo_habilitado` | boolean | NN | DEFAULT `true` |
 
-CHECK que exige exactamente uno entre `id_cuenta` e `id_unidad`: una preferencia es del destinatario o de la unidad, nunca de ambos. UQ `(id_cuenta, tipo_evento_id)` y UQ `(id_unidad, tipo_evento_id)`. Estas preferencias solo afectan el canal de correo: la notificación in-app siempre se genera y se consulta (`RN-PREF-01`). No aplican a los correos de autenticación (`RN-PREF-03`), que pertenecen a `auth`.
+Índice único parcial `(id_cuenta, tipo_evento_id)` WHERE `tipo_evento_id IS NOT NULL` y otro único parcial `(id_cuenta)` WHERE `tipo_evento_id IS NULL`. Así cada cuenta puede tener una sola preferencia general y una sola preferencia por tipo de evento. Estas preferencias solo afectan el canal de correo: la notificación in-app siempre se genera y se consulta (`RN-PREF-01`). No aplican a los correos de autenticación (`RN-PREF-03`), que pertenecen a `auth`.
 
 ## Conservación
 
@@ -84,6 +115,6 @@ Las notificaciones y sus envíos se conservan indefinidamente, conforme a `RN-HI
 
 El inventario documentado en el principal contiene una sola tabla `reservas.notificaciones` con `usuario_id integer` sin FK, un CHECK de cuatro valores heredado del ciclo anterior de reservas y `ON DELETE CASCADE` sobre `reserva_id`. El diseño objetivo anterior la reemplaza: el destinatario pasa a ser `id_cuenta bigint` con FK real a `auth.cuentas`, conforme a `RN-DES-02` y `RN-DES-03`.
 
-Queda pendiente definir el contenido concreto de `titulo` y `cuerpo` por tipo de evento, y la lista definitiva de eventos que admiten una sola notificación por reserva.
+Queda pendiente definir el contenido concreto de `titulo` y `cuerpo` por tipo de evento.
 
 El estado oficial de la reserva pertenece a [Reservations](../reservations/data-model.md); el estado de lectura de una notificación no lo modifica.

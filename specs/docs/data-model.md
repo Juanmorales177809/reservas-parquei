@@ -13,14 +13,14 @@ Se suman como incorporaciones objetivo, definidas en los modelos de cada módulo
 | `auth.permisos`, `auth.cuenta_permisos` | [auth](../modules/auth/data-model.md) |
 | `auth.invitaciones`, `auth.tokens_recuperacion` | [auth](../modules/auth/data-model.md) |
 | `auth.sesiones.ultima_actividad_at` y `reautenticado_at` | [auth](../modules/auth/data-model.md) |
-| `administration.auditoria`, `administration.importaciones` | [administration](../modules/administration/data-model.md) |
+| `administration.auditoria`, `administration.importaciones`, `administration.importacion_resultados` | [administration](../modules/administration/data-model.md) |
 | `unidadOrganizacional.unidad_organizacional.estado` | [administration](../modules/administration/data-model.md) |
 | `notificaciones.tipos_evento`, `notificaciones.notificaciones`, `notificaciones.envios_correo`, `notificaciones.preferencias` | [notifications](../modules/notifications/data-model.md) |
 | `reservas.espacio_recursos`, `reservas.espacio_campos`, `reservas.espacio_campo_opciones` | [espacios](../modules/espacios/data-model.md) |
-| `reservas.ordenes_salida`, `reservas.orden_salida_items`, `reservas.orden_salida_actividades` | [reservations](../modules/reservations/data-model.md) |
+| `reservas.reserva_lista_espera_formulario`, `reservas.reserva_datos_salida`, `reservas.ordenes_salida`, `reservas.orden_salida_items`, `reservas.orden_salida_actividades` | [reservations](../modules/reservations/data-model.md) |
 | `reservas.reserva_propuestas` | [reservations](../modules/reservations/data-model.md) |
 | Las diez columnas de snapshot de `reservas.reserva_contexto` | [reservations](../modules/reservations/data-model.md) |
-| `reservas.laboratorios_config.recordatorio_horas_antes` | [resources](../modules/resources/data-model.md) |
+| `reservas.laboratorios_config.recordatorio_horas_antes`, `reservas.laboratorios_config_historico` | [resources](../modules/resources/data-model.md) |
 | Los campos `documento`, `telefono`, `institucion` y `dependencia` de `usuarios.usuarios` | [usuarios](../modules/usuarios/data-model.md) |
 | `identity BY DEFAULT` en `investigacion.proyectos` e `investigacion.semilleros` | [researchs](../modules/researchs/data-model.md) |
 
@@ -40,7 +40,7 @@ Los modelos de módulo centralizan el detalle por responsabilidad funcional. Est
 | [usuarios](../modules/usuarios/data-model.md) | `usuarios.usuarios`, `personal.personal` |
 | [administration](../modules/administration/data-model.md) | `unidadOrganizacional.unidad_organizacional`, `cargos.cargo`, `reservas.control_cambios` |
 | [espacios](../modules/espacios/data-model.md) | `reservas.espacios` |
-| [resources](../modules/resources/data-model.md) | `recursos.recursos`, `recursos.equipos`, `recursos.categorias_equipos`, `recursos.mobiliarios`, `recursos.otros_recursos`, `reservas.laboratorios_config` |
+| [resources](../modules/resources/data-model.md) | `recursos.recursos`, `recursos.equipos`, `recursos.categorias_equipos`, `recursos.mobiliarios`, `recursos.otros_recursos`, `reservas.laboratorios_config`, `reservas.laboratorios_config_historico` |
 | [notifications](../modules/notifications/data-model.md) | `reservas.notificaciones` |
 | [reservations](../modules/reservations/data-model.md) | `reservas.tipos_reserva`, `reservas.motivos_solicitud`, `reservas.reservas`, `reservas.reserva_espacio`, `reservas.reserva_recursos`, `reservas.reserva_contexto`, `reservas.reserva_acompanantes` |
 | [researchs](../modules/researchs/data-model.md) | `investigacion.modalidades_vinculacion`, `investigacion.perfiles`, `investigacion.proyectos`, `investigacion.semilleros`, `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado`, `investigacion.usuario_trabajos_grado`, `investigacion.usuario_modalidades_vinculacion`, `investigacion.usuario_perfiles`, `investigacion.usuario_proyectos`, `investigacion.usuario_semilleros` |
@@ -118,7 +118,7 @@ El catálogo unificado objetivo `recursos.recursos` se define en Resources; las 
 | `nombre` | varchar(50) | NN | — |
 | `id_cargo` | integer | NN | FK `fk_personal_cargo` → `cargos.cargo(id_cargo)` |
 | `documento` | varchar(20) | NN | UQ `uq_personal_documento` |
-| `correo` | varchar(150) | NN | UQ `uq_personal_correo` |
+| `correo` | varchar(255) | NN | UQ `uq_personal_correo` |
 | `telefono` | varchar(20) | NN | UQ `uq_personal_telefono` |
 | `estado` | boolean | Sí | — |
 
@@ -148,6 +148,23 @@ La tabla ya no contiene `supabase_id`.
 
 Las opciones de visibilidad son incorporaciones objetivo por unidad, pendientes de aplicar en la base de datos. Sus reglas se centralizan en [RN-DIS de Reservations](../modules/reservations/business-rules.md#disponibilidad--rn-dis) y su definición se mantiene alineada con [Resources](../modules/resources/data-model.md#reservaslaboratorios_config).
 
+## `reservas.laboratorios_config_historico`
+
+Historial de las versiones del horario de atención de cada unidad, usado por Reports para calcular ocupación histórica con el horario vigente en cada periodo.
+
+| Campo | Tipo | Null | PK/UQ/FK/default/check |
+|---|---|---|---|
+| `id` | bigint | NN | PK; identity |
+| `id_unidad` | integer | NN | FK → `unidadOrganizacional.unidad_organizacional(id_unidad)` |
+| `dias_atencion` | jsonb | NN | — |
+| `hora_apertura` | time | NN | CHECK `hora_apertura < hora_cierre` |
+| `hora_cierre` | time | NN | — |
+| `horario_atencion` | jsonb | NN | — |
+| `vigente_desde` | timestamptz | NN | — |
+| `vigente_hasta` | timestamptz | Sí | CHECK `vigente_hasta > vigente_desde` cuando exista |
+
+Los intervalos de una misma unidad no se solapan y solo una versión puede permanecer abierta. Este historial no otorga horarios propios a espacios ni recursos.
+
 ## `reservas.espacios`
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
@@ -166,7 +183,7 @@ Las opciones de visibilidad son incorporaciones objetivo por unidad, pendientes 
 |---|---|---|---|
 | `id` | integer | NN | PK `tipos_reserva_pkey`; identity |
 | `nombre` | varchar(100) | NN | — |
-| `descripcion` | text | Sí | — |
+| `descripcion` | text | NN | usar `N/A` cuando no exista una descripción aplicable |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
 ## `reservas.motivos_solicitud`
@@ -207,10 +224,10 @@ Las opciones de visibilidad son incorporaciones objetivo por unidad, pendientes 
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
-| `id` | integer | NN | PK `reserva_acompanantes_pkey`; identity |
-| `reserva_id` | integer | NN | FK → `reservas.reservas(id)` ON DELETE CASCADE |
-| `nombre` | varchar(150) | NN | — |
-| `correo` | varchar(255) | Sí | — |
+| `reserva_id` | integer | NN | PK compuesta; FK → `reservas.reservas(id)` |
+| `id_cuenta` | bigint | NN | PK compuesta; FK → `auth.cuentas(id_cuenta)` |
+
+La PK compuesta `(reserva_id, id_cuenta)` impide duplicar la misma cuenta como acompañante de una reserva.
 
 ### `reservas.notificaciones`
 

@@ -39,13 +39,14 @@ Researchs proporciona las entidades, las actividades institucionales y sus vincu
 
 ## Estado y decisiones pendientes
 
-Las reglas iniciales se recogen en RN-INV-01 a RN-INV-07 y RN-ACT-01 a RN-ACT-03. Las tablas de actividades institucionales, pasantías, trabajos de grado y sus vinculaciones están documentadas como cambios pendientes de aplicar en la base de datos. Esta documentación no acredita implementación en el backend.
+Las reglas iniciales se recogen en RN-INV-01 a RN-INV-11 y RN-ACT-01 a RN-ACT-04. Las tablas de actividades institucionales, pasantías, trabajos de grado y sus vinculaciones están documentadas como cambios pendientes de aplicar en la base de datos. Esta documentación no acredita implementación en el backend.
 
-Quedan pendientes los permisos concretos para administrar estas entidades, sus flujos y contratos API, y el mecanismo de auditoría de cambios de vinculación. El estado actual permite conservar registros desactivados, pero por sí solo no registra cada transición histórica.
+El mecanismo de auditoría de cambios de vinculación y el contrato API de las operaciones administrativas siguen pendientes. El estado actual permite conservar registros desactivados, pero por sí solo no registra cada transición histórica.
 
 ## Documentación relacionada
 
 - [Reglas de negocio](business-rules.md).
 - [Modelo de datos del módulo](data-model.md).
+- [Flujos de usuario](user-flow.md).
 - [Modelo general](../../docs/data-model.md#schema-investigacion).
 - [Modelo de contexto de reservas](../reservations/data-model.md#reservasreserva_contexto).

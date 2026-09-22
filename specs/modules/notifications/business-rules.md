@@ -20,7 +20,7 @@ Un mismo evento puede dar lugar a dos registros independientes: una notificació
 
 - **RN-NOT-04:** El contenido de una notificación debe corresponder al evento que la originó y no debe inferir estados o resultados distintos de los registrados por el módulo propietario.
 
-- **RN-NOT-05:** Una misma operación o condición no debe generar notificaciones duplicadas para el mismo destinatario, evento, canal y referencia funcional.
+- **RN-NOT-05:** Una misma ocurrencia de evento no debe generar notificaciones duplicadas para el mismo destinatario y canal. La ocurrencia se identifica mediante una clave estable definida por el proceso que la origina, no solo por el tipo de evento o la reserva relacionada.
 
 - **RN-NOT-06:** Un evento puede originar, según corresponda, una notificación in-app, un envío de correo, ambos o ninguno. La determinación de qué canales aplican para cada tipo de evento pertenece a la configuración del sistema y a las preferencias vigentes del destinatario (ver RN-PREF).
 
@@ -37,6 +37,8 @@ Un mismo evento puede dar lugar a dos registros independientes: una notificació
 - **RN-DES-04:** Cuando una operación administrativa requiera notificar a un Técnico o Administrador, los destinatarios deben determinarse mediante las reglas vigentes de autorización y alcance organizacional.
 
 - **RN-DES-05:** La existencia de una notificación histórica no depende de que el destinatario permanezca activo posteriormente.
+
+- **RN-DES-06:** Un correo puede destinarse a una dirección persistida y verificable aunque todavía no exista una cuenta asociada, cuando el proceso propietario lo autorice, como en una invitación de `auth`. Esta condición no crea una notificación in-app.
 
 ---
 
@@ -94,7 +96,9 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-COR-05:** El estado de un envío de correo se conserva y consulta de forma independiente del estado de lectura de la notificación in-app asociada al mismo evento, cuando ambas existan.
 
-- **RN-COR-06:** Un envío de correo puede incluir un archivo adjunto cuando el tipo de evento lo requiera (por ejemplo, un archivo de calendario `.ics`), conforme a lo definido en RN-CAL y RN-CNT.
+- **RN-COR-06:** Un envío de correo puede incluir uno o más archivos adjuntos cuando el tipo de evento lo requiera (por ejemplo, un archivo de calendario `.ics`), conforme a lo definido en RN-CAL y RN-CNT. Cada reintento utiliza las mismas versiones persistidas de los adjuntos.
+
+- **RN-COR-07:** Un envío en estado `PENDIENTE` puede anularse antes de su transmisión cuando desaparezca la condición que lo justificaba. Se registra como `ANULADO`, con momento y motivo; no se marca como enviado ni se reintenta.
 
 ---
 
@@ -136,9 +140,11 @@ Las siguientes reglas definen eventos notificables asociados al ciclo de vida de
 
 - **RN-PREF-01:** Un destinatario puede configurar si desea recibir por correo las notificaciones de un tipo de evento determinado. Esta preferencia no afecta la generación ni la consulta de la notificación in-app correspondiente.
 
-- **RN-PREF-02:** Un laboratorio o unidad organizacional puede deshabilitar el envío de correo para el conjunto de eventos asociados a sus reservas o recursos, sin que ello afecte el registro de notificaciones in-app.
+- **RN-PREF-02:** La habilitación general del correo para los eventos de una unidad se consulta exclusivamente en `reservas.laboratorios_config.notificar_por_correo`, conforme a RN-LAB-07 de Resources. Si está deshabilitada, no se generan correos para esos eventos, pero las notificaciones in-app permanecen independientes.
 
 - **RN-PREF-03:** Las preferencias de envío no aplican a comunicaciones de autenticación (invitación, recuperación de contraseña) definidas por el módulo correspondiente.
+
+- **RN-PREF-04:** Cuando el correo esté habilitado para la unidad, la preferencia individual más específica de la cuenta —por tipo de evento y, en su ausencia, general— determina si se crea el envío. Las preferencias por unidad no existen en Notifications.
 
 ---
 

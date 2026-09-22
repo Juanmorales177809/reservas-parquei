@@ -25,10 +25,11 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 - **RN-ID-08:** La identidad autenticada se determina exclusivamente a partir de una cuenta validada. No se identifica a una persona por nombre, correo enviado por el cliente u otro dato no verificado.
 
 - **RN-ID-09:** Una cuenta se crea por una de dos vías: invitación emitida por una cuenta con permiso de administración, o autorregistro abierto sin aprobación previa. El autorregistro solo permite crear una cuenta vinculada inicialmente como usuario y nunca permite autoasignarse permisos administrativos ni una vinculación como personal.
-
 - **RN-ID-10:** Una cuenta que no completó su proceso de alta puede recibir una nueva invitación sin que eso duplique su identidad ni impida reintentar el alta.
 
 - **RN-ID-11:** El historial de reservas, notificaciones y auditoría debe mantenerse asociado a la misma cuenta aunque la identidad funcional permanezca inactiva.
+
+- **RN-ID-12:** Cuando una identidad ya tenga una cuenta asociada, su correo y el de la cuenta son el mismo valor inmutable. Antes de crear la cuenta, la identidad puede corregirse mediante la gestión administrativa aplicable.
 
 ---
 
@@ -44,7 +45,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-USR-05:** La vinculación con `usuarios.usuarios` no concede permisos administrativos sobre reservas de terceros.
 
-- **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos, pasantías, trabajos de grado y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación.
+- **RN-USR-06:** Los perfiles académicos o investigativos, semilleros, proyectos, pasantías, trabajos de grado y modalidades de vinculación no forman parte de la autenticación y se gestionan en el dominio de investigación. El Usuario gestiona únicamente sus propias vinculaciones; las intervenciones sobre vínculos ajenos y las actividades institucionales corresponden al Administrador global conforme a Researchs.
 - **RN-USR-07:** En el primer ingreso autenticado, el Usuario debe completar la actualización inicial de sus datos personales y contar con al menos una vinculación académica o investigativa activa y válida a un proyecto, semillero, pasantía o trabajo de grado.
 - **RN-USR-08:** Mientras la actualización inicial esté pendiente, el Usuario solo puede acceder a las operaciones necesarias para completar su perfil, seleccionar o mantener sus vinculaciones y cerrar sesión; no puede crear reservas ni ejecutar otras operaciones de negocio que requieran el perfil completo.
 - **RN-USR-09:** La actualización inicial puede cumplirse con una o más vinculaciones de cualquier tipo admitido; no exige tener una vinculación de cada tipo. Una actividad institucional no cuenta como vinculación académica o investigativa.
@@ -66,7 +67,7 @@ La autenticación pertenece al schema `auth`. Las identidades funcionales se rep
 
 - **RN-PER-02:** El ámbito organizacional del personal se obtiene mediante la relación `personal -> cargo -> unidad_organizacional`, salvo que el modelo persistente defina una relación adicional explícita.
 
-- **RN-PER-03:** El cargo determina las acciones que pueden ser autorizadas y la unidad organizacional determina el ámbito donde pueden ejercerse.
+- **RN-PER-03:** El cargo determina únicamente la unidad organizacional de pertenencia del Personal. Las acciones autorizadas se determinan exclusivamente mediante `auth.cuenta_permisos` y su alcance.
 
 - **RN-PER-04:** Pertenecer a una unidad organizacional no concede automáticamente todas las acciones administrativas disponibles en dicha unidad.
 
