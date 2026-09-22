@@ -2,19 +2,25 @@
 
 Contrato de comunicación del módulo `resources`. Traduce a superficie HTTP los 12 flujos de [user-flow.md](../../modules/resources/user-flow.md), las reglas de [business-rules.md](../../modules/resources/business-rules.md) y las entidades de [data-model.md](../../modules/resources/data-model.md).
 
+---
+
+## 1. Convenciones
+
 Aplica las [convenciones transversales](../README.md). Aquí solo se documenta lo propio de resources.
 
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/recursos` para el catálogo; `/api/laboratorios` para la configuración de unidad |
-| Permiso administrativo | `recursos.administrar` sobre la unidad para mobiliarios y otros recursos; equipos existentes: `recursos.editar_equipos` sobre la unidad para el Técnico y `recursos.administrar_equipos` global para el Administrador; crear equipos requiere `recursos.administrar_equipos` global |
+| Permiso administrativo | `recursos.administrar` sobre la unidad para mobiliarios y otros recursos; equipos existentes: `recursos.editar_equipos` sobre la unidad para el Técnico y `recursos.administrar_equipos` global para el Administrador; crear equipos requiere `recursos.administrar_equipos` global; reasignar la unidad de un recurso requiere `recursos.reasignar_unidad` global; la configuración del laboratorio requiere `laboratorios.configurar` sobre la unidad |
+| Identificadores | `id` entero del recurso, compartido con su especialización; `id_unidad` entero de la unidad organizacional |
 
-Códigos de error propios:
+Códigos de error propios, adicionales al catálogo común:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
 | 409 | `TIPO_INCOMPATIBLE` | La especialización enviada no corresponde al `tipo` del recurso |
-| 409 | `UNIDAD_INCOMPATIBLE` | La unidad del recurso y la de una especialización que mantenga `id_unidad` propio no coinciden |
+
+`409 UNIDAD_INCOMPATIBLE` pertenece al catálogo común; aquí significa que la unidad del recurso y la de una especialización que mantenga `id_unidad` propio no coinciden, o que el recurso no pertenece a la unidad de destino al reasignarlo.
 
 El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo: equipos, mobiliarios y otros. La creación del recurso y su especialización es **atómica**: o se escriben ambas o ninguna. No se ofrece eliminación física de equipos; para impedir su uso futuro se deshabilitan, conservando su historial.
 
@@ -22,9 +28,9 @@ El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo
 
 ---
 
-## 1. Catálogo de recursos
+## 2. Catálogo de recursos
 
-### 1.1 `POST /api/recursos`
+### 2.1 `POST /api/recursos`
 
 Registra un recurso con su especialización. Flujos `UF-REC-01` (mobiliario), `UF-REC-02` (otro) y `UF-REC-03` (equipo).
 
@@ -49,21 +55,21 @@ Para `tipo: "EQUIPO"`, la especialización corresponde a `recursos.equipos` y co
 
 **Errores:** `409 TIPO_INCOMPATIBLE`, `409 UNIDAD_INCOMPATIBLE`, `403 NO_AUTORIZADO` si el actor no cuenta con el permiso requerido; el Técnico no puede crear equipos.
 
-### 1.2 `GET /api/recursos`
+### 2.2 `GET /api/recursos`
 
 Listado paginado. Flujo `UF-REC-04`. Filtros: `id_unidad`, `tipo`, `habilitado`, `busqueda` sobre nombre y placa. Orden admitido: `nombre`, `tipo`.
 
 El listado ofrecido para **reservar** excluye los equipos con `acreditado = true`, que no son reservables aunque estén habilitados y operativos (`RN-REC-11`). El filtro `reservable=true` aplica esa exclusión; sin él, el listado administrativo los incluye.
 
-### 1.3 `GET /api/recursos/{id}`
+### 2.3 `GET /api/recursos/{id}`
 
 Detalle con la especialización correspondiente al tipo. Flujo `UF-REC-05`. Para equipos incluye placa, serial, calibración, `requiere_apoyo` y `acreditado`.
 
-### 1.4 `PATCH /api/recursos/{id}`
+### 2.4 `PATCH /api/recursos/{id}`
 
 Actualiza la especialización. Flujos `UF-REC-06`, `UF-REC-07` y `UF-REC-12`. Los campos admitidos dependen del tipo. Para equipos, el Técnico requiere `recursos.editar_equipos` en la unidad del equipo y puede actualizar los datos del equipo y `recursos.equipos.estado`; el Administrador requiere `recursos.administrar_equipos` global. Los cambios de equipo no admiten crear ni eliminar el registro ni modificar su unidad responsable. El campo común `recursos.recursos.habilitado` se modifica mediante el endpoint `/estado`.
 
-### 1.5 `PATCH /api/recursos/{id}/estado`
+### 2.5 `PATCH /api/recursos/{id}/estado`
 
 Habilita o deshabilita el campo común `recursos.recursos.habilitado`. Flujos `UF-REC-08` y `UF-REC-09`. Para equipos se exige `recursos.editar_equipos` en la unidad del equipo al Técnico o `recursos.administrar_equipos` global al Administrador; para otros recursos se exige el permiso correspondiente a su tipo. Este endpoint no modifica `recursos.equipos.estado`, que se actualiza con `PATCH /api/recursos/{id}`.
 
@@ -83,15 +89,15 @@ Al deshabilitar, el sistema **advierte antes** cuántas reservas futuras se canc
 
 **Errores:** `409 CONFLICTO` si hay cancelaciones pendientes de confirmar.
 
-### 1.6 `GET /api/recursos/{id}/impacto-deshabilitacion`
+### 2.6 `GET /api/recursos/{id}/impacto-deshabilitacion`
 
-Conteo previo para poblar la confirmación, sin ejecutar nada.
+Conteo previo para poblar la confirmación de §2.5, sin ejecutar nada. Sustenta el paso de advertencia de `UF-REC-09`.
 
 ```json
 { "reservas_a_cancelar": 2, "reservas_a_retirar": 3 }
 ```
 
-### 1.7 `PATCH /api/recursos/{id}/unidad`
+### 2.7 `PATCH /api/recursos/{id}/unidad`
 
 Cambia la unidad responsable. Flujo `UF-REC-10`. Permiso: `recursos.reasignar_unidad`.
 
@@ -105,11 +111,11 @@ La unidad del recurso y la de su especialización deben quedar coincidentes. Las
 
 ---
 
-## 2. Configuración del laboratorio
+## 3. Configuración del laboratorio
 
 Es la configuración por unidad en `reservas.laboratorios_config`. Incluye el horario de atención, que **es el horario aplicable a todos los espacios y recursos de esa unidad** (`RN-ESP-DIS-02` de espacios).
 
-### 2.1 `GET /api/laboratorios/{id_unidad}/configuracion`
+### 3.1 `GET /api/laboratorios/{id_unidad}/configuracion`
 
 ```json
 {
@@ -129,7 +135,7 @@ Es la configuración por unidad en `reservas.laboratorios_config`. Incluye el ho
 
 La lectura del horario es pública para cualquier cuenta autenticada: el Usuario siempre puede consultarlo y las opciones de visibilidad no pueden ocultarlo (`RN-DIS-07` de reservations).
 
-### 2.2 `PATCH /api/laboratorios/{id_unidad}/configuracion`
+### 3.2 `PATCH /api/laboratorios/{id_unidad}/configuracion`
 
 Modifica la configuración. Permiso: `laboratorios.configurar` sobre la unidad.
 
@@ -137,7 +143,7 @@ Cambiar el horario **cambia el de todos los espacios de la unidad**, porque ning
 
 `recordatorio_horas_antes` debe ser mayor que cero y define la anticipación del recordatorio automático (`RN-REC-01` de reservations).
 
-### 2.3 `PUT /api/laboratorios/{id_unidad}/tipos-reserva`
+### 3.3 `PUT /api/laboratorios/{id_unidad}/tipos-reserva`
 
 Define qué tipos de reserva ofrece el laboratorio (`RN-TIP-05` de reservations).
 
@@ -147,7 +153,7 @@ Define qué tipos de reserva ofrece el laboratorio (`RN-TIP-05` de reservations)
 
 Una lista vacía deja el laboratorio sin reservas posibles (`RN-TIP-06` de reservations). Los tipos deshabilitados se conservan para mantener las referencias históricas.
 
-### 2.4 `PATCH /api/laboratorios/{id_unidad}/visibilidad`
+### 3.4 `PATCH /api/laboratorios/{id_unidad}/visibilidad`
 
 Opciones de visibilidad de la disponibilidad. Flujo `UF-RES-20` de reservations, cuya configuración pertenece a este módulo.
 
@@ -159,7 +165,7 @@ Ninguna de las dos puede ocultar el horario ni las franjas ocupadas (`RN-DIS-07`
 
 ---
 
-## 3. Contrato interno hacia otros módulos
+## 4. Contrato interno hacia otros módulos
 
 Resources no expone un endpoint para que otros módulos consulten disponibilidad: la disponibilidad temporal depende de las reservas y la resuelve reservations (`RN-ESP-REC-05` de espacios). Flujo `UF-REC-11`.
 
@@ -173,7 +179,7 @@ Lo que resources sí provee internamente:
 
 ---
 
-## 4. Lo que este contrato no expone
+## 5. Lo que este contrato no expone
 
 - **Importación masiva de equipos**: la orquesta administration conforme a `RN-IMP-01` y `UF-ADM-04` de ese módulo, y su contrato sigue pendiente. Este módulo aporta las validaciones del equipo (`RN-IMP-02` a `RN-IMP-05`) y la escritura de `UF-REC-03`, no un endpoint de carga propio.
 - **Disponibilidad**: la resuelve [reservations](../reservations/api-contract.md).

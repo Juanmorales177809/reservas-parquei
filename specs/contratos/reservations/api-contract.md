@@ -2,11 +2,16 @@
 
 Contrato de comunicación del módulo `reservations`. Traduce a superficie HTTP los flujos de [user-flows.md](../../modules/reservations/user-flows.md), las reglas de [business-rules.md](../../modules/reservations/business-rules.md) y las entidades de [data-model.md](../../modules/reservations/data-model.md).
 
+---
+
+## 1. Convenciones
+
 Aplica las [convenciones transversales](../README.md): formato, fechas, errores, autenticación, paginación y concurrencia. Aquí solo se documenta lo propio de reservas.
 
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/reservas` |
+| Permiso administrativo | `reservas.administrar` sobre la unidad de la reserva para aprobar, rechazar, gestionar recursos, ejecutar y finalizar; `reservas.exportar` para la exportación. Crear y consultar las propias reservas no exige permiso administrativo |
 | Identificadores | `id` entero de la reserva; `reserva_recurso_id` entero de la asignación |
 
 Códigos de error propios, adicionales al catálogo común:
@@ -17,14 +22,15 @@ Códigos de error propios, adicionales al catálogo común:
 | 409 | `ESTADO_INCOMPATIBLE` | La operación no aplica al estado actual de la reserva (`RN-EST`) |
 | 409 | `FUERA_DE_HORARIO` | La fecha u horario quedan fuera del horario de atención de la unidad (`RN-HOR`) |
 | 409 | `CAPACIDAD_EXCEDIDA` | Los asistentes superan la capacidad del espacio (`RN-TIP-PE-05`) |
+| 409 | `TIPO_NO_ADMITIDO` | La operación no aplica al tipo de la reserva (`RN-TIP`, `RN-CAL-01`) |
 
 ---
 
-## 1. Creación
+## 2. Creación
 
-### 1.1 `POST /api/reservas`
+### 2.1 `POST /api/reservas`
 
-Crea una solicitud de reserva de cualquier tipo. Flujos por tipo: [UF-RES-01](../../modules/reservations/user-flows.md) para espacio, `UF-RES-02` para recurso interno, `UF-RES-03` para campus, `UF-RES-04` para externo y `UF-RES-05` para lista de espera. `UF-RES-08` cubre la creación por un Técnico.
+Crea una solicitud de reserva de cualquier tipo. Flujos por tipo: `UF-RES-01` para espacio, `UF-RES-02` para recurso interno, `UF-RES-03` para campus, `UF-RES-04` para externo y `UF-RES-05` para lista de espera. `UF-RES-08` cubre la creación por un Técnico.
 
 El cuerpo tiene una parte común y un bloque `detalle` cuya forma depende del tipo:
 
@@ -90,9 +96,9 @@ La cabecera, el detalle, las asignaciones, el contexto y los valores de campos s
 
 **Errores:** `403 PERFIL_INICIAL_PENDIENTE` y `403 VINCULACION_REQUERIDA` (`RN-RES-11`), `409 SOLAPAMIENTO`, `409 FUERA_DE_HORARIO`, `409 CAPACIDAD_EXCEDIDA`, `409 CONFLICTO` si el tipo no está habilitado para el laboratorio (`RN-TIP-05`), `422 VALIDACION`.
 
-### 1.2 `GET /api/reservas/tipos?id_unidad=7`
+### 2.2 `GET /api/reservas/tipos?id_unidad=7`
 
-Tipos de reserva habilitados para un laboratorio (`RN-TIP-02`, `RN-TIP-03`).
+Tipos de reserva habilitados para un laboratorio. Sustenta el paso de selección de tipo de `UF-RES-01` a `UF-RES-05` (`RN-TIP-02`, `RN-TIP-03`).
 
 **`200 OK`**
 
@@ -102,9 +108,9 @@ Tipos de reserva habilitados para un laboratorio (`RN-TIP-02`, `RN-TIP-03`).
 
 Si la lista trae un solo elemento, el cliente lo selecciona automáticamente (`RN-TIP-02`). Una lista vacía significa que el laboratorio no admite reservas (`RN-TIP-06`).
 
-### 1.3 `PUT /api/reservas/{id}/lista-espera/formulario`
+### 2.3 `PUT /api/reservas/{id}/lista-espera/formulario`
 
-Persiste el formulario complementario de una reserva `LISTA_ESPERA` que el Técnico ya declaró viable. El Usuario envía su parte:
+Persiste el formulario complementario de una reserva `LISTA_ESPERA` que el Técnico ya declaró viable. Flujo `UF-RES-05`. El Usuario envía su parte:
 
 ```json
 { "datos_usuario": { "campo": "valor" } }
@@ -120,23 +126,23 @@ La operación no aprueba la reserva ni crea un estado propio para el formulario.
 
 ---
 
-## 2. Consulta
+## 3. Consulta
 
-### 2.1 `GET /api/reservas`
+### 3.1 `GET /api/reservas`
 
-Listado paginado conforme a las [convenciones](../README.md). El ámbito lo determina el rol: un Usuario ve solo las suyas, un Técnico las de su unidad y un Administrador las de cualquier unidad.
+Listado paginado conforme a las [convenciones](../README.md). Sustenta la consulta de `UF-RES-19` y la revisión previa a `UF-RES-07`. El ámbito lo determina el rol: un Usuario ve solo las suyas, un Técnico las de su unidad y un Administrador las de cualquier unidad.
 
 Filtros: `estado`, `tipo_reserva`, `id_unidad`, `desde`, `hasta`, `espacio_id`, `recurso_id`. Orden admitido: `created_at`, `fecha`, `estado`.
 
 **`200 OK`** — envolvente `datos` + `paginacion`, con una fila resumida por reserva.
 
-### 2.2 `GET /api/reservas/{id}`
+### 3.2 `GET /api/reservas/{id}`
 
 Detalle completo: cabecera, detalle del tipo, recursos asignados con su rol y estado, contexto con sus snapshots, acompañantes, campos adicionales, propuesta vigente si existe e historial de estados.
 
 **Errores:** `404 NO_ENCONTRADO` si está fuera del ámbito del actor.
 
-### 2.3 `GET /api/reservas/disponibilidad`
+### 3.3 `GET /api/reservas/disponibilidad`
 
 Consulta de disponibilidad. Flujo `UF-RES-19`.
 
@@ -157,9 +163,9 @@ Esta consulta **no reserva ni garantiza nada**: la disponibilidad se revalida al
 
 ---
 
-## 3. Gestión por el Técnico
+## 4. Gestión por el Técnico
 
-### 3.1 `POST /api/reservas/{id}/aprobacion`
+### 4.1 `POST /api/reservas/{id}/aprobacion`
 
 Aprueba una reserva. Flujo `UF-RES-07`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
@@ -173,7 +179,7 @@ Aprobar revalida disponibilidad, horario y capacidad (`RN-APR-06`). Para lista d
 
 **Errores:** `409 ESTADO_INCOMPATIBLE`, `409 SOLAPAMIENTO`, `403 NO_AUTORIZADO`.
 
-### 3.2 `POST /api/reservas/{id}/rechazo`
+### 4.2 `POST /api/reservas/{id}/rechazo`
 
 ```json
 { "motivo": "El laboratorio estará en mantenimiento" }
@@ -181,7 +187,7 @@ Aprobar revalida disponibilidad, horario y capacidad (`RN-APR-06`). Para lista d
 
 `motivo` es obligatorio. **`200 OK`** con `estado: "RECHAZADA"`.
 
-### 3.3 `POST /api/reservas/{id}/recursos`
+### 4.3 `POST /api/reservas/{id}/recursos`
 
 Agrega recursos a una reserva ya creada. Flujos `UF-RES-09` y `UF-RES-10`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
@@ -193,15 +199,15 @@ Admitido en `SOLICITADA`, `APROBADA` y `EN_EJECUCION` (`RN-TIP-PE-21`). En `EN_E
 
 **`201 Created`** con las asignaciones creadas.
 
-### 3.4 `DELETE /api/reservas/{id}/recursos/{reserva_recurso_id}`
+### 4.4 `DELETE /api/reservas/{id}/recursos/{reserva_recurso_id}`
 
 Retira un recurso de la reserva. **`204 No Content`**. No borra la fila: la marca con `estado_asignacion = RETIRADO` y conserva el historial.
 
 ---
 
-## 4. Propuestas de periodo
+## 5. Propuestas de periodo
 
-### 4.1 `POST /api/reservas/{id}/propuestas`
+### 5.1 `POST /api/reservas/{id}/propuestas`
 
 Propone un periodo alternativo para `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS` o `RECURSO_EXTERNO`. No aplica a `LISTA_ESPERA`. Flujo `UF-RES-15`. Lo usa el Técnico para proponer y el Usuario para contraproponer; `origen` se deriva del rol del actor, no del cuerpo.
 
@@ -217,21 +223,21 @@ Propone un periodo alternativo para `ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPU
 
 **`201 Created`** con la propuesta en estado `VIGENTE`. Si ya existía una vigente, queda `SUSTITUIDA` (`RN-PROP-07`). La reserva no cambia de estado (`RN-PROP-02`).
 
-### 4.2 `POST /api/reservas/{id}/propuestas/vigente/aceptacion`
+### 5.2 `POST /api/reservas/{id}/propuestas/vigente/aceptacion`
 
 **`200 OK`** — revalida las reglas del tipo y reprograma la reserva (`RN-PROP-05`). Solo puede aceptar la contraparte de quien propuso (`RN-PROP-04`).
 
 **Errores:** `409 SOLAPAMIENTO` si el periodo propuesto dejó de estar disponible; la propuesta queda vigente y la reserva sin cambios.
 
-### 4.3 `POST /api/reservas/{id}/propuestas/vigente/rechazo`
+### 5.3 `POST /api/reservas/{id}/propuestas/vigente/rechazo`
 
 **`200 OK`** — la reserva permanece en `SOLICITADA` con su periodo original (`RN-PROP-06`).
 
 ---
 
-## 5. Ejecución
+## 6. Ejecución
 
-### 5.1 `POST /api/reservas/{id}/ejecucion`
+### 6.1 `POST /api/reservas/{id}/ejecucion`
 
 Registra la entrega física y pasa la reserva a `EN_EJECUCION`. Flujo `UF-RES-13`. Permiso: `reservas.administrar` sobre la unidad de la reserva.
 
@@ -245,7 +251,7 @@ Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. La ejecución
 
 **`200 OK`** con `estado: "EN_EJECUCION"`.
 
-### 5.2 `POST /api/reservas/{id}/finalizacion`
+### 6.2 `POST /api/reservas/{id}/finalizacion`
 
 Registra el cierre y pasa a `FINALIZADA`. Para una reserva de recursos que requiera devolución, el arreglo debe contener todos los recursos entregados de esa reserva; no se permite devolución parcial. Flujo `UF-RES-14`.
 
@@ -260,7 +266,7 @@ Registra el cierre y pasa a `FINALIZADA`. Para una reserva de recursos que requi
 
 `horas_ejecucion` es obligatorio solo para lista de espera (`RN-TIP-PLE-08`).
 
-### 5.3 `POST /api/reservas/{id}/cancelacion`
+### 6.3 `POST /api/reservas/{id}/cancelacion`
 
 Cancela la reserva. Flujo `UF-RES-11`. El Usuario puede cancelar las suyas; el Técnico las de su unidad.
 
@@ -274,33 +280,33 @@ Admitida mientras la ejecución no haya iniciado (`RN-CAN-02`). Libera la dispon
 
 ---
 
-## 6. Orden de salida
+## 7. Orden de salida
 
-### 6.1 `GET /api/reservas/{id}/orden-salida`
+### 7.1 `GET /api/reservas/{id}/orden-salida`
 
-Datos prellenados del FGL 030 para reservas `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. Devuelve la cabecera con sus snapshots, las actividades marcadas y los ítems técnicos, uno por recurso.
+Datos prellenados del FGL 030 para reservas `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, generados dentro de `UF-RES-03` y `UF-RES-04`. Devuelve la cabecera con sus snapshots, las actividades marcadas y los ítems técnicos, uno por recurso.
 
 Las actividades marcadas son las casillas del FGL 030 y se generan desde `reserva_contexto` conforme a `RN-SAL`; no representan nuevos contextos ni se administran desde este endpoint.
 
 **Errores:** `409 CONFLICTO` si el tipo de reserva no genera orden de salida.
 
-### 6.2 `GET /api/reservas/{id}/orden-salida.pdf`
+### 7.2 `GET /api/reservas/{id}/orden-salida.pdf`
 
-Documento listo para imprimir. `Content-Type: application/pdf`.
+Documento listo para imprimir, con los mismos datos de la sección anterior. `Content-Type: application/pdf`. Flujos `UF-RES-03` y `UF-RES-04`.
 
 Las firmas y los recibidos a satisfacción **no** se capturan: se diligencian a mano sobre el documento impreso (`RN-TIP-RC-14`, `RN-TIP-RE-14`).
 
 ---
 
-## 7. Calendario y exportación
+## 8. Calendario y exportación
 
-### 7.1 `GET /api/reservas/{id}/calendario.ics`
+### 8.1 `GET /api/reservas/{id}/calendario.ics`
 
 Archivo iCalendar de una reserva aprobada de tipo `ESPACIO` o `RECURSO_INTERNO` para uso dentro de la unidad organizacional. Flujo `UF-RES-17`. `Content-Type: text/calendar`. Incluye el periodo con hora y la ubicación cuando aplique (`RN-CAL-01`, `RN-CAL-02`).
 
 **Errores:** `409 ESTADO_INCOMPATIBLE` si la reserva no está aprobada; `409 TIPO_NO_ADMITIDO` para `RECURSO_CAMPUS`, `RECURSO_EXTERNO` o `LISTA_ESPERA`.
 
-### 7.2 `GET /api/reservas/exportacion?formato=csv`
+### 8.2 `GET /api/reservas/exportacion?formato=csv`
 
 Exporta el listado con los filtros aplicados. Flujo `UF-REP-02` de reports. Permiso: `reservas.exportar`.
 
@@ -308,15 +314,15 @@ Exporta el listado con los filtros aplicados. Flujo `UF-REP-02` de reports. Perm
 
 ---
 
-## 8. Lo que este contrato no expone
+## 9. Pendientes
+
+1. El esquema exacto de los campos adicionales depende del catálogo de `espacio_campos.tipo`, registrado como **OQ-02**.
+2. La propuesta seleccionada a nivel de diseño en ADR-001 para la garantía contra doble reserva concurrente sigue pendiente de aprobación formal, implementación y pruebas. Hasta que se completen, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
+3. El destino de `motivos_solicitud` está pendiente (**OQ-07**); este contrato no lo expone, porque el "por qué" de la reserva se resuelve con `contexto`.
+## 10. Lo que este contrato no expone
 
 - **Cancelación automática por deshabilitación** (`UF-RES-12`): la dispara Resources al deshabilitar un elemento, no un endpoint de reservas.
 - **Recordatorios** (`UF-RES-16`): los genera un proceso temporal, no una solicitud HTTP.
 - **Visibilidad de disponibilidad** (`UF-RES-20`): es configuración de la unidad y pertenece al contrato de resources.
 - **Auditoría e historial de estados**: se consultan dentro del detalle de la reserva; no se exponen endpoints de escritura sobre ellos.
 
-## 9. Pendientes
-
-1. El esquema exacto de los campos adicionales depende del catálogo de `espacio_campos.tipo`, registrado como **OQ-02**.
-2. La propuesta seleccionada a nivel de diseño en ADR-001 para la garantía contra doble reserva concurrente sigue pendiente de aprobación formal, implementación y pruebas. Hasta que se completen, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
-3. El destino de `motivos_solicitud` está pendiente (**OQ-07**); este contrato no lo expone, porque el "por qué" de la reserva se resuelve con `contexto`.

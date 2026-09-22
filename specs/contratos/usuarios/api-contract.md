@@ -2,14 +2,19 @@
 
 Contrato de comunicación del módulo `usuarios`. Traduce a superficie HTTP los 11 flujos de [user-flow.md](../../modules/usuarios/user-flow.md), las reglas de [business-rules.md](../../modules/usuarios/business-rules.md) y las entidades de [data-model.md](../../modules/usuarios/data-model.md).
 
+---
+
+## 1. Convenciones
+
 Aplica las [convenciones transversales](../README.md). Aquí solo se documenta lo propio de usuarios.
 
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/perfil` para el perfil propio; `/api/usuarios` para la administración |
+| Permiso administrativo | `usuarios.administrar`, siempre global, para las rutas bajo `/api/usuarios`. Las rutas bajo `/api/perfil` no exigen permiso: operan sobre la identidad de la sesión |
 | Identidad | siempre la de la sesión; el cliente nunca envía `id_usuario` para identificarse (`SEC-AUTZ-03`) |
 
-Códigos de error propios:
+Códigos de error propios, adicionales al catálogo común:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
@@ -21,9 +26,9 @@ Este módulo **orquesta** el perfil: cuando la información pertenece a `researc
 
 ---
 
-## 1. Perfil propio
+## 2. Perfil propio
 
-### 1.1 `GET /api/perfil`
+### 2.1 `GET /api/perfil`
 
 Perfil consolidado del actor. Flujo `UF-USR-03`.
 
@@ -52,7 +57,7 @@ Perfil consolidado del actor. Flujo `UF-USR-03`.
 
 Un **perfil** académico o investigativo (`investigacion.perfiles`) describe la situación de la persona —por ejemplo investigador o estudiante— y es distinto de una **vinculación**, que la asocia a un proyecto, semillero, pasantía o trabajo de grado concretos. Solo las vinculaciones cuentan para `RN-USR-07` y `RN-USR-11`: tener un perfil no habilita a reservar.
 
-### 1.2 `PATCH /api/perfil`
+### 2.2 `PATCH /api/perfil`
 
 Actualiza los datos personales. Flujo `UF-USR-04`. Admite `nombre`, `documento`, `telefono`, `institucion` y `dependencia`.
 
@@ -62,7 +67,7 @@ Los cinco son obligatorios y no admiten valor vacío ni compuesto solo por espac
 
 **Errores:** `409 DOCUMENTO_DUPLICADO`, `409 TELEFONO_DUPLICADO`, `422 VALIDACION`.
 
-### 1.3 `POST /api/perfil/actualizacion-inicial`
+### 2.3 `POST /api/perfil/actualizacion-inicial`
 
 Confirma la actualización inicial. Flujos `UF-USR-01` y `UF-USR-02`.
 
@@ -80,9 +85,9 @@ Mientras la actualización esté pendiente, las demás operaciones de negocio re
 
 ---
 
-## 2. Perfiles académicos e investigativos
+## 3. Perfiles académicos e investigativos
 
-### 2.0 `GET /api/perfil/perfiles/catalogo`
+### 3.0 `GET /api/perfil/perfiles/catalogo`
 
 Perfiles disponibles en `investigacion.perfiles`. Solo se devuelven los habilitados.
 
@@ -90,7 +95,7 @@ Perfiles disponibles en `investigacion.perfiles`. Solo se devuelven los habilita
 { "datos": [{ "id_perfil": 2, "nombre": "Investigador" }] }
 ```
 
-### 2.1 `PUT /api/perfil/perfiles`
+### 3.1 `PUT /api/perfil/perfiles`
 
 Actualiza los perfiles del Usuario. Flujo `UF-USR-05`. Reemplaza el conjunto completo: lo que no venga en la lista queda desactivado.
 
@@ -106,15 +111,15 @@ Actualiza los perfiles del Usuario. Flujo `UF-USR-05`. Reemplaza el conjunto com
 
 ---
 
-## 3. Vinculaciones académicas e investigativas
+## 4. Vinculaciones académicas e investigativas
 
 Estas rutas orquestan `researchs`. Los proyectos y semilleros **solo se seleccionan del catálogo**: no pueden crearse ni escribirse por nombre libre (`RN-USR-10`, `RN-INV-06` de researchs).
 
-### 3.1 `GET /api/perfil/vinculaciones/catalogo?tipo=proyectos`
+### 4.1 `GET /api/perfil/vinculaciones/catalogo?tipo=proyectos`
 
 Catálogo disponible para vincular. `tipo` admite `proyectos` y `semilleros`. Listado paginado con filtro `busqueda` sobre código y nombre.
 
-### 3.2 `POST /api/perfil/vinculaciones/proyectos`
+### 4.2 `POST /api/perfil/vinculaciones/proyectos`
 
 Asocia un proyecto existente. Flujo `UF-USR-06`.
 
@@ -124,11 +129,11 @@ Asocia un proyecto existente. Flujo `UF-USR-06`.
 
 **`201 Created`**. Si existe una vinculación inactiva para el mismo proyecto, se reactiva esa misma relación. **Errores:** `409 VINCULACION_DUPLICADA` si ya existe una vinculación activa, `404 NO_ENCONTRADO` si el proyecto no existe o está deshabilitado.
 
-### 3.3 `POST /api/perfil/vinculaciones/semilleros`
+### 4.3 `POST /api/perfil/vinculaciones/semilleros`
 
 Igual que la anterior, con `id_semillero`. Si existe una vinculación inactiva para el mismo semillero, se reactiva esa misma relación. Flujo `UF-USR-07`.
 
-### 3.4 `POST /api/perfil/vinculaciones/pasantias`
+### 4.4 `POST /api/perfil/vinculaciones/pasantias`
 
 Registra una pasantía y la vincula. Flujo `UF-USR-08`.
 
@@ -144,11 +149,11 @@ A diferencia de proyectos y semilleros, la pasantía **se crea** en este flujo p
 
 **`201 Created`** con la pasantía y su vinculación.
 
-### 3.5 `POST /api/perfil/vinculaciones/trabajos-grado`
+### 4.5 `POST /api/perfil/vinculaciones/trabajos-grado`
 
 Registra un trabajo de grado con `director_nombre` y `director_correo`. Flujo `UF-USR-09`.
 
-### 3.6 `DELETE /api/perfil/vinculaciones/{tipo}/{id}`
+### 4.6 `DELETE /api/perfil/vinculaciones/{tipo}/{id}`
 
 Desactiva una vinculación propia. Flujo `UF-USR-10`. **`204 No Content`**.
 
@@ -164,31 +169,37 @@ No bloquea la operación ni cierra la sesión, y no reinicia la actualización i
 
 ---
 
-## 4. Administración de identidades
+## 5. Administración de identidades
 
-Requieren el permiso global `usuarios.administrar` (`RN-USR-01` de administration). Los Técnicos no administran identidades de Usuario.
+Requieren el permiso global `usuarios.administrar` (`RN-USR-01` de administration). Los Técnicos no administran identidades de Usuario. El flujo que las conduce es `UF-ADM-02` de administration, que continúa en `UF-AUTH-02` cuando se invita la cuenta.
 
-### 4.1 `POST /api/usuarios`
+### 5.1 `POST /api/usuarios`
 
-Crea la identidad funcional de un Usuario, paso previo a invitarlo. Exige los cinco datos obligatorios de `RN-DAT-01`: la invitación no usa datos ficticios para completar el perfil (`RN-USR-06` de administration).
+Crea la identidad funcional de un Usuario, paso previo a invitarlo. Flujo `UF-ADM-02`. Exige los cinco datos obligatorios de `RN-DAT-01`: la invitación no usa datos ficticios para completar el perfil (`RN-USR-06` de administration).
 
 **`201 Created`** con la identidad creada. La cuenta se crea después, desde el contrato de [auth](../auth/api-contract.md).
 
-### 4.2 `GET /api/usuarios` y `GET /api/usuarios/{id_usuario}`
+**Errores:** `409 DOCUMENTO_DUPLICADO`, `409 TELEFONO_DUPLICADO` (`RN-DAT-02`), `422 VALIDACION` si falta alguno de los cinco datos obligatorios o queda vacío.
+
+### 5.2 `GET /api/usuarios` y `GET /api/usuarios/{id_usuario}`
 
 Listado paginado y detalle. Filtros: `estado`, `busqueda` sobre nombre, documento y correo.
 
-### 4.3 `PATCH /api/usuarios/{id_usuario}`
+**Errores:** `404 NO_ENCONTRADO` si la identidad no existe.
 
-Modifica datos de una identidad. Si ya existe una cuenta asociada, no puede modificar `correo`; el correo único de la persona y la cuenta es inmutable desde la creación de esa cuenta. No altera retroactivamente reservas ni registros históricos (`RN-USR-02` de administration).
+### 5.3 `PATCH /api/usuarios/{id_usuario}`
 
-### 4.4 `PATCH /api/usuarios/{id_usuario}/estado`
+Modifica datos de una identidad. Flujo `UF-ADM-02`. Si ya existe una cuenta asociada, no puede modificar `correo`; el correo único de la persona y la cuenta es inmutable desde la creación de esa cuenta. No altera retroactivamente reservas ni registros históricos (`RN-USR-02` de administration).
+
+**Errores:** `409 DOCUMENTO_DUPLICADO` y `409 TELEFONO_DUPLICADO`, excluyendo el propio registro de la comprobación (`RN-DAT-02`); `409 CONFLICTO` si se intenta modificar `correo` existiendo cuenta asociada; `422 VALIDACION`.
+
+### 5.4 `PATCH /api/usuarios/{id_usuario}/estado`
 
 Habilita o deshabilita. Deshabilitar impide nuevas operaciones que requieran identidad activa, sin eliminar información histórica (`RN-USR-03` de administration).
 
 ---
 
-## 5. Lo que este contrato no expone
+## 6. Lo que este contrato no expone
 
 - **Cuenta, credenciales y sesión**: pertenecen a [auth](../auth/api-contract.md). Este módulo administra la identidad, no la autenticación.
 - **Creación de proyectos y semilleros**: son catálogos centrales; se importan desde administration y aquí solo se seleccionan.

@@ -13,13 +13,10 @@ Este contrato aplica las [convenciones transversales](../README.md): formato, fe
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/auth` |
+| Permiso administrativo | `cuentas.administrar`, siempre global: invitar, activar, desactivar y cambiar el tipo de identidad de una cuenta. Los endpoints de sesión y credenciales propias no exigen permiso |
 | Identificadores propios | `id_cuenta` entero de 64 bits; `id_sesion` UUID |
 
-Códigos de error adicionales a los del catálogo común, propios de este módulo:
-
-| HTTP | `codigo` | Uso |
-|---|---|---|
-| 410 | `TOKEN_NO_VIGENTE` | Token de invitación o recuperación vencido, utilizado o revocado (`SEC-TOK-05`, `SEC-INV-02`) |
+**Este contrato no define códigos de error propios.** Todos los que usa pertenecen al [catálogo común](../README.md#catálogo-común-de-códigos), incluido `410 TOKEN_NO_VIGENTE`, que cubre tanto los tokens de invitación como los de recuperación.
 
 ---
 
@@ -85,7 +82,7 @@ El cliente lee esa cookie y la reenvía como `X-CSRF-Token` en las operaciones s
 
 ### 3.1 `POST /api/auth/registro` — limitado
 
-Autorregistro sin invitación. Flujo [UF-AUTH-01](../../modules/auth/user-flow.md).
+Autorregistro sin invitación. Flujo `UF-AUTH-01`.
 
 ```json
 {
@@ -127,7 +124,7 @@ El cliente conduce al Usuario pendiente al flujo de completar o reanudar el perf
 
 ### 3.2 `POST /api/auth/sesiones` — limitado
 
-Inicio de sesión. Flujo [UF-AUTH-04](../../modules/auth/user-flow.md).
+Inicio de sesión. Flujo `UF-AUTH-04`.
 
 ```json
 {
@@ -160,7 +157,7 @@ Se registran el inicio exitoso y los intentos fallidos relevantes, sin secretos 
 
 ### 3.3 `POST /api/auth/sesiones/renovacion`
 
-Renovación del acceso. Flujo [UF-AUTH-05](../../modules/auth/user-flow.md). Requiere cookie `rp_refresh`; no requiere `rp_access` vigente.
+Renovación del acceso. Flujo `UF-AUTH-05`. Requiere cookie `rp_refresh`; no requiere `rp_access` vigente.
 
 Sin cuerpo de solicitud.
 
@@ -182,7 +179,7 @@ Antes de renovar, el servidor verifica que la sesión exista, no esté revocada,
 
 ### 3.4 `GET /api/auth/sesiones/actual`
 
-Identidad autenticada vigente. Sustenta el paso 2 de [UF-AUTH-10](../../modules/auth/user-flow.md) en el cliente.
+Identidad autenticada vigente. Sustenta el paso 2 de `UF-AUTH-10` en el cliente.
 
 **`200 OK`**
 
@@ -209,7 +206,7 @@ Esta respuesta sirve para adaptar la interfaz, **nunca como control de autorizac
 
 ### 3.5 `DELETE /api/auth/sesiones/actual`
 
-Cierre de sesión. Flujo [UF-AUTH-06](../../modules/auth/user-flow.md).
+Cierre de sesión. Flujo `UF-AUTH-06`.
 
 **`204 No Content`** — invalida la sesión en `auth.sesiones` sin esperar su vencimiento y elimina `rp_access`, `rp_refresh` y `rp_csrf` del cliente (`RN-AUTH-SES-02`, `SEC-SES-08`).
 
@@ -219,7 +216,7 @@ Si la sesión ya estaba vencida o revocada, la respuesta es igualmente `204`: el
 
 ### 3.6 `POST /api/auth/recuperacion` — limitado
 
-Solicitud de recuperación de contraseña. Flujo [UF-AUTH-07](../../modules/auth/user-flow.md).
+Solicitud de recuperación de contraseña. Flujo `UF-AUTH-07`.
 
 ```json
 { "correo": "persona@correo.itm.edu.co" }
@@ -241,7 +238,7 @@ La respuesta y su tiempo de proceso son equivalentes exista o no la cuenta (`SEC
 
 ### 3.7 `GET /api/auth/recuperacion/{token}`
 
-Validación previa del token, para que el cliente muestre el formulario solo si procede. Paso 2 de [UF-AUTH-08](../../modules/auth/user-flow.md).
+Validación previa del token, para que el cliente muestre el formulario solo si procede. Paso 2 de `UF-AUTH-08`.
 
 **`200 OK`**
 
@@ -255,7 +252,7 @@ Validación previa del token, para que el cliente muestre el formulario solo si 
 
 ### 3.8 `POST /api/auth/recuperacion/{token}` — limitado
 
-Restablecimiento efectivo. Flujo [UF-AUTH-08](../../modules/auth/user-flow.md).
+Restablecimiento efectivo. Flujo `UF-AUTH-08`.
 
 ```json
 { "contrasena": "una nueva frase larga de paso" }
@@ -271,7 +268,7 @@ El token se valida por completo antes de aplicar cualquier cambio (`SEC-TOK-01`,
 
 ### 3.9 `POST /api/auth/reautenticacion` — limitado
 
-Reautenticación para operaciones sensibles. Flujo [UF-AUTH-09](../../modules/auth/user-flow.md). Requiere sesión válida.
+Reautenticación para operaciones sensibles. Flujo `UF-AUTH-09`. Requiere sesión válida.
 
 ```json
 { "contrasena": "una frase larga de paso" }
@@ -293,7 +290,7 @@ Dentro de esa ventana, las operaciones sensibles de §5 y §6 no vuelven a exigi
 
 ### 4.1 `POST /api/auth/invitaciones`
 
-Emisión de invitación. Flujo [UF-AUTH-02](../../modules/auth/user-flow.md). Requiere el permiso global `cuentas.administrar`.
+Emisión de invitación. Flujo `UF-AUTH-02`. Requiere el permiso global `cuentas.administrar`.
 
 ```json
 {
@@ -329,7 +326,7 @@ La respuesta **nunca incluye el token**: se entrega únicamente por correo a tra
 
 ### 4.2 `POST /api/auth/invitaciones/{id_invitacion}/reenvio`
 
-Reenvío de una invitación no completada. Flujo alterno de [UF-AUTH-02](../../modules/auth/user-flow.md).
+Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`.
 
 **`200 OK`**
 
@@ -349,7 +346,7 @@ Emite un token nuevo e invalida el anterior (`SEC-INV-03`).
 
 ### 4.3 `GET /api/auth/invitaciones/{token}`
 
-Validación previa del token, público. Paso 2 de [UF-AUTH-03](../../modules/auth/user-flow.md).
+Validación previa del token, público. Paso 2 de `UF-AUTH-03`.
 
 **`200 OK`**
 
@@ -368,7 +365,7 @@ Se devuelve el correo destino porque quien posee el token ya lo recibió en ese 
 
 ### 4.4 `POST /api/auth/invitaciones/{token}/activacion` — limitado
 
-Activación de la cuenta invitada. Flujo [UF-AUTH-03](../../modules/auth/user-flow.md).
+Activación de la cuenta invitada. Flujo `UF-AUTH-03`.
 
 ```json
 { "contrasena": "una frase larga de paso" }
@@ -400,7 +397,7 @@ La activación deja la sesión iniciada, sin exigir un inicio de sesión posteri
 
 ### 5.1 `PUT /api/auth/cuentas/actual/contrasena`
 
-Cambio de contraseña autenticado. Flujo [UF-AUTH-11](../../modules/auth/user-flow.md). Operación sensible (`SEC-REAUTH-02`).
+Cambio de contraseña autenticado. Flujo `UF-AUTH-11`. Operación sensible (`SEC-REAUTH-02`).
 
 ```json
 { "contrasena": "otra frase larga de paso" }
@@ -418,7 +415,7 @@ Requieren el permiso global `cuentas.administrar` (`RN-ADM-01`, `SEC-AUTZ-04`).
 
 ### 6.1 `PATCH /api/auth/cuentas/{id_cuenta}/estado`
 
-Desactivación o reactivación. Flujo [UF-AUTH-12](../../modules/auth/user-flow.md).
+Desactivación o reactivación. Flujo `UF-AUTH-12`.
 
 ```json
 { "estado": false }
@@ -442,7 +439,7 @@ Desactivar marca la cuenta inactiva sin eliminar historial (`RN-AUTH-ID-05`, `RN
 
 ### 6.2 `PUT /api/auth/cuentas/{id_cuenta}/identidad`
 
-Promoción o degradación entre reservista y personal administrativo. Flujo [UF-AUTH-13](../../modules/auth/user-flow.md). Operación sensible (`SEC-REAUTH-02`).
+Promoción o degradación entre reservista y personal administrativo. Flujo `UF-AUTH-13`. Operación sensible (`SEC-REAUTH-02`).
 
 ```json
 {
@@ -472,7 +469,7 @@ El cambio conserva el historial de la persona y aplica solo a decisiones de auto
 
 ## 7. Contrato interno hacia otros módulos
 
-`auth` no expone endpoints para autorizar operaciones ajenas: entrega a cada módulo el contexto y las decisiones que necesita (`overview.md` → Provides). Corresponde al paso 7 de [UF-AUTH-10](../../modules/auth/user-flow.md).
+`auth` no expone endpoints para autorizar operaciones ajenas: entrega a cada módulo el contexto y las decisiones que necesita (`overview.md` → Provides). Corresponde al paso 7 de `UF-AUTH-10`.
 
 ### Contexto autenticado
 
@@ -547,3 +544,13 @@ Valores por defecto, configurables conforme a `SEC-SES-09`:
 | Vigencia de un token de recuperación | 1 hora |
 
 El catálogo inicial de códigos de `auth.permisos` está definido en [data-model.md](../../modules/auth/data-model.md#catálogo-inicial): catorce códigos por área funcional. Cada endpoint de los contratos declara el que exige.
+
+---
+
+## 10. Lo que este contrato no expone
+
+- **Identidades funcionales**: `usuarios.usuarios` y `personal.personal` pertenecen a [usuarios](../usuarios/api-contract.md). Auth crea y administra la cuenta, nunca la ficha de la persona (`RN-AUTH-ID-03`).
+- **Asignación de permisos**: otorgar y retirar permisos a una cuenta exige `permisos.asignar` y corresponde a administration, que todavía no tiene contrato. Auth define `auth.permisos` y `auth.cuenta_permisos` y los evalúa; no expone su administración.
+- **Unidades organizacionales y cargos**: los administra administration con `unidades.administrar`. Auth los consulta para resolver el ámbito de una cuenta `PERSONAL`.
+- **Correos de invitación y recuperación**: Auth origina el evento; su entrega pertenece a [notifications](../../modules/notifications/user-flow.md) conforme a `UF-NOT-03`, y las preferencias de envío no se aplican a estos correos (`RN-PREF-03`).
+- **Perfil y vinculaciones del Usuario**: Auth consulta la condición de actualización inicial, pero no expone ni valida los datos del perfil, que pertenecen a [usuarios](../usuarios/api-contract.md).

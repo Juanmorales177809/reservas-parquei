@@ -2,27 +2,34 @@
 
 Contrato de comunicación del módulo `espacios`. Traduce a superficie HTTP los 14 flujos de [user-flow.md](../../modules/espacios/user-flow.md), las reglas de [business-rules.md](../../modules/espacios/business-rules.md) y las entidades de [data-model.md](../../modules/espacios/data-model.md).
 
+---
+
+## 1. Convenciones
+
 Aplica las [convenciones transversales](../README.md). Aquí solo se documenta lo propio de espacios.
 
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/espacios` |
 | Permiso administrativo | `espacios.administrar` sobre la unidad; el Administrador lo tiene con alcance global (`RN-ESP-03` de espacios) |
+| Identificadores | `id` entero del espacio; `campo_id` y `opcion_id` enteros de sus campos adicionales |
 
-Códigos de error propios:
+Códigos de error propios, adicionales al catálogo común:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
 | 409 | `NOMBRE_DUPLICADO` | Ya existe un espacio con ese nombre en la unidad (`uq_espacios_unidad_nombre`) |
 | 409 | `CAMPO_SIN_OPCIONES` | Un campo de selección no puede habilitarse sin al menos una opción habilitada (`RN-ESP-CAM-03`) |
 
+`409 UNIDAD_INCOMPATIBLE` pertenece al catálogo común; aquí significa que el recurso que se intenta asociar no pertenece a la unidad del espacio.
+
 **Un espacio no tiene horario propio.** El horario aplicable es el de atención de su unidad y se administra en el contrato de [resources](../resources/api-contract.md), no aquí (`RN-ESP-DIS-02`). Este contrato no expone ningún endpoint de horario.
 
 ---
 
-## 1. Espacios
+## 2. Espacios
 
-### 1.1 `POST /api/espacios`
+### 2.1 `POST /api/espacios`
 
 Registra un espacio. Flujo `UF-ESP-01`.
 
@@ -52,7 +59,7 @@ Registra un espacio. Flujo `UF-ESP-01`.
 
 **Errores:** `409 NOMBRE_DUPLICADO`, `403 NO_AUTORIZADO` si el actor no administra esa unidad, `422 VALIDACION`.
 
-### 1.2 `PATCH /api/espacios/{id}`
+### 2.2 `PATCH /api/espacios/{id}`
 
 Actualiza la información general. Flujo `UF-ESP-02`. Admite `nombre`, `ubicacion`, `capacidad` y `descripcion`.
 
@@ -60,13 +67,13 @@ Actualiza la información general. Flujo `UF-ESP-02`. Admite `nombre`, `ubicacio
 
 **`200 OK`** con el espacio actualizado.
 
-### 1.3 `GET /api/espacios`
+### 2.3 `GET /api/espacios`
 
 Listado paginado. Flujo `UF-ESP-12`. Filtros: `id_unidad`, `habilitado`, `capacidad_minima`. Orden admitido: `nombre`, `capacidad`.
 
 Un Usuario solo ve espacios habilitados; un Técnico ve también los deshabilitados de su unidad.
 
-### 1.4 `GET /api/espacios/{id}`
+### 2.4 `GET /api/espacios/{id}`
 
 Detalle. Flujo `UF-ESP-13`.
 
@@ -85,7 +92,7 @@ Detalle. Flujo `UF-ESP-13`.
 
 `horario_unidad` se devuelve por conveniencia del cliente y es una lectura de la configuración de la unidad, no un atributo del espacio.
 
-### 1.5 `PATCH /api/espacios/{id}/estado`
+### 2.5 `PATCH /api/espacios/{id}/estado`
 
 Habilita o deshabilita. Flujos `UF-ESP-10` y `UF-ESP-11`.
 
@@ -109,9 +116,9 @@ Al deshabilitar, el sistema **debe advertir antes** cuántas reservas futuras se
 
 Deshabilitar cancela las reservas futuras que dependan del espacio, conforme a `RN-CAN-04` de reservations, y conserva las asociaciones históricas (`RN-ESP-HAB-04`).
 
-### 1.6 `GET /api/espacios/{id}/impacto-deshabilitacion`
+### 2.6 `GET /api/espacios/{id}/impacto-deshabilitacion`
 
-Cuántas reservas futuras se verían afectadas, para poblar la confirmación de `1.5` sin ejecutar nada.
+Cuántas reservas futuras se verían afectadas, para poblar la confirmación de §2.5 sin ejecutar nada. Sustenta el paso de advertencia de `UF-ESP-11`.
 
 **`200 OK`**
 
@@ -123,9 +130,9 @@ El conteo lo resuelve reservations aplicando `RN-CAN-04`; espacios no reimplemen
 
 ---
 
-## 2. Recursos asociados
+## 3. Recursos asociados
 
-### 2.1 `POST /api/espacios/{id}/recursos`
+### 3.1 `POST /api/espacios/{id}/recursos`
 
 Asocia recursos existentes. Flujo `UF-ESP-03`.
 
@@ -137,7 +144,7 @@ Asociar no crea recursos ni implica disponibilidad temporal (`RN-ESP-REC-02`, `R
 
 **`201 Created`** con las asociaciones. **Errores:** `409 CONFLICTO` si la asociación ya existe o el recurso ya está asociado activamente a otro espacio; `409 UNIDAD_INCOMPATIBLE` si el recurso pertenece a otra unidad.
 
-### 2.2 `DELETE /api/espacios/{id}/recursos/{recurso_id}`
+### 3.2 `DELETE /api/espacios/{id}/recursos/{recurso_id}`
 
 Retira la asociación. Flujo `UF-ESP-04`. **`204 No Content`**.
 
@@ -145,9 +152,9 @@ No borra la fila: la deshabilita, para que las reservas históricas conserven su
 
 ---
 
-## 3. Campos adicionales
+## 4. Campos adicionales
 
-### 3.1 `POST /api/espacios/{id}/campos`
+### 4.1 `POST /api/espacios/{id}/campos`
 
 Configura un campo. Flujo `UF-ESP-05`.
 
@@ -163,15 +170,15 @@ Configura un campo. Flujo `UF-ESP-05`.
 
 **`201 Created`**. **Errores:** `409 CAMPO_SIN_OPCIONES` si `tipo` es `SELECCION` y no llega ninguna opción habilitada, `409 CONFLICTO` si el nombre ya existe en ese espacio.
 
-### 3.2 `PATCH /api/espacios/{id}/campos/{campo_id}`
+### 4.2 `PATCH /api/espacios/{id}/campos/{campo_id}`
 
 Edita el campo. Flujo `UF-ESP-07`. La modificación no puede impedir interpretar los valores históricos ya registrados (`RN-ESP-CAM-05`).
 
-### 3.3 `PATCH /api/espacios/{id}/campos/{campo_id}/estado`
+### 4.3 `PATCH /api/espacios/{id}/campos/{campo_id}/estado`
 
 Deshabilita o habilita el campo. Flujo `UF-ESP-08`. Un campo utilizado en reservas **nunca se elimina**: se deshabilita y sus valores históricos permanecen consultables.
 
-### 3.4 `PUT /api/espacios/{id}/campos/orden`
+### 4.4 `PUT /api/espacios/{id}/campos/orden`
 
 Reordena. Flujo `UF-ESP-09`.
 
@@ -181,22 +188,22 @@ Reordena. Flujo `UF-ESP-09`.
 
 El cambio de orden no modifica los valores históricos de reservas anteriores.
 
-### 3.5 `POST /api/espacios/{id}/campos/{campo_id}/opciones`
+### 4.5 `POST /api/espacios/{id}/campos/{campo_id}/opciones`
 
 Agrega opciones a un campo de selección. Flujo `UF-ESP-06`.
 
-### 3.6 `PATCH /api/espacios/{id}/campos/{campo_id}/opciones/{opcion_id}`
+### 4.6 `PATCH /api/espacios/{id}/campos/{campo_id}/opciones/{opcion_id}`
 
 Edita el valor, el orden o la habilitación de una opción. Una opción usada en una reserva se deshabilita, nunca se borra: las reservas históricas conservan la interpretación de la opción utilizada.
 
 ---
 
-## 4. Lo que este contrato no expone
+## 5. Catálogo de tipos de campo
+
+Los valores admitidos para `tipo` son `TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`. El valor `SELECCION` identifica un campo cuyas opciones se administran mediante el endpoint de opciones.
+## 6. Lo que este contrato no expone
 
 - **Horarios del espacio**: no existen. El horario es de la unidad y se administra en [resources](../resources/api-contract.md).
 - **Disponibilidad temporal**: la resuelve reservations en `GET /api/reservas/disponibilidad`, porque depende de las reservas, no de la configuración del espacio (`RN-ESP-REC-05`).
 - **Uso del espacio durante una reserva** (`UF-ESP-14`): es un flujo de reservations.
 
-## 5. Catálogo de tipos de campo
-
-Los valores admitidos para `tipo` son `TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`. El valor `SELECCION` identifica un campo cuyas opciones se administran mediante el endpoint de opciones.

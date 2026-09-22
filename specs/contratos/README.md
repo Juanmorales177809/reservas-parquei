@@ -9,12 +9,26 @@ Un contrato de módulo no repite nada de aquí: lo referencia y solo documenta l
 | Módulo | Contrato | Derivado de |
 |---|---|---|
 | [auth](auth/api-contract.md) | sesión, credenciales, invitaciones y administración de cuentas | 13 flujos `UF-AUTH` |
-| [reservations](reservations/api-contract.md) | ciclo completo de la reserva | 19 flujos `UF-RES` |
+| [reservations](reservations/api-contract.md) | ciclo completo de la reserva | 20 flujos `UF-RES` |
 | [espacios](espacios/api-contract.md) | espacios, recursos asociados y campos adicionales | 14 flujos `UF-ESP` |
 | [usuarios](usuarios/api-contract.md) | perfil del reservista y vinculaciones | 11 flujos `UF-USR` |
 | [resources](resources/api-contract.md) | catálogo de recursos y configuración del laboratorio | 12 flujos `UF-REC` |
 
-Pendientes de escribir: `administration`, `notifications`, `reports` y `researchs`. Researchs ya define su flujo administrativo, pero aún no define rutas HTTP; redactar su contrato exigiría inventar esa superficie. Los demás módulos requieren primero completar su `user-flow.md`.
+Pendientes de escribir: `administration` (4 flujos `UF-ADM`), `notifications` (3 flujos `UF-NOT`), `reports` (2 flujos `UF-REP`) y `researchs` (1 flujo `UF-INV`). Los cuatro ya tienen flujos de los que derivar su superficie; escribirlos sigue pendiente conforme a `OQ-08`.
+
+## Forma común de un contrato de módulo
+
+Los cinco contratos existentes comparten esta estructura, para que se lean igual y se pueda comparar uno con otro sin releer su índice:
+
+| Sección | Contenido |
+|---|---|
+| Encabezado | Qué traduce y de qué documentos del módulo procede |
+| `## 1. Convenciones` | Remisión a este documento, tabla de aspectos propios —base path, permiso administrativo, identificadores— y tabla de códigos de error propios |
+| `## 2.` … | Una sección por área funcional, con sus endpoints |
+| `## N. Contrato interno hacia otros módulos` | Solo en los módulos que ofrecen operaciones a otros sin pasar por HTTP |
+| `## N+1. Lo que este contrato no expone` | Siempre la última sección |
+
+Dentro de cada sección, un endpoint declara en este orden: qué hace, el flujo que lo origina citado entre acentos graves, el permiso cuando difiere del general del módulo, cuerpo de la solicitud, respuesta correcta y **Errores**. Un endpoint sin permiso declarado exige el permiso general del módulo; uno sin sección de errores solo puede fallar con códigos del catálogo común.
 
 ---
 
@@ -64,7 +78,8 @@ Toda respuesta de error usa la misma estructura, conforme a `architecture.md` §
 | 403 | `VINCULACION_REQUERIDA` | El Usuario no conserva ninguna vinculación activa y válida (`RN-USR-11` de usuarios) |
 | 404 | `NO_ENCONTRADO` | Recurso inexistente dentro del ámbito visible del actor |
 | 409 | `CONFLICTO` | Conflicto de negocio: duplicado, solapamiento o estado incompatible |
-| 410 | `TOKEN_NO_VIGENTE` | Token vencido, ya utilizado o revocado (`SEC-TOK-05`) |
+| 409 | `UNIDAD_INCOMPATIBLE` | Dos elementos que deben pertenecer a la misma unidad organizacional no coinciden. Cada contrato que lo use indica cuáles |
+| 410 | `TOKEN_NO_VIGENTE` | Token de invitación o de recuperación vencido, ya utilizado o revocado (`SEC-TOK-05`, `SEC-INV-02`) |
 | 422 | `VALIDACION` | Campos inválidos según el esquema |
 | 429 | `DEMASIADOS_INTENTOS` | Límite contra abuso superado (`SEC-ABU-01`) |
 | 500 | `ERROR_INTERNO` | Error no controlado, sin detalle interno |
