@@ -295,6 +295,35 @@ La disponibilidad temporal de un recurso para una reserva pertenece al módulo `
 
 ---
 
+## UF-REC-13 — Configurar un laboratorio
+
+**Actor principal:** Técnico de la unidad. El Administrador puede hacerlo sobre cualquier unidad.
+
+**Precondiciones:**
+
+- La cuenta está autenticada y activa.
+- Tiene el permiso `laboratorios.configurar` sobre esa unidad, o alcance global.
+
+**Flujo principal:**
+
+1. El actor abre la configuración de su unidad.
+2. El sistema muestra la configuración vigente de `reservas.laboratorios_config`: si la unidad acepta reservas (`RN-LAB-03`), horario de atención y días habilitados, antelación mínima, aprobación automática, anticipación del recordatorio, notificación por correo (`RN-LAB-07`), opciones de visibilidad y tipos de reserva habilitados.
+3. El actor modifica los valores que necesite y guarda.
+4. El sistema valida cada uno: el horario de cierre posterior al de apertura, y la antelación y la anticipación del recordatorio mayores que cero (`RN-LAB-04`).
+5. El sistema guarda la configuración. Si el horario cambió, conserva la versión anterior con su intervalo de vigencia en `reservas.laboratorios_config_historico` (`RN-LAB-08`), que es lo que permite calcular la ocupación de periodos pasados con el horario que regía entonces (`RN-OCU-05` de reports).
+6. Los nuevos valores rigen desde ese momento para toda nueva validación de reservas de la unidad (`RN-HOR-07` de reservations).
+
+**Flujos alternos:**
+
+- **Horario.** Cambiarlo cambia el de **todos los espacios de la unidad**, porque ninguno define uno propio (`RN-ESP-DIS-02` de espacios). Las reservas ya aprobadas no se reinterpretan ni se cancelan por el cambio.
+- **Tipos de reserva.** Definir qué tipos ofrece el laboratorio se rige por `RN-TIP-05` de reservations. Una lista vacía deja la unidad sin reservas posibles (`RN-TIP-06`); un tipo retirado conserva las referencias históricas de las reservas que ya lo usaron.
+- **Visibilidad.** Las opciones de estado y reservista son las de `UF-RES-20` de reservations, cuya configuración pertenece a este módulo. No alteran la disponibilidad ni permiten ocultar el horario (`RN-DIS-07`, `RN-DIS-10`).
+- **Ámbito.** Un Técnico que intente configurar una unidad distinta de la suya es rechazado (`RN-DIS-09` de reservations).
+
+**Nota.** La consulta del horario es pública para cualquier cuenta autenticada: el Usuario siempre puede verlo y las opciones de visibilidad no pueden ocultarlo (`RN-DIS-07` de reservations).
+
+---
+
 ## Separación entre módulos
 
 - `recursos` administra la identidad común de los elementos reservables, su tipo, unidad responsable y estado general.

@@ -1,6 +1,6 @@
 # Contrato de API — Resources
 
-Contrato de comunicación del módulo `resources`. Traduce a superficie HTTP los 12 flujos de [user-flow.md](../../modules/resources/user-flow.md), las reglas de [business-rules.md](../../modules/resources/business-rules.md) y las entidades de [data-model.md](../../modules/resources/data-model.md).
+Contrato de comunicación del módulo `resources`. Traduce a superficie HTTP los 13 flujos de [user-flow.md](../../modules/resources/user-flow.md), las reglas de [business-rules.md](../../modules/resources/business-rules.md) y las entidades de [data-model.md](../../modules/resources/data-model.md).
 
 ---
 
@@ -117,6 +117,8 @@ Es la configuración por unidad en `reservas.laboratorios_config`. Incluye el ho
 
 ### 3.1 `GET /api/laboratorios/{id_unidad}/configuracion`
 
+Configuración vigente de la unidad. Paso 2 de `UF-REC-13`.
+
 ```json
 {
   "id_unidad": 7,
@@ -137,7 +139,7 @@ La lectura del horario es pública para cualquier cuenta autenticada: el Usuario
 
 ### 3.2 `PATCH /api/laboratorios/{id_unidad}/configuracion`
 
-Modifica la configuración. Permiso: `laboratorios.configurar` sobre la unidad.
+Modifica la configuración. Flujo `UF-REC-13`. Permiso: `laboratorios.configurar` sobre la unidad.
 
 Cambiar el horario **cambia el de todos los espacios de la unidad**, porque ninguno define uno propio. La validación de reservas futuras usa la configuración vigente al crear, modificar o aprobar (`RN-HOR-07` de reservations); un cambio de horario no reinterpreta automáticamente las reservas ya aprobadas.
 
@@ -145,7 +147,7 @@ Cambiar el horario **cambia el de todos los espacios de la unidad**, porque ning
 
 ### 3.3 `PUT /api/laboratorios/{id_unidad}/tipos-reserva`
 
-Define qué tipos de reserva ofrece el laboratorio (`RN-TIP-05` de reservations).
+Define qué tipos de reserva ofrece el laboratorio. Flujo `UF-REC-13` (`RN-TIP-05` de reservations).
 
 ```json
 { "tipos": ["ESPACIO", "RECURSO_INTERNO", "RECURSO_CAMPUS"] }
