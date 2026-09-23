@@ -143,14 +143,14 @@ Define campos dinámicos que el Usuario debe o puede diligenciar al reservar un 
 | `id` | integer | No | PK; identity |
 | `espacio_id` | integer | No | FK → `reservas.espacios(id)` |
 | `nombre` | varchar(150) | No | Etiqueta visible |
-| `tipo_campo` | varchar(30) | No | Tipo funcional |
+| `tipo_campo` | varchar(30) | No | Tipo funcional; CHECK sobre los cinco valores admitidos |
 | `obligatorio` | boolean | No | DEFAULT `false` |
 | `orden` | integer | No | Orden de presentación |
 | `habilitado` | boolean | No | DEFAULT `true` |
 | `created_at` | timestamptz | No | Fecha de creación |
 | `updated_at` | timestamptz | No | Última actualización |
 
-### Tipos de campo iniciales
+### Tipos de campo admitidos
 
 ```text
 TEXTO
@@ -160,7 +160,7 @@ BOOLEANO
 SELECCION
 ```
 
-No deben agregarse nuevos tipos sin necesidad funcional.
+El catálogo es cerrado y lo fija `RN-ESP-CAM-02`. Añadir un tipo exige modificar esa regla, el CHECK y la validación del formulario de reserva, porque cada tipo necesita saber cómo se presenta y cómo se valida lo diligenciado.
 
 ### Restricciones
 

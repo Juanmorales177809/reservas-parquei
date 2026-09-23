@@ -202,7 +202,7 @@ Edita el valor, el orden o la habilitación de una opción. Una opción usada en
 
 Los valores admitidos para `tipo` son `TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`. El valor `SELECCION` identifica un campo cuyas opciones se administran mediante el endpoint de opciones.
 
-Este catálogo depende de `OQ-02`, que todavía no fija el conjunto definitivo de tipos.
+El catálogo es cerrado y lo fija `RN-ESP-CAM-02`; el modelo lo garantiza con un CHECK sobre `espacio_campos.tipo_campo`.
 
 ---
 

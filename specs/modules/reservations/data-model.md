@@ -212,7 +212,7 @@ Archivos que el Usuario adjunta a su requerimiento. El único flujo que hoy los 
 |---|---|---|---|
 | `id` | integer | NN | PK; identity |
 | `reserva_id` | integer | NN | FK → `reservas.reservas(id)` |
-| `tipo_adjunto` | varchar(30) | NN | sin CHECK: el catálogo de tipos admitidos no está definido (`OQ-14`) |
+| `tipo_adjunto` | varchar(30) | NN | CHECK `PLANO`, `IMAGEN` o `DOCUMENTO` |
 | `nombre_original` | varchar(255) | NN | nombre del archivo tal como lo cargó el Usuario; CHECK `btrim(nombre_original) <> ''` |
 | `storage_key` | varchar(255) | NN | UQ `uq_reserva_adjuntos_storage_key`; identifica el objeto almacenado, que no se comparte entre filas |
 | `content_type` | varchar(100) | NN | tipo MIME declarado al cargar |
@@ -221,6 +221,16 @@ Archivos que el Usuario adjunta a su requerimiento. El único flujo que hoy los 
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 
 El límite de `size_bytes` son los 5 MB que exige [spec.md](../../docs/spec.md) para el archivo del requerimiento. El backend valida el tamaño antes de almacenar el objeto; el CHECK impide que una fila registre un archivo que exceda el límite. `uploaded_by` usa FK real a `auth.cuentas` conforme a las decisiones de integridad de este modelo. La estructura admite varias filas por reserva. Índice `(reserva_id, created_at)`.
+
+`tipo_adjunto` clasifica el archivo y determina qué tipos MIME admite `content_type`:
+
+| `tipo_adjunto` | Formatos admitidos | `content_type` |
+|---|---|---|
+| `PLANO` | DWG, DXF, STEP, STL | `image/vnd.dwg`, `image/vnd.dxf`, `model/step`, `model/stl` |
+| `IMAGEN` | PNG, JPG | `image/png`, `image/jpeg` |
+| `DOCUMENTO` | PDF | `application/pdf` |
+
+El backend valida que el contenido corresponda al tipo declarado y no confía en la extensión del nombre original. Un archivo de cualquier otro formato se rechaza al cargar; en particular, no se admiten ejecutables ni archivos comprimidos, porque el Técnico debe poder abrir el adjunto para evaluar el requerimiento.
 
 ### `reservas.reserva_ejecucion_recursos`
 

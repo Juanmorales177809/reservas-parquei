@@ -32,7 +32,7 @@
 
 - **RN-ESP-CAM-01:** Un espacio puede tener cero o más campos adicionales configurados para recopilar información específica durante su reserva.
 
-- **RN-ESP-CAM-02:** Cada campo adicional debe definir como mínimo nombre, tipo de campo, obligatoriedad, orden y estado de habilitación.
+- **RN-ESP-CAM-02:** Cada campo adicional debe definir como mínimo nombre, tipo de campo, obligatoriedad, orden y estado de habilitación. Los tipos admitidos son exactamente cinco: `TEXTO` para una respuesta breve, `TEXTO_LARGO` para una descripción, `NUMERO` para una cantidad, `BOOLEANO` para una respuesta de sí o no, y `SELECCION` para una lista de opciones configuradas conforme a `RN-ESP-CAM-03`. El catálogo es cerrado: ningún otro valor es válido.
 
 - **RN-ESP-CAM-03:** Los campos de tipo selección pueden tener una o más opciones configuradas.
 

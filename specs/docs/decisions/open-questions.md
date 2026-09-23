@@ -24,9 +24,11 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Un conjunto cerrado y pequeño, frente a un catálogo extensible por configuración.
 
-**Impacto.** Determina la validación de `reserva_campos_valores` y el formulario de reserva. Afecta a `RN-ESP-CAM-02` y `RN-TIP-PE-18`.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **conjunto cerrado de cinco tipos** —`TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`—, que es el que el modelo ya contemplaba y el contrato de espacios ya publicaba. Se descartó el catálogo ampliable porque cada tipo nuevo necesita su propia validación y su forma de presentarse en el formulario, de modo que añadirlo por configuración no evitaría tocar el código.
 
-**Estado.** Abierta.
+**Impacto.** `RN-ESP-CAM-02` enumera los cinco y declara el catálogo cerrado; el CHECK sobre `espacio_campos.tipo_campo` lo garantiza. Añadir un tipo exige modificar la regla, el CHECK y la validación del formulario.
+
+**Estado.** Resuelta.
 
 ---
 
@@ -184,9 +186,13 @@ La planilla real de `OQ-10` no tiene columna de estado, así que no puede expres
 
 **Alternativas.** Un catálogo cerrado en `CHECK` o en una tabla de tipos, frente a dejar la clasificación abierta y validar únicamente `content_type` y tamaño.
 
-**Impacto.** Sin catálogo, `tipo_adjunto` admite cualquier texto y no puede filtrarse de forma fiable. Queda además por decidir qué tipos MIME se aceptan en `content_type`, dado que el archivo lo carga un Usuario autenticado y se almacena tal cual. No afecta el límite de tamaño, que sí está aprobado en 5 MB.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **planos, imágenes y PDF**. `tipo_adjunto` admite `PLANO` (DWG, DXF, STEP, STL), `IMAGEN` (PNG, JPG) y `DOCUMENTO` (PDF), y cada uno acota los tipos MIME válidos en `content_type`.
 
-**Estado.** Abierta.
+Se descartó admitir cualquier archivo salvo ejecutables, porque el Técnico debe poder abrir el adjunto para evaluar el requerimiento. Y se descartó limitarlo a PDF e imagen, porque obligaría al Usuario a exportar su plano y el Técnico perdería el archivo CAD original, que es justamente el que necesita para valorar la pieza.
+
+**Impacto.** `reservas.reserva_adjuntos.tipo_adjunto` lleva CHECK sobre los tres valores, y el backend valida que el contenido corresponda al tipo declarado en lugar de confiar en la extensión. El límite de 5 MB no cambia.
+
+**Estado.** Resuelta.
 
 ---
 
