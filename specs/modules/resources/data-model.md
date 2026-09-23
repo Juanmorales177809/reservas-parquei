@@ -26,7 +26,7 @@ Especialización de los recursos tipo `EQUIPO`. Su clave compartida vincula el r
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
 | `id` | integer | NN | PK/FK → `recursos.recursos(id)` |
-| `nombre_equipo` | varchar(50) | NN | — |
+| `nombre_equipo` | varchar(100) | NN | — |
 | `placa` | varchar(40) | Sí | UQ `uq_recursos_equipos_placa` |
 | `serial` | varchar(50) | Sí | UQ `uq_recursos_equipos_serial` |
 | `marca` | varchar(50) | Sí | — |

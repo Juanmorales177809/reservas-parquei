@@ -120,9 +120,17 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Reutilizar la estructura de los catálogos de investigación sustituyendo `codigo` por `placa`, frente a definir una planilla propia con los datos especializados que `UF-REC-03` exige al registrar un equipo.
 
-**Impacto.** Sin ella no puede implementarse la validación del paso 3 de `UF-ADM-04` ni determinarse qué datos del equipo actualiza una reimportación. Afecta a `RN-IMP-02` de administration y a `RN-IMP-02` de resources.
+**Decisión.** Resuelta el 23 de septiembre de 2026 a partir de la planilla real que se usa hoy, en lugar de diseñar un formato nuevo. Son seis columnas: `PLACA`, `DESCRIPCIÓN`, `CODIGO BODEGA`, `CENTRO DE COSTOS`, `FECHA INICIO` y `COSTO`. Quedan en `RN-IMP-11` de administration, con su correspondencia persistente en `RN-IMP-06` de resources.
 
-**Estado.** Abierta.
+Tres consecuencias de esa planilla real:
+
+- **`COSTO` no se conserva.** Es un dato contable del inventario institucional y ninguna regla de reservas lo necesita. Se lee y se descarta, sin error.
+- **No trae unidad organizacional.** El Administrador la selecciona al iniciar la carga y se aplica solo a los equipos que la carga cree (`RN-IMP-12`). Importar varias unidades exige una carga por unidad.
+- **`DESCRIPCIÓN` alimenta `nombre_equipo`**, que se amplió de `varchar(50)` a `varchar(100)`. Las descripciones reales siguen el patrón «tipo, marca, modelo y capacidad» y desbordaban el ancho anterior; con el rechazo total de `OQ-11`, una sola descripción larga habría frenado la carga entera.
+
+**Impacto.** Afecta a `RN-IMP-11` y `RN-IMP-12` de administration, `RN-IMP-06` de resources, `UF-ADM-04` y `recursos.equipos.nombre_equipo`.
+
+**Estado.** Resuelta.
 
 ---
 
@@ -132,9 +140,13 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Rechazo total cuando exista al menos una fila en error, frente a confirmación de las filas válidas reportando las erróneas.
 
-**Impacto.** Determina el paso 6 de `UF-ADM-01` y de `UF-ADM-04`, el significado de los totales de `administration.importaciones` y si una carga confirmada puede convivir con filas `ERROR` en `importacion_resultados`. Afecta a `RN-IMP-06` de administration y a `RN-IMP-03` de resources.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **rechazo total**. Una carga con al menos una fila en error no se confirma en ninguna de sus filas. El Administrador corrige el archivo y vuelve a cargarlo. No existe confirmación parcial.
 
-**Estado.** Abierta.
+El resultado por fila se conserva igualmente, para que el Administrador sepa exactamente qué corregir sin volver a procesar el archivo. Así, una importación confirmada nunca convive con filas `ERROR`: sus totales describen una carga íntegra.
+
+**Impacto.** Fija el paso de confirmación de `UF-ADM-01` y `UF-ADM-04`. `RN-IMP-06` de administration quedó redactada sin ambigüedad y `RN-IMP-03` de resources se alineó con ella, retirando la afirmación contraria que la originó.
+
+**Estado.** Resuelta.
 
 ---
 
@@ -144,9 +156,13 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Admitir la desactivación masiva con la advertencia y confirmación que exige `RN-DES-06`, frente a restringir la importación a altas y actualizaciones y dejar la desactivación al flujo individual.
 
-**Impacto.** Una desactivación masiva silenciosa podría cancelar reservas futuras sin la confirmación explícita que `RN-DES-06` exige. Afecta a `RN-IMP-07` y `RN-IMP-09` de administration, a `RN-DES-03` y `RN-DES-06` de resources, y al contador `registros_desactivados`.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **la importación de equipos no deshabilita**. Solo crea y actualiza por placa.
 
-**Estado.** Abierta.
+La planilla real de `OQ-10` no tiene columna de estado, así que no puede expresar una baja. Y aunque la tuviera, una desactivación masiva cancelaría reservas futuras sin la confirmación explícita que `RN-DES-06` exige antes de cada cancelación. Deshabilitar un equipo sigue siendo una acción individual.
+
+**Impacto.** `RN-IMP-07` y `RN-IMP-09` de administration y `RN-IMP-07` de resources lo declaran. El contador de registros desactivados de una carga de `EQUIPOS` es siempre cero.
+
+**Estado.** Resuelta.
 
 ---
 

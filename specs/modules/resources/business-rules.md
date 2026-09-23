@@ -146,8 +146,23 @@ La carga masiva de equipos la inicia, autoriza, valida en su formato y registra 
 
 - **RN-IMP-02:** La importación es idempotente por placa: un registro cuya placa ya exista se actualiza con los datos de la planilla en lugar de duplicarse; un registro con placa nueva se crea. La placa cumple para el equipo la misma función identificadora que el `codigo` normalizado cumple para los catálogos de investigación.
 
-- **RN-IMP-03:** Un registro de la planilla sin placa, o con una placa inválida, no se importa y se reporta como fila con resultado `ERROR` en la trazabilidad de la carga. Si el resto de las filas válidas puede confirmarse pese a ese error, o si la carga completa se rechaza, lo determina `RN-IMP-06` de administration y está pendiente de decisión (`OQ-11`).
+- **RN-IMP-03:** Un registro de la planilla sin placa, o con una placa inválida, se reporta como fila con resultado `ERROR` en la trazabilidad de la carga y **impide confirmar la importación completa**, conforme a `RN-IMP-06` de administration. Ninguna fila se escribe hasta que el archivo no tenga errores.
 
 - **RN-IMP-04:** La importación no modifica retroactivamente las reservas históricas asociadas a un equipo actualizado (ver RN-EQP-05).
 
 - **RN-IMP-05:** Cada equipo creado o actualizado por la importación se escribe conforme a `UF-REC-03`: `recursos.recursos` y `recursos.equipos` en una sola transacción. Una fila que no pueda escribirse completa no deja ninguna de las dos filas.
+
+- **RN-IMP-06:** Las columnas de la planilla de `RN-IMP-11` de administration se corresponden así con el modelo persistente:
+
+  | Columna de la planilla | Destino |
+  |---|---|
+  | `PLACA` | `recursos.equipos.placa` — clave de identificación e idempotencia |
+  | `DESCRIPCIÓN` | `recursos.equipos.nombre_equipo` |
+  | `CODIGO BODEGA` | `recursos.equipos.bodega` |
+  | `CENTRO DE COSTOS` | `recursos.equipos.centro_costo` |
+  | `FECHA INICIO` | `recursos.equipos.fecha_compra` |
+  | `COSTO` | no se persiste |
+
+  La unidad responsable de un equipo nuevo es la que el Administrador seleccionó al iniciar la carga (`RN-IMP-12` de administration) y se escribe en `recursos.recursos.id_unidad`. Los demás campos del equipo —serial, marca, modelo, categoría, calibración, `requiere_apoyo` y `acreditado`— no vienen en la planilla: conservan su valor en una actualización y toman su valor por defecto en un alta. Un equipo creado por importación queda habilitado.
+
+- **RN-IMP-07:** La importación de equipos no deshabilita ni retira ningún equipo. La planilla no expresa bajas, y deshabilitar un equipo sigue siendo una acción individual sujeta a la advertencia y confirmación de `RN-DES-06`, porque puede cancelar reservas futuras.
