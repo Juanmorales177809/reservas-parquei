@@ -114,7 +114,9 @@ La columna siempre admitió NULL, así que ni siquiera en la base actual era obl
 
 **Estado.** Abierta, pero el bloqueo original quedó levantado y **notifications ya está escrito**. Los cuatro módulos tienen flujos de usuario de los que derivar su superficie: `UF-ADM-01` a `UF-ADM-04` en administration, `UF-INV-01` en researchs, `UF-NOT-01` a `UF-NOT-03` en notifications y `UF-REP-01` y `UF-REP-02` en reports.
 
-El [contrato de notifications](../../contratos/notifications/api-contract.md) se escribió primero por dependencia: reservations y auth ya lo citaban para recordatorios, confirmaciones, invitaciones y recuperación de contraseña. Expone la bandeja del destinatario y sus preferencias de correo; la generación y la entrega no tienen superficie HTTP. Quedan `administration`, `reports` y `researchs`.
+El [contrato de notifications](../../contratos/notifications/api-contract.md) se escribió primero por dependencia: reservations y auth ya lo citaban para recordatorios, confirmaciones, invitaciones y recuperación de contraseña. Expone la bandeja del destinatario y sus preferencias de correo; la generación y la entrega no tienen superficie HTTP.
+
+El [contrato de reports](../../contratos/reports/api-contract.md) le siguió. Expone tres reportes —ocupación, solicitudes y lista de espera— y su exportación, derivados de los indicadores que `RN-OCU-05` ya definía. Quedan `administration` y `researchs`.
 
 ---
 

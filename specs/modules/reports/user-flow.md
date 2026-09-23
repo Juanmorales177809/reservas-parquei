@@ -59,7 +59,7 @@ Reports no tiene tablas persistentes propias ni flujos de sistema: toda su activ
 - El archivo no incluye credenciales, tokens, hashes ni otra información técnica sensible (`RN-PRI-02`).
 - Un reporte sin datos se exporta como ausencia de información para los criterios seleccionados, no con valores ficticios (`RN-VIS-04`).
 
-**Nota de propiedad.** Este flujo sustituye a `UF-RES-18`, que documentaba la exportación dentro de Reservations pese a citar `RN-EXP-05` de este módulo. La superficie HTTP correspondiente sigue expuesta en el [contrato de reservations](../../contratos/reservations/api-contract.md), porque exporta el listado de reservas; Reports no tiene contrato propio todavía (`OQ-08`).
+**Nota de propiedad.** Este flujo sustituye a `UF-RES-18`, que documentaba la exportación dentro de Reservations pese a citar `RN-EXP-05` de este módulo. Su superficie está en el [contrato de reports](../../contratos/reports/api-contract.md). La exportación del **listado de reservas en bruto** permanece en el [contrato de reservations](../../contratos/reservations/api-contract.md), porque no es un reporte agregado; comparte con este flujo las reglas `RN-EXP`.
 
 ---
 
