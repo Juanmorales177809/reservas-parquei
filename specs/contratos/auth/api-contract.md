@@ -550,7 +550,7 @@ El catálogo inicial de códigos de `auth.permisos` está definido en [data-mode
 ## 10. Lo que este contrato no expone
 
 - **Identidades funcionales**: `usuarios.usuarios` y `personal.personal` pertenecen a [usuarios](../usuarios/api-contract.md). Auth crea y administra la cuenta, nunca la ficha de la persona (`RN-AUTH-ID-03`).
-- **Asignación de permisos**: otorgar y retirar permisos a una cuenta exige `permisos.asignar` y corresponde a administration, que todavía no tiene contrato. Auth define `auth.permisos` y `auth.cuenta_permisos` y los evalúa; no expone su administración.
+- **Asignación de permisos**: otorgar y retirar permisos a una cuenta exige `permisos.asignar` y corresponde a [administration](../administration/api-contract.md). Auth define `auth.permisos` y `auth.cuenta_permisos` y los evalúa; no expone su administración.
 - **Unidades organizacionales y cargos**: los administra administration con `unidades.administrar`. Auth los consulta para resolver el ámbito de una cuenta `PERSONAL`.
 - **Correos de invitación y recuperación**: Auth origina el evento; su entrega pertenece a [notifications](../../modules/notifications/user-flow.md) conforme a `UF-NOT-03`, y las preferencias de envío no se aplican a estos correos (`RN-PREF-03`).
 - **Perfil y vinculaciones del Usuario**: Auth consulta la condición de actualización inicial, pero no expone ni valida los datos del perfil, que pertenecen a [usuarios](../usuarios/api-contract.md).

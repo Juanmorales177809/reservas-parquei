@@ -8,11 +8,23 @@ Plan general y dependencias con la base de datos: [`tasks.md`](../../../tasks.md
 
 ## Punto de partida
 
-Los nueve módulos tienen contrato y los nueve comparten la misma forma. La superficie documentada son **algo más de 90 endpoints**, de los cuales el backend implementa hoy uno solo: `POST /auth/login`, y contra un contrato anterior.
+Los nueve módulos tienen contrato y los nueve comparten la misma forma. La superficie documentada son **122 rutas**, y el backend no implementa ninguna: el anterior se retiró entero porque respondía a un contrato distinto.
 
-El detalle de la brecha de auth ya está en su propio plan: [modules/auth/tasks.md](../../modules/auth/tasks.md).
+| Contrato | Rutas | | Contrato | Rutas |
+|---|---:|---|---|---:|
+| usuarios | 21 | | espacios | 15 |
+| reservations | 20 | | resources | 11 |
+| auth | 17 | | notifications | 5 |
+| administration | 17 | | reports | 5 |
+| researchs | 15 | | | |
+
+Cuatro rutas aparecen en dos contratos —las de `/api/perfil`, que usuarios y researchs comparten—, así que la suma por archivo da 126 y las únicas son 122.
+
+El desglose de auth está en su propio plan: [modules/auth/tasks.md](../../modules/auth/tasks.md).
 
 **Ningún endpoint es implementable antes que las convenciones transversales.** Son lo que hace que los nueve contratos se comporten igual, y reimplementarlas por módulo es la forma más rápida de acabar con nueve APIs distintas.
+
+`API-01` a `API-04` **son** las tareas `BK-04` a `BK-07` del [plan de backend](backend.md), no un trabajo aparte: aquí está el criterio de aceptación escrito como petición, allí los archivos. Se cierran juntas.
 
 ---
 
@@ -67,7 +79,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 
 - **Objetivo:** el permiso y el ámbito organizacional se evalúan en el servidor en cada operación, con información vigente.
 - **Afectados:** dependencia de autorización del backend.
-- **Dependencias:** API-03 y **DB-09**, que carga el catálogo de permisos.
+- **Dependencias:** API-03, **DB-14**, que crea `auth.permisos` y `auth.cuenta_permisos`, y **DB-09**, que carga el catálogo.
 - **Aceptación:** un Técnico que opera sobre una unidad ajena recibe `403 NO_AUTORIZADO`, o `404 NO_ENCONTRADO` cuando revelar la existencia constituya una fuga. Ante imposibilidad de comprobar el permiso, deniega.
 - **Contrato:** auth §7, README §3.
 - **RN:** `SEC-AUTZ-01`, `SEC-AUTZ-02`, `SEC-AUTZ-04`, `RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`.
@@ -79,8 +91,8 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 ### API-05 — Contrato de auth
 
 - **Objetivo:** los 17 endpoints de sesión, credenciales, invitaciones y administración de cuentas.
-- **Afectados:** ver [modules/auth/tasks.md](../../modules/auth/tasks.md), que ya desglosa esta brecha.
-- **Dependencias:** API-01 a API-04.
+- **Afectados:** ver [modules/auth/tasks.md](../../modules/auth/tasks.md), que lo desglosa en doce tareas a dos carriles.
+- **Dependencias:** API-01 a API-04, **DB-14** y `BK-08`.
 - **Aceptación:** la definida en ese plan.
 - **Contrato:** [auth](../../contratos/auth/api-contract.md).
 
@@ -88,7 +100,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 
 - **Objetivo:** `/api/perfil` para el perfil propio y sus vinculaciones, `/api/usuarios` para las identidades de Usuario y `/api/personal` para las fichas de Personal.
 - **Afectados:** módulo de usuarios del backend.
-- **Dependencias:** API-05. **Bloquea la invitación de cuentas `PERSONAL`**, que exige una ficha activa previa.
+- **Dependencias:** API-05, **DB-06** y **DB-15**, que instalan el estado de la ficha y las columnas objetivo de `usuarios.usuarios`. **Bloquea la invitación de cuentas `PERSONAL`**, que exige una ficha activa previa.
 - **Aceptación:** crear una ficha con un documento ya registrado responde `409 DOCUMENTO_DUPLICADO`; modificar el correo de una identidad con cuenta asociada responde `409 CONFLICTO`; el correo se devuelve como solo lectura en `GET /api/perfil`.
 - **Contrato:** [usuarios](../../contratos/usuarios/api-contract.md).
 - **RN:** `RN-DAT`, `RN-PRS`, `RN-USR-07` a `RN-USR-11`.

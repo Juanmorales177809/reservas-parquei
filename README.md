@@ -20,11 +20,13 @@ Sistema de reservas de espacios, equipos y recursos de laboratorio para el ITM.
 | Componente | Estado |
 |---|---|
 | Especificación | **Completa.** 513 reglas, 82 flujos y 9 contratos, cotejados entre sí. Las 15 preguntas abiertas están resueltas |
-| Base de datos | **Aplicada parcialmente.** El schema `reservas` tiene sus 28 tablas; faltan `recursos`, `administration`, `notificaciones` y parte de `investigacion` |
+| Base de datos | **Aplicada parcialmente.** El schema `reservas` tiene sus 28 tablas; faltan los schemas `recursos`, `administration` y `notificaciones`, parte de `investigacion` y cinco tablas dentro de `auth` |
 | Backend | **Por construir.** El anterior se retiró: implementaba un contrato distinto |
 | Frontend | **Por construir** |
 
-Dos cosas conviene saberlas antes de tocar nada:
+Tres cosas conviene saberlas antes de tocar nada:
+
+**Las tablas de sesión y permisos no existen.** `auth.cuentas` sí, pero `auth.sesiones`, `auth.invitaciones`, `auth.tokens_recuperacion`, `auth.permisos` y `auth.cuenta_permisos` están definidas en la especificación y nunca se aplicaron. Sin ellas no hay inicio de sesión ni autorización posible. Es `DB-14`, la primera tarea de base de datos.
 
 **La protección contra doble reserva no está instalada.** Que existan las columnas `periodo` y `bloqueante` no equivale a la garantía. Es la tarea `DB-12`, y hasta cerrarla crear una reserva no es correcto bajo concurrencia.
 

@@ -55,7 +55,7 @@ backend/
       notifications/
       reports/
     main.py
-  migrations/               <- se rescatan 002 y 003 del commit 2b32ea2
+  migrations/               <- 002 y 003, rescatados en BK-00
   tests/
   Dockerfile
   requirements.txt
@@ -111,13 +111,15 @@ Al cerrarlo existe un servicio que responde y se conecta a la base, sin lógica 
 - **Objetivo:** el backend corre junto a `db` y `pgadmin`.
 - **Afectados:** `docker-compose.yml`.
 - **Dependencias:** BK-01.
-- **Aceptación:** `docker compose up` levanta la base y el backend. El servicio ya existe y construye `./backend`; hay que revisar sus variables de entorno, que hoy incluyen las del arranque anterior (`INITIAL_ADMIN_*`, `ALGORITHM`). El servicio `frontend` apunta a una carpeta que seguirá siendo la antigua hasta que se rehaga.
+- **Aceptación:** `docker compose up` levanta la base y el backend, y `GET /health` responde desde el contenedor. **El servicio hay que crearlo**: se retiró al borrar el código anterior, porque apuntaba a una carpeta inexistente y rompía `docker compose up`. Se declara con lo que el backend necesita hoy —la cadena de conexión y poco más— **sin arrastrar las variables del arranque anterior** (`INITIAL_ADMIN_*`, `ALGORITHM`), que pertenecían a un modelo retirado. El servicio `frontend` tampoco existe y no se reintroduce aquí.
 
 ---
 
 ## Hito 1 — El núcleo transversal
 
-Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas `API-01` a `API-04` del plan de contratos, y **ninguna ruta de negocio se escribe antes de cerrarlo**.
+Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de negocio se escribe antes de cerrarlo**.
+
+`BK-04` a `BK-07` **son** `API-01` a `API-04`: el mismo trabajo visto desde el proyecto en vez de desde el contrato. No son dos tareas cada una. **Manda la `BK-XX`**, que nombra los archivos; la `API-XX` aporta el criterio de aceptación escrito como petición y se cierra con ella.
 
 ### BK-04 — Envolvente de error y catálogo común
 
@@ -142,10 +144,10 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 
 ### BK-07 — `exigir_permiso` con ámbito
 
-- **Objetivo:** una dependencia que resuelve permiso y unidad en cada operación.
+- **Objetivo:** una dependencia que resuelve permiso y unidad en cada operación, y deriva rol y unidades autorizadas.
 - **Afectados:** `backend/app/core/authz.py`.
-- **Dependencias:** BK-06 y **DB-09**, que carga el catálogo de permisos.
-- **Aceptación:** un Técnico sobre una unidad ajena recibe `403`, o `404` cuando revelar la existencia sea una fuga. Si el permiso no puede comprobarse, **deniega**.
+- **Dependencias:** BK-06, **DB-14**, que crea `auth.permisos` y `auth.cuenta_permisos`, y **DB-09**, que carga el catálogo.
+- **Aceptación:** un Técnico sobre una unidad ajena recibe `403`, o `404` cuando revelar la existencia sea una fuga. Si el permiso no puede comprobarse, **deniega**. `unidades_autorizadas` de un Técnico contiene **solo la unidad vigente de su cargo**, nunca la unión de sus asignaciones; la de un Administrador es `"GLOBAL"`.
 
 ---
 
@@ -155,8 +157,9 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 
 - **Objetivo:** modelos SQLAlchemy de `reservas` (28 tablas), `auth`, `usuarios`, `personal`, `cargos`, `unidadOrganizacional` e `investigacion` en lo que ya existe.
 - **Afectados:** `backend/app/db/models/`.
-- **Dependencias:** BK-02.
+- **Dependencias:** BK-02 y **DB-14**, que añade las cinco tablas de `auth` que hoy faltan.
 - **Aceptación:** una consulta a cada tabla se ejecuta sin error. **Ningún modelo declara una tabla que la base no tenga**, y ninguno se marca como creable.
+- **Alcance de `auth`:** las siete tablas, es decir `auth.cuentas`, que ya existía, y las cinco que crea `DB-14`. El plan de auth las consume, no las modela.
 - **Nota:** `recursos`, `administration`, `notificaciones` y el resto de `investigacion` **no se modelan todavía**: no existen hasta `DB-01` a `DB-04`. Modelarlos antes produce código que no se puede probar.
 
 ---
@@ -165,9 +168,9 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 
 ### BK-09 — Auth de punta a punta
 
-- **Objetivo:** los 17 endpoints del contrato de auth, funcionando.
+- **Objetivo:** los 17 endpoints del contrato de auth, funcionando. Dieciséis se construyen aquí; `GET /api/auth/csrf` ya lo entregó `BK-06`.
 - **Afectados:** `backend/app/modules/auth/`.
-- **Dependencias:** Hito 1 y BK-08. Desarrolla `API-05`; el desglose está en [modules/auth/tasks.md](../../modules/auth/tasks.md).
+- **Dependencias:** Hito 1, BK-08 y **DB-14**. Desarrolla `API-05`; el desglose está en [modules/auth/tasks.md](../../modules/auth/tasks.md), que es el documento que manda al implementarlo.
 - **Aceptación:** la del plan de auth. Además, **auth queda como la referencia de estilo**: cualquier módulo posterior que se estructure distinto se corrige, no se justifica.
 
 Al cerrar este hito hay un módulo entero contra el contrato nuevo, y las decisiones difíciles —sesiones, CSRF, ámbito, forma del error— ya están tomadas en código, no solo en documento.

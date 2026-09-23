@@ -1,26 +1,51 @@
 # Plan de tareas — Auth
 
-Traduce el [contrato de API](../../contratos/auth/api-contract.md) y los [flujos de usuario](user-flow.md) a tareas de implementación. Cada tarea declara objetivo, archivos afectados, dependencias, criterio de aceptación y las reglas que la sustentan, siguiendo la convención del [plan general](../../../tasks.md). Este documento desarrolla la tarea `API-05` del [plan de contratos](../../docs/tasks/contratos.md).
+Traduce el [contrato de API](../../contratos/auth/api-contract.md) y los [flujos de usuario](user-flow.md) a tareas de implementación. Cada tarea declara objetivo, archivos afectados, dependencias, criterio de aceptación y las reglas que la sustentan, siguiendo la convención del [plan general](../../../tasks.md). Este documento desarrolla `API-05` del [plan de contratos](../../docs/tasks/contratos.md) y `BK-09` del [plan de backend](../../docs/tasks/backend.md).
 
 Plan dimensionado para **dos personas en paralelo**. Los carriles se reparten por propiedad de archivos, no por capas, para evitar conflictos de merge.
 
 ---
 
-## Estado actual frente al contrato
+## Punto de partida
 
-El módulo ya está implementado contra un contrato anterior. Estas son las diferencias que originan las tareas:
+**No hay código de auth.** El backend anterior se retiró entero: implementaba credencial por `username`, token en el cuerpo de la respuesta y `rol` dentro del JWT, sin sesiones ni CSRF. No se adapta, se construye.
 
-| Aspecto | Hoy | Contrato |
-|---|---|---|
-| Credencial de entrada | `username` + `password` contra la tabla heredada de usuarios (`app/crud/usuarios.py`) | `correo` + `contrasena` contra `auth.cuentas` |
-| Transporte del token | `access_token` en el cuerpo, tipo `bearer`, leído por el cliente | Cookie `HttpOnly` (`SEC-SES-03`, `SEC-SES-05`) |
-| Claims del JWT | Incluye `rol` y `role` | Sin rol ni permisos (`SEC-JWT-04`) |
-| Sesiones | No existe el modelo `auth.sesiones`; no hay logout, renovación ni revocación | Sesión persistida y revocable (`SEC-SES-01`, `SEC-SES-07`) |
-| Endpoints | Solo `POST /auth/login` | 16 endpoints (§3–§6 del contrato) |
-| CSRF | Ausente | Doble envío obligatorio (`SEC-CSRF-01`) |
-| Errores | `detail` de FastAPI | Envolvente `error.codigo` (§1) |
+Auth es el **primer módulo completo** del backend nuevo, así que queda como referencia de estilo para los ocho restantes.
 
-`backend/app/models/auth.py` ya define `Cuenta` conforme al modelo de datos: esa parte no se rehace.
+### Lo que este plan da por hecho
+
+| Depende de | Qué aporta |
+|---|---|
+| `DB-14` | Las cinco tablas: `auth.sesiones`, `auth.invitaciones`, `auth.tokens_recuperacion`, `auth.permisos` y `auth.cuenta_permisos` |
+| `DB-09` | Los catorce códigos del catálogo de permisos, cargados |
+| `BK-04` | La envolvente `{"error": {"codigo", "mensaje", "detalles"}}` |
+| `BK-06` | Cookies `rp_access` y `rp_refresh`, doble envío CSRF, firma y verificación del token, y `GET /api/auth/csrf` |
+| `BK-07` | `exigir_permiso`, el contexto autenticado y la derivación de rol y unidades autorizadas |
+| `BK-08` | Los modelos SQLAlchemy de `auth`, incluidas las cinco tablas de `DB-14` |
+
+**Nada de eso se redefine aquí.** El contrato expone 17 endpoints; este plan implementa **16**, porque `GET /api/auth/csrf` (§3.0) pertenece al núcleo transversal y lo entrega `BK-06`.
+
+`auth.cuentas` ya existe en la base y no se toca. **Este plan no crea ni altera ninguna tabla**, conforme a la regla 1 del plan de backend: cuando falte estructura, se abre una tarea `DB-XX`.
+
+---
+
+## Dónde vive
+
+```text
+backend/app/
+  db/models/auth.py                     <- lo crea BK-08; aquí solo se consume
+  modules/auth/
+    router.py                 carril A  <- sesión y credenciales propias
+    service.py                carril A
+    repository.py             carril A
+    router_cuentas.py         carril B  <- registro, recuperación, reautenticación, administración
+    router_invitaciones.py    carril B
+    service_cuentas.py        carril B
+    repository_cuentas.py     carril B
+    schemas.py                carril B  <- carril A solo lee
+```
+
+El módulo parte en dos routers y dos servicios **para que los dos carriles no editen el mismo archivo**. Es una excepción deliberada a la forma de cuatro archivos descrita en el plan de backend, y se justifica por el reparto: ningún otro módulo la necesita, porque ninguno se construye a dos manos.
 
 ---
 
@@ -44,183 +69,139 @@ Una tarea sin criterio de aceptación verificable no entra al plan. Si dos tarea
 
 ## Reparto y puntos de sincronización
 
-| Carril | Responsabilidad | Archivos propios |
-|---|---|---|
-| **A** | Sesión, credenciales propias y autorización | `app/auth/auth.py`, `app/deps.py`, `app/models/auth.py`, `app/api/auth.py` |
-| **B** | Alta de cuentas, invitaciones, recuperación y administración | `app/api/auth_cuentas.py`, `app/api/auth_invitaciones.py`, `app/crud/auth.py`, `app/schemas/auth.py` |
-
-Los endpoints de B viven en routers nuevos y separados precisamente para que ambos carriles no editen `app/api/auth.py` a la vez.
+| Carril | Responsabilidad |
+|---|---|
+| **A** | Sesión, credenciales propias y control de abuso |
+| **B** | Alta de cuentas, recuperación, invitaciones y administración |
 
 **Puntos de sincronización obligatorios:**
 
-1. `app/main.py` — registro de routers y manejadores de error. Lo toca **solo A**; B le pide el registro de su router.
-2. `app/deps.py` — B consume `obtener_contexto` y `exigir_permiso` de A, no los redefine. Hasta que AUTH-A6 cierre, B trabaja contra la firma acordada, no contra la implementación.
-3. `app/schemas/auth.py` — lo crea B en AUTH-B1; A solo lo lee.
-
----
-
-## Fase 0 — Desbloqueo
-
-Ambos carriles arrancan a la vez porque no comparten archivos. B trabaja en especificación mientras A monta la persistencia de sesión.
-
-### AUTH-D1 — Definir persistencia de invitaciones y recuperación ✅ CERRADA
-
-Resuelta durante la revisión de specs. `auth.invitaciones` y `auth.tokens_recuperacion` están definidas en [data-model.md](data-model.md), con token almacenado como hash, vigencia y marca de uso. Las vigencias por defecto son 7 días para una invitación y 1 hora para un token de recuperación. Ya no bloquea AUTH-B2 ni AUTH-B3.
-
-### AUTH-D2 — Definir persistencia de permisos y ámbito ✅ CERRADA
-
-Resuelta en el modelo objetivo de [data-model.md](data-model.md). `auth.cuenta_permisos` tiene una PK sustituta `id_cuenta_permiso`; `id_unidad` queda nullable fuera de la PK, y dos índices únicos parciales evitan duplicados para asignaciones por unidad y globales. El rol se deriva considerando cuenta, identidad activa, cargo, unidad vigente y permisos; una asignación no puede ampliar el ámbito del Técnico. Esta definición ya no bloquea AUTH-A6 ni AUTH-B4; su aplicación a la base de datos corresponde a las tareas de implementación del esquema.
-
-El catálogo de códigos de `auth.permisos` también quedó definido (OQ-01), así que `AUTH-A6` ya no tiene dependencias de diseño abiertas.
-
-### AUTH-A1 — Modelo y migración de `auth.sesiones`
-
-- **Carril:** A
-- **Objetivo:** crear la entidad de sesión que hoy no existe en el ORM.
-- **Afectados:** `backend/app/models/auth.py`, nueva migración en `backend/migrations/`.
-- **Dependencias:** ninguna. Bloquea AUTH-A3, AUTH-A4 y AUTH-A5.
-- **Aceptación:** existe `auth.sesiones` con `id_sesion` UUID por defecto, `id_cuenta` con `ON DELETE CASCADE`, `refresh_token_hash`, `expires_at` con CHECK `> created_at` y `revoked_at` nulo; una instalación limpia la crea sin pasos manuales.
-- **Contrato:** §2
-- **RN:** `SEC-SES-01`, [data-model.md](data-model.md)
+1. `backend/app/main.py` — registro de routers. Lo toca **solo A**; B le pide el registro del suyo.
+2. `schemas.py` — lo crea B en `AUTH-B1`; A solo lo lee. Hasta entonces A trabaja contra la firma acordada.
+3. El cierre de `AUTH-A1`, porque fija la forma del token y las vigencias que todo lo demás asume.
 
 ---
 
 ## Fase 1 — Implementación paralela
 
-### Carril A — Sesión, credenciales y autorización
+Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias externas ya están cerradas.
 
-#### AUTH-A2 — Rehacer la emisión y validación del JWT
+### Carril A — Sesión, credenciales y abuso
 
-- **Carril:** A
-- **Objetivo:** eliminar `rol`/`role` de los claims y fijar la validación completa.
-- **Afectados:** `backend/app/auth/auth.py`, `backend/app/config.py`.
-- **Dependencias:** ninguna. Bloquea AUTH-A3.
-- **Aceptación:** el token emitido contiene `iss`, `aud`, `sub`, `sid`, `typ`, `iat`, `exp` y ningún permiso; un token con `alg: none`, algoritmo distinto, `aud` ajena o `typ` incorrecto se rechaza; un token con firma válida cuya sesión fue revocada también se rechaza.
-- **Contrato:** §2
-- **RN:** `SEC-JWT-01`, `SEC-JWT-02`, `SEC-JWT-04`, `SEC-JWT-05`
-
-#### AUTH-A3 — Transporte por cookie y protección CSRF
+#### AUTH-A1 — Claims del token y vigencias de sesión
 
 - **Carril:** A
-- **Objetivo:** sacar el token del cuerpo de la respuesta y llevarlo a cookies, con doble envío CSRF.
-- **Afectados:** `backend/app/api/auth.py`, `backend/app/deps.py`, `backend/app/main.py`.
-- **Dependencias:** AUTH-A1, AUTH-A2. Bloquea AUTH-F1.
-- **Aceptación:** la respuesta de inicio de sesión no contiene el token; `rp_access` y `rp_refresh` son `HttpOnly` y `Secure`; `rp_refresh` limita su `Path` al endpoint de renovación; una operación de escritura sin `X-CSRF-Token` coincidente responde `403`.
-- **Contrato:** §2
-- **RN:** `SEC-SES-03`, `SEC-SES-04`, `SEC-SES-05`, `SEC-CSRF-01`, `SEC-CSRF-02`
+- **Objetivo:** fijar qué lleva el token de acceso y cuánto dura una sesión.
+- **Afectados:** `backend/app/modules/auth/service.py`, `backend/app/core/config.py`.
+- **Dependencias:** `BK-06`, `BK-08`. Bloquea AUTH-A2.
+- **Aceptación:** el token emitido contiene `iss`, `aud`, `sub`, `sid`, `typ`, `iat` y `exp`, **y ningún rol ni permiso**; se rechaza un token con `alg: none`, con algoritmo distinto, con `aud` ajena o con `typ` incorrecto. Los tres límites —12 h de vigencia máxima, 30 min de inactividad y 10 min de ventana de autenticación reciente— se leen de configuración, no están escritos en el código.
+- **Contrato:** §2, §9
+- **RN:** `SEC-JWT-01`, `SEC-JWT-02`, `SEC-JWT-04`, `SEC-JWT-05`, `SEC-SES-09`
 
-#### AUTH-A4 — Reescribir el inicio de sesión contra `auth.cuentas`
+#### AUTH-A2 — Inicio de sesión
 
 - **Carril:** A
-- **Objetivo:** autenticar por correo contra `auth.cuentas`, no por `username` contra la tabla heredada.
-- **Afectados:** `backend/app/api/auth.py`, `backend/app/crud/usuarios.py`, `backend/app/schemas/usuario.py`.
-- **Dependencias:** AUTH-A1, AUTH-A3.
-- **Aceptación:** contraseña incorrecta, correo inexistente, cuenta inactiva e identidad inactiva devuelven el mismo `401 CREDENCIALES_INVALIDAS`, sin diferencias observables de cuerpo ni de tiempo; el inicio exitoso crea fila en `auth.sesiones` y regenera el identificador previo.
+- **Objetivo:** autenticar por correo contra `auth.cuentas` y abrir sesión persistida.
+- **Afectados:** `backend/app/modules/auth/router.py`, `service.py`, `repository.py`.
+- **Dependencias:** AUTH-A1.
+- **Aceptación:** contraseña incorrecta, correo inexistente, cuenta inactiva e identidad inactiva devuelven **el mismo** `401 CREDENCIALES_INVALIDAS`, sin diferencias observables de cuerpo ni de tiempo; el inicio exitoso escribe una fila en `auth.sesiones` y regenera el identificador de sesión previo.
 - **Contrato:** §3.2
 - **RN:** `RN-AUTH-ID-01`, `RN-AUTH-ID-02`, `RN-AUTH-ID-05`, `SEC-ABU-02`, `SEC-SES-13`
 
-#### AUTH-A5 — Sesión actual, renovación y cierre
+#### AUTH-A3 — Sesión actual, renovación y cierre
 
 - **Carril:** A
-- **Objetivo:** completar el ciclo de vida de la sesión, hoy inexistente.
-- **Afectados:** `backend/app/api/auth.py`, `backend/app/crud/auth.py`.
-- **Dependencias:** AUTH-A4.
-- **Aceptación:** cerrar sesión marca `revoked_at` y borra las cookies; una sesión revocada o vencida responde `401` aunque el cliente conserve la cookie; la renovación rota el secreto y rechaza superado el límite de inactividad o la vigencia máxima.
+- **Objetivo:** completar el ciclo de vida de la sesión.
+- **Afectados:** `backend/app/modules/auth/router.py`, `service.py`, `repository.py`.
+- **Dependencias:** AUTH-A2, `BK-07` para la derivación de rol y unidades.
+- **Aceptación:** cerrar sesión marca `revoked_at` y borra las cookies; una sesión revocada o vencida responde `401` aunque el cliente conserve la cookie; la renovación rota el secreto y se rechaza al superar la inactividad o la vigencia máxima. `GET /api/auth/sesiones/actual` devuelve `"GLOBAL"` en `unidades_autorizadas` para un Administrador y **únicamente la unidad vigente** para un Técnico, nunca la unión de sus asignaciones.
 - **Contrato:** §3.3, §3.4, §3.5
-- **RN:** `RN-AUTH-SES-01`, `RN-AUTH-SES-02`, `SEC-SES-07`, `SEC-SES-08`, `SEC-SES-09`
+- **RN:** `RN-AUTH-SES-01`, `RN-AUTH-SES-02`, `RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`, `SEC-SES-07`, `SEC-SES-08`, `SEC-SES-09`
 
-#### AUTH-A6 — Contexto autenticado, autorización y envolvente de error
+#### AUTH-A4 — Limitación de intentos
 
 - **Carril:** A
-- **Objetivo:** sustituir `get_current_user` por el contrato interno que consumirán todos los módulos.
-- **Afectados:** `backend/app/deps.py`, `backend/app/main.py`.
-- **Dependencias:** AUTH-A5, AUTH-D2. Bloquea el consumo desde reservas y recursos.
-- **Aceptación:** `obtener_contexto` resuelve identidad desde la sesión y rechaza cuenta o identidad inactiva; `exigir_permiso` evalúa permiso y unidad con datos vigentes y deniega cuando no puede comprobarlos; todo error del módulo responde con la envolvente `error.codigo` del contrato.
-- **Contrato:** §1, §7
-- **RN:** `SEC-AUTZ-01`, `SEC-AUTZ-02`, `SEC-AUTZ-03`, `SEC-AUTZ-04`, `RN-AUTH-ROL-05`
+- **Objetivo:** los seis endpoints marcados **limitado** en el contrato resisten abuso automatizado.
+- **Afectados:** `backend/app/core/security.py`, consumido desde ambos routers.
+- **Dependencias:** AUTH-A2. Afecta endpoints de los dos carriles, por eso se implementa una sola vez.
+- **Aceptación:** superar el límite responde `429 DEMASIADOS_INTENTOS` con encabezado `Retry-After`; **superarlo nunca concede acceso** ni distingue un correo existente de uno inexistente.
+- **Contrato:** §2, §3.1, §3.2, §3.6, §3.8, §3.9, §4.4
+- **RN:** `SEC-ABU-01`, `SEC-ABU-02`, `SEC-ABU-03`
 
 ### Carril B — Alta de cuentas, invitaciones y administración
 
 #### AUTH-B1 — Autorregistro
 
 - **Carril:** B
-- **Objetivo:** habilitar el alta sin invitación, hoy inexistente.
-- **Afectados:** `backend/app/api/auth_cuentas.py`, `backend/app/schemas/auth.py`, `backend/app/crud/auth.py`.
-- **Dependencias:** ninguna.
-- **Aceptación:** la respuesta es `202` idéntica exista o no el correo; una contraseña fuera del rango admitido se rechaza con `422`; la cuenta creada es `USUARIO`, activa, vinculada a una sola identidad y sin permisos.
+- **Objetivo:** alta de cuenta `USUARIO` sin invitación.
+- **Afectados:** `backend/app/modules/auth/router_cuentas.py`, `schemas.py`, `service_cuentas.py`, `repository_cuentas.py`.
+- **Dependencias:** `BK-08`. Crea `schemas.py`, que A consume.
+- **Aceptación:** la respuesta es `202` **idéntica exista o no el correo**; una contraseña fuera del rango admitido se rechaza con `422`; la cuenta creada es `USUARIO`, activa, vinculada a una sola identidad y sin permisos.
 - **Contrato:** §3.1
 - **RN:** `RN-AUTH-ID-02`, `RN-AUTH-ID-03`, `RN-AUTH-ROL-04`, `SEC-PWD-07`, `SEC-ABU-02`
 
 #### AUTH-B2 — Recuperación de contraseña
 
 - **Carril:** B
-- **Objetivo:** implementar solicitud, validación previa y restablecimiento.
-- **Afectados:** `backend/app/api/auth_cuentas.py`, `backend/app/crud/auth.py`, integración con `notificaciones`.
-- **Dependencias:** AUTH-D1.
-- **Aceptación:** la solicitud responde igual exista o no la cuenta; el token es de un solo uso y reutilizarlo devuelve `410`; el restablecimiento revoca todas las sesiones de la cuenta y dispara la notificación del cambio.
+- **Objetivo:** solicitud, validación previa y restablecimiento.
+- **Afectados:** `backend/app/modules/auth/router_cuentas.py`, `service_cuentas.py`, `repository_cuentas.py`.
+- **Dependencias:** AUTH-B1.
+- **Aceptación:** la solicitud responde igual exista o no la cuenta; el token es de un solo uso y reutilizarlo devuelve `410`; el restablecimiento **revoca todas las sesiones** de la cuenta. El token nunca se almacena en claro ni aparece en ninguna respuesta.
 - **Contrato:** §3.6, §3.7, §3.8
-- **RN:** `SEC-REC-01`, `SEC-REC-02`, `SEC-REC-03`, `SEC-REC-04`, `SEC-REC-05`
+- **RN:** `SEC-REC-01` a `SEC-REC-05`, `SEC-TOK-02`, `SEC-TOK-05`
 
 #### AUTH-B3 — Invitaciones
 
 - **Carril:** B
 - **Objetivo:** emitir, reenviar, validar y activar invitaciones.
-- **Afectados:** `backend/app/api/auth_invitaciones.py`, `backend/app/crud/auth.py`.
-- **Dependencias:** AUTH-D1, AUTH-A6 para la verificación de permiso.
-- **Aceptación:** la respuesta de emisión nunca contiene el token; reenviar invalida el token anterior; una invitación vencida, usada o revocada no completa el alta; la activación respeta el tipo e identidad almacenados, no los enviados por el cliente.
+- **Afectados:** `backend/app/modules/auth/router_invitaciones.py`, `service_cuentas.py`, `repository_cuentas.py`.
+- **Dependencias:** AUTH-B1 y `BK-07` para la comprobación de `cuentas.administrar`.
+- **Aceptación:** la respuesta de emisión **nunca contiene el token**; reenviar marca `revocada_at` en la anterior; una invitación vencida, usada o revocada no completa el alta; la activación respeta el tipo y la identidad **almacenados**, no los enviados por el cliente.
 - **Contrato:** §4
-- **RN:** `SEC-INV-01`, `SEC-INV-02`, `SEC-INV-03`, `SEC-INV-04`, `SEC-AUTZ-03`
+- **RN:** `SEC-INV-01` a `SEC-INV-04`, `SEC-AUTZ-03`
+- **Nota:** invitar una cuenta `PERSONAL` exige una ficha activa en `personal.personal`, que se crea en `/api/personal` (`API-06`). Sin esa superficie, este endpoint solo puede probarse con fichas cargadas a mano.
 
 #### AUTH-B4 — Administración de cuentas
 
 - **Carril:** B
 - **Objetivo:** activar, desactivar y cambiar el tipo de identidad de una cuenta.
-- **Afectados:** `backend/app/api/auth_cuentas.py`, `backend/app/crud/auth.py`.
-- **Dependencias:** AUTH-A6, AUTH-D2.
-- **Aceptación:** desactivar revoca las sesiones activas y conserva el historial; reactivar no crea identidad nueva; el cambio de identidad mantiene exactamente una vinculación; la operación que dejaría al sistema sin administradores responde `409`.
+- **Afectados:** `backend/app/modules/auth/router_cuentas.py`, `service_cuentas.py`, `repository_cuentas.py`.
+- **Dependencias:** AUTH-B3.
+- **Aceptación:** desactivar revoca las sesiones activas y conserva el historial; reactivar no crea identidad nueva; el cambio de identidad mantiene exactamente una vinculación; la operación que dejaría al sistema **sin administradores** responde `409`.
 - **Contrato:** §6
 - **RN:** `RN-AUTH-ID-03`, `RN-AUTH-ID-05`, `RN-CUE-04`, `RN-HAB-04`, `SEC-SES-10`
 
-#### AUTH-B5 — Reautenticación y operaciones sensibles
+#### AUTH-B5 — Reautenticación y cambio de contraseña
 
 - **Carril:** B
-- **Objetivo:** proteger cambio de contraseña y cambio de identidad.
-- **Afectados:** `backend/app/api/auth_cuentas.py`, `backend/app/deps.py` (consumo, no definición).
-- **Dependencias:** AUTH-A6, AUTH-B4.
-- **Aceptación:** una operación sensible sin autenticación reciente responde `401 REAUTENTICACION_REQUERIDA`; la reautenticación exitosa regenera el identificador de sesión; el cambio de contraseña revoca sesiones y notifica.
-- **Contrato:** §3.9, §5
-- **RN:** `SEC-REAUTH-01`, `SEC-REAUTH-02`, `SEC-REAUTH-03`, `SEC-REAUTH-04`
+- **Objetivo:** proteger las operaciones sensibles con autenticación reciente.
+- **Afectados:** `backend/app/modules/auth/router_cuentas.py`, `service_cuentas.py`.
+- **Dependencias:** AUTH-A1 para la ventana de reautenticación, AUTH-B4.
+- **Aceptación:** una operación sensible sin autenticación reciente responde `401 REAUTENTICACION_REQUERIDA`; la reautenticación exitosa **regenera el identificador de sesión** y sella `reautenticado_at`; el cambio de contraseña revoca las demás sesiones.
+- **Contrato:** §3.9, §5.1
+- **RN:** `SEC-REAUTH-01` a `SEC-REAUTH-04`
 
 ---
 
-## Fase 2 — Integración, pruebas y limpieza
+## Fase 2 — Auditoría y pruebas
 
-### AUTH-F1 — Cliente HTTP del frontend
-
-- **Carril:** A
-- **Objetivo:** consumir la API por cookies y dejar de manipular tokens en el cliente.
-- **Afectados:** cliente HTTP y contexto de sesión en `frontend/`.
-- **Dependencias:** AUTH-A3, AUTH-A5.
-- **Aceptación:** ninguna ruta del frontend lee, guarda ni envía el token; las peticiones viajan con credenciales y `X-CSRF-Token`; un `401` redirige a inicio de sesión sin exponer detalles.
-- **Contrato:** §2
-- **RN:** `SEC-SES-05`, `SEC-AUTZ-01`
-
-### AUTH-F2 — Pantallas de alta y recuperación
+### AUTH-C1 — Registro de auditoría de los eventos de seguridad
 
 - **Carril:** B
-- **Objetivo:** interfaces de registro, recuperación, activación por invitación y reautenticación.
-- **Afectados:** vistas y formularios en `frontend/`.
-- **Dependencias:** AUTH-B1, AUTH-B2, AUTH-B3, AUTH-B5.
-- **Aceptación:** los mensajes mostrados no revelan si una cuenta existe; un token no vigente presenta el estado correspondiente y ofrece reiniciar el proceso.
-- **Contrato:** §3.1, §3.6–§3.8, §4
-- **RN:** `SEC-ABU-02`, `SEC-REC-01`
+- **Objetivo:** los ocho eventos de §8 dejan registro.
+- **Afectados:** `backend/app/modules/auth/service.py`, `service_cuentas.py`.
+- **Dependencias:** AUTH-A3, AUTH-B5 y **`DB-03`**, que crea `administration.auditoria`.
+- **Aceptación:** inicio de sesión, cierre, recuperación, cambio de contraseña, revocación de sesiones, reautenticación, invitaciones y cambios administrativos dejan fila con actor, acción, entidad y momento. **Ningún registro contiene contraseñas, secretos de sesión, tokens completos ni claves.**
+- **Contrato:** §8
+- **RN:** `SEC-AUD-01`, `SEC-AUD-03`
+- **Nota:** es la única tarea de este plan que depende de otro schema. Si `DB-03` no está cerrada, auth se entrega sin ella y se cierra después; no bloquea el resto.
 
 ### AUTH-T1 — Pruebas de sesión y autorización
 
 - **Carril:** A
 - **Objetivo:** cubrir el ciclo de sesión y la denegación por defecto.
-- **Afectados:** pruebas de `backend/`.
-- **Dependencias:** AUTH-A6.
+- **Afectados:** pruebas de `backend/tests/`.
+- **Dependencias:** AUTH-A4.
 - **Aceptación:** existen pruebas para sesión revocada, sesión vencida, inactividad superada, token con algoritmo alterado, operación fuera de ámbito y operación sin permiso comprobable.
 - **Contrato:** §2, §7
 - **RN:** `SEC-SES-07`, `SEC-JWT-01`, `SEC-AUTZ-02`, `SEC-AUTZ-04`
@@ -229,35 +210,31 @@ El catálogo de códigos de `auth.permisos` también quedó definido (OQ-01), as
 
 - **Carril:** B
 - **Objetivo:** cubrir un solo uso, vencimiento y equivalencia de respuestas.
-- **Afectados:** pruebas de `backend/`.
-- **Dependencias:** AUTH-B3, AUTH-B5.
-- **Aceptación:** existen pruebas que verifican que reutilizar un token de recuperación o invitación falla, que reemitir invalida el anterior, y que registro, recuperación e inicio de sesión responden igual con correo existente e inexistente.
+- **Afectados:** pruebas de `backend/tests/`.
+- **Dependencias:** AUTH-B5.
+- **Aceptación:** existen pruebas que verifican que reutilizar un token de recuperación o de invitación falla, que reemitir invalida el anterior, y que registro, recuperación e inicio de sesión **responden igual** con correo existente e inexistente.
 - **Contrato:** §3.1, §3.2, §3.6, §4
 - **RN:** `SEC-TOK-05`, `SEC-INV-03`, `SEC-REC-01`, `SEC-ABU-02`
-
-### AUTH-C1 — Retirar el inicio de sesión heredado
-
-- **Carril:** A
-- **Objetivo:** eliminar el contrato anterior una vez migrado el frontend.
-- **Afectados:** `backend/app/api/auth.py`, `backend/app/deps.py`, `backend/app/schemas/usuario.py`.
-- **Dependencias:** AUTH-F1, AUTH-T1. Última tarea del módulo.
-- **Aceptación:** no queda `OAuth2PasswordBearer`, ni `TokenResponse` con token en el cuerpo, ni autenticación por `username`; ningún módulo importa `get_current_user`.
-- **Contrato:** §2, §7
-- **RN:** `SEC-SES-03`, `SEC-JWT-04`
 
 ---
 
 ## Orden sugerido
 
 ```text
-Fase 0   A: AUTH-A1              │ B: AUTH-D1 ✅  AUTH-D2 ✅
+Antes    DB-14 · DB-09 · BK-04 · BK-06 · BK-07 · BK-08
          ───────────────────────────────────────────────
-Fase 1   A: AUTH-A2 → A3 → A4    │ B: AUTH-B1 → B2
-            → A5 → A6            │    → B3 → B4 → B5
-                                 │    (B3/B4 esperan A6)
+Fase 1   A: AUTH-A1 → A2 → A3 → A4  │ B: AUTH-B1 → B2 → B3 → B4 → B5
+                                    │    (B3 espera BK-07)
          ───────────────────────────────────────────────
-Fase 2   A: AUTH-F1 → AUTH-T1    │ B: AUTH-F2 → AUTH-T2
-         A: AUTH-C1 (al cierre)  │
+Fase 2   A: AUTH-T1                 │ B: AUTH-C1 → AUTH-T2
 ```
 
-El único punto donde B espera a A es AUTH-A6: hasta entonces B avanza con AUTH-B1 y AUTH-B2, que no requieren evaluación de permisos.
+El único punto donde B espera algo de A es `schemas.py`, que B mismo crea en `AUTH-B1`: hasta entonces A trabaja contra la firma acordada.
+
+---
+
+## Lo que no está en este plan
+
+- **La interfaz de usuario.** `frontend/` se borró y no tiene plan todavía. Las pantallas de registro, recuperación, activación por invitación y reautenticación se construirán cuando lo haya, después de cerrar este módulo.
+- **La asignación de permisos.** Auth define y evalúa `auth.cuenta_permisos`; otorgarlos y retirarlos es de administration (`API-07`).
+- **El envío de los correos.** Auth origina el evento de invitación y de recuperación; la entrega es de notifications (`API-18`), y las preferencias de envío no se aplican a estos correos (`RN-PREF-03`).
