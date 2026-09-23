@@ -58,7 +58,7 @@ Este ajuste instala la estructura; no entrega el módulo funcional completo.
 - El backend y su arranque siguen usando el modelo anterior (`backend/app/models/reserva.py` y `001_shared_postgres.sql`). Deben adaptarse antes de utilizar el módulo o reiniciar/desplegar esa versión: las consultas antiguas ya no son compatibles y el arranque antiguo puede intentar recrear tablas retiradas. El ajuste 002 es manual y no se agregó al arranque.
 - Los catálogos de tipos y estados siguen vacíos: no se cargaron datos en una solicitud de cambios estructurales.
 - `reserva_espacio.periodo` está generado y existen las columnas técnicas de recursos y bloqueo. **No se instalaron los disparadores ni las exclusiones de solapamientos de ADR-001**. La protección concurrente de las reservas sigue pendiente y no debe inferirse de la presencia de columnas o índices ordinarios.
-- El ADR propone que la entrega física abra el rango temporal; el modelo de datos de Reservations indica que entrega y devolución no alteran el periodo planificado. Esa diferencia debe resolverse explícitamente antes de implementar los disparadores. Tampoco se implementaron las validaciones del backend ni la exigencia diferida de detalle/contexto para escrituras directas.
+- El ADR-001 está aprobado (decisión DB-11, 2026-09-23): la entrega física abre el rango temporal del recurso y el modelo ya dice lo mismo. Faltan los disparadores, las exclusiones y las pruebas de concurrencia (`DB-12`). Tampoco se implementaron las validaciones del backend ni la exigencia diferida de detalle/contexto para escrituras directas.
 - Los módulos externos de inventario, notificaciones y auditoría no fueron implementados.
 
 ## Verificación

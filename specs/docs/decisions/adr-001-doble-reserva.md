@@ -1,6 +1,6 @@
 # ADR-001 — Mecanismo contra la doble reserva concurrente
 
-- **Estado:** seleccionado a nivel de diseño; pendiente de aprobación formal e implementación
+- **Estado:** aprobada 2026-09-23; pendiente de implementación (disparadores, exclusiones y pruebas de DB-12)
 - **Fecha:** 2026-09-19
 - **Resuelve:** [OQ-06](open-questions.md)
 - **Afecta a:** `architecture.md` §10, modelo de reservas, contrato de reservations
@@ -43,7 +43,7 @@ Funciona si el tiempo se modela en bloques fijos. No es el caso: `RN-TIP-PE-01` 
 
 ## Decisión propuesta
 
-La propuesta selecciona la **alternativa A, restricción de exclusión**, por ser la única que cumple literalmente `spec.md`: la garantía quedaría en la base y no dependería de que el backend recuerde aplicarla. Esta selección de diseño aún requiere aprobación formal e implementación.
+La propuesta selecciona la **alternativa A, restricción de exclusión**, por ser la única que cumple literalmente `spec.md`: la garantía quedaría en la base y no dependería de que el backend recuerde aplicarla. Aprobada 2026-09-23 con la decisión DB-11: ante la contradicción con el modelo, rige el ADR —la entrega física abre el rango— y se corrige el modelo.
 
 La validación en la aplicación **se conserva**. No es redundante: es la que produce un `409 SOLAPAMIENTO` con un mensaje útil. La restricción es la última línea, para el caso en que dos transacciones pasen la validación a la vez.
 
@@ -152,4 +152,4 @@ Mientras esas pruebas no existan, `architecture.md` §10 y el contrato de reserv
 
 ## Pendiente de esta decisión
 
-El diseño de periodos y predicados queda definido aquí. Antes de declarar la garantía implementada faltan aprobar el ADR, definir en la migración la zona horaria operativa explícita para convertir los periodos locales a `tstzrange`, instalar y verificar los disparadores, inicializar las proyecciones existentes y ejecutar las pruebas de concurrencia de esta decisión.
+El diseño de periodos y predicados queda definido aquí. Antes de declarar la garantía implementada faltan definir en la migración la zona horaria operativa explícita (`America/Bogota`, fijada por DB-11), instalar y verificar los disparadores, inicializar las proyecciones existentes y ejecutar las pruebas de concurrencia de esta decisión.
