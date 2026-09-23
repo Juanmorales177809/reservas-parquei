@@ -419,7 +419,7 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 | `descripcion` | text | NN | usar `N/A` cuando no exista una descripción aplicable |
 | `habilitado` | boolean | NN | DEFAULT `true` |
 
-### `reservas.motivos_solicitud`
+### `reservas.motivos_solicitud` — se retira
 
 | Campo | Tipo | Null | PK/UQ/FK/default/check |
 |---|---|---|---|
@@ -427,6 +427,8 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 | `nombre` | varchar(100) | NN | — |
 | `descripcion` | text | Sí | — |
 | `habilitado` | boolean | NN | DEFAULT `true` |
+
+Tabla del inventario que **el diseño objetivo no conserva**. El propósito de una reserva se resuelve con `reserva_contexto`, que registra el proyecto, semillero, pasantía, trabajo de grado o actividad institucional que la justifica; y la razón de sacar un equipo del campus se captura en `reserva_datos_salida.razon_solicitud`, obligatoria para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. Este catálogo no aporta una tercera respuesta distinta y se retira junto con `motivo_solicitud_id`.
 
 ### `reservas.reservas`
 
@@ -436,7 +438,7 @@ Las siguientes definiciones describen el inventario documentado, no el diseño o
 | `id_cuenta` | bigint | NN | FK `fk_reservas_cuenta` → `auth.cuentas(id_cuenta)` |
 | `id_unidad` | integer | NN | FK `reservas_id_unidad_fkey` → unidad organizacional |
 | `tipo_reserva_id` | integer | NN | FK → `reservas.tipos_reserva(id)` |
-| `motivo_solicitud_id` | integer | Sí | FK → `reservas.motivos_solicitud(id)` |
+| `motivo_solicitud_id` | integer | Sí | FK → `reservas.motivos_solicitud(id)`; se retira con esa tabla |
 | `estado` | varchar(20) | NN | DEFAULT `SOLICITADA`; CHECK `SOLICITADA`, `APROBADA`, `RECHAZADA`, `EN_EJECUCION`, `FINALIZADA`, `CANCELADA` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
 | `updated_at` | timestamptz | NN | DEFAULT `now()` |
@@ -448,7 +450,7 @@ Los índices de la cabecera son `(id_cuenta, created_at)`, `(id_unidad, estado)`
 - Retirar de la cabecera los campos específicos de tipo (`fecha`, horario, espacio, asistentes, `tipo_uso` y `ubicacion_uso`) y conservarlos únicamente en los detalles compatibles.
 - Mapear `estado` al catálogo `estados_reserva` con los valores `SOLICITADA`, `APROBADA`, `RECHAZADA`, `EN_EJECUCION`, `FINALIZADA` y `CANCELADA`.
 - Incorporar código y configuración por laboratorio de los tipos; conciliar descripción nullable del inventario con la descripción obligatoria del objetivo.
-- Definir el destino de `motivos_solicitud` y `motivo_solicitud_id`, ausentes del objetivo.
+- Retirar `motivos_solicitud` y la columna `motivo_solicitud_id` de la cabecera. La columna siempre admitió NULL, así que ninguna reserva depende de ella; el propósito de la reserva queda en `reserva_contexto` y la razón de salida en `reserva_datos_salida.razon_solicitud`.
 - Migrar asociaciones de equipos, mobiliarios y otros hacia `reserva_recursos`, preservando referencias históricas.
 - Coordinar notificaciones con su módulo propietario. La auditoría de Reservations queda fuera del alcance actual y pendiente de diseño futuro. Los `ON DELETE CASCADE` del inventario requieren revisión frente a las reglas de conservación histórica.
 

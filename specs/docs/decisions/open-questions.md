@@ -92,9 +92,15 @@ La conservación histórica no depende de esta decisión: `titulo` y `cuerpo` gu
 
 **Alternativas.** Retirarlo por quedar superado por el contexto, frente a conservarlo como catálogo complementario e independiente del contexto académico.
 
-**Impacto.** Afecta la migración del inventario y la lista de diferencias pendientes del modelo de reservations. Mientras no se decida, el catálogo queda sin propietario en el diseño objetivo.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **se retira**, junto con la columna `reservas.reservas.motivo_solicitud_id` que lo referencia.
 
-**Estado.** Abierta.
+El porqué de una reserva ya tiene dos respuestas en el diseño objetivo, y ninguna es este catálogo: `reserva_contexto` registra el proyecto, semillero, pasantía, trabajo de grado o actividad institucional que la justifica, y `reserva_datos_salida.razon_solicitud` captura, de forma obligatoria para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, por qué sale el equipo del campus. Además, «sacar un equipo fuera del laboratorio» no es un motivo sino un tipo de reserva. Conservar el catálogo habría dejado dos lugares respondiendo la misma pregunta.
+
+La columna siempre admitió NULL, así que ni siquiera en la base actual era obligatoria y ninguna reserva depende de su valor.
+
+**Impacto.** Afecta la migración del inventario y la lista de diferencias pendientes del modelo de reservations, que ahora indica retirarlos en lugar de decidir su destino.
+
+**Estado.** Resuelta.
 
 ---
 

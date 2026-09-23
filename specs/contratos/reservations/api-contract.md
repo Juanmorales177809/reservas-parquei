@@ -320,7 +320,7 @@ Exporta el listado con los filtros aplicados. Flujo `UF-REP-02` de reports. Perm
 
 1. El esquema exacto de los campos adicionales depende del catálogo de `espacio_campos.tipo`, registrado como **OQ-02**.
 2. La propuesta seleccionada a nivel de diseño en ADR-001 para la garantía contra doble reserva concurrente sigue pendiente de aprobación formal, implementación y pruebas. Hasta que se completen, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
-3. El destino de `motivos_solicitud` está pendiente (**OQ-07**); este contrato no lo expone, porque el "por qué" de la reserva se resuelve con `contexto`.
+3. `motivos_solicitud` y `motivo_solicitud_id` se retiran del modelo (**OQ-07**). Este contrato nunca los expuso: el "por qué" de la reserva se resuelve con `contexto`, y la razón de sacar un equipo del campus con `razon_solicitud` del detalle.
 
 ---
 
