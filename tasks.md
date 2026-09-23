@@ -1,6 +1,6 @@
 # Plan de implementación — Reservas Parquei
 
-Une los cuatro planes de trabajo y fija el orden entre ellos.
+Une los cuatro planes de trabajo y fija el orden entre ellos. El **qué** y el **cómo** están antes: [`plan.md`](plan.md) fija stack, estructura del código, límites y criterios de cierre; aquí está el orden, el reparto y el criterio de aceptación de cada tarea.
 
 | Plan | Qué cubre |
 |---|---|

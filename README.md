@@ -12,8 +12,12 @@ Sistema de reservas de espacios, equipos y recursos de laboratorio para el ITM.
 |---|---|
 | [`specs/`](specs/) | La especificación completa: nueve módulos con reglas de negocio, modelo de datos, flujos de usuario y contrato de API |
 | [`backend/migrations/`](backend/migrations/) | Las migraciones que gobiernan el esquema de PostgreSQL |
+| [`plan.md`](plan.md) | El plan técnico: stack, estructura del código, límites y criterios de cierre de cada fase |
 | [`tasks.md`](tasks.md) | El plan de implementación, que une los planes de base de datos, contratos y backend |
+| [`AGENTS.md`](AGENTS.md) | Cómo trabajar en este repositorio: qué documento manda, qué no se toca y cómo se valida un cambio |
 | `docker-compose.yml` | Levanta PostgreSQL y pgAdmin |
+
+La cadena es **`spec.md` → `architecture.md` → `plan.md` → `tasks.md`**: qué hace el producto, cómo está diseñado, cómo se construye y en qué orden.
 
 ## Estado real
 
