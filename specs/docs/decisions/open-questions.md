@@ -220,6 +220,12 @@ Se descartó admitir cualquier archivo salvo ejecutables, porque el Técnico deb
 
 **Alternativas.** Una tarea programada que consulta periódicamente los envíos vencidos, una cola de trabajos con reintento propio, o un worker dedicado. La elección afecta a quién pertenece el control del reintento: si lo lleva la cola, `intentos` y `proximo_intento_at` pasan a ser un reflejo y no la fuente.
 
-**Impacto.** Determina si la política de `RN-COR-03` se implementa en la aplicación o se delega a la infraestructura, y si un envío puede quedar bloqueado sin que nadie lo detecte. Afecta a `UF-NOT-03` y al índice que lo soporta. Corresponde formalizarlo mediante un ADR conforme a `architecture.md`, como se hizo con la concurrencia en ADR-001.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **una tarea programada del propio sistema**, no una cola de trabajos externa.
 
-**Estado.** Abierta.
+La consecuencia importante es de propiedad, no de tecnología: la política de reintento de `RN-COR-03` permanece en este dominio. `intentos` y `proximo_intento_at` de `notificaciones.envios_correo` son la fuente de verdad y no el reflejo de lo que decida una infraestructura ajena. Si la tarea se retrasa o se detiene, los envíos permanecen en `PENDIENTE` con su reintento vencido y siguen siendo visibles en esa tabla; no se pierde ninguno.
+
+La tarea debe ejecutarse con una frecuencia menor que la espera más corta de la política, que es de un minuto.
+
+**Impacto.** `UF-NOT-03` documenta el mecanismo y el modelo de notificaciones explica para qué sirve el índice `(estado, proximo_intento_at)`. Al no delegarse a infraestructura, la decisión no requiere un ADR propio.
+
+**Estado.** Resuelta.

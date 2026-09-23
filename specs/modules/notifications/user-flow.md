@@ -62,7 +62,7 @@ Las reglas de este módulo están en [business-rules.md](business-rules.md) y su
 
 ## UF-NOT-03 — Entregar un correo saliente
 
-**Actor principal:** el sistema. Un proceso automático toma los envíos pendientes; ninguna persona lo inicia.
+**Actor principal:** el sistema. Una **tarea programada** revisa periódicamente los envíos pendientes; ninguna persona la inicia.
 
 **Disparador:** existe un envío en estado `PENDIENTE` cuyo `proximo_intento_at` ya venció, o que aún no ha tenido ningún intento.
 
@@ -72,7 +72,7 @@ Las reglas de este módulo están en [business-rules.md](business-rules.md) y su
 
 **Flujo principal:**
 
-1. El proceso selecciona los envíos elegibles mediante el índice `(estado, proximo_intento_at)` de `notificaciones.envios_correo`.
+1. La tarea programada selecciona los envíos elegibles mediante el índice `(estado, proximo_intento_at)` de `notificaciones.envios_correo`. La frecuencia con que se ejecuta debe ser menor que la espera más corta de `RN-COR-03`, que es de un minuto.
 2. Transmite el correo con el `titulo`, el `cuerpo` y los adjuntos persistidos. Un reintento usa exactamente las mismas versiones de los adjuntos (`RN-COR-06`).
 3. Si el mecanismo de entrega confirma la transmisión, el envío pasa a `ENVIADO` y se registra el instante (`RN-COR-02`).
 4. Si la transmisión no puede completarse, se registra el error sin credenciales ni trazas internas, se incrementa el número de intentos y se programa el siguiente (`RN-COR-02`).
@@ -90,7 +90,7 @@ Las reglas de este módulo están en [business-rules.md](business-rules.md) y su
 - **No modifica la notificación in-app.** Ambos canales derivan del mismo evento pero tienen ciclos de vida independientes (`RN-COR-05`).
 - **No decide destinatarios ni contenido.** Ambos quedaron resueltos al crear el envío, conforme a `RN-DES` y `RN-CNT`.
 
-**Decisión pendiente:** el mecanismo concreto que ejecuta este proceso —tarea programada, cola de trabajos u otro— no está definido (`OQ-15`). El modelo aporta el índice que lo soporta, pero no fija la tecnología.
+**Mecanismo.** Lo ejecuta una tarea programada del propio sistema, no una cola de trabajos externa (`OQ-15`). La consecuencia es que **la política de reintento vive en este dominio**: `intentos` y `proximo_intento_at` de `notificaciones.envios_correo` son la fuente de verdad, y `RN-COR-03` la gobierna. Si la tarea deja de ejecutarse, los envíos permanecen en `PENDIENTE` con su reintento vencido y ninguno se pierde; el retraso es visible consultando esa tabla.
 
 ---
 
