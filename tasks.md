@@ -6,6 +6,7 @@ Une los dos planes de trabajo y fija el orden entre ellos.
 |---|---|
 | [Base de datos](specs/docs/tasks/base-de-datos.md) | 13 tareas `DB-XX`: schemas, referencias externas, datos iniciales, concurrencia y retirada del modelo anterior |
 | [Contratos de API](specs/docs/tasks/contratos.md) | 19 tareas `API-XX`: convenciones transversales y los nueve contratos |
+| [Backend nuevo](specs/docs/tasks/backend.md) | 9 tareas `BK-XX`: dónde vive el proyecto, con qué estructura y cómo se levanta antes de la primera ruta de negocio |
 | [Auth en detalle](specs/modules/auth/tasks.md) | Desglose de la brecha entre el módulo implementado y su contrato |
 
 La especificación está cerrada: nueve módulos con reglas, modelo, flujos y contrato, y las quince preguntas abiertas resueltas. **Lo que queda es construir.**
@@ -26,12 +27,14 @@ Sin esto nada más puede probarse contra la base ajustada.
 
 | Tarea | Por qué ahora |
 |---|---|
-| `DB-13` | El arranque antiguo puede intentar recrear tablas que el ajuste retiró |
+| `BK-01` a `BK-03` | Levantar el proyecto nuevo. El backend actual se conserva como referencia y no se extiende |
 | `DB-08` | Los catálogos de tipos y estados están vacíos: ninguna reserva puede crearse |
 | `DB-09` | Sin el catálogo de permisos no hay autorización posible |
-| `API-01` a `API-04` | Las convenciones transversales. Reimplementarlas por módulo produce nueve APIs distintas |
+| `BK-04` a `BK-07` | Las convenciones transversales, que son `API-01` a `API-04`. Reimplementarlas por módulo produce nueve APIs distintas |
 
-`API-04` depende de `DB-09`: es el primer punto donde los dos planes se tocan.
+`BK-07` depende de `DB-09`: es el primer punto donde los dos planes se tocan.
+
+`DB-13` —desconectar el arranque heredado— deja de ser urgente al construir aparte: el backend nuevo nunca crea tablas, así que el riesgo solo existe si se levanta el antiguo. Se cierra al retirarlo.
 
 ---
 
@@ -107,10 +110,12 @@ Los carriles se reparten por propiedad de archivos, no por capas, para que dos p
 
 | Carril | Fases 0–1 | Fases 2–3 | Fases 4–5 |
 |---|---|---|---|
-| **A** | `DB-13`, `DB-01`, `DB-02`, `DB-05` | `API-05`, `API-06`, `API-09`, `API-10` | `DB-11`, `DB-12`, `API-13`, `API-14` |
-| **B** | `DB-08`, `DB-09`, `API-01` a `API-04` | `DB-03`, `DB-04`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-19` |
+| **A** | `DB-01`, `DB-02`, `DB-05`, `BK-08` | `API-05`, `API-06`, `API-09`, `API-10` | `DB-11`, `DB-12`, `API-13`, `API-14` |
+| **B** | `BK-01` a `BK-07`, `DB-08`, `DB-09` | `DB-03`, `DB-04`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-19` |
 
-Puntos de sincronización obligatorios: al cerrar `API-04`, porque todo lo demás depende de ella; al cerrar `DB-05`, porque desbloquea las inserciones de recursos; y antes de `API-13`, para confirmar que `DB-12` está instalada y probada.
+Puntos de sincronización obligatorios: al cerrar `BK-07`, porque todo lo demás depende del núcleo transversal; al cerrar `DB-05`, porque desbloquea las inserciones de recursos; y antes de `API-13`, para confirmar que `DB-12` está instalada y probada.
+
+El carril B construye el proyecto nuevo y su núcleo mientras el A prepara los schemas que faltan. Convergen en `BK-08`, que solo puede modelar lo que ya existe.
 
 ---
 
