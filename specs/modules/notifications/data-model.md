@@ -115,6 +115,6 @@ Las notificaciones y sus envíos se conservan indefinidamente, conforme a `RN-HI
 
 El inventario documentado en el principal contiene una sola tabla `reservas.notificaciones` con `usuario_id integer` sin FK, un CHECK de cuatro valores heredado del ciclo anterior de reservas y `ON DELETE CASCADE` sobre `reserva_id`. El diseño objetivo anterior la reemplaza: el destinatario pasa a ser `id_cuenta bigint` con FK real a `auth.cuentas`, conforme a `RN-DES-02` y `RN-DES-03`.
 
-Queda pendiente definir el contenido concreto de `titulo` y `cuerpo` por tipo de evento.
+El contenido concreto de `titulo` y `cuerpo` se define en el código del sistema, no en una tabla de plantillas administrable (`RN-CNT-06`). Estas columnas conservan el texto que efectivamente se comunicó, de modo que una redacción posterior no altera lo ya notificado.
 
 El estado oficial de la reserva pertenece a [Reservations](../reservations/data-model.md); el estado de lectura de una notificación no lo modifica.

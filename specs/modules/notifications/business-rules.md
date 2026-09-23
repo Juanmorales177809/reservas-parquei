@@ -145,6 +145,8 @@ Cada evento lo origina el flujo del módulo propietario de la operación. Notifi
 
 - **RN-CNT-05:** Un envío de correo puede incluir uno o más archivos adjuntos cuando el tipo de evento lo requiera. El adjunto está sujeto a las mismas restricciones de contenido que el resto de la notificación (RN-CNT-01, RN-CNT-02).
 
+- **RN-CNT-06:** El texto de cada tipo de evento se define en el código del sistema y no se administra desde una pantalla de configuración. No existe un catálogo de plantillas editables: cambiar una redacción es un cambio de código. Esto no afecta la conservación histórica, porque `titulo` y `cuerpo` se guardan con el texto tal como se comunicó (RN-CNT-04, RN-HIS-03), de modo que una redacción nueva no reinterpreta las notificaciones ya generadas.
+
 ---
 
 ## Archivos de calendario — RN-CAL

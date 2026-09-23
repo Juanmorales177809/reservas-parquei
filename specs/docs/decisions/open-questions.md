@@ -50,9 +50,15 @@ Cada pregunta incluye contexto, alternativas consideradas, impacto y, cuando se 
 
 **Alternativas.** Plantillas por evento en configuración, frente a texto construido en código.
 
-**Impacto.** Afecta a `RN-CNT` y a la conservación histórica de `RN-HIS-03` de notifications. También queda por fijar qué eventos admiten una sola notificación por reserva, que es lo que sostiene la restricción única de la tabla.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **el texto vive en el código**, no en un catálogo de plantillas administrable. Queda en `RN-CNT-06` de notifications. Cambiar una redacción es un cambio de código y un despliegue; a cambio, no hay que construir una pantalla de administración de plantillas ni decidir quién puede editarlas.
 
-**Estado.** Abierta.
+La conservación histórica no depende de esta decisión: `titulo` y `cuerpo` guardan el texto tal como se comunicó, así que una redacción nueva nunca reinterpreta una notificación ya generada.
+
+**La segunda parte de esta pregunta no requería decisión.** Qué eventos admiten una sola notificación por reserva ya lo resuelve `RN-NOT-05`: la unicidad se determina por la clave de ocurrencia que define el proceso que origina el evento, no por el tipo de evento ni por la reserva. Es esa clave la que sostiene la restricción única de `notificaciones.eventos`, y `UF-RES-16` la usa para impedir un segundo recordatorio.
+
+**Impacto.** Afecta a `RN-CNT` y al modelo de notificaciones, que deja de declarar el contenido como pendiente.
+
+**Estado.** Resuelta.
 
 ---
 
