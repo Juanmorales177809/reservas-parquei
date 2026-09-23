@@ -2,11 +2,13 @@
 
 Verificación y ajuste: 2026-09-23, base `reservas_db`, PostgreSQL 13.23.
 
+> **Los scripts que este documento cita ya no están en el árbol.** Se borraron junto con el backend anterior y viven en el commit `2b32ea2`; `BK-00` del [plan de backend](../../docs/tasks/backend.md) los rescata. **La base no se tocó**: conserva las 28 tablas que este documento describe.
+
 ## Alcance aplicado
 
-Se ejecutó [002_reservas_objetivo.sql](../../../backend/migrations/002_reservas_objetivo.sql) exclusivamente sobre el schema `reservas`. Las 13 tablas de origen estaban vacías; no hubo conversión ni traslado de datos. El ajuste se ejecutó en una transacción, bloqueando las tablas y comprobando nuevamente que no tuvieran filas. No se utilizó `DROP ... CASCADE`.
+Se ejecutó `002_reservas_objetivo.sql` exclusivamente sobre el schema `reservas`. Las 13 tablas de origen estaban vacías; no hubo conversión ni traslado de datos. El ajuste se ejecutó en una transacción, bloqueando las tablas y comprobando nuevamente que no tuvieran filas. No se utilizó `DROP ... CASCADE`.
 
-Se conserva el [respaldo de estructura anterior](../../../backend/migrations/snapshots/20260923_reservas_antes.sql). Es un inventario SQL de origen, no un script de reversión que deba ejecutarse encima del esquema nuevo.
+Se conserva el respaldo de estructura anterior `20260923_reservas_antes.sql`. Es un inventario SQL de origen, no un script de reversión que deba ejecutarse encima del esquema nuevo.
 
 El resultado contiene 28 tablas, todas vacías, incluidos los catálogos. La comparación de dumps completos antes y después confirmó que las definiciones de los demás schemas permanecieron idénticas.
 
@@ -47,7 +49,7 @@ No existen aún las siguientes tablas de destino:
 
 Cinco CHECK temporales llamados `pendiente_fk_*` exigen NULL en esas columnas para impedir referencias huérfanas. Como `recurso_id` es obligatorio, las dos tablas de asociación de recursos no admiten inserciones hasta completar sus FK. Los contextos de proyecto y semillero sí tienen FK instaladas.
 
-Cuando los módulos propietarios creen sus tablas, ejecutar [003_reservas_referencias_externas.sql](../../../backend/migrations/003_reservas_referencias_externas.sql), que instala las cinco FK y retira los CHECK temporales en una transacción. Ese script **no se ejecutó**; aborta si falta algún destino. No crea tablas externas.
+Cuando los módulos propietarios creen sus tablas, ejecutar `003_reservas_referencias_externas.sql`, que instala las cinco FK y retira los CHECK temporales en una transacción. Ese script **no se ejecutó**; aborta si falta algún destino. No crea tablas externas.
 
 ## Límites funcionales pendientes
 
@@ -61,4 +63,4 @@ Este ajuste instala la estructura; no entrega el módulo funcional completo.
 
 ## Verificación
 
-Antes de confirmar los cambios se ejecutó el DDL completo con [pruebas SQL](../../../backend/tests/sql/reservas_objetivo.sql) y `ROLLBACK`. Las pruebas comprueban tablas esperadas y retiradas, columnas exactas de cabecera, FK sin cascadas, cinco bloqueos externos, rechazo de horarios/fechas inválidos, contextos vacíos/incompatibles, recursos sin catálogo, adjuntos mayores de 5 MB y códigos duplicados. Después del COMMIT se verificaron las 28 tablas vacías y la ausencia de cambios estructurales fuera de `reservas`.
+Antes de confirmar los cambios se ejecutó el DDL completo con pruebas SQL de `reservas_objetivo.sql` y `ROLLBACK`. Las pruebas comprueban tablas esperadas y retiradas, columnas exactas de cabecera, FK sin cascadas, cinco bloqueos externos, rechazo de horarios/fechas inválidos, contextos vacíos/incompatibles, recursos sin catálogo, adjuntos mayores de 5 MB y códigos duplicados. Después del COMMIT se verificaron las 28 tablas vacías y la ausencia de cambios estructurales fuera de `reservas`.
