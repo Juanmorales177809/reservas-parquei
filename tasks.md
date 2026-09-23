@@ -27,14 +27,15 @@ Sin esto nada más puede probarse contra la base ajustada.
 
 | Tarea | Por qué ahora |
 |---|---|
-| `BK-01` a `BK-03` | Levantar el proyecto nuevo. El backend actual se conserva como referencia y no se extiende |
+| `BK-00` | Rescatar `002` y `003` del commit `2b32ea2`. **El esquema vivo no tiene hoy script que lo reproduzca** |
+| `BK-01` a `BK-03` | Levantar el proyecto. `backend/` y `frontend/` se borraron enteros |
 | `DB-08` | Los catálogos de tipos y estados están vacíos: ninguna reserva puede crearse |
 | `DB-09` | Sin el catálogo de permisos no hay autorización posible |
 | `BK-04` a `BK-07` | Las convenciones transversales, que son `API-01` a `API-04`. Reimplementarlas por módulo produce nueve APIs distintas |
 
 `BK-07` depende de `DB-09`: es el primer punto donde los dos planes se tocan.
 
-`DB-13` —desconectar el arranque heredado— deja de ser urgente al construir aparte: el backend nuevo nunca crea tablas, así que el riesgo solo existe si se levanta el antiguo. Se cierra al retirarlo.
+**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta. Lo que se perdió son los scripts, y `BK-00` los devuelve.
 
 ---
 
@@ -110,7 +111,7 @@ Los carriles se reparten por propiedad de archivos, no por capas, para que dos p
 
 | Carril | Fases 0–1 | Fases 2–3 | Fases 4–5 |
 |---|---|---|---|
-| **A** | `DB-01`, `DB-02`, `DB-05`, `BK-08` | `API-05`, `API-06`, `API-09`, `API-10` | `DB-11`, `DB-12`, `API-13`, `API-14` |
+| **A** | `BK-00`, `DB-01`, `DB-02`, `DB-05`, `BK-08` | `API-05`, `API-06`, `API-09`, `API-10` | `DB-11`, `DB-12`, `API-13`, `API-14` |
 | **B** | `BK-01` a `BK-07`, `DB-08`, `DB-09` | `DB-03`, `DB-04`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-19` |
 
 Puntos de sincronización obligatorios: al cerrar `BK-07`, porque todo lo demás depende del núcleo transversal; al cerrar `DB-05`, porque desbloquea las inserciones de recursos; y antes de `API-13`, para confirmar que `DB-12` está instalada y probada.
@@ -121,6 +122,6 @@ El carril B construye el proyecto nuevo y su núcleo mientras el A prepara los s
 
 ## Qué no está en ningún plan
 
-- **La interfaz de usuario.** Los contratos definen la superficie HTTP; ninguna tarea cubre el cliente.
+- **La interfaz de usuario.** `frontend/` se borró entero y no tiene plan todavía. El orden natural es después de `BK-09`, cuando auth funcione y haya una sesión real que consumir. Su stack ya está fijado en `architecture.md` §3.
 - **El despliegue.** No hay entorno desplegado: todo esto es desarrollo sobre una base local.
 - **La carga de datos reales.** Los catálogos de proyectos, semilleros y equipos llegan por importación, y esa importación necesita `API-12`.

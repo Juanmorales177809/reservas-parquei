@@ -1,6 +1,6 @@
 # Plan de tareas — Backend nuevo
 
-Cómo se construye el backend desde cero, sin tocar el actual. Las tareas de superficie HTTP están en el [plan de contratos](contratos.md) como `API-XX`; este documento cubre lo anterior a ellas: dónde vive el proyecto, con qué estructura y en qué orden se levanta.
+Cómo se construye el backend desde cero. Las tareas de superficie HTTP están en el [plan de contratos](contratos.md) como `API-XX`; este documento cubre lo anterior a ellas: dónde vive el proyecto, con qué estructura y en qué orden se levanta.
 
 Plan general: [`tasks.md`](../../../tasks.md) de la raíz.
 
@@ -10,12 +10,16 @@ Plan general: [`tasks.md`](../../../tasks.md) de la raíz.
 
 | Qué | Estado |
 |---|---|
-| `backend/app/` | El backend actual. **Se conserva**, no se modifica y no se extiende |
-| `backend/migrations/` | Las migraciones de la base, incluida `003` sin ejecutar. **Se conservan y se siguen usando** |
-| La base `reservas_db` | 28 tablas aplicadas en el schema `reservas`, todas vacías |
+| `backend/` y `frontend/` | **Borrados enteros.** 109 archivos, contra un contrato que ya no rige |
+| La base `reservas_db` | **Existe y conserva sus 28 tablas** en el schema `reservas`, todas vacías |
+| `docker-compose.yml` | Conserva `db` y `pgadmin`; los servicios de aplicación se reintroducen en `BK-03` |
 | Los nueve contratos | Escritos y cotejados contra modelos, reglas y flujos |
 
-El backend actual implementa un contrato anterior: credencial por `username`, token en el cuerpo de la respuesta, `rol` dentro del JWT, sin sesiones ni CSRF. Adaptarlo pieza a pieza obliga a mantener dos comportamientos a la vez en los mismos archivos. Por eso se construye uno nuevo al lado y el viejo queda como referencia hasta que el nuevo lo sustituya.
+El backend anterior implementaba un contrato distinto: credencial por `username`, token en el cuerpo de la respuesta, `rol` dentro del JWT, sin sesiones ni CSRF. Se retiró entero en lugar de adaptarlo pieza a pieza.
+
+**La base no se tocó.** Sigue con el esquema objetivo aplicado, así que el proyecto nuevo arranca contra una base que ya tiene la forma correcta.
+
+> **Las migraciones se borraron con la carpeta.** `002_reservas_objetivo.sql` —el script del que salieron esas 28 tablas—, `003_reservas_referencias_externas.sql` —escrito y pendiente de ejecutar— y el respaldo estructural `20260923_reservas_antes.sql` están en el commit `2b32ea2`. Recuperarlos es `git show 2b32ea2:backend/migrations/<archivo>`. Mientras no se rescaten, **el esquema vivo no tiene script que lo reproduzca** en el repositorio.
 
 **El stack no se decide aquí.** `architecture.md` §3 lo fija: FastAPI, Python, SQLAlchemy, Pydantic, Uvicorn, PostgreSQL 13, JWT con bcrypt y Docker Compose.
 
@@ -23,7 +27,7 @@ El backend actual implementa un contrato anterior: credencial por `username`, to
 
 ## Tres reglas de construcción
 
-**1. El backend nunca crea ni modifica tablas.** El esquema lo gobiernan las migraciones versionadas de `backend/migrations/`, conforme a `architecture.md` §15. No hay `create_all` ni creación al arrancar. Es exactamente lo que `DB-13` señala como defecto del backend actual: su arranque puede intentar recrear tablas que el ajuste retiró.
+**1. El backend nunca crea ni modifica tablas.** El esquema lo gobiernan las migraciones versionadas de `backend/migrations/`, conforme a `architecture.md` §15. No hay `create_all` ni creación al arrancar. Era el defecto del backend anterior, que `DB-13` señalaba: su arranque podía recrear tablas que el ajuste había retirado.
 
 **2. La superficie se deriva del contrato, no al revés.** Cada ruta, cada campo del cuerpo y cada código de error ya están escritos. Si al implementar aparece algo que el contrato no contempla, se corrige el contrato primero y se implementa después; no se añade al código y se documenta luego.
 
@@ -34,7 +38,7 @@ El backend actual implementa un contrato anterior: credencial por `username`, to
 ## Dónde vive
 
 ```text
-api/                        <- el backend nuevo
+backend/
   app/
     core/                   <- lo transversal: errores, paginación, sesión, permisos
     db/                     <- sesión de SQLAlchemy y modelos por schema
@@ -49,16 +53,17 @@ api/                        <- el backend nuevo
       notifications/
       reports/
     main.py
+  migrations/               <- se rescatan 002 y 003 del commit 2b32ea2
   tests/
   Dockerfile
   requirements.txt
-backend/                    <- el actual, intacto
-  migrations/               <- las migraciones siguen aquí
 ```
 
-Carpeta hermana, no una subcarpeta de `backend/`, para que ningún import cruce entre el viejo y el nuevo por accidente. Las migraciones se quedan donde están: son de la base, no de la aplicación, y `003` está pendiente de ejecutar.
+La misma ruta que antes, ahora vacía. `docker-compose.yml` volverá a construir `./backend` en `BK-03`.
 
 Cada módulo tiene la misma forma interna —`router.py`, `schemas.py`, `service.py`, `repository.py`— para que la capa donde vive una regla sea evidente: el router traduce HTTP, el servicio aplica las `RN` y el repositorio habla con la base.
+
+**Los módulos son los nueve de las especificaciones**, con sus mismos nombres. Un módulo del backend que no corresponda a uno documentado es señal de que la superficie se está inventando.
 
 ---
 
@@ -79,26 +84,34 @@ Cada módulo tiene la misma forma interna —`router.py`, `schemas.py`, `service
 
 Al cerrarlo existe un servicio que responde y se conecta a la base, sin lógica de negocio.
 
+### BK-00 — Rescatar las migraciones
+
+- **Objetivo:** `backend/migrations/` vuelve a contener el script que produjo el esquema vivo y el que queda pendiente.
+- **Afectados:** `backend/migrations/002_reservas_objetivo.sql`, `backend/migrations/003_reservas_referencias_externas.sql`.
+- **Dependencias:** ninguna. **Es lo primero.**
+- **Aceptación:** `002` reproduce las 28 tablas sobre una base vacía y el resultado coincide con el esquema actual. `003` sigue sin ejecutarse: es `DB-05`.
+- **Origen:** `git show 2b32ea2:backend/migrations/002_reservas_objetivo.sql`. No se rescata `001_shared_postgres.sql`, que pertenecía al arranque anterior.
+
 ### BK-01 — Crear el proyecto
 
-- **Objetivo:** `api/` existe, instala sus dependencias y expone `GET /health`.
-- **Afectados:** `api/requirements.txt`, `api/app/main.py`, `api/Dockerfile`.
+- **Objetivo:** `backend/` expone `GET /health` e instala sus dependencias.
+- **Afectados:** `backend/requirements.txt`, `backend/app/main.py`, `backend/Dockerfile`.
 - **Dependencias:** ninguna.
 - **Aceptación:** `uvicorn app.main:app` levanta y `GET /health` devuelve `200`. **No abre conexión a la base.**
 
 ### BK-02 — Conectar a PostgreSQL sin crear nada
 
 - **Objetivo:** hay una sesión de SQLAlchemy configurada por variable de entorno.
-- **Afectados:** `api/app/db/session.py`, `api/app/core/config.py`.
+- **Afectados:** `backend/app/db/session.py`, `backend/app/core/config.py`.
 - **Dependencias:** BK-01.
 - **Aceptación:** `GET /health` informa si la base responde. **Arrancar dos veces seguidas no crea ni altera ninguna tabla**: el conteo de tablas de `reservas` sigue siendo 28.
 
 ### BK-03 — Añadir el servicio a Docker Compose
 
-- **Objetivo:** el backend nuevo corre junto a `db` y `pgadmin`.
+- **Objetivo:** el backend corre junto a `db` y `pgadmin`.
 - **Afectados:** `docker-compose.yml`.
 - **Dependencias:** BK-01.
-- **Aceptación:** `docker compose up` levanta la base y el backend nuevo. El servicio `backend` antiguo sigue definido pero **no se levanta por defecto**.
+- **Aceptación:** `docker compose up` levanta la base y el backend. El servicio ya existe y construye `./backend`; hay que revisar sus variables de entorno, que hoy incluyen las del arranque anterior (`INITIAL_ADMIN_*`, `ALGORITHM`). El servicio `frontend` apunta a una carpeta que seguirá siendo la antigua hasta que se rehaga.
 
 ---
 
@@ -109,28 +122,28 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 ### BK-04 — Envolvente de error y catálogo común
 
 - **Objetivo:** toda excepción sale como `{"error": {"codigo", "mensaje", "detalles"}}`.
-- **Afectados:** `api/app/core/errors.py`, manejadores en `main.py`.
+- **Afectados:** `backend/app/core/errors.py`, manejadores en `main.py`.
 - **Dependencias:** BK-01. Cubre `API-01`.
 - **Aceptación:** una ruta inexistente devuelve `404 NO_ENCONTRADO` con esa forma, no el `detail` de FastAPI. Una excepción no controlada devuelve `500 ERROR_INTERNO` **sin traza en la respuesta**.
 
 ### BK-05 — Paginación, filtros y orden
 
 - **Objetivo:** una dependencia reutilizable que todo listado usa.
-- **Afectados:** `api/app/core/pagination.py`.
+- **Afectados:** `backend/app/core/pagination.py`.
 - **Dependencias:** BK-04. Cubre `API-02`.
 - **Aceptación:** un listado devuelve `datos` + `paginacion`; un filtro desconocido devuelve `400 SOLICITUD_INVALIDA`; un catálogo cerrado devuelve solo `datos` y rechaza `pagina`.
 
 ### BK-06 — Sesión por cookie y CSRF
 
 - **Objetivo:** identidad desde la sesión y doble envío obligatorio en toda escritura.
-- **Afectados:** `api/app/core/security.py`, `api/app/modules/auth/`.
+- **Afectados:** `backend/app/core/security.py`, `backend/app/modules/auth/`.
 - **Dependencias:** BK-04. Cubre `API-03`.
 - **Aceptación:** un `POST` sin `X-CSRF-Token` devuelve `403` aunque la sesión sea válida. El JWT **no contiene rol ni permisos**. `GET /api/auth/csrf` emite la cookie sin sesión previa.
 
 ### BK-07 — `exigir_permiso` con ámbito
 
 - **Objetivo:** una dependencia que resuelve permiso y unidad en cada operación.
-- **Afectados:** `api/app/core/authz.py`.
+- **Afectados:** `backend/app/core/authz.py`.
 - **Dependencias:** BK-06 y **DB-09**, que carga el catálogo de permisos.
 - **Aceptación:** un Técnico sobre una unidad ajena recibe `403`, o `404` cuando revelar la existencia sea una fuga. Si el permiso no puede comprobarse, **deniega**.
 
@@ -141,7 +154,7 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 ### BK-08 — Modelar las tablas que existen
 
 - **Objetivo:** modelos SQLAlchemy de `reservas` (28 tablas), `auth`, `usuarios`, `personal`, `cargos`, `unidadOrganizacional` e `investigacion` en lo que ya existe.
-- **Afectados:** `api/app/db/models/`.
+- **Afectados:** `backend/app/db/models/`.
 - **Dependencias:** BK-02.
 - **Aceptación:** una consulta a cada tabla se ejecuta sin error. **Ningún modelo declara una tabla que la base no tenga**, y ninguno se marca como creable.
 - **Nota:** `recursos`, `administration`, `notificaciones` y el resto de `investigacion` **no se modelan todavía**: no existen hasta `DB-01` a `DB-04`. Modelarlos antes produce código que no se puede probar.
@@ -153,7 +166,7 @@ Es lo que hace que los nueve módulos se comporten igual. Implementa las tareas 
 ### BK-09 — Auth de punta a punta
 
 - **Objetivo:** los 17 endpoints del contrato de auth, funcionando.
-- **Afectados:** `api/app/modules/auth/`.
+- **Afectados:** `backend/app/modules/auth/`.
 - **Dependencias:** Hito 1 y BK-08. Desarrolla `API-05`; el desglose está en [modules/auth/tasks.md](../../modules/auth/tasks.md).
 - **Aceptación:** la del plan de auth. Además, **auth queda como la referencia de estilo**: cualquier módulo posterior que se estructure distinto se corrige, no se justifica.
 
@@ -169,8 +182,8 @@ Lo único que este documento añade para esa etapa es la condición de entrada: 
 
 ---
 
-## Cuándo se retira el backend actual
+## El frontend
 
-No al empezar, sino cuando el nuevo cubra lo que el viejo hacía. La señal es `API-13`: con reservas creándose contra el contrato nuevo, el viejo deja de aportar referencia.
+Se borró con el backend y **no tiene plan todavía**. Construirlo exige antes tener API contra la que trabajar: el orden natural es después de `BK-09`, cuando auth funcione de punta a punta y haya una sesión real que consumir.
 
-Hasta entonces se queda, sin tocar y sin levantarse por defecto. Retirarlo es una tarea aparte, que incluye `DB-13` —desconectar el arranque heredado— y revisar qué de `backend/migrations/` pasa a gobernar el proyecto nuevo.
+`architecture.md` §3 fija su stack —Next.js 14, React 18, TypeScript, Tailwind y Recharts—, así que esa parte tampoco se decidirá entonces.
