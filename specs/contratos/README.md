@@ -15,8 +15,10 @@ Un contrato de módulo no repite nada de aquí: lo referencia y solo documenta l
 | [resources](resources/api-contract.md) | catálogo de recursos y configuración del laboratorio | 13 flujos `UF-REC` |
 | [notifications](notifications/api-contract.md) | bandeja del destinatario y preferencias de correo | 3 flujos `UF-NOT` |
 | [reports](reports/api-contract.md) | reportes de ocupación, solicitudes y lista de espera, con su exportación | 2 flujos `UF-REP` |
+| [administration](administration/api-contract.md) | unidades y cargos, asignación de permisos, importaciones y auditoría | 4 flujos `UF-ADM` |
+| [researchs](researchs/api-contract.md) | catálogos de investigación, actividades institucionales, perfiles y vinculaciones ajenas | 1 flujo `UF-INV` |
 
-Pendientes de escribir: `administration` (4 flujos `UF-ADM`) y `researchs` (1 flujo `UF-INV`). Ambos ya tienen flujos de los que derivar su superficie; escribirlos sigue pendiente conforme a `OQ-08`.
+**Los nueve módulos tienen contrato.** `OQ-08` queda cerrada.
 
 ## Forma común de un contrato de módulo
 

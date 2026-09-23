@@ -112,11 +112,18 @@ La columna siempre admitió NULL, así que ni siquiera en la base actual era obl
 
 **Impacto.** Sin contrato, esos módulos no son implementables por un equipo distinto al que escribió sus reglas. Afecta especialmente a notifications, del que ya dependen reservations (recordatorios y confirmaciones) y auth (invitaciones y recuperación).
 
-**Estado.** Abierta, pero el bloqueo original quedó levantado y **notifications ya está escrito**. Los cuatro módulos tienen flujos de usuario de los que derivar su superficie: `UF-ADM-01` a `UF-ADM-04` en administration, `UF-INV-01` en researchs, `UF-NOT-01` a `UF-NOT-03` en notifications y `UF-REP-01` y `UF-REP-02` en reports.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **los cuatro contratos se escribieron**, en el orden de dependencia sugerido. El bloqueo original —no había flujos de los que derivar la superficie— desapareció cuando los cuatro módulos recibieron los suyos.
 
-El [contrato de notifications](../../contratos/notifications/api-contract.md) se escribió primero por dependencia: reservations y auth ya lo citaban para recordatorios, confirmaciones, invitaciones y recuperación de contraseña. Expone la bandeja del destinatario y sus preferencias de correo; la generación y la entrega no tienen superficie HTTP.
+- [notifications](../../contratos/notifications/api-contract.md), primero por dependencia: reservations y auth ya lo citaban para recordatorios, confirmaciones, invitaciones y recuperación de contraseña. Expone la bandeja del destinatario y sus preferencias; la generación y la entrega no tienen superficie HTTP.
+- [reports](../../contratos/reports/api-contract.md): tres reportes —ocupación, solicitudes y lista de espera— y su exportación, derivados de los indicadores que `RN-OCU-05` ya definía.
+- [administration](../../contratos/administration/api-contract.md): unidades y cargos, asignación de permisos, importaciones en dos pasos y consulta de auditoría.
+- [researchs](../../contratos/researchs/api-contract.md): el lado administrativo del dominio, con los catálogos, las actividades institucionales, los perfiles y las vinculaciones de terceros.
 
-El [contrato de reports](../../contratos/reports/api-contract.md) le siguió. Expone tres reportes —ocupación, solicitudes y lista de espera— y su exportación, derivados de los indicadores que `RN-OCU-05` ya definía. Quedan `administration` y `researchs`.
+Escribir administration reveló que `UF-ADM-03` no tenía superficie en ningún contrato: la ficha de `personal.personal` no se creaba desde ninguna parte. Se añadió `/api/personal` al [contrato de usuarios](../../contratos/usuarios/api-contract.md), que es el módulo propietario de esa tabla.
+
+**Impacto.** Los nueve módulos tienen contrato. Ninguno de los cuatro nuevos introdujo reglas, flujos ni entidades.
+
+**Estado.** Resuelta.
 
 ---
 

@@ -199,8 +199,61 @@ Habilita o deshabilita. Deshabilitar impide nuevas operaciones que requieran ide
 
 ---
 
-## 6. Lo que este contrato no expone
+## 6. Fichas de Personal
 
-- **Cuenta, credenciales y sesión**: pertenecen a [auth](../auth/api-contract.md). Este módulo administra la identidad, no la autenticación.
+`personal.personal` es la otra identidad funcional de este módulo: representa al personal institucional que puede operar como Técnico o Administrador. Requieren el permiso global `usuarios.administrar`. El flujo que las conduce es `UF-ADM-03` de administration, que continúa en `UF-AUTH-02` cuando se invita la cuenta.
+
+**Auth no crea ni completa una ficha.** La captura y valida este dominio antes de que se solicite la invitación (`RN-PRS-05`).
+
+### 6.1 `POST /api/personal`
+
+Registra la ficha de una persona.
+
+```json
+{
+  "nombre": "Persona de ejemplo",
+  "documento": "1000000002",
+  "correo": "persona@itm.edu.co",
+  "telefono": "+573000000002",
+  "id_cargo": 14
+}
+```
+
+Los cinco datos son obligatorios. Documento, correo y teléfono son únicos en la tabla, y el cargo debe existir: **es el cargo el que determina la unidad organizacional de la persona**, no un campo propio (`RN-PRS-02`, `RN-PRS-03`, `RN-PRS-05`).
+
+**`201 Created`** con la ficha, activa. La cuenta se crea después, desde el contrato de [auth](../auth/api-contract.md), que resuelve `id_persona` por el correo único.
+
+**Errores:** `409 CONFLICTO` si el documento, el correo o el teléfono ya existen en otra ficha; `404 NO_ENCONTRADO` si el cargo no existe; `422 VALIDACION`.
+
+### 6.2 `GET /api/personal` y `GET /api/personal/{id_persona}`
+
+Listado paginado con la envolvente completa, y detalle con el cargo y la unidad que de él se deriva. Filtros: `estado`, `id_unidad`, `busqueda` sobre nombre, documento y correo.
+
+### 6.3 `PATCH /api/personal/{id_persona}`
+
+Modifica los datos de la ficha. **Si ya existe una cuenta asociada, no puede modificarse `correo`**: es el mismo valor inmutable de la cuenta (`RN-AUTH-ID-03` de auth).
+
+Cambiar `id_cargo` **cambia la unidad organizacional de la persona**, y con ella la validez de sus asignaciones de permiso por unidad (`RN-PER-09` de administration). El cambio queda en auditoría (`RN-AUD-06` de administration).
+
+**Errores:** `409 CONFLICTO` por duplicado de documento, correo o teléfono, excluyendo el propio registro, o si se intenta modificar el correo existiendo cuenta asociada.
+
+### 6.4 `PATCH /api/personal/{id_persona}/estado`
+
+Activa o desactiva la ficha.
+
+```json
+{ "estado": true }
+```
+
+**Personal inactivo no puede realizar nuevas operaciones administrativas**; las acciones históricas ya realizadas se conservan (`RN-PRS-04`). Una ficha inactiva no puede recibir una invitación ni activar una pendiente, y Auth vuelve a comprobarlo al activar la cuenta.
+
+**Errores:** `409 CONFLICTO` si desactivarla dejaría al sistema sin ninguna cuenta con permisos globales vigentes (`RN-AUTH-ROL-09` de auth).
+
+---
+
+## 7. Lo que este contrato no expone
+
+- **Cuenta, credenciales y sesión**: pertenecen a [auth](../auth/api-contract.md). Este módulo administra las dos identidades funcionales —`usuarios.usuarios` y `personal.personal`—, no la autenticación.
+- **Cargos y unidades organizacionales**: los administra [administration](../administration/api-contract.md). Una ficha de Personal referencia un cargo existente y deriva su unidad de él; no la declara.
 - **Creación de proyectos y semilleros**: son catálogos centrales; se importan desde administration y aquí solo se seleccionan.
 - **Iniciar una reserva** (`UF-USR-11`): el flujo continúa en [reservations](../reservations/api-contract.md); este módulo solo aporta la condición del perfil que reservations verifica.

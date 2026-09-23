@@ -35,8 +35,10 @@ Las [convenciones transversales](contratos/README.md) definen formato, errores, 
 | resources | [catálogo de recursos y configuración del laboratorio](contratos/resources/api-contract.md) |
 | notifications | [bandeja del destinatario y preferencias de correo](contratos/notifications/api-contract.md) |
 | reports | [reportes de ocupación, solicitudes y lista de espera](contratos/reports/api-contract.md) |
+| administration | [unidades y cargos, permisos, importaciones y auditoría](contratos/administration/api-contract.md) |
+| researchs | [catálogos de investigación, actividades, perfiles y vinculaciones ajenas](contratos/researchs/api-contract.md) |
 
-Faltan `administration` y `researchs`. Ambos ya tienen flujos de usuario de los que derivar su superficie, así que el bloqueo original de **OQ-08** quedó levantado; escribir los contratos sigue pendiente. Ver [decisiones pendientes](docs/decisions/open-questions.md).
+**Los nueve módulos tienen contrato**, lo que cierra **OQ-08** en [decisiones pendientes](docs/decisions/open-questions.md).
 
 ## Convenciones
 
