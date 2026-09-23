@@ -27,15 +27,17 @@ Sin esto nada más puede probarse contra la base ajustada.
 
 | Tarea | Por qué ahora |
 |---|---|
-| `BK-00` | Rescatar `002` y `003` del commit `2b32ea2`. **El esquema vivo no tiene hoy script que lo reproduzca** |
-| `BK-01` a `BK-03` | Levantar el proyecto. `backend/` y `frontend/` se borraron enteros |
+| ~~`BK-00`~~ | **Cerrada.** Las migraciones están rescatadas y verificadas |
+| `BK-01` a `BK-03` | Levantar el proyecto. `backend/app/` está vacío |
 | `DB-08` | Los catálogos de tipos y estados están vacíos: ninguna reserva puede crearse |
 | `DB-09` | Sin el catálogo de permisos no hay autorización posible |
 | `BK-04` a `BK-07` | Las convenciones transversales, que son `API-01` a `API-04`. Reimplementarlas por módulo produce nueve APIs distintas |
 
 `BK-07` depende de `DB-09`: es el primer punto donde los dos planes se tocan.
 
-**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta. Lo que se perdió son los scripts, y `BK-00` los devuelve.
+**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta.
+
+**El siguiente paso es `BK-01`**: escribir el primer archivo de `backend/app/`.
 
 ---
 

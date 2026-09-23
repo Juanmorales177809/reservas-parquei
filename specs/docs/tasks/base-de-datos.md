@@ -20,7 +20,7 @@ El ajuste `002_reservas_objetivo.sql` se aplicó el 23 de septiembre de 2026 sob
 | **Pendiente** | Los datos iniciales de los catálogos, que están vacíos |
 | **Pendiente** | Los disparadores y exclusiones de ADR-001 |
 
-**La base sobrevivió al borrado del backend; sus scripts no.** `002`, `003` y el respaldo estructural están en el commit `2b32ea2` y se rescatan en `BK-00`. Hasta entonces el esquema vivo no tiene origen reproducible en el repositorio.
+**La base sobrevivió al borrado del backend anterior y sus scripts se rescataron** en `BK-00`: `002`, `003`, el respaldo estructural y las pruebas SQL están de vuelta en `backend/`, idénticos al original.
 
 ---
 
@@ -89,8 +89,8 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 ### DB-05 — Ejecutar `003_reservas_referencias_externas.sql`
 
 - **Objetivo:** las cinco FK quedan instaladas y desaparecen los CHECK temporales `pendiente_fk_*`.
-- **Afectados:** `backend/migrations/003_reservas_referencias_externas.sql`, escrito y **nunca ejecutado**. Se borró junto con el backend anterior y se rescata en `BK-00`.
-- **Dependencias:** **BK-00**, **DB-01** y **DB-02**. El script aborta si falta algún destino.
+- **Afectados:** `backend/migrations/003_reservas_referencias_externas.sql`, escrito y **nunca ejecutado**.
+- **Dependencias:** **DB-01** y **DB-02**. El script aborta si falta algún destino.
 - **Aceptación:** no queda ninguna constraint cuyo nombre empiece por `pendiente_fk_`, y una inserción con `recurso_id` inexistente falla por FK, no por CHECK.
 - **Modelo:** [database-status.md](../../modules/reservations/database-status.md), sección de referencias externas pendientes.
 
@@ -177,7 +177,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 
 - **Objetivo:** existe una forma reproducible y versionada de evolucionar el esquema, conforme a `architecture.md` §15.
 - **Afectados:** `backend/migrations/`, y la herramienta que se elija.
-- **Dependencias:** **BK-00**, que rescata `002` y `003`.
+- **Dependencias:** ninguna.
 - **Aceptación:** aplicar las migraciones sobre una base vacía reproduce el esquema actual, y el estado aplicado es consultable sin inspeccionar la base a mano.
-- **Contexto:** el ajuste `002` se ejecutó manualmente y nunca formó parte de un arranque. Al borrarse el backend anterior desapareció el riesgo que originó esta tarea —un arranque que recreaba tablas retiradas—, pero no la necesidad: **el esquema vivo no tiene hoy ningún script en el repositorio que lo reproduzca** hasta que `BK-00` los rescate.
+- **Contexto:** el ajuste `002` se ejecutó manualmente y nunca formó parte de un arranque. Al borrarse el backend anterior desapareció el riesgo que originó esta tarea —un arranque que recreaba tablas retiradas—, pero no la necesidad: los scripts están en el repositorio, pero **nada registra cuáles se han aplicado** salvo `database-status.md`, escrito a mano.
 - **Decisión pendiente:** si se adopta una herramienta de migraciones o se mantiene la ejecución manual documentada. `architecture.md` exige reproducibilidad y versionado, no una herramienta concreta.

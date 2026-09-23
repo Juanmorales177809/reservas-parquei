@@ -2,7 +2,7 @@
 
 Verificación y ajuste: 2026-09-23, base `reservas_db`, PostgreSQL 13.23.
 
-> **Los scripts que este documento cita ya no están en el árbol.** Se borraron junto con el backend anterior y viven en el commit `2b32ea2`; `BK-00` del [plan de backend](../../docs/tasks/backend.md) los rescata. **La base no se tocó**: conserva las 28 tablas que este documento describe.
+> **El backend anterior se borró entero; los scripts que este documento cita se rescataron** y siguen en `backend/migrations/` y `backend/tests/sql/`. **La base no se tocó**: conserva las 28 tablas que este documento describe. La primera viñeta de «Límites funcionales pendientes» ya no aplica — ese backend y su arranque no existen—; las demás siguen vigentes.
 
 ## Alcance aplicado
 

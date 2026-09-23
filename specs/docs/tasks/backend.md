@@ -10,16 +10,18 @@ Plan general: [`tasks.md`](../../../tasks.md) de la raíz.
 
 | Qué | Estado |
 |---|---|
-| `backend/` y `frontend/` | **Borrados enteros.** 109 archivos, contra un contrato que ya no rige |
-| La base `reservas_db` | **Existe y conserva sus 28 tablas** en el schema `reservas`, todas vacías |
+| El código anterior de `backend/` y `frontend/` | **Borrado.** 109 archivos, contra un contrato que ya no rige |
+| `backend/migrations/` | **Rescatado.** `002`, `003` y el respaldo estructural, idénticos al original |
+| `backend/tests/sql/` | **Rescatado.** Las consultas que verifican el ajuste |
+| La base `reservas_db` | **Intacta**, con sus 28 tablas en el schema `reservas`, todas vacías |
 | `docker-compose.yml` | Conserva `db` y `pgadmin`; los servicios de aplicación se reintroducen en `BK-03` |
 | Los nueve contratos | Escritos y cotejados contra modelos, reglas y flujos |
 
 El backend anterior implementaba un contrato distinto: credencial por `username`, token en el cuerpo de la respuesta, `rol` dentro del JWT, sin sesiones ni CSRF. Se retiró entero en lugar de adaptarlo pieza a pieza.
 
-**La base no se tocó.** Sigue con el esquema objetivo aplicado, así que el proyecto nuevo arranca contra una base que ya tiene la forma correcta.
+**Se conservó lo que no es código de aplicación**: las migraciones que gobiernan el esquema y las consultas que verifican que se aplicó bien. `001_shared_postgres.sql` no se rescató: pertenecía al arranque anterior, que es justamente lo que no se repite.
 
-> **Las migraciones se borraron con la carpeta.** `002_reservas_objetivo.sql` —el script del que salieron esas 28 tablas—, `003_reservas_referencias_externas.sql` —escrito y pendiente de ejecutar— y el respaldo estructural `20260923_reservas_antes.sql` están en el commit `2b32ea2`. Recuperarlos es `git show 2b32ea2:backend/migrations/<archivo>`. Mientras no se rescaten, **el esquema vivo no tiene script que lo reproduzca** en el repositorio.
+Por tanto **el punto de partida para escribir código es `backend/app/`, que está vacío**, contra una base que ya tiene la forma correcta.
 
 **El stack no se decide aquí.** `architecture.md` §3 lo fija: FastAPI, Python, SQLAlchemy, Pydantic, Uvicorn, PostgreSQL 13, JWT con bcrypt y Docker Compose.
 
@@ -84,13 +86,11 @@ Cada módulo tiene la misma forma interna —`router.py`, `schemas.py`, `service
 
 Al cerrarlo existe un servicio que responde y se conecta a la base, sin lógica de negocio.
 
-### BK-00 — Rescatar las migraciones
+### BK-00 — Rescatar las migraciones · **cerrada**
 
 - **Objetivo:** `backend/migrations/` vuelve a contener el script que produjo el esquema vivo y el que queda pendiente.
-- **Afectados:** `backend/migrations/002_reservas_objetivo.sql`, `backend/migrations/003_reservas_referencias_externas.sql`.
-- **Dependencias:** ninguna. **Es lo primero.**
-- **Aceptación:** `002` reproduce las 28 tablas sobre una base vacía y el resultado coincide con el esquema actual. `003` sigue sin ejecutarse: es `DB-05`.
-- **Origen:** `git show 2b32ea2:backend/migrations/002_reservas_objetivo.sql`. No se rescata `001_shared_postgres.sql`, que pertenecía al arranque anterior.
+- **Resultado:** rescatados de `2b32ea2` y verificados idénticos por hash: `002_reservas_objetivo.sql`, `003_reservas_referencias_externas.sql`, el respaldo `20260923_reservas_antes.sql` y las pruebas `tests/sql/reservas_objetivo.sql`. No se rescató `001_shared_postgres.sql`.
+- **Queda pendiente de esta tarea:** nada. `003` sigue sin ejecutarse, que es `DB-05`, y el mecanismo de migraciones sigue sin fijarse, que es `DB-13`.
 
 ### BK-01 — Crear el proyecto
 
