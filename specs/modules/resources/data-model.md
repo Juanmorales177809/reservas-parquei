@@ -1,5 +1,7 @@
 # Modelo de datos — Resources
 
+> Estado de aplicación (2026-09-23): las estructuras de este documento ubicadas en el schema `reservas` se ajustaron según el [estado verificado de PostgreSQL](../reservations/database-status.md). Las referencias a `recursos.recursos` continúan pendientes y bloqueadas. Los objetos del schema externo `recursos` no se crearon en este ajuste. Esta nota prevalece sobre las marcas históricas de pendiente del documento.
+
 ## Fuente y alcance
 
 Este documento es la fuente canónica del detalle de las entidades propiedad de Resources. El [modelo general](../../docs/data-model.md) conserva el mapa de schemas, módulos y relaciones entre dominios. Las incorporaciones aquí descritas son parte del modelo objetivo y no se consideran aplicadas en la base de datos.

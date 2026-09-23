@@ -2,7 +2,7 @@
 
 ## Fuente y alcance
 
-Documentación de la estructura activa de `reservas_db` (PostgreSQL 13.23), verificada contra la instancia. Se excluye completamente `reservas_legacy`.
+Inventario de origen de `reservas_db` (PostgreSQL 13.23). El schema `reservas` fue ajustado el 2026-09-23: consultar el [estado actual verificado](../modules/reservations/database-status.md), que prevalece sobre las tablas históricas y marcas de pendiente de este inventario. Los demás schemas no se modificaron en ese ajuste. Se excluye completamente `reservas_legacy`.
 
 El modelo objetivo incorpora el catálogo común `recursos.recursos` y sus especializaciones `recursos.equipos`, `recursos.mobiliarios` y `recursos.otros_recursos`, además de `recursos.categorias_equipos`. También contempla las tablas `investigacion.actividades_institucionales`, `investigacion.pasantias`, `investigacion.usuario_pasantias`, `investigacion.trabajos_grado` e `investigacion.usuario_trabajos_grado`, `usuarios.usuarios.perfil_actualizado_at` y los campos `requiere_apoyo` de equipos y reservas. Estas incorporaciones objetivo están pendientes de aplicación en la base de datos.
 
@@ -26,7 +26,7 @@ Se suman como incorporaciones objetivo, definidas en los modelos de cada módulo
 
 `administration.auditoria` sustituye a `reservas.control_cambios` y las cuatro tablas de `notificaciones` sustituyen a `reservas.notificaciones`; ambas del inventario se conservan documentadas abajo hasta que la migración se aplique.
 
-`reservas.motivos_solicitud` se retira sin sustituta: el propósito de una reserva lo registra `reservas.reserva_contexto` y la razón de sacar un equipo del campus, `reservas.reserva_datos_salida.razon_solicitud`. La columna `reservas.reservas.motivo_solicitud_id` desaparece con ella; siempre admitió NULL, por lo que ninguna reserva depende de su valor.
+`reservas.motivos_solicitud` se retira sin sustituta: el propósito de una reserva lo registra `reservas.reserva_contexto` y la razón de sacar un equipo del campus, `reservas.reserva_datos_salida.razon_solicitud`. La columna `reservas.reservas.motivo_solicitud_id` desaparece con ella; su eliminación se realizó tras verificar que las tablas estaban vacías; admitir NULL por sí solo no prueba ausencia de dependencias.
 
 La base verificada tenía 9 schemas visibles; el modelo objetivo incorpora `recursos` como propietario del catálogo unificado de recursos y sus especializaciones. `public` existe, pero no contiene tablas del modelo activo. El inventario verificado comprende 8 schemas con tablas y 28 tablas; las incorporaciones objetivo se documentan separadamente y quedan pendientes de migración. `reservas_legacy` ya no existe en la instancia verificada. No hay tipos `ENUM`; los estados y tipos son `varchar` o `boolean` con `CHECK` cuando aplica.
 

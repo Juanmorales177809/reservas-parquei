@@ -1,5 +1,7 @@
 # Modelo de datos — Espacios
 
+> Estado de aplicación (2026-09-23): las estructuras de este documento ubicadas en el schema `reservas` se ajustaron según el [estado verificado de PostgreSQL](../reservations/database-status.md). Las referencias a `recursos.recursos` continúan pendientes y bloqueadas. Los objetos del schema externo `recursos` no se crearon en este ajuste. Esta nota prevalece sobre las marcas históricas de pendiente del documento.
+
 ## Fuente y alcance
 
 Este documento define el modelo persistente completo del módulo `espacios`.
