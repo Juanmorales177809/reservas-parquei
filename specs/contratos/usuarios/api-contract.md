@@ -89,7 +89,7 @@ Mientras la actualización esté pendiente, las demás operaciones de negocio re
 
 ### 3.0 `GET /api/perfil/perfiles/catalogo`
 
-Perfiles disponibles en `investigacion.perfiles`. Solo se devuelven los habilitados.
+Perfiles disponibles en `investigacion.perfiles`. Solo se devuelven los habilitados. **Catálogo cerrado**: devuelve solo `datos`, sin paginación.
 
 ```json
 { "datos": [{ "id_perfil": 2, "nombre": "Investigador" }] }
@@ -117,7 +117,7 @@ Estas rutas orquestan `researchs`. Los proyectos y semilleros **solo se seleccio
 
 ### 4.1 `GET /api/perfil/vinculaciones/catalogo?tipo=proyectos`
 
-Catálogo disponible para vincular. `tipo` admite `proyectos` y `semilleros`. Listado paginado con filtro `busqueda` sobre código y nombre.
+Catálogo disponible para vincular. `tipo` admite `proyectos` y `semilleros`. Listado paginado con la envolvente completa, porque su volumen depende de los datos, con filtro `busqueda` sobre código y nombre.
 
 ### 4.2 `POST /api/perfil/vinculaciones/proyectos`
 

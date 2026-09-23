@@ -69,7 +69,7 @@ Actualiza la información general. Flujo `UF-ESP-02`. Admite `nombre`, `ubicacio
 
 ### 2.3 `GET /api/espacios`
 
-Listado paginado. Flujo `UF-ESP-12`. Filtros: `id_unidad`, `habilitado`, `capacidad_minima`. Orden admitido: `nombre`, `capacidad`.
+Listado paginado con la envolvente completa. Flujo `UF-ESP-12`. Filtros: `id_unidad`, `habilitado`, `capacidad_minima`. Orden admitido: `nombre`, `capacidad`.
 
 Un Usuario solo ve espacios habilitados; un Técnico ve también los deshabilitados de su unidad.
 
@@ -201,6 +201,11 @@ Edita el valor, el orden o la habilitación de una opción. Una opción usada en
 ## 5. Catálogo de tipos de campo
 
 Los valores admitidos para `tipo` son `TEXTO`, `TEXTO_LARGO`, `NUMERO`, `BOOLEANO` y `SELECCION`. El valor `SELECCION` identifica un campo cuyas opciones se administran mediante el endpoint de opciones.
+
+Este catálogo depende de `OQ-02`, que todavía no fija el conjunto definitivo de tipos.
+
+---
+
 ## 6. Lo que este contrato no expone
 
 - **Horarios del espacio**: no existen. El horario es de la unidad y se administra en [resources](../resources/api-contract.md).

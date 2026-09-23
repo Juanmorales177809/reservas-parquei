@@ -310,7 +310,7 @@ Para `tipo_cuenta = "PERSONAL"`, debe existir previamente una ficha activa y com
 
 ```json
 {
-  "id_invitacion": 55,
+  "id": 55,
   "correo": "nuevo@itm.edu.co",
   "tipo_cuenta": "PERSONAL",
   "expira_en": "2026-09-25T14:03:11Z",
@@ -324,7 +324,7 @@ La respuesta **nunca incluye el token**: se entrega únicamente por correo a tra
 
 ---
 
-### 4.2 `POST /api/auth/invitaciones/{id_invitacion}/reenvio`
+### 4.2 `POST /api/auth/invitaciones/{id}/reenvio`
 
 Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`.
 
@@ -332,7 +332,7 @@ Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`.
 
 ```json
 {
-  "id_invitacion": 55,
+  "id": 55,
   "expira_en": "2026-10-02T09:15:00Z",
   "estado": "PENDIENTE"
 }
@@ -512,7 +512,7 @@ Generan registro de seguridad, sin contraseñas, secretos de sesión, tokens com
 | Inicio de sesión exitoso e intentos fallidos relevantes | §3.2 |
 | Cierre de sesión | §3.5 |
 | Solicitud y confirmación de recuperación | §3.6, §3.8 |
-| Cambio de contraseña y de correo | §5.1, §5.2 |
+| Cambio de contraseña | §5.1 |
 | Revocación de sesiones | §3.8, §5.1, §6.1 |
 | Reautenticación sensible | §3.9 |
 | Emisión, reenvío y activación de invitaciones | §4.1, §4.2, §4.4 |

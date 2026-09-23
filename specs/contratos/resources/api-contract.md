@@ -57,7 +57,7 @@ Para `tipo: "EQUIPO"`, la especialización corresponde a `recursos.equipos` y co
 
 ### 2.2 `GET /api/recursos`
 
-Listado paginado. Flujo `UF-REC-04`. Filtros: `id_unidad`, `tipo`, `habilitado`, `busqueda` sobre nombre y placa. Orden admitido: `nombre`, `tipo`.
+Listado paginado con la envolvente completa. Flujo `UF-REC-04`. Filtros: `id_unidad`, `tipo`, `habilitado`, `busqueda` sobre nombre y placa. Orden admitido: `nombre`, `tipo`.
 
 El listado ofrecido para **reservar** excluye los equipos con `acreditado = true`, que no son reservables aunque estén habilitados y operativos (`RN-REC-11`). El filtro `reservable=true` aplica esa exclusión; sin él, el listado administrativo los incluye.
 

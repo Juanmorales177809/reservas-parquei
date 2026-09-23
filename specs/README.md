@@ -42,6 +42,24 @@ Las reglas RN son obligatorias, incluso cuando utilizan valores configurables. L
 
 Cada regla pertenece a un único módulo propietario. Cuando otro módulo necesita su efecto, lo referencia en lugar de repetirlo, para que no existan dos versiones de la misma regla.
 
-**Los identificadores de regla son únicos dentro de su módulo, no en todo el sistema.** Varias familias se repiten con significados distintos: `RN-DES` es "Desactivación" en resources y "Destinatarios" en notifications; `RN-REC` es "Recordatorios" en reservations y "Recursos" en resources; `RN-AUD`, `RN-EST`, `RN-HIS`, `RN-IMP`, `RN-INT` y `RN-USR` también aparecen en más de un módulo. `RN-PER` identifica únicamente los permisos de `administration`; las reglas de personal de `usuarios` usan `RN-PRS`. Por eso, **toda cita a una regla de otro módulo debe nombrarlo** —por ejemplo `RN-PER-02` de administration—, y una cita sin calificar se entiende siempre referida al módulo del propio documento.
+**Los identificadores de regla son únicos dentro de su módulo, no en todo el sistema.** Once familias se repiten, varias con significados distintos:
+
+| Familia | Módulos | Significados cuando difieren |
+|---|---|---|
+| `RN-CAL` | notifications, reservations | Quién genera el `.ics` frente a quién lo adjunta |
+| `RN-CON` | notifications, reports | "Consulta" de la bandeja frente a "Consistencia de datos" |
+| `RN-CTX` | reports, reservations | El contexto como dimensión de análisis frente al contexto de la reserva |
+| `RN-DES` | notifications, resources | "Destinatarios" frente a "Desactivación" |
+| `RN-EST` | notifications, reports, reservations | Estado de lectura, estados en reportes y estados de la reserva |
+| `RN-HIS` | notifications, reports | Persistencia de notificaciones frente a datos históricos de reportes |
+| `RN-IMP` | administration, resources | Orquestación de la carga frente a validaciones del equipo |
+| `RN-INT` | administration, notifications | "Integridad" en ambos, sobre operaciones distintas |
+| `RN-REC` | reservations, resources | "Recordatorios" frente a "Recursos" |
+| `RN-REP` | reports, reservations | "Generación de reportes" frente a las reglas de reserva que los alimentan |
+| `RN-USR` | administration, usuarios | Administración de identidades frente a reglas del Usuario |
+
+`RN-PER` identifica únicamente los permisos de `administration`; las reglas de personal de `usuarios` usan `RN-PRS`. `RN-AUD` existe solo en `administration`.
+
+Por eso, **toda cita a una regla de otro módulo debe nombrarlo** —por ejemplo `RN-PER-02` de administration—, y una cita sin calificar se entiende siempre referida al módulo del propio documento.
 
 LIA y Reservas comparten una única PostgreSQL con separación lógica por schemas. Reservas puede referenciar las tablas maestras de LIA mediante FK dentro de la misma base; LIA no conoce ni referencia tablas de Reservas. No existe una capa de sincronización ni proyecciones persistentes.

@@ -130,6 +130,10 @@ Cada endpoint declara el permiso que exige. Un endpoint sin permiso declarado so
 
 Los filtros propios de cada endpoint se declaran en su contrato y viajan como parámetros de consulta adicionales. Un filtro desconocido responde `400 SOLICITUD_INVALIDA` en lugar de ignorarse en silencio, para que un error de nombre no devuelva datos que el cliente cree filtrados.
 
+**Excepción — catálogos cerrados.** Un catálogo de tamaño acotado y no paginable devuelve únicamente `datos`, sin `paginacion` y sin admitir `pagina`, `tamano` ni `orden`. Son los que enumeran un conjunto fijo definido por configuración, como los tipos de reserva habilitados para una unidad o los perfiles académicos disponibles. Todo listado cuyo volumen dependa de los datos —reservas, espacios, recursos, identidades, vinculaciones— lleva la envolvente completa.
+
+Un contrato de módulo no repite ninguna de las dos formas: indica si el endpoint es un listado paginado o un catálogo cerrado, y esta sección determina qué devuelve.
+
 Un listado nunca devuelve elementos fuera del ámbito autorizado del actor: el filtro de ámbito se aplica en el servidor antes de paginar, de modo que `total` refleja lo que el actor puede ver y no el total del sistema.
 
 ## 5. Concurrencia y consistencia

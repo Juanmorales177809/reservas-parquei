@@ -98,7 +98,7 @@ La cabecera, el detalle, las asignaciones, el contexto y los valores de campos s
 
 ### 2.2 `GET /api/reservas/tipos?id_unidad=7`
 
-Tipos de reserva habilitados para un laboratorio. Sustenta el paso de selección de tipo de `UF-RES-01` a `UF-RES-05` (`RN-TIP-02`, `RN-TIP-03`).
+Tipos de reserva habilitados para un laboratorio. **Catálogo cerrado**: devuelve solo `datos`, sin paginación. Sustenta el paso de selección de tipo de `UF-RES-01` a `UF-RES-05` (`RN-TIP-02`, `RN-TIP-03`).
 
 **`200 OK`**
 
@@ -134,7 +134,7 @@ Listado paginado conforme a las [convenciones](../README.md). Sustenta la consul
 
 Filtros: `estado`, `tipo_reserva`, `id_unidad`, `desde`, `hasta`, `espacio_id`, `recurso_id`. Orden admitido: `created_at`, `fecha`, `estado`.
 
-**`200 OK`** — envolvente `datos` + `paginacion`, con una fila resumida por reserva.
+**`200 OK`** con una fila resumida por reserva.
 
 ### 3.2 `GET /api/reservas/{id}`
 
@@ -319,6 +319,9 @@ Exporta el listado con los filtros aplicados. Flujo `UF-REP-02` de reports. Perm
 1. El esquema exacto de los campos adicionales depende del catálogo de `espacio_campos.tipo`, registrado como **OQ-02**.
 2. La propuesta seleccionada a nivel de diseño en ADR-001 para la garantía contra doble reserva concurrente sigue pendiente de aprobación formal, implementación y pruebas. Hasta que se completen, `409 SOLAPAMIENTO` describe el comportamiento esperado, no una garantía verificada.
 3. El destino de `motivos_solicitud` está pendiente (**OQ-07**); este contrato no lo expone, porque el "por qué" de la reserva se resuelve con `contexto`.
+
+---
+
 ## 10. Lo que este contrato no expone
 
 - **Cancelación automática por deshabilitación** (`UF-RES-12`): la dispara Resources al deshabilitar un elemento, no un endpoint de reservas.
