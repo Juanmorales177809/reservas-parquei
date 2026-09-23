@@ -249,6 +249,8 @@ Registra la entrega física y pasa la reserva a `EN_EJECUCION`. Flujo `UF-RES-13
 
 Escribe en `reserva_ejecucion_recursos` con la cuenta que entrega. La ejecución física se registra separadamente del estado de asignación del recurso.
 
+**No aplica al tipo `ESPACIO`**, que pasa a `EN_EJECUCION` automáticamente al alcanzar su `hora_inicio` conforme a `RN-TIP-PE-27` y `UF-RES-22`. Invocarlo sobre una reserva por espacio responde `409 TIPO_NO_ADMITIDO`.
+
 **`200 OK`** con `estado: "EN_EJECUCION"`.
 
 ### 6.2 `POST /api/reservas/{id}/finalizacion`

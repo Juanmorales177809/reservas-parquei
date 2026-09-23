@@ -280,8 +280,11 @@ Se deshabilita un espacio o recurso.
 ### Actor principal
 Técnico .
 
+### Alcance
+Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`, cuyo inicio coincide con la entrega física. **Las reservas de tipo `ESPACIO` quedan excluidas**: pasan a `EN_EJECUCION` automáticamente al alcanzar su `hora_inicio` conforme a `RN-TIP-PE-27` y `UF-RES-22`.
+
 ### Flujo
-1. El Técnico  selecciona una reserva `APROBADA`.
+1. El Técnico  selecciona una reserva `APROBADA` de alguno de los tipos incluidos en el alcance.
 2. Verifica las condiciones requeridas para iniciar.
 3. Ejecuta la acción de inicio.
 4. La reserva pasa a `EN_EJECUCION`.
@@ -428,9 +431,39 @@ Se alcanza la `hora_fin` de la franja registrada en `reservas.reserva_espacio`.
 - **No es una precondición de nada.** Un retraso o una falla del proceso no impide crear, aprobar ni ejecutar una reserva posterior que no se solapa.
 - **No altera reservas de otros tipos**, ni el comportamiento de lista de espera, recursos dentro del campus o recursos fuera del campus.
 
-### Decisión pendiente
+### Relación con el inicio automático
 
-La entrada de una reserva por espacio al estado `EN_EJECUCION` no está definida (`OQ-13`). Este flujo cubre la salida y toma la reserva en el estado en que se encuentre; no presupone que haya pasado por `EN_EJECUCION`.
+La entrada al estado `EN_EJECUCION` la cubre `UF-RES-22`. Este flujo finaliza la reserva cualquiera que sea su estado anterior: no exige que haya pasado por `EN_EJECUCION`.
+
+---
+
+## UF-RES-22 — Iniciar automáticamente una reserva por espacio
+
+### Actor principal
+
+El sistema. No interviene ningún actor humano: una reserva por espacio no tiene entrega física que registrar.
+
+### Alcance
+
+Únicamente reservas de tipo `ESPACIO` en estado `APROBADA` (`RN-TIP-PE-27`). Los demás tipos inician con la entrega física que registra el Técnico conforme a `UF-RES-13`, que no aplica a este tipo.
+
+### Disparador
+
+Se alcanza la `hora_inicio` de la franja registrada en `reservas.reserva_espacio`.
+
+### Flujo
+
+1. El sistema identifica las reservas de tipo `ESPACIO` en estado `APROBADA` cuya `hora_inicio` ya transcurrió.
+2. Por cada una, registra la transición a `EN_EJECUCION` conforme a `RN-TIP-PE-27`, indicando el sistema como origen del cambio y el instante efectivo.
+3. A partir de ese momento el Técnico puede agregar recursos a la reserva en curso conforme a `RN-TIP-PE-21` y `RN-TIP-PE-23`.
+4. La reserva sigue su curso hasta que `UF-RES-21` la finaliza al llegar la `hora_fin`.
+
+### Lo que este flujo no hace
+
+- **No ocupa la disponibilidad del intervalo.** Ya la ocupaba desde que la reserva alcanzó un estado bloqueante (`RN-EST-02`). La transición no cambia qué franjas están libres (`RN-TIP-PE-26`, `RN-DIS-11`).
+- **No registra asistencia.** `EN_EJECUCION` significa que la franja reservada está en curso, no que el Usuario se haya presentado. El sistema no lo comprueba ni lo almacena.
+- **No transita una reserva que no esté `APROBADA`.** Una reserva `SOLICITADA` que llega a su hora de inicio permanece como está; la finalización automática la alcanzará igualmente al llegar la `hora_fin`.
+- **No altera reservas de otros tipos.**
 
 ---
 

@@ -180,9 +180,15 @@ La planilla real de `OQ-10` no tiene columna de estado, así que no puede expres
 
 **Alternativas.** Transición automática al alcanzar `hora_inicio`, registro manual por el Técnico al abrir el espacio, o que `ESPACIO` nunca pase por `EN_EJECUCION` y transite de `APROBADA` directamente a `FINALIZADA`.
 
-**Impacto.** Determina si `UF-RES-13` y `POST /api/reservas/{id}/ejecucion` admiten el tipo `ESPACIO`, y si `RN-TIP-PE-21` y `RN-TIP-PE-23` describen un estado alcanzable para ese tipo. No afecta la disponibilidad, que se evalúa por intervalo conforme a `RN-DIS-11`. La tercera alternativa obligaría a revisar esas dos reglas.
+**Decisión.** Resuelta el 23 de septiembre de 2026: **transición automática al alcanzar `hora_inicio`**, simétrica con la finalización. Queda en `RN-TIP-PE-27` y `UF-RES-22`.
 
-**Estado.** Abierta.
+Se descartó que el Técnico la marcara, porque una reserva por espacio no tiene entrega física que registrar y, si se olvidara de marcarla, la reserva saltaría de `APROBADA` a `FINALIZADA` sin pasar por el estado que `RN-TIP-PE-21` y `RN-TIP-PE-23` necesitan para agregar recursos en curso. Se descartó eliminar el estado por la misma razón: habría obligado a reescribir esas dos reglas.
+
+Solo transita una reserva `APROBADA`; una `SOLICITADA` que llega a su hora de inicio permanece como está. `EN_EJECUCION` significa aquí que la franja está en curso, no que el Usuario se haya presentado: el sistema no registra asistencia.
+
+**Impacto.** `UF-RES-13` y `POST /api/reservas/{id}/ejecucion` excluyen el tipo `ESPACIO`. No afecta la disponibilidad, que se evalúa por intervalo conforme a `RN-DIS-11`.
+
+**Estado.** Resuelta.
 
 ---
 
