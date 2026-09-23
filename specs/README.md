@@ -4,7 +4,7 @@ Esta carpeta contiene la documentación funcional y técnica del sistema usando 
 
 ## Estructura
 
-- [`docs/`](docs/): documentación transversal — [especificación de producto](docs/spec.md), [arquitectura](docs/architecture.md), [modelo de datos general](docs/data-model.md) y [decisiones pendientes](docs/decisions/open-questions.md).
+- [`docs/`](docs/): documentación transversal — [especificación de producto](docs/spec.md), [arquitectura](docs/architecture.md), [modelo de datos general](docs/data-model.md), [decisiones pendientes](docs/decisions/open-questions.md) y los [planes de tareas](docs/tasks/) de base de datos y contratos, que une el [`tasks.md`](../tasks.md) de la raíz.
 - [`modules/`](modules/): un directorio por módulo, con su overview, reglas de negocio, modelo de datos y flujos de usuario.
 - [`contratos/`](contratos/): contratos de API por módulo, que traducen reglas y flujos a la superficie HTTP.
 

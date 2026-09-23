@@ -1,6 +1,6 @@
 # Plan de tareas — Auth
 
-Traduce el [contrato de API](../../contratos/auth/api-contract.md) y los [flujos de usuario](user-flow.md) a tareas de implementación. Cada tarea declara objetivo, archivos afectados, dependencias, criterio de aceptación y las reglas que la sustentan.
+Traduce el [contrato de API](../../contratos/auth/api-contract.md) y los [flujos de usuario](user-flow.md) a tareas de implementación. Cada tarea declara objetivo, archivos afectados, dependencias, criterio de aceptación y las reglas que la sustentan, siguiendo la convención del [plan general](../../../tasks.md). Este documento desarrolla la tarea `API-05` del [plan de contratos](../../docs/tasks/contratos.md).
 
 Plan dimensionado para **dos personas en paralelo**. Los carriles se reparten por propiedad de archivos, no por capas, para evitar conflictos de merge.
 
