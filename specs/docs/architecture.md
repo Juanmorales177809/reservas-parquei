@@ -625,26 +625,33 @@ Decisiones registradas:
 La documentación del proyecto se divide por responsabilidad.
 
 ```text
-product-spec.md
+docs/spec.md
     Define qué debe hacer el producto.
 
-architecture.md
+docs/architecture.md
     Define cómo está estructurado el sistema y cuáles son
     sus restricciones técnicas globales.
 
-data-model.md
+docs/data-model.md
     Define las entidades persistentes y sus relaciones.
 
-business-rules/
-    Define las reglas que gobiernan el comportamiento del sistema.
+docs/testing.md
+    Define cómo se verifica que lo construido corresponde
+    a lo especificado.
+
+docs/trazabilidad.md
+    Generado. Muestra, para cada regla, si tiene contrato,
+    tarea y prueba.
 
 contratos/
     Define los contratos de comunicación, uno por módulo.
 
 modules/
-    Define la responsabilidad, diseño, tareas y pruebas
-    de cada módulo.
+    Define la responsabilidad, diseño, reglas, modelo,
+    flujos, tareas y pruebas de cada módulo.
 ```
+
+Fuera de `specs/`, en la raíz del repositorio: `plan.md` traduce esta arquitectura en cómo se construye, `tasks.md` fija el orden y `AGENTS.md` recoge las convenciones de trabajo.
 
 Cuando exista conflicto entre una decisión local de un módulo y una restricción definida en este documento, prevalece la arquitectura central hasta que se apruebe formalmente un cambio.
 

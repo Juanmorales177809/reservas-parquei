@@ -15,6 +15,7 @@ Sistema de reservas de espacios, equipos y recursos de laboratorio para el ITM.
 | [`plan.md`](plan.md) | El plan técnico: stack, estructura del código, límites y criterios de cierre de cada fase |
 | [`tasks.md`](tasks.md) | El plan de implementación, que une los planes de base de datos, contratos y backend |
 | [`AGENTS.md`](AGENTS.md) | Cómo trabajar en este repositorio: qué documento manda, qué no se toca y cómo se valida un cambio |
+| [`tools/`](tools/) | Los scripts que comprueban que la especificación sea coherente y generan la matriz de trazabilidad |
 | `docker-compose.yml` | Levanta PostgreSQL y pgAdmin |
 
 La cadena es **`spec.md` → `architecture.md` → `plan.md` → `tasks.md`**: qué hace el producto, cómo está diseñado, cómo se construye y en qué orden.
@@ -23,7 +24,8 @@ La cadena es **`spec.md` → `architecture.md` → `plan.md` → `tasks.md`**: q
 
 | Componente | Estado |
 |---|---|
-| Especificación | **Completa.** 513 reglas, 82 flujos y 9 contratos, cotejados entre sí. Las 15 preguntas abiertas están resueltas |
+| Especificación | **Completa.** 504 reglas de negocio, 63 controles de seguridad, 82 flujos y 9 contratos con 122 rutas, cotejados entre sí. Las 15 preguntas abiertas están resueltas |
+| Pruebas | **Especificadas, ninguna implementada.** 111 pruebas descritas en los nueve `tests.md`; no hay código que probar |
 | Base de datos | **Aplicada parcialmente.** El schema `reservas` tiene sus 28 tablas; faltan los schemas `recursos`, `administration` y `notificaciones`, parte de `investigacion` y cinco tablas dentro de `auth` |
 | Backend | **Por construir.** El anterior se retiró: implementaba un contrato distinto |
 | Frontend | **Por construir** |

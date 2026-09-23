@@ -18,6 +18,7 @@ Lee en este orden, y solo lo que necesites:
 | Implementar un endpoint | El contrato del módulo en [`specs/contratos/`](specs/contratos/) |
 | Implementar una regla | `business-rules.md` del módulo propietario |
 | Tocar el esquema | [`specs/docs/tasks/base-de-datos.md`](specs/docs/tasks/base-de-datos.md) y [`database-status.md`](specs/modules/reservations/database-status.md) |
+| Escribir una prueba | [`specs/docs/testing.md`](specs/docs/testing.md) y el `tests.md` del módulo |
 
 **No empieces a escribir código sin la tarea correspondiente de `tasks.md` delante.** Cada una declara objetivo, archivos afectados, dependencias y criterio de aceptación verificable. Si lo que te piden no está en ninguna tarea, eso es la señal de que falta abrirla, no de que sobre el plan.
 
@@ -81,9 +82,12 @@ Los mensajes de commit están en inglés.
 
 Antes de darlo por cerrado:
 
+- **Documentación:** ejecuta `python tools/validar.py`. Comprueba enlaces, referencias colgadas y que toda tarea tenga fase y carril. Devuelve `1` si algo falla. Si tocaste reglas o pruebas, regenera la matriz con `python tools/trazabilidad.py`.
 - **Tarea de base de datos:** el criterio de aceptación se comprueba **contra la base**, no contra el backend. Toda migración corre en una transacción, verifica que las tablas de origen estén vacías antes de tocarlas y no usa `DROP ... CASCADE`.
 - **Tarea de API:** el criterio está escrito como una petición y su respuesta esperada, **incluido el caso de error**. «Quedó implementado» no es un criterio.
-- **Documentación:** si tocas enlaces o identificadores, comprueba que no queden enlaces rotos ni referencias a reglas o flujos inexistentes.
+- **Prueba:** cita las reglas que cubre **por su identificador completo**, nunca por familia. `RN-DIS-05`, no `RN-DIS`: si no, no se sabe cuál se verificó, y la trazabilidad no la cuenta.
+
+**Retirar un identificador es una decisión.** Si una regla o un flujo deja de existir, su número **no se reasigna** y la retirada se anota en [`identificadores-retirados.md`](specs/docs/decisions/identificadores-retirados.md). Reasignarlo haría que una referencia antigua apuntara en silencio a otra regla.
 
 **Una tarea de API no se cierra antes que la tarea de base de datos que la sostiene.** Un endpoint sobre una tabla que no existe no se puede probar, y uno que «funciona» sin su restricción da una falsa sensación de terminado.
 

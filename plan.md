@@ -8,6 +8,8 @@ Cómo se construye lo que la especificación describe. Cierra la cadena de SDD e
 | [`specs/docs/architecture.md`](specs/docs/architecture.md) | Cómo está diseñado el sistema |
 | **`plan.md`** | **Cómo se construye: stack, estructura, límites, fases y criterios de cierre** |
 | [`tasks.md`](tasks.md) | En qué orden, quién y con qué criterio de aceptación por tarea |
+| [`specs/docs/testing.md`](specs/docs/testing.md) | Cómo se verifica que lo construido corresponde a lo especificado |
+| [`specs/docs/trazabilidad.md`](specs/docs/trazabilidad.md) | Si cada regla tiene ya contrato, tarea y prueba. Generado |
 
 **Aquí no hay tareas.** Si buscas qué hacer a continuación, es `tasks.md`.
 
@@ -109,6 +111,8 @@ El orden lo detalla `tasks.md`. Lo que sigue es el criterio de salida de cada un
 | **5 — Notificaciones y reportes** | Repetir una ocurrencia no genera una segunda notificación, y un fallo de entrega **no invalida la operación de negocio** que lo originó |
 
 Una fase no se da por cerrada porque sus tareas estén marcadas, sino porque su criterio se comprueba.
+
+Cómo se comprueba está en [`testing.md`](specs/docs/testing.md), y qué falta por comprobar en [`trazabilidad.md`](specs/docs/trazabilidad.md), que se regenera con `python tools/trazabilidad.py`.
 
 ---
 
