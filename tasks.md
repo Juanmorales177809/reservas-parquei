@@ -44,23 +44,23 @@ Cada tarea quedó verificada contra `reservas_db` real, no solo escrita: peticio
 
 ---
 
-## Fase 1 — Los schemas que faltan
+## Fase 1 — Los schemas que faltan · **cerrada**
 
-**El siguiente paso es `DB-01`**, o cualquiera de los cuatro schemas de esta fase: son independientes entre sí y no dependen de nada de la Fase 0.
+Los cuatro schemas se crearon en orden pero eran independientes entre sí:
 
-Los cuatro schemas son independientes entre sí y pueden ir en paralelo.
+~~`DB-01`~~ recursos · ~~`DB-02`~~ investigación · ~~`DB-03`~~ administration · ~~`DB-04`~~ notificaciones
 
-`DB-01` recursos · `DB-02` investigación · `DB-03` administration · `DB-04` notificaciones
+~~`DB-05`~~ ejecutó el script de referencias externas que llevaba escrito desde septiembre sin correr. Las cinco FK están instaladas; `reserva_recursos` y `espacio_recursos` ya admiten inserciones con `recurso_id` real.
 
-Después, `DB-05` ejecuta el script de referencias externas que ya está escrito. **Aborta si falta algún destino**, así que exige `DB-01` y `DB-02` cerradas. Hasta entonces, `reserva_recursos` y `espacio_recursos` **no admiten ninguna inserción**: sus CHECK temporales exigen `NULL` en una columna obligatoria.
+~~`DB-10`~~ cargó el catálogo de eventos notificables: **nueve códigos, no once** — dos reglas de `RN-EVT` no definen un evento propio o comparten el de otra, según la propia tabla de correspondencia del módulo. Verificado en [`base-de-datos.md`](specs/docs/tasks/base-de-datos.md).
 
-`DB-10` carga los once tipos de evento notificables y sigue a `DB-04`.
+~~`DB-06`~~, ~~`DB-07`~~ y ~~`DB-15`~~, los tres ajustes de identidad que comparten `008_identidades.sql`, están cerrados.
 
-En paralelo, los tres ajustes de identidad: `DB-06` (`personal.personal.estado`), `DB-07` (estado de las unidades) y `DB-15` (columnas objetivo de `usuarios.usuarios`). **Las tres escriben el mismo archivo**, `008_identidades.sql`, así que van a la misma persona.
+~~`BK-08`~~ modeló las 51 tablas de `reservas`, `auth`, `usuarios`, `personal`, `cargos`, `unidadOrganizacional` e `investigacion` — generadas por introspección de la base real, no transcritas a mano, y verificadas con una consulta a cada una. `recursos`, `administration` y `notificaciones` existen pero **no se modelan todavía**: se modelan con el primer `API-XX` de su propio módulo.
 
-También en paralelo, `BK-08`, que modela las tablas existentes. Solo puede modelar lo que ya esté creado, así que se cierra al final de la fase.
+`~~DB-13~~` ya estaba cerrada desde antes de esta fase: el ledger de `public.schema_migrations` existe y cada migración de la fase siguió su convención, insertando su propia fila al terminar.
 
-`~~DB-13~~` ya está cerrada: el ledger de `public.schema_migrations` existe y cada migración de esta fase debe seguir su convención, insertando su propia fila al terminar.
+**El siguiente paso es la Fase 2**: `BK-09`, auth de punta a punta.
 
 ---
 

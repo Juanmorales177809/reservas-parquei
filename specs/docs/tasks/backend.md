@@ -163,14 +163,15 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 
 ## Hito 2 — Los modelos
 
-### BK-08 — Modelar las tablas que existen
+### BK-08 — Modelar las tablas que existen · **cerrada**
 
 - **Objetivo:** modelos SQLAlchemy de `reservas` (28 tablas), `auth`, `usuarios`, `personal`, `cargos`, `unidadOrganizacional` e `investigacion` en lo que ya existe.
 - **Afectados:** `backend/app/db/models/`.
 - **Dependencias:** BK-02 y **DB-14**, que añade las cinco tablas de `auth` que hoy faltan.
 - **Aceptación:** una consulta a cada tabla se ejecuta sin error. **Ningún modelo declara una tabla que la base no tenga**, y ninguno se marca como creable.
-- **Alcance de `auth`:** las siete tablas, es decir `auth.cuentas`, que ya existía, y las cinco que crea `DB-14`. El plan de auth las consume, no las modela.
-- **Nota:** `recursos`, `administration`, `notificaciones` y el resto de `investigacion` **no se modelan todavía**: no existen hasta `DB-01` a `DB-04`. Modelarlos antes produce código que no se puede probar.
+- **Alcance de `auth`:** las **seis** tablas, es decir `auth.cuentas`, que ya existía, y las cinco que crea `DB-14`. El plan de auth las consume, no las modela. (Corrección: el texto original de esta tarea decía «siete»; `1 + 5 = 6`.)
+- **Nota:** `recursos`, `administration` y `notificaciones` **existen desde `DB-01` a `DB-04`, cerradas en esta misma fase, pero deliberadamente no se modelan aquí**: no estaban en el alcance original de esta tarea, y modelarlas sin que ningún endpoint las use todavía es exactamente el riesgo que esta nota advertía. Se modelan con el primer `API-XX` de su propio módulo (`API-09`, `API-07`/`API-08`, `API-17`/`API-18`).
+- **Resultado:** 51 clases declarativas de SQLAlchemy 2.0, generadas por introspección directa de `reservas_db` (no transcritas a mano) para garantizar que ningún modelo describe una columna, tipo o FK que la base no tenga exactamente así. Cuatro archivos: `reservas.py` (28), `auth.py` (6), `investigacion.py` (13), `identidad.py` (`usuarios`, `personal`, `cargos`, `unidadOrganizacional`: 1 cada uno). Verificado con una consulta real a las 51 tablas —cero fallos— y una comparación explícita contra `information_schema`: cero mapeadas que no existan, cero existentes sin mapear. Las columnas técnicas `periodo`/`bloqueante` de `reserva_espacio`/`reserva_recursos` quedan anotadas como proyecciones que ningún servicio debe escribir directamente. Ningún `Base.metadata.create_all` en ningún sitio.
 
 ---
 
