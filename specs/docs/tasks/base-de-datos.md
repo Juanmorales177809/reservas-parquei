@@ -163,7 +163,7 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 
 ## 5. Datos iniciales
 
-### DB-08 — Cargar los catálogos de reservas
+### DB-08 — Cargar los catálogos de reservas · **cerrada**
 
 - **Objetivo:** `tipos_reserva` y `estados_reserva` dejan de estar vacíos.
 - **Afectados:** `backend/migrations/seeds/catalogos_reservas.sql`.
@@ -171,8 +171,9 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Aceptación:** existen los cinco tipos (`ESPACIO`, `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO`, `LISTA_ESPERA`) y los seis estados; crear una reserva resuelve `tipo_reserva_id` y `estado_id` sin insertar catálogo.
 - **Modelo:** [reservations/data-model.md](../../modules/reservations/data-model.md).
 - **RN:** `RN-TIP-01`, `RN-EST`.
+- **Resultado:** verificado contra `reservas_db` real, aplicado dos veces con `ON CONFLICT (codigo) DO NOTHING`: sin duplicados. Cinco tipos y seis estados exactos.
 
-### DB-09 — Cargar el catálogo de permisos
+### DB-09 — Cargar el catálogo de permisos · **cerrada**
 
 - **Objetivo:** `auth.permisos` contiene los catorce códigos.
 - **Afectados:** `backend/migrations/seeds/permisos.sql`.
@@ -180,6 +181,7 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Aceptación:** `exigir_permiso` resuelve los catorce códigos; asignar uno inexistente falla por FK.
 - **Modelo:** [auth/data-model.md](../../modules/auth/data-model.md#catálogo-inicial).
 - **RN:** `RN-PER-01`, `RN-AUTH-ROL`.
+- **Resultado:** verificado contra `reservas_db` real, aplicado dos veces: `SELECT count(*)` sigue en 14 tras la reejecución.
 
 ### DB-10 — Cargar los tipos de evento notificables
 
