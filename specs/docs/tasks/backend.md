@@ -177,13 +177,13 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 
 ## Hito 3 — El primer módulo completo
 
-### BK-09 — Auth de punta a punta · **en progreso**
+### BK-09 — Auth de punta a punta · **cerrada**
 
 - **Objetivo:** los 17 endpoints del contrato de auth, funcionando. Dieciséis se construyen aquí; `GET /api/auth/csrf` ya lo entregó `BK-06`.
 - **Afectados:** `backend/app/modules/auth/`.
 - **Dependencias:** Hito 1, BK-08 y **DB-14**. Desarrolla `API-05`; el desglose está en [modules/auth/tasks.md](../../modules/auth/tasks.md), que es el documento que manda al implementarlo.
 - **Aceptación:** la del plan de auth. Además, **auth queda como la referencia de estilo**: cualquier módulo posterior que se estructure distinto se corrige, no se justifica.
-- **Avance:** Fase 1 del plan de auth cerrada (`AUTH-A1` a `AUTH-B5`, 9 tareas) y `AUTH-C1` (auditoría) también: los 16 endpoints funcionan y dejan su registro en `administration.auditoria`, verificados con peticiones reales contra `reservas_db`. Solo faltan `AUTH-T1`/`AUTH-T2` —pruebas formales, sin framework instalado todavía— para cerrar este hito.
+- **Resultado:** Fase 1 (`AUTH-A1` a `AUTH-B5`) y Fase 2 (`AUTH-C1`, `AUTH-T1`, `AUTH-T2`) del plan de auth cerradas. Los 16 endpoints funcionan, auditados, y `backend/tests/` trae 13 pruebas formales en verde (`conftest.py` + `test_auth_t1.py`/`test_auth_t2.py`) contra `reservas_test`: base PG13 aislada con la misma cadena de migraciones, etiquetas únicas por prueba y limpieza total al terminar (0 filas remanentes). Infra: `requirements-test.txt`, `pytest.ini`, `Dockerfile.test`.
 
 Al cerrar este hito hay un módulo entero contra el contrato nuevo, y las decisiones difíciles —sesiones, CSRF, ámbito, forma del error— ya están tomadas en código, no solo en documento.
 

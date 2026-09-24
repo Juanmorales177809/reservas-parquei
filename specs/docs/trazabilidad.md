@@ -24,13 +24,13 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | administration | 62 | 62 | 57 | 23 | — |
 | auth | 89 | 85 | 89 | 39 | — |
 | espacios | 22 | 22 | 15 | 11 | — |
-| notifications | 60 | 49 | 50 | 12 | — |
-| reports | 58 | 58 | 23 | 17 | — |
+| notifications | 60 | 49 | 50 | 15 | — |
+| reports | 58 | 58 | 19 | 20 | — |
 | researchs | 20 | 20 | 20 | 10 | — |
-| reservations | 180 | 168 | 124 | 29 | — |
-| resources | 57 | 33 | 44 | 23 | — |
+| reservations | 182 | 175 | 144 | 79 | — |
+| resources | 57 | 33 | 44 | 22 | — |
 | usuarios | 19 | 19 | 19 | 10 | — |
-| **total** | **567** | **516** | **441** | **174** | **—** |
+| **total** | **569** | **523** | **457** | **229** | **—** |
 
 ---
 
@@ -59,7 +59,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-AUTH-SES` | 5 | 3/5 | 2/5 | — |
 | `SEC-ABU` | 3 | 3/3 | 3/3 | 3/3 |
 | `SEC-AUD` | 4 | 3/4 | 2/4 | — |
-| `SEC-AUTZ` | 6 | 5/6 | 4/6 | 4/6 |
+| `SEC-AUTZ` | 6 | 5/6 | 5/6 | 4/6 |
 | `SEC-CSRF` | 3 | 2/3 | 2/3 | 2/3 |
 | `SEC-INF` | 4 | — | 1/4 | — |
 | `SEC-INV` | 4 | 3/4 | 4/4 | 4/4 |
@@ -84,13 +84,13 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-CAL` ⚠ | 3 | 2/3 | familia | — |
+| `RN-CAL` ⚠ | 3 | 2/3 | 2/3 | — |
 | `RN-CNT` | 6 | 1/6 | — | — |
 | `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 1/4 |
 | `RN-COR` | 7 | 1/7 | 2/7 | 2/7 |
 | `RN-DES` ⚠ | 6 | 1/6 | 1/6 | 1/6 |
-| `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 2/5 |
-| `RN-EVT` | 11 | — | 2/11 | 2/11 |
+| `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 5/5 |
+| `RN-EVT` | 11 | — | 5/11 | 2/11 |
 | `RN-HIS` ⚠ | 4 | 4/4 | — | — |
 | `RN-INT` ⚠ | 4 | 1/4 | 1/4 | 1/4 |
 | `RN-NOT` | 6 | 1/6 | 1/6 | 1/6 |
@@ -102,9 +102,9 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 |---|---:|---|---|---|
 | `RN-AMB` | 5 | 5/5 | — | 2/5 |
 | `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 1/4 |
-| `RN-CTX` ⚠ | 4 | 2/4 | familia | 1/4 |
+| `RN-CTX` ⚠ | 4 | 2/4 | — | 2/4 |
 | `RN-DIM` | 7 | 3/7 | — | — |
-| `RN-EST` ⚠ | 4 | 3/4 | 1/4 | 2/4 |
+| `RN-EST` ⚠ | 4 | 3/4 | 1/4 | 4/4 |
 | `RN-EXP` | 5 | 4/5 | familia | 2/5 |
 | `RN-FIL` | 5 | 4/5 | — | 1/5 |
 | `RN-HIS` ⚠ | 4 | 4/4 | — | — |
@@ -118,32 +118,32 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
 | `RN-ACT` | 4 | 4/4 | familia | 3/4 |
-| `RN-INV` | 16 | 8/16 | 3/16 | 7/16 |
+| `RN-INV` | 16 | 8/16 | 4/16 | 7/16 |
 
 ### reservations
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
 | `RN-ACO` | 7 | — | — | 7/7 |
-| `RN-APR` | 9 | 2/9 | familia | — |
-| `RN-CAL` ⚠ | 5 | 2/5 | familia | — |
-| `RN-CAN` | 8 | 4/8 | — | 1/8 |
-| `RN-CTX` ⚠ | 9 | 3/9 | familia | 1/9 |
-| `RN-DIS` | 11 | 2/11 | 2/11 | 5/11 |
-| `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 2/5 |
-| `RN-HOR` | 7 | 1/7 | — | — |
-| `RN-PRO` | 5 | — | — | 5/5 |
-| `RN-PROP` | 7 | 5/7 | familia | — |
-| `RN-REC` ⚠ | 3 | 1/3 | familia | 1/3 |
+| `RN-APR` | 8 | 2/8 | — | 4/8 |
+| `RN-CAL` ⚠ | 5 | 2/5 | 2/5 | — |
+| `RN-CAN` | 8 | 5/8 | 1/8 | 6/8 |
+| `RN-CTX` ⚠ | 9 | 3/9 | — | 2/9 |
+| `RN-DIS` | 11 | 3/11 | 3/11 | 8/11 |
+| `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 5/5 |
+| `RN-HOR` | 7 | 2/7 | — | 1/7 |
+| `RN-PRO` | 6 | 2/6 | 1/6 | 6/6 |
+| `RN-PROP` | 7 | 5/7 | 1/7 | 3/7 |
+| `RN-REC` ⚠ | 3 | 1/3 | familia | — |
 | `RN-REP` ⚠ | 3 | 2/3 | — | 1/3 |
-| `RN-RES` | 15 | 3/15 | familia | — |
+| `RN-RES` | 15 | 5/15 | 2/15 | 4/15 |
 | `RN-SAL` | 4 | familia | — | 1/4 |
 | `RN-TIP` | 6 | 4/6 | 1/6 | — |
-| `RN-TIP-PE` | 27 | 6/27 | 3/27 | 3/27 |
-| `RN-TIP-PLE` | 8 | 3/8 | — | — |
-| `RN-TIP-RC` | 14 | 1/14 | 2/14 | 1/14 |
-| `RN-TIP-RE` | 14 | 1/14 | — | — |
-| `RN-TIP-RI` | 13 | 1/13 | 1/13 | 1/13 |
+| `RN-TIP-PE` | 28 | 8/28 | 4/28 | 10/28 |
+| `RN-TIP-PLE` | 9 | 7/9 | 6/9 | 7/9 |
+| `RN-TIP-RC` | 14 | 2/14 | 2/14 | 3/14 |
+| `RN-TIP-RE` | 14 | 2/14 | 2/14 | 2/14 |
+| `RN-TIP-RI` | 13 | 4/13 | 4/13 | 9/13 |
 
 ### resources
 
@@ -155,7 +155,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-LAB` | 8 | 2/8 | 1/8 | 3/8 |
 | `RN-MOB` | 5 | — | — | 5/5 |
 | `RN-OTR` | 5 | — | — | 5/5 |
-| `RN-REC` ⚠ | 11 | 2/11 | familia | 1/11 |
+| `RN-REC` ⚠ | 11 | 2/11 | familia | — |
 | `RN-ROL` | 3 | — | — | 3/3 |
 
 ### usuarios

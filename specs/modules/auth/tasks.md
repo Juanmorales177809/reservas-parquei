@@ -195,7 +195,10 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
 
 ## Fase 2 — Auditoría y pruebas
 
-**Fase 1 completa**, y de esta fase **`AUTH-C1` también**. Los 16 endpoints funcionan, auditados, y todo quedó verificado con peticiones reales contra `reservas_db`, no solo escrito. Solo faltan `AUTH-T1` y `AUTH-T2` —pruebas formales en `backend/tests/`— para que `BK-09` cierre; hoy no hay framework de pruebas instalado en el proyecto.
+**Fase 1 completa**, y de esta fase **`AUTH-C1`, `AUTH-T1` y `AUTH-T2` también**.
+Los 16 endpoints funcionan, auditados, con pruebas formales en `backend/tests/`
+(13 pruebas en verde contra `reservas_test`, base PG13 aislada construida con
+la misma cadena de migraciones). `BK-09` queda cerrada.
 
 ### AUTH-C1 — Registro de auditoría de los eventos de seguridad · **cerrada**
 
@@ -211,7 +214,7 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
   Verificado contra `reservas_db` real: login exitoso, login fallido, cierre de sesión, reautenticación, cambio de estado de cuenta —dos veces, con `datos_anteriores`/`datos_nuevos` correctos y el administrador como actor, no el afectado— y cambio de contraseña propia, los seis con su fila y su actor correctos. Los tres restantes (recuperación, invitaciones) siguen exactamente el mismo patrón ya probado, sin mecanismo nuevo.
   - **Un intento fallido contra un correo inexistente no se audita**: `administration.auditoria.actor_cuenta_id` es `NOT NULL` con FK a `auth.cuentas`, y sin cuenta no hay a quién atribuir la fila. Es un límite del esquema, no una omisión — anotado en el código, no oculto.
 
-### AUTH-T1 — Pruebas de sesión y autorización
+### AUTH-T1 — Pruebas de sesión y autorización · **cerrada**
 
 - **Carril:** A
 - **Objetivo:** cubrir el ciclo de sesión y la denegación por defecto.
@@ -220,8 +223,9 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
 - **Aceptación:** existen pruebas para sesión revocada, sesión vencida, inactividad superada, token con algoritmo alterado, operación fuera de ámbito y operación sin permiso comprobable.
 - **Contrato:** §2, §7
 - **RN:** `SEC-SES-07`, `SEC-JWT-01`, `SEC-AUTZ-02`, `SEC-AUTZ-04`
+- **Resultado:** `backend/tests/test_auth_t1.py`, 7 pruebas en verde (T-AUTH-02/03/07/08): revocada, vencida y por inactividad dan `401` por contrato; `alg:none`, algoritmo distinto, `aud` ajena y `typ` incorrecto se rechazan a nivel servicio más un caso por contrato; el Técnico solo opera en su unidad vigente y sin permiso comprobable deniega sin excepción.
 
-### AUTH-T2 — Pruebas de tokens y no enumeración
+### AUTH-T2 — Pruebas de tokens y no enumeración · **cerrada**
 
 - **Carril:** B
 - **Objetivo:** cubrir un solo uso, vencimiento y equivalencia de respuestas.
@@ -230,6 +234,7 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
 - **Aceptación:** existen pruebas que verifican que reutilizar un token de recuperación o de invitación falla, que reemitir invalida el anterior, y que registro, recuperación e inicio de sesión **responden igual** con correo existente e inexistente.
 - **Contrato:** §3.1, §3.2, §3.6, §4
 - **RN:** `SEC-TOK-05`, `SEC-INV-03`, `SEC-REC-01`, `SEC-ABU-02`
+- **Resultado:** `backend/tests/test_auth_t2.py`, 6 pruebas en verde (T-AUTH-10/11/13/14/15): el token de recuperación es de un solo uso (`410` al reusar) y revoca sesiones; reenviar invalida el token anterior de la invitación; registro, recuperación y login (clave mala, inexistente, inactiva) responden idéntico; ninguna respuesta expone el token.
 
 ---
 

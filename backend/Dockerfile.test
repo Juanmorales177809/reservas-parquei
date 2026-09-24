@@ -1,0 +1,14 @@
+# Imagen efímera para las pruebas formales (AUTH-T1/AUTH-T2).
+# Construir: docker build -f backend/Dockerfile.test -t reservas-tests backend/
+# Ejecutar:  docker run --rm --network reservas_database_network
+#              -e DATABASE_URL="postgresql+psycopg://postgres:postgres@db:5432/reservas_test"
+#              -e JWT_SECRET="secreto-solo-para-pruebas"
+#              reservas-tests
+FROM python:3.12-slim
+WORKDIR /code
+COPY requirements.txt requirements-test.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-test.txt
+COPY app/ ./app/
+COPY tests/ ./tests/
+COPY pytest.ini ./
+CMD ["python", "-m", "pytest", "tests/", "-q"]
