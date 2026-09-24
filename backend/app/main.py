@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from app.core.errors import registrar_manejadores
 from app.db.session import engine
 
 app = FastAPI(title="Reservas Parquei")
+registrar_manejadores(app)
 
 
 @app.get("/health")

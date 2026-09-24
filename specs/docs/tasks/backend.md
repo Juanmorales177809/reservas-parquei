@@ -123,12 +123,13 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 
 `BK-04` a `BK-07` **son** `API-01` a `API-04`: el mismo trabajo visto desde el proyecto en vez de desde el contrato. No son dos tareas cada una. **Manda la `BK-XX`**, que nombra los archivos; la `API-XX` aporta el criterio de aceptación escrito como petición y se cierra con ella.
 
-### BK-04 — Envolvente de error y catálogo común
+### BK-04 — Envolvente de error y catálogo común · **cerrada**
 
 - **Objetivo:** toda excepción sale como `{"error": {"codigo", "mensaje", "detalles"}}`.
 - **Afectados:** `backend/app/core/errors.py`, manejadores en `main.py`.
 - **Dependencias:** BK-01. Cubre `API-01`.
 - **Aceptación:** una ruta inexistente devuelve `404 NO_ENCONTRADO` con esa forma, no el `detail` de FastAPI. Una excepción no controlada devuelve `500 ERROR_INTERNO` **sin traza en la respuesta**.
+- **Resultado:** `DomainError` y una subclase por cada uno de los catorce códigos comunes de `contratos/README.md` §2, más manejadores para `RequestValidationError` (422 `VALIDACION`, con `detalles` de campo/motivo sin el valor enviado) y `StarletteHTTPException` (404/405 → `NO_ENCONTRADO`). Verificado con peticiones reales contra el contenedor: 404 en ruta inexistente, 500 sin traza ni el mensaje original de una excepción con datos sensibles, 422 con dos campos inválidos. `DemasiadosIntentos` añade el encabezado `Retry-After` cuando se indica.
 
 ### BK-05 — Paginación, filtros y orden
 
