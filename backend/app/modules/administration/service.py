@@ -1,11 +1,12 @@
-"""Lógica de estructura institucional y asignaciones (API-07 §2 y §3).
+"""Lógica de estructura institucional, asignaciones y auditoría
+(API-07 §2 y §3, API-08 §5; la auditoría es solo lectura).
 
 Dueño de `RN-UNI-01..05` y `RN-PER-03/04/05/06/08/09` (administration).
 Aplica `RN-AUTH-ROL-06/09` (auth) sin redefinirlos.
 
 Cada escritura deja su fila en `administration.auditoria` dentro de la misma
 transacción (precedente AUTH-C1): si el registro falla, la operación tampoco
-se confirma en silencio. La lectura de la auditoría es API-08.
+se confirma en silencio.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.deps import ContextoAutenticado
-from app.core.errors import Conflicto, NoEncontrado, Validacion
+from app.core.errors import Conflicto, NoEncontrado, SolicitudInvalida, Validacion
 from app.db.models.auth import Permisos
 from app.modules.administration import repository as repo
 from app.modules.administration import schemas
@@ -321,3 +322,62 @@ def retirar_permiso(db: Session, id_cuenta: int, codigo: str, actor: ContextoAut
     # RN-PER-04: rige desde ahora; lo ya autorizado conserva validez (RN-PER-05).
     db.commit()
     return len(objetivos)
+
+
+# --- §5 Auditoría (API-08; solo lectura) -----------------------------------------------------
+
+
+def listar_auditoria(
+    db: Session, *, entidad: str | None, entidad_id: str | None, actor_cuenta_id: str | None,
+    accion: str | None, desde: str | None, hasta: str | None, paginacion,
+) -> tuple[list, int]:
+    """Filtros del contrato §5.1. Formatos inválidos → 400."""
+    actor = _entero_o_400(actor_cuenta_id, "actor_cuenta_id")
+    inicio = _instante_o_400(desde, "desde")
+    fin = _instante_o_400(hasta, "hasta")
+    orden = (paginacion.orden or "-created_at").removeprefix("-")
+    if orden != "created_at":
+        raise SolicitudInvalida("'orden' no admite el campo '%s'." % orden)
+    descendente = (paginacion.orden or "-created_at").startswith("-")
+    filas, total = repo.listar_auditoria(
+        db, entidad=entidad, entidad_id=entidad_id, actor_cuenta_id=actor,
+        accion=accion, desde=inicio, hasta=fin,
+        limite=paginacion.tamano, desplazamiento=paginacion.offset, descendente=descendente,
+    )
+    return [
+        {
+            "id": f.id,
+            "actor_cuenta_id": f.actor_cuenta_id,
+            "entidad": f.entidad,
+            "entidad_id": f.entidad_id,
+            "accion": f.accion,
+            "datos_anteriores": f.datos_anteriores,
+            "datos_nuevos": f.datos_nuevos,
+            "motivo": f.motivo,
+            "created_at": f.created_at,
+        }
+        for f in filas
+    ], total
+
+
+def _entero_o_400(raw: str | None, campo: str) -> int | None:
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        raise SolicitudInvalida("'%s' debe ser un entero." % campo)
+
+
+def _instante_o_400(raw: str | None, campo: str):
+    if raw is None:
+        return None
+    from datetime import datetime
+
+    try:
+        momento = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        momento = None
+    if momento is None:
+        raise SolicitudInvalida("'%s' debe ser una fecha ISO 8601." % campo)
+    return momento

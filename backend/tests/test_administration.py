@@ -11,13 +11,14 @@ import pytest
 from app.core.authz import exigir_permiso
 from app.core.deps import ContextoAutenticado
 from app.core.errors import NoAutorizado
-from app.core.security import hash_contrasena
+from app.core.security import generar_token, hash_contrasena, hashear_token
 from app.db.models.auth import Permisos
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
 from app.modules.administration import service as servicio_admin
 from app.modules.administration.schemas import PermisoOtorgar
 from app.modules.auth import repository_cuentas as repo_cuentas
-from sqlalchemy import select
+from app.modules.auth import service_cuentas
+from sqlalchemy import select, text
 from tests.conftest import (
     correo_para,
     crear_admin,
@@ -295,3 +296,99 @@ def test_cargo_exige_unidad_activa(client, db, tag):
         f"/api/cargos/{creado.json()['id_cargo']}", json={"id_unidad": unidad["id_unidad"]}, headers=auth
     )
     assert mover.status_code == 422
+
+
+# --- API-08 §5 Auditoría ------------------------------------------------------------
+
+
+def test_operaciones_dejan_registro_consultable(client, db, tag):
+    """T-ADM-07 · RN-AUD-01, RN-AUD-02 (administration), servicio."""
+    admin = _admin_estructura(db, tag)
+    actor = _contexto_de(admin)
+    unidad, cargo = _unidad_cargo(db, tag, "A")
+    _, cuenta_tec = _personal_cuenta(db, tag, "tec", cargo)
+    _, cuenta_usr = crear_usuario_cuenta(db, tag)
+
+    servicio_admin.otorgar_permiso(
+        db, cuenta_tec.id_cuenta,
+        PermisoOtorgar(codigo="reservas.administrar", id_unidad=unidad.id_unidad), actor,
+    )
+    servicio_admin.cambiar_estado_unidad(db, unidad.id_unidad, False, actor)
+    service_cuentas.cambiar_estado(db, cuenta_usr.id_cuenta, False, actor)
+
+    filas = db.execute(
+        text(
+            "SELECT a.accion, a.entidad, a.entidad_id, a.created_at, c.correo "
+            "FROM administration.auditoria a JOIN auth.cuentas c "
+            "ON c.id_cuenta = a.actor_cuenta_id "
+            "WHERE a.actor_cuenta_id = :actor ORDER BY a.id"
+        ),
+        {"actor": admin.id_cuenta},
+    ).all()
+    acciones = {(f[0], f[1]) for f in filas}
+    assert ("ASIGNAR_PERMISO", "auth.cuenta_permisos") in acciones
+    assert ("CAMBIAR_ESTADO_UNIDAD", "unidadOrganizacional.unidad_organizacional") in acciones
+    assert ("CAMBIO_ESTADO_CUENTA", "auth.cuentas") in acciones
+    for _, _, entidad_id, momento, correo in filas:
+        assert entidad_id and momento and correo == admin.correo
+
+    # Y se consulta por la API con filtros y paginación.
+    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
+    auth = headers_autenticados(jar_admin)
+    consulta = client.get(
+        f"/api/auditoria?actor_cuenta_id={admin.id_cuenta}&accion=ASIGNAR_PERMISO",
+        headers=auth,
+    )
+    assert consulta.status_code == 200, consulta.text
+    cuerpo = consulta.json()
+    assert cuerpo["paginacion"]["total"] >= 1
+    primera = cuerpo["datos"][0]
+    assert primera["actor_cuenta_id"] == admin.id_cuenta
+    assert primera["accion"] == "ASIGNAR_PERMISO"
+    assert set(primera) == {
+        "id", "actor_cuenta_id", "entidad", "entidad_id", "accion",
+        "datos_anteriores", "datos_nuevos", "motivo", "created_at",
+    }
+
+
+def test_auditoria_no_se_escribe_por_api(client, db, tag):
+    """T-ADM-08 · RN-AUD-05 (administration), contrato: no hay ruta de escritura."""
+    admin = _admin_estructura(db, tag)
+    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
+    auth = headers_autenticados(jar_admin)
+
+    for metodo in ("post", "put", "patch", "delete"):
+        respuesta = getattr(client, metodo)("/api/auditoria", headers=auth)
+        assert respuesta.status_code == 404, metodo
+        assert respuesta.json()["error"]["codigo"] == "NO_ENCONTRADO"
+        con_id = getattr(client, metodo)("/api/auditoria/1", headers=auth)
+        assert con_id.status_code == 404, metodo
+
+    mal_filtro = client.get("/api/auditoria?filtro_inventado=1", headers=auth)
+    assert mal_filtro.status_code == 400
+
+
+def test_registro_sin_secretos(client, db, tag):
+    """T-ADM-09 · SEC-AUD-03 (auth), servicio: ni contraseñas ni tokens."""
+    contrasena = "frase secreta larga de paso"
+    _, cuenta = crear_usuario_cuenta(db, tag, contrasena=contrasena)
+    _, jar, _ = iniciar_sesion(client, cuenta.correo, contrasena)
+
+    crudo, _ = generar_token()
+    repo_cuentas.crear_token_recuperacion(db, cuenta.id_cuenta, hashear_token(crudo))
+    db.commit()
+    service_cuentas.restablecer_contrasena(db, crudo, "otra frase secreta larga")
+
+    filas = db.execute(
+        text(
+            "SELECT accion, datos_anteriores, datos_nuevos FROM administration.auditoria "
+            "WHERE actor_cuenta_id = :actor"
+        ),
+        {"actor": cuenta.id_cuenta},
+    ).all()
+    assert filas, "la cuenta debió dejar registros de auditoría"
+    volcado = " ".join(f"{a} {ant} {nue}" for a, ant, nue in filas)
+    assert contrasena not in volcado
+    assert "otra frase secreta larga" not in volcado
+    assert crudo not in volcado
+    _ = jar

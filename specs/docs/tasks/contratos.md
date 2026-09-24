@@ -123,7 +123,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Decisiones:** `DELETE /api/permisos/cuentas/{id}/{codigo}` retira todas las asignaciones de ese código (global y por unidad), auditando cada fila; `404` si no hay ninguna. `ambito` de `GET /api/permisos` sale de la tabla de ámbito habitual de `auth/data-model.md` (solo display). `GET` lista los 14 códigos; `POST` rechaza con `422` un código deshabilitado.
 - **Resultado:** `backend/app/modules/administration/` (`router_estructura.py` con `unidades.administrar`, `router_permisos.py` con `permisos.asignar`, `schemas.py`, `service.py`, `repository.py`; sin modelos nuevos, BK-08 ya los mapeó). Cada escritura audita en la misma transacción (`CREAR/EDITAR/CAMBIAR_ESTADO_UNIDAD`, `CREAR/EDITAR_CARGO`, `ASIGNAR/RETIRAR_PERMISO`). 9 pruebas en `test_administration.py` (T-ADM-01..06 más jerarquía, catálogo y unidad activa) en verde; suite completa 35/35. Se corrigieron 4 citas de `tests.md` de administration.
 
-### API-08 — Auditoría administrativa
+### API-08 — Auditoría administrativa · **cerrada**
 
 - **Objetivo:** cada operación administrativa deja su registro, y `GET /api/auditoria` lo consulta.
 - **Afectados:** módulo de administration del backend.
@@ -131,6 +131,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** una asignación de permiso deja una fila con actor, acción, entidad, identificador y momento. **No existe ningún endpoint de escritura sobre la auditoría**, y un intento de modificar un registro no encuentra ruta.
 - **Contrato:** [administration](../../contratos/administration/api-contract.md) §5.
 - **RN:** `RN-AUD-01` a `RN-AUD-07`.
+- **Resultado:** `GET /api/auditoria` (permiso `unidades.administrar` global; filtros `entidad`, `entidad_id`, `actor_cuenta_id`, `accion`, `desde`, `hasta`; orden `created_at` desc por defecto) + modelo `Auditoria` en `db/models/administration.py` (solo lectura; las escrituras siguen por `core/audit.py`). 3 pruebas (T-ADM-07/08/09) en verde; suite completa 38/38. Con esto cierra la Fase 2: BK-09, API-06, API-07 y API-08.
 
 ---
 

@@ -1,7 +1,8 @@
-"""Acceso a datos de estructura institucional y asignaciones (API-07).
+"""Acceso a datos de estructura institucional y asignaciones (API-07, API-08).
 
-No crea modelos nuevos: unidad/cargo viven en `identidad.py` y permisos en
-`auth.py` (BK-08). Solo lee y escribe filas.
+No crea modelos nuevos: unidad/cargo viven en `identidad.py`, permisos en
+`auth.py` y auditoría en `models/administration.py` (BK-08, API-08). Solo lee
+y escribe filas.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.db.models.administration import Auditoria
 from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
 
@@ -230,3 +232,37 @@ def otros_administradores_activos(db: Session, excluir_id_cuenta: int) -> int:
         )
     )
     return len(db.scalars(consulta).all())
+
+
+# --- Auditoría (§5, API-08; solo lectura) -------------------------------------------------
+
+
+def listar_auditoria(
+    db: Session, *, entidad: str | None, entidad_id: str | None, actor_cuenta_id: int | None,
+    accion: str | None, desde: datetime | None, hasta: datetime | None,
+    limite: int, desplazamiento: int, descendente: bool,
+) -> tuple[list[Auditoria], int]:
+    consulta = select(Auditoria)
+    conteo = select(func.count()).select_from(Auditoria)
+    condiciones = []
+    if entidad is not None:
+        condiciones.append(Auditoria.entidad == entidad)
+    if entidad_id is not None:
+        condiciones.append(Auditoria.entidad_id == entidad_id)
+    if actor_cuenta_id is not None:
+        condiciones.append(Auditoria.actor_cuenta_id == actor_cuenta_id)
+    if accion is not None:
+        condiciones.append(Auditoria.accion == accion)
+    if desde is not None:
+        condiciones.append(Auditoria.created_at >= desde)
+    if hasta is not None:
+        condiciones.append(Auditoria.created_at <= hasta)
+    if condiciones:
+        consulta = consulta.where(*condiciones)
+        conteo = conteo.where(*condiciones)
+    total = db.scalar(conteo) or 0
+    orden = Auditoria.created_at.desc() if descendente else Auditoria.created_at
+    filas = db.scalars(
+        consulta.order_by(orden).limit(limite).offset(desplazamiento)
+    ).all()
+    return list(filas), total

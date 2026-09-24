@@ -120,3 +120,18 @@ class AsignacionRespuesta(BaseModel):
 class PermisoOtorgar(BaseModel):
     codigo: str
     id_unidad: int | None = None
+
+
+# --- §5 Auditoría ----------------------------------------------------------------------
+
+
+class AuditoriaRespuesta(BaseModel):
+    id: int
+    actor_cuenta_id: int
+    entidad: str
+    entidad_id: str
+    accion: str
+    datos_anteriores: dict | None = None
+    datos_nuevos: dict | None = None
+    motivo: str | None = None
+    created_at: datetime
