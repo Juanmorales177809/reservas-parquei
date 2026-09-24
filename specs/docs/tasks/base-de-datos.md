@@ -136,7 +136,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 
 Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo carril**: repartirlas entre dos personas es un conflicto garantizado.
 
-### DB-06 — `personal.personal.estado` como `NOT NULL DEFAULT true`
+### DB-06 — `personal.personal.estado` como `NOT NULL DEFAULT true` · **cerrada**
 
 - **Objetivo:** la ficha está activa o inactiva, sin un tercer valor indeterminado.
 - **Afectados:** `backend/migrations/008_identidades.sql`.
@@ -145,8 +145,9 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Modelo:** [usuarios/data-model.md](../../modules/usuarios/data-model.md).
 - **RN:** `RN-PRS-04`.
 - **Nota de migración:** fijar en `true` las filas existentes con `NULL` **antes** de aplicar la restricción, sin deducir el valor de otros campos. Desactivar personal activo por una inferencia es peor que el `NULL`.
+- **Resultado:** verificado contra `reservas_db` real: una ficha sin `estado` nace `true`; un `estado = NULL` explícito lo rechaza `NOT NULL`. No había filas `NULL` que corregir (la tabla estaba vacía), pero el `UPDATE` de respaldo quedó en la migración por si alguna vez hay datos antes de aplicarla.
 
-### DB-07 — `unidad_organizacional.estado`
+### DB-07 — `unidad_organizacional.estado` · **cerrada**
 
 - **Objetivo:** la unidad admite baja lógica.
 - **Afectados:** `backend/migrations/008_identidades.sql`.
@@ -154,8 +155,9 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Aceptación:** deshabilitar una unidad no elimina ni modifica usuarios, personal, reservas ni recursos asociados.
 - **Modelo:** [administration/data-model.md](../../modules/administration/data-model.md).
 - **RN:** `RN-UNI-04`, `RN-UNI-05`.
+- **Resultado:** verificado contra `reservas_db` real: se creó personal asociado a una unidad, se deshabilitó la unidad (`estado = false`) y el registro de personal siguió intacto.
 
-### DB-15 — Columnas objetivo de `usuarios.usuarios`
+### DB-15 — Columnas objetivo de `usuarios.usuarios` · **cerrada**
 
 - **Objetivo:** la identidad funcional de Usuario tiene `documento`, `telefono`, `institucion` y `dependencia` con sus restricciones, y el CHECK de nombre.
 - **Afectados:** `backend/migrations/008_identidades.sql`.
@@ -164,6 +166,7 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Modelo:** [usuarios/data-model.md](../../modules/usuarios/data-model.md).
 - **RN:** `RN-DAT`.
 - **Nota de migración:** el modelo exige **completar los faltantes y resolver los duplicados antes** de imponer las restricciones, y hacerlo **sin inventar valores**. Si quedan filas irresolubles, se documentan y se decide explícitamente; no se rellenan por deducción.
+- **Resultado:** `usuarios.usuarios` estaba vacía, así que no hizo falta backfill; la migración **aborta explícitamente** si encuentra filas existentes, en vez de improvisar valores, para que ese escenario se resuelva a mano si algún día aplica. Verificado contra `reservas_db` real: un documento repetido falla por `UNIQUE`, y un nombre en blanco (`'   '`) falla por el `CHECK` de `btrim`.
 
 ---
 
