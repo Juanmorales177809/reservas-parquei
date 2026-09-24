@@ -189,13 +189,14 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **RN:** `RN-PER-01`, `RN-AUTH-ROL`.
 - **Resultado:** verificado contra `reservas_db` real, aplicado dos veces: `SELECT count(*)` sigue en 14 tras la reejecución.
 
-### DB-10 — Cargar los tipos de evento notificables
+### DB-10 — Cargar los tipos de evento notificables · **cerrada**
 
 - **Objetivo:** `notificaciones.tipos_evento` contiene los once eventos de `RN-EVT`.
 - **Afectados:** `backend/migrations/seeds/tipos_evento.sql`.
 - **Dependencias:** **DB-04**.
 - **Aceptación:** cada evento de `RN-EVT-01` a `RN-EVT-11` tiene un código en la tabla, y la preferencia por tipo de `RN-PREF-04` puede referenciarlos.
 - **Modelo:** [notifications/data-model.md](../../modules/notifications/data-model.md).
+- **Resultado:** **nueve códigos, no once**: la propia tabla "Correspondencia entre eventos y flujos productores" de `notifications/business-rules.md` enumera los eventos reales, y no coincide 1:1 con la numeración de reglas. `RN-EVT-03` y `RN-EVT-04` comparten un solo evento —el motivo de rechazo es contenido, no otro disparador—, y `RN-EVT-07` "no define un evento propio" según su propia fila en esa tabla: es una regla de acotación. Las once reglas quedan cubiertas por los nueve códigos. `RESERVA_APROBADA` y `RESERVA_RECORDATORIO` coinciden exactamente con los códigos que ya usaba `contratos/notifications/api-contract.md`. Verificado contra `reservas_db` real, aplicado dos veces sin duplicar, y una preferencia por tipo referenciando el catálogo cargado.
 
 ---
 
