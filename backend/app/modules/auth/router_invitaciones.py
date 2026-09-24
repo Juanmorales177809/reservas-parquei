@@ -30,11 +30,11 @@ def emitir_invitacion(
 def reenviar_invitacion(
     id_invitacion: int,
     db: Session = Depends(get_db),
-    _contexto: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
+    contexto: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
     _csrf: None = Depends(exigir_csrf),
 ) -> schemas.InvitacionReenviada:
     """§4.2. Token nuevo, invalida el anterior (SEC-INV-03)."""
-    datos = service_cuentas.reenviar_invitacion(db, id_invitacion)
+    datos = service_cuentas.reenviar_invitacion(db, id_invitacion, contexto)
     return schemas.InvitacionReenviada(**datos)
 
 

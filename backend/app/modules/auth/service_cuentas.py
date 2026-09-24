@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import audit
 from app.core.authz import resolver_rol
 from app.core.config import get_settings
 from app.core.deps import ContextoAutenticado
@@ -80,6 +81,10 @@ def solicitar_recuperacion(db: Session, correo: str) -> None:
     if cuenta is not None and cuenta.estado:
         _, token_hash = generar_token()
         repo_cuentas.crear_token_recuperacion(db, cuenta.id_cuenta, token_hash)
+        audit.registrar(
+            db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.tokens_recuperacion",
+            entidad_id=cuenta.id_cuenta, accion="RECUPERACION_SOLICITADA",
+        )
         db.commit()
         # La entrega del enlace por correo es de notifications (API-18);
         # aquí solo se origina el token. No es responsabilidad de auth
@@ -104,7 +109,11 @@ def restablecer_contrasena(db: Session, token: str, nueva_contrasena: str) -> No
 
     repo_cuentas.actualizar_password(db, cuenta, hash_contrasena(nueva_contrasena))
     repo_cuentas.marcar_token_recuperacion_usado(db, fila)
-    repo_cuentas.revocar_todas_las_sesiones(db, cuenta.id_cuenta)
+    revocadas = repo_cuentas.revocar_todas_las_sesiones(db, cuenta.id_cuenta)
+    audit.registrar(
+        db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.cuentas", entidad_id=cuenta.id_cuenta,
+        accion="CONTRASENA_RESTABLECIDA", datos_nuevos={"sesiones_revocadas": revocadas},
+    )
     db.commit()
     # Notificar el cambio (SEC-REC-04) es de notifications; no implementado aquí.
 
@@ -149,11 +158,15 @@ def emitir_invitacion(
         db, correo=correo, tipo_cuenta=tipo_cuenta, token_hash=token_hash,
         creada_por=emisor.id_cuenta, id_usuario=id_usuario, id_persona=id_persona,
     )
+    audit.registrar(
+        db, actor_cuenta_id=emisor.id_cuenta, entidad="auth.invitaciones", entidad_id=inv.id,
+        accion="INVITACION_EMITIDA", datos_nuevos={"correo": correo, "tipo_cuenta": tipo_cuenta},
+    )
     db.commit()
     return {"id": inv.id, "correo": inv.correo, "tipo_cuenta": inv.tipo_cuenta, "expira_en": inv.expira_at, "estado": "PENDIENTE"}
 
 
-def reenviar_invitacion(db: Session, id_invitacion: int) -> dict:
+def reenviar_invitacion(db: Session, id_invitacion: int, emisor: ContextoAutenticado) -> dict:
     inv = repo_cuentas.obtener_invitacion(db, id_invitacion)
     if inv is None:
         raise NoEncontrado()
@@ -161,6 +174,10 @@ def reenviar_invitacion(db: Session, id_invitacion: int) -> dict:
         raise Conflicto("La invitación ya fue utilizada.")
     _, token_hash = generar_token()
     repo_cuentas.renovar_token_invitacion(db, inv, token_hash)
+    audit.registrar(
+        db, actor_cuenta_id=emisor.id_cuenta, entidad="auth.invitaciones",
+        entidad_id=inv.id, accion="INVITACION_REENVIADA",
+    )
     db.commit()
     return {"id": inv.id, "expira_en": inv.expira_at, "estado": "PENDIENTE"}
 
@@ -212,6 +229,10 @@ def activar_invitacion(db: Session, token: str, contrasena: str) -> tuple[dict, 
 
     refresh_token, refresh_hash = generar_token()
     sesion = repo.crear_sesion(db, cuenta.id_cuenta, refresh_hash, VIGENCIA_REFRESH_SEGUNDOS)
+    audit.registrar(
+        db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.invitaciones",
+        entidad_id=inv.id, accion="INVITACION_ACTIVADA",
+    )
     db.commit()
 
     token_acceso = emitir_token_acceso(sub=str(cuenta.id_cuenta), sid=str(sesion.id_sesion))
@@ -231,7 +252,7 @@ def activar_invitacion(db: Session, token: str, contrasena: str) -> tuple[dict, 
 # --- AUTH-B4: Administración de cuentas -------------------------------------
 
 
-def cambiar_estado(db: Session, id_cuenta: int, nuevo_estado: bool) -> dict:
+def cambiar_estado(db: Session, id_cuenta: int, nuevo_estado: bool, emisor: ContextoAutenticado) -> dict:
     cuenta = repo_cuentas.obtener_cuenta(db, id_cuenta)
     if cuenta is None:
         raise NoEncontrado()
@@ -240,14 +261,21 @@ def cambiar_estado(db: Session, id_cuenta: int, nuevo_estado: bool) -> dict:
         if repo_cuentas.contar_administradores_activos(db, excluir_id_cuenta=id_cuenta) == 0:
             raise Conflicto("La operación dejaría al sistema sin ninguna cuenta con permisos de administrador.")
 
+    estado_anterior = cuenta.estado
     cuenta.estado = nuevo_estado
     revocadas = repo_cuentas.revocar_todas_las_sesiones(db, id_cuenta) if not nuevo_estado else 0
+    audit.registrar(
+        db, actor_cuenta_id=emisor.id_cuenta, entidad="auth.cuentas", entidad_id=id_cuenta,
+        accion="CAMBIO_ESTADO_CUENTA", datos_anteriores={"estado": estado_anterior},
+        datos_nuevos={"estado": nuevo_estado, "sesiones_revocadas": revocadas},
+    )
     db.commit()
     return {"id_cuenta": id_cuenta, "estado": nuevo_estado, "sesiones_revocadas": revocadas}
 
 
 def cambiar_identidad(
-    db: Session, id_cuenta: int, tipo_cuenta: str, id_persona: int | None, id_usuario: int | None
+    db: Session, id_cuenta: int, tipo_cuenta: str, id_persona: int | None, id_usuario: int | None,
+    emisor: ContextoAutenticado,
 ) -> dict:
     cuenta = repo_cuentas.obtener_cuenta(db, id_cuenta)
     if cuenta is None:
@@ -291,6 +319,11 @@ def cambiar_identidad(
                 raise Conflicto("El cambio dejaría al sistema sin administradores.")
         cuenta.tipo_cuenta, cuenta.id_usuario, cuenta.id_persona = "USUARIO", id_usuario, None
 
+    audit.registrar(
+        db, actor_cuenta_id=emisor.id_cuenta, entidad="auth.cuentas", entidad_id=id_cuenta,
+        accion="CAMBIO_IDENTIDAD_CUENTA",
+        datos_nuevos={"tipo_cuenta": cuenta.tipo_cuenta, "id_persona": cuenta.id_persona, "id_usuario": cuenta.id_usuario},
+    )
     db.commit()
     return {
         "id_cuenta": cuenta.id_cuenta, "tipo_cuenta": cuenta.tipo_cuenta,
@@ -320,6 +353,10 @@ def reautenticar(db: Session, contexto: ContextoAutenticado, contrasena: str) ->
     nueva_sesion = repo.crear_sesion(db, cuenta.id_cuenta, refresh_hash, VIGENCIA_REFRESH_SEGUNDOS)
     ahora = datetime.now(timezone.utc)
     nueva_sesion.reautenticado_at = ahora
+    audit.registrar(
+        db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.sesiones",
+        entidad_id=nueva_sesion.id_sesion, accion="REAUTENTICACION",
+    )
     db.commit()
 
     nuevo_acceso = emitir_token_acceso(sub=str(cuenta.id_cuenta), sid=str(nueva_sesion.id_sesion))
@@ -332,6 +369,10 @@ def cambiar_contrasena_propia(db: Session, contexto: ContextoAutenticado, nueva_
     if cuenta is None:
         raise NoEncontrado()
     repo_cuentas.actualizar_password(db, cuenta, hash_contrasena(nueva_contrasena))
-    repo_cuentas.revocar_todas_las_sesiones(db, cuenta.id_cuenta)
+    revocadas = repo_cuentas.revocar_todas_las_sesiones(db, cuenta.id_cuenta)
+    audit.registrar(
+        db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.cuentas", entidad_id=cuenta.id_cuenta,
+        accion="CAMBIO_CONTRASENA", datos_nuevos={"sesiones_revocadas": revocadas},
+    )
     db.commit()
     # Notificar el cambio (SEC-REC-04) es de notifications; no implementado aquí.

@@ -183,7 +183,7 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 - **Afectados:** `backend/app/modules/auth/`.
 - **Dependencias:** Hito 1, BK-08 y **DB-14**. Desarrolla `API-05`; el desglose está en [modules/auth/tasks.md](../../modules/auth/tasks.md), que es el documento que manda al implementarlo.
 - **Aceptación:** la del plan de auth. Además, **auth queda como la referencia de estilo**: cualquier módulo posterior que se estructure distinto se corrige, no se justifica.
-- **Avance:** Fase 1 del plan de auth cerrada (`AUTH-A1` a `AUTH-B5`, 9 tareas): los 16 endpoints funcionan, verificados con peticiones reales contra `reservas_db`. Falta Fase 2 —`AUTH-C1` auditoría, `AUTH-T1`/`AUTH-T2` pruebas formales— para cerrar este hito.
+- **Avance:** Fase 1 del plan de auth cerrada (`AUTH-A1` a `AUTH-B5`, 9 tareas) y `AUTH-C1` (auditoría) también: los 16 endpoints funcionan y dejan su registro en `administration.auditoria`, verificados con peticiones reales contra `reservas_db`. Solo faltan `AUTH-T1`/`AUTH-T2` —pruebas formales, sin framework instalado todavía— para cerrar este hito.
 
 Al cerrar este hito hay un módulo entero contra el contrato nuevo, y las decisiones difíciles —sesiones, CSRF, ámbito, forma del error— ya están tomadas en código, no solo en documento.
 

@@ -95,11 +95,11 @@ def cambiar_estado(
     id_cuenta: int,
     cuerpo: schemas.CambioEstadoSolicitud,
     db: Session = Depends(get_db),
-    _contexto: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
+    contexto: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
     _csrf: None = Depends(exigir_csrf),
 ) -> schemas.CambioEstadoRespuesta:
     """§6.1. Requiere `cuentas.administrar`, siempre global."""
-    datos = service_cuentas.cambiar_estado(db, id_cuenta, cuerpo.estado)
+    datos = service_cuentas.cambiar_estado(db, id_cuenta, cuerpo.estado, contexto)
     return schemas.CambioEstadoRespuesta(**datos)
 
 
@@ -108,12 +108,12 @@ def cambiar_identidad(
     id_cuenta: int,
     cuerpo: schemas.CambioIdentidadSolicitud,
     db: Session = Depends(get_db),
-    _permiso: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
+    permiso: ContextoAutenticado = Depends(exigir_permiso_dep("cuentas.administrar")),
     _reciente: ContextoAutenticado = Depends(exigir_autenticacion_reciente),
     _csrf: None = Depends(exigir_csrf),
 ) -> schemas.CambioIdentidadRespuesta:
     """§6.2. Requiere permiso y autenticación reciente: operación sensible."""
     datos = service_cuentas.cambiar_identidad(
-        db, id_cuenta, cuerpo.tipo_cuenta, cuerpo.id_persona, cuerpo.id_usuario
+        db, id_cuenta, cuerpo.tipo_cuenta, cuerpo.id_persona, cuerpo.id_usuario, permiso,
     )
     return schemas.CambioIdentidadRespuesta(**datos)

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import audit
 from app.core.authz import resolver_rol
 from app.core.config import get_settings
 from app.core.errors import CredencialesInvalidas, NoAutenticado
@@ -65,10 +66,23 @@ def iniciar_sesion(db: Session, correo: str, contrasena: str) -> tuple[dict, str
         and repo.identidad_activa(db, cuenta)
     )
     if not valido:
+        # SEC-AUD-02: "intentos fallidos relevantes". Sin cuenta no hay actor
+        # a quien atribuir el registro (FK NOT NULL de administration.auditoria);
+        # se audita solo cuando la cuenta existe.
+        if cuenta is not None:
+            audit.registrar(
+                db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.cuentas",
+                entidad_id=cuenta.id_cuenta, accion="INICIO_SESION_FALLIDO",
+            )
+            db.commit()
         raise CredencialesInvalidas()
 
     refresh_token, refresh_hash = generar_token()
     sesion = repo.crear_sesion(db, cuenta.id_cuenta, refresh_hash, VIGENCIA_REFRESH_SEGUNDOS)
+    audit.registrar(
+        db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.sesiones",
+        entidad_id=sesion.id_sesion, accion="INICIO_SESION",
+    )
     db.commit()
 
     token_acceso = emitir_token_acceso(sub=str(cuenta.id_cuenta), sid=str(sesion.id_sesion))
@@ -126,5 +140,11 @@ def cerrar_sesion(db: Session, id_sesion: str) -> None:
     """`204` siempre: una sesión ya vencida o revocada produce el mismo resultado."""
     sesion = repo.obtener_sesion(db, id_sesion)
     if sesion is not None:
+        ya_revocada = sesion.revoked_at is not None
         repo.revocar_sesion(db, sesion)
+        if not ya_revocada:
+            audit.registrar(
+                db, actor_cuenta_id=sesion.id_cuenta, entidad="auth.sesiones",
+                entidad_id=sesion.id_sesion, accion="CIERRE_SESION",
+            )
         db.commit()

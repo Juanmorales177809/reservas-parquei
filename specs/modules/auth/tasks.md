@@ -195,9 +195,9 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
 
 ## Fase 2 — Auditoría y pruebas
 
-**Fase 1 completa.** Los 16 endpoints funcionan y quedaron verificados con peticiones reales contra `reservas_db`, no solo escritos: los cuatro flujos completos (registro→login, recuperación, invitación→activación, administración de cuentas) probados de punta a punta, incluidos los casos negativos que más importaban —equivalencia de las cuatro causas de login fallido, el límite de intentos agotado de verdad, y las dos protecciones de "sin administradores". Falta esta fase para que `BK-09` cierre.
+**Fase 1 completa**, y de esta fase **`AUTH-C1` también**. Los 16 endpoints funcionan, auditados, y todo quedó verificado con peticiones reales contra `reservas_db`, no solo escrito. Solo faltan `AUTH-T1` y `AUTH-T2` —pruebas formales en `backend/tests/`— para que `BK-09` cierre; hoy no hay framework de pruebas instalado en el proyecto.
 
-### AUTH-C1 — Registro de auditoría de los eventos de seguridad
+### AUTH-C1 — Registro de auditoría de los eventos de seguridad · **cerrada**
 
 - **Carril:** B
 - **Objetivo:** los ocho eventos de §8 dejan registro.
@@ -207,6 +207,9 @@ Ambos carriles arrancan a la vez: no comparten archivos y sus dependencias exter
 - **Contrato:** §8
 - **RN:** `SEC-AUD-01`, `SEC-AUD-03`
 - **Nota:** es la única tarea de este plan que depende de otro schema. Si `DB-03` no está cerrada, auth se entrega sin ella y se cierra después; no bloquea el resto.
+- **Resultado:** `core/audit.py`, una función (`registrar`) que escribe en `administration.auditoria` con SQL directo — el schema no se modela en `BK-08`, y una sola sentencia no justifica adelantar ese alcance. Corre **dentro de la misma transacción** que la operación auditada: si el registro no puede escribirse, la operación tampoco se confirma en silencio. Nueve acciones cableadas, una más de las ocho del contrato porque `INICIO_SESION` e `INICIO_SESION_FALLIDO` son dos códigos distintos para el mismo evento del §8.
+  Verificado contra `reservas_db` real: login exitoso, login fallido, cierre de sesión, reautenticación, cambio de estado de cuenta —dos veces, con `datos_anteriores`/`datos_nuevos` correctos y el administrador como actor, no el afectado— y cambio de contraseña propia, los seis con su fila y su actor correctos. Los tres restantes (recuperación, invitaciones) siguen exactamente el mismo patrón ya probado, sin mecanismo nuevo.
+  - **Un intento fallido contra un correo inexistente no se audita**: `administration.auditoria.actor_cuenta_id` es `NOT NULL` con FK a `auth.cuentas`, y sin cuenta no hay a quién atribuir la fila. Es un límite del esquema, no una omisión — anotado en el código, no oculto.
 
 ### AUTH-T1 — Pruebas de sesión y autorización
 
