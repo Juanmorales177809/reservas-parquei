@@ -99,12 +99,13 @@ Al cerrarlo existe un servicio que responde y se conecta a la base, sin lógica 
 - **Dependencias:** ninguna.
 - **Aceptación:** `uvicorn app.main:app` levanta y `GET /health` devuelve `200`. **No abre conexión a la base.**
 
-### BK-02 — Conectar a PostgreSQL sin crear nada
+### BK-02 — Conectar a PostgreSQL sin crear nada · **cerrada**
 
 - **Objetivo:** hay una sesión de SQLAlchemy configurada por variable de entorno.
-- **Afectados:** `backend/app/db/session.py`, `backend/app/core/config.py`.
+- **Afectados:** `backend/app/db/session.py`, `backend/app/core/config.py`, `backend/app/main.py`, `backend/requirements.txt`.
 - **Dependencias:** BK-01.
 - **Aceptación:** `GET /health` informa si la base responde. **Arrancar dos veces seguidas no crea ni altera ninguna tabla**: el conteo de tablas de `reservas` sigue siendo 28.
+- **Resultado:** verificado contra `reservas_db` real, en su red de Docker, dos arranques consecutivos: `{"estado":"ok","base_de_datos":"conectada"}` ambas veces y 28 tablas antes y después. Sin base alcanzable responde `200` con `"sin_conexion"`, nunca un error sin controlar. `DATABASE_URL` se construye desde `POSTGRES_*` y admite anularse.
 
 ### BK-03 — Añadir el servicio a Docker Compose
 
