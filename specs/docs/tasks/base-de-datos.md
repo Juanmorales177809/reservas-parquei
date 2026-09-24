@@ -87,7 +87,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **Nota:** `nombre_equipo` es `varchar(100)`, no 50. El ancho se amplió al fijar la planilla real de importación (`OQ-10`).
 - **Resultado:** aplicado contra `reservas_db` real. Verificado con inserciones y `ROLLBACK`: un equipo, un mobiliario y un elemento de otros recursos creados sobre su especialización correspondiente; una placa duplicada la rechaza el `UNIQUE`; un `tipo` fuera del catálogo lo rechaza el `CHECK`. `reservas.laboratorios_config` y su histórico **no son de esta tarea**: ya estaban aplicados desde `002`. La FK de `reserva_recursos`/`espacio_recursos` queda pendiente de `DB-05`, que exige además `DB-02`.
 
-### DB-02 — Completar el schema `investigacion`
+### DB-02 — Completar el schema `investigacion` · **cerrada**
 
 - **Objetivo:** existen `pasantias`, `trabajos_grado`, `actividades_institucionales`, `perfiles`, `modalidades_vinculacion` y las seis tablas de vinculación con usuarios. `proyectos` y `semilleros` ya existen.
 - **Afectados:** `backend/migrations/005_investigacion.sql`.
@@ -95,6 +95,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **Aceptación:** `reserva_contexto` admite un valor en `pasantia_id`, `trabajo_grado_id` y `actividad_institucional_id` una vez ejecutado DB-05.
 - **Modelo:** [researchs/data-model.md](../../modules/researchs/data-model.md).
 - **RN:** `RN-INV`, `RN-ACT`.
+- **Resultado:** aplicado contra `reservas_db` real; las 13 tablas del schema existen. Verificado con inserciones y `ROLLBACK`: una vinculación usuario–pasantía nace activa, una vinculación duplicada la rechaza el `UNIQUE (id_usuario, id_pasantia)`, y el `CHECK` de fechas rechaza `fecha_fin < fecha_inicio` y acepta el caso válido. La reactivación de una vinculación existente en vez de duplicarla (`RN-INV-11`) es responsabilidad del servicio que la use, no del esquema.
 
 ### DB-03 — Crear el schema `administration`
 
