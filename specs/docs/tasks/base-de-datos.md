@@ -107,7 +107,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **RN:** `RN-AUD-01` a `RN-AUD-07`, `RN-IMP-08`.
 - **Resultado:** aplicado contra `reservas_db` real. Verificado con inserciones y `ROLLBACK`: una fila de auditoría se une por FK real a `auth.cuentas` y resuelve el correo del actor; `catalogo='INVENTADO'` lo rechaza el `CHECK`; una importación `EQUIPOS` con su resultado de fila se crea correctamente; un `numero_fila` repetido para la misma importación lo rechaza el `UNIQUE (importacion_id, numero_fila)`. `unidadOrganizacional.unidad_organizacional` y `cargos.cargo` **no son de esta tarea**: ya existían.
 
-### DB-04 — Crear el schema `notificaciones`
+### DB-04 — Crear el schema `notificaciones` · **cerrada**
 
 - **Objetivo:** existen `tipos_evento`, `eventos`, `notificaciones`, `envios_correo`, `envio_correo_adjuntos` y `preferencias`.
 - **Afectados:** `backend/migrations/007_notificaciones.sql`.
@@ -115,6 +115,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **Aceptación:** el índice único de `eventos.ocurrencia_clave` impide registrar dos veces la misma ocurrencia; el índice `(estado, proximo_intento_at)` de `envios_correo` existe y lo usa el plan de la consulta de reintento.
 - **Modelo:** [notifications/data-model.md](../../modules/notifications/data-model.md).
 - **RN:** `RN-NOT-05`, `RN-COR-03`, `RN-PREF-04`.
+- **Resultado:** aplicado contra `reservas_db` real. Verificado con inserciones y `ROLLBACK`: repetir `ocurrencia_clave` lo rechaza el índice único, sin generar un segundo evento; un envío `ANULADO` sin `anulado_at`/`motivo_anulacion` lo rechaza el `CHECK`; `EXPLAIN` confirma que la consulta de reintento (`estado='PENDIENTE' AND proximo_intento_at < now()`) **usa** `ix_envios_correo_reintento`, no un recorrido completo.
 
 ---
 
