@@ -3,9 +3,11 @@ from sqlalchemy import text
 
 from app.core.errors import registrar_manejadores
 from app.db.session import engine
+from app.modules.auth.router import router as auth_router
 
 app = FastAPI(title="Reservas Parquei")
 registrar_manejadores(app)
+app.include_router(auth_router)
 
 
 @app.get("/health")

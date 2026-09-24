@@ -139,12 +139,15 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 - **Aceptación:** un listado devuelve `datos` + `paginacion`; un filtro desconocido devuelve `400 SOLICITUD_INVALIDA`; un catálogo cerrado devuelve solo `datos` y rechaza `pagina`.
 - **Resultado:** `paginacion_para(filtros_admitidos, ordenes_admitidos)` y `catalogo_cerrado_para(filtros_admitidos)`, dos fábricas de dependencia que cada endpoint instancia con lo suyo. Verificado con peticiones reales: 137 elementos con `tamano=20` dan `paginas: 7`; filtro desconocido, campo de orden no admitido, `pagina=0` y `tamano=500` responden los cuatro `400 SOLICITUD_INVALIDA`; el catálogo cerrado devuelve solo `datos` y rechaza tanto `pagina` como un filtro no declarado.
 
-### BK-06 — Sesión por cookie y CSRF
+### BK-06 — Sesión por cookie y CSRF · **cerrada**
 
 - **Objetivo:** identidad desde la sesión y doble envío obligatorio en toda escritura.
 - **Afectados:** `backend/app/core/security.py`, `backend/app/modules/auth/`.
 - **Dependencias:** BK-04. Cubre `API-03`.
 - **Aceptación:** un `POST` sin `X-CSRF-Token` devuelve `403` aunque la sesión sea válida. El JWT **no contiene rol ni permisos**. `GET /api/auth/csrf` emite la cookie sin sesión previa.
+- **Resultado:** `security.py` trae `emitir_token_acceso`/`verificar_token_acceso` (HS256 fijo, `iss`/`aud`/`typ` validados, claims exactos del contrato), las cookies `rp_access`/`rp_refresh`/`rp_csrf` con sus atributos y rutas del contrato §2, y `exigir_csrf` de doble envío. `GET /api/auth/csrf` es el primer endpoint real del módulo auth.
+  Verificado con peticiones reales: `rp_csrf` se conserva entre llamadas (sin `Set-Cookie` si ya existe) y se emite si falta; `POST` sin encabezado, con valor incorrecto y con el valor correcto dan `403`, `403` y `200`; los claims del JWT no traen rol ni permisos; `alg:none`, algoritmo distinto, `aud` ajena, `typ` incorrecto y un token vencido se rechazan los cinco. **No verifica revocación de sesión**: eso exige `auth.sesiones` y es de `BK-07`/`AUTH-A3` en adelante — está anotado en el propio módulo, no se presenta como hecho.
+  - **`JWT_SECRET`** se añadió a `docker-compose.yml` y `.env.example`, sin valor por defecto real; `security.py` aborta al firmar si falta, no Compose al arrancar, para no romper `docker compose up -d db`.
 
 ### BK-07 — `exigir_permiso` con ámbito
 

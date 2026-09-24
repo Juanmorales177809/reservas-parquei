@@ -14,6 +14,14 @@ class Settings:
     def __init__(self) -> None:
         self.database_url = os.environ.get("DATABASE_URL") or self._build_database_url()
 
+        # JWT_SECRET no tiene valor por defecto en producción: si falta,
+        # security.py aborta al arrancar en vez de firmar con un secreto
+        # predecible. Para desarrollo local, docker-compose.yml lo declara.
+        self.jwt_secret = os.environ.get("JWT_SECRET", "")
+        self.jwt_vigencia_acceso_segundos = int(os.environ.get("JWT_VIGENCIA_ACCESO_SEGUNDOS", "900"))
+        # Valores por defecto de auth/data-model.md: 12h sesión, 10min ventana CSRF/reautenticación.
+        self.csrf_vigencia_segundos = int(os.environ.get("CSRF_VIGENCIA_SEGUNDOS", str(12 * 60 * 60)))
+
     @staticmethod
     def _build_database_url() -> str:
         user = os.environ.get("POSTGRES_USER", "postgres")

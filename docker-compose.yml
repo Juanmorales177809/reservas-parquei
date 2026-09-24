@@ -43,14 +43,19 @@ services:
     container_name: reservas_backend
     restart: unless-stopped
     environment:
-      # Solo lo que BK-02 usa hoy: la cadena de conexión. Nada del arranque
-      # anterior (INITIAL_ADMIN_*, ALGORITHM): pertenecía a un modelo retirado,
-      # y BK-04 en adelante declara lo que necesite cuando lo necesite.
+      # Solo lo que el backend usa hoy. Nada del arranque anterior
+      # (INITIAL_ADMIN_*, ALGORITHM): pertenecía a un modelo retirado, y cada
+      # BK-XX declara lo que necesite cuando lo necesite.
       POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_HOST: db
       DB_PORT: "5432"
+      # BK-06: sin valor por defecto real. `${JWT_SECRET}` en blanco no rompe
+      # `docker compose up -d db` (Compose interpola todo el archivo aunque
+      # solo se pida ese servicio); es `security.py` quien aborta al firmar
+      # si llega vacío, no Compose al arrancar.
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
