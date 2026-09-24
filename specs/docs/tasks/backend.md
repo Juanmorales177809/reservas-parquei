@@ -149,12 +149,15 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
   Verificado con peticiones reales: `rp_csrf` se conserva entre llamadas (sin `Set-Cookie` si ya existe) y se emite si falta; `POST` sin encabezado, con valor incorrecto y con el valor correcto dan `403`, `403` y `200`; los claims del JWT no traen rol ni permisos; `alg:none`, algoritmo distinto, `aud` ajena, `typ` incorrecto y un token vencido se rechazan los cinco. **No verifica revocación de sesión**: eso exige `auth.sesiones` y es de `BK-07`/`AUTH-A3` en adelante — está anotado en el propio módulo, no se presenta como hecho.
   - **`JWT_SECRET`** se añadió a `docker-compose.yml` y `.env.example`, sin valor por defecto real; `security.py` aborta al firmar si falta, no Compose al arrancar, para no romper `docker compose up -d db`.
 
-### BK-07 — `exigir_permiso` con ámbito
+### BK-07 — `exigir_permiso` con ámbito · **cerrada**
 
 - **Objetivo:** una dependencia que resuelve permiso y unidad en cada operación, y deriva rol y unidades autorizadas.
 - **Afectados:** `backend/app/core/authz.py`.
 - **Dependencias:** BK-06, **DB-14**, que crea `auth.permisos` y `auth.cuenta_permisos`, y **DB-09**, que carga el catálogo.
 - **Aceptación:** un Técnico sobre una unidad ajena recibe `403`, o `404` cuando revelar la existencia sea una fuga. Si el permiso no puede comprobarse, **deniega**. `unidades_autorizadas` de un Técnico contiene **solo la unidad vigente de su cargo**, nunca la unión de sus asignaciones; la de un Administrador es `"GLOBAL"`.
+- **Resultado:** `resolver_rol(sesion, id_cuenta)` deriva `ADMINISTRADOR`/`TECNICO`/`USUARIO` conforme a `auth/data-model.md`, y `exigir_permiso(sesion, id_cuenta, codigo, id_unidad=None)` evalúa un código concreto. Recibe `id_cuenta` ya resuelto: conectarlo con la cookie de sesión es `AUTH-A6` (`BK-09`), que construye sobre esto.
+  Verificado contra `reservas_db` real con datos de prueba sembrados y revertidos en una sola transacción (0 filas remanentes al terminar), nueve casos: rol y `unidades_autorizadas` de Técnico, Administrador y Usuario; Técnico con permiso en su unidad permite; Técnico sobre unidad ajena deniega **sin comprobar el permiso**; cuenta sin ningún permiso, código no asignado y cuenta inexistente deniegan sin excepción sin controlar; Administrador con asignación global permite en cualquier unidad.
+  - **`404` cuando revelar la existencia sea una fuga** no es de esta capa: `exigir_permiso` solo sabe de permiso y unidad, nunca de si un recurso concreto existe. Esa conversión 403→404 la decide el servicio propietario del recurso (`SEC-AUTZ-06`), cuando lo construya.
 
 ---
 

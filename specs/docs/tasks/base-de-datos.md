@@ -55,7 +55,7 @@ Toda migración se ejecuta en una transacción, comprueba que las tablas de orig
 
 Lo que falta dentro de los schemas compartidos. **Bloquea la autenticación entera**, así que va antes que todo lo demás.
 
-### DB-14 — Crear las tablas objetivo de `auth`
+### DB-14 — Crear las tablas objetivo de `auth` · **cerrada**
 
 - **Objetivo:** existen `auth.sesiones`, `auth.invitaciones`, `auth.tokens_recuperacion`, `auth.permisos` y `auth.cuenta_permisos`. `auth.cuentas` ya existe y no se toca.
 - **Afectados:** `backend/migrations/010_auth_objetivo.sql`.
@@ -68,6 +68,7 @@ Lo que falta dentro de los schemas compartidos. **Bloquea la autenticación ente
 - **Modelo:** [auth/data-model.md](../../modules/auth/data-model.md).
 - **RN:** `SEC-SES-01`, `SEC-SES-09`, `SEC-INV-02`, `SEC-INV-03`, `SEC-TOK-05`, `RN-PER-01`, `RN-PER-06`.
 - **Nota:** `gen_random_uuid()` es parte del núcleo desde PostgreSQL 13, así que `auth.sesiones` no necesita `pgcrypto`. Conviene comprobarlo antes de asumirlo: la base es exactamente 13.
+- **Resultado:** aplicado contra `reservas_db` real. Las seis tablas de `auth` (`cuentas` + las cinco de esta tarea) existen con exactamente las columnas de `auth/data-model.md`; los cuatro criterios de aceptación se verificaron con `ROLLBACK`. Desbloqueó `DB-09`, `BK-06` y `BK-07`, ya cerradas.
 
 ---
 
@@ -222,7 +223,7 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 
 ## 7. Gobierno del esquema
 
-### DB-13 — Fijar el mecanismo de migraciones
+### DB-13 — Fijar el mecanismo de migraciones · **cerrada**
 
 - **Objetivo:** existe una forma reproducible y versionada de evolucionar el esquema, conforme a `architecture.md` §15.
 - **Afectados:** `backend/migrations/`, y la herramienta que se elija.
@@ -231,3 +232,4 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 - **Contexto:** el ajuste `002` se ejecutó manualmente y nunca formó parte de un arranque. Al borrarse el backend anterior desapareció el riesgo que originó esta tarea —un arranque que recreaba tablas retiradas—, pero no la necesidad: los scripts están en el repositorio, pero **nada registra cuáles se han aplicado** salvo `database-status.md`, escrito a mano.
 - **Por qué la aceptación no habla de una base vacía:** no se puede partir de una. `002` no crea el esquema, lo transforma: empieza en `DROP TABLE reservas.reserva_equipos` y `ALTER TABLE reservas.reservas`, y exige el esquema anterior que producía `001_shared_postgres.sql`, deliberadamente no rescatado. Y los schemas compartidos —`auth`, `personal`, `cargos`, `unidadOrganizacional`, `investigacion`— no los crea ningún script de este repositorio. **La línea base es el esquema vivo**, descrito en `database-status.md` y respaldado en `snapshots/`.
 - **Decisión pendiente:** si se adopta una herramienta de migraciones o se mantiene la ejecución manual documentada. `architecture.md` exige reproducibilidad y versionado, no una herramienta concreta. Si se quisiera además poder construir desde cero, haría falta una tarea aparte que genere una línea base completa a partir del esquema vivo; hoy no está en el plan.
+- **Resultado:** `backend/migrations/011_gobierno.sql` crea `public.schema_migrations(nombre, aplicada_at)` y sella la línea base ya aplicada. **Convención vigente y seguida**: toda migración y todo seed escritos desde entonces —`010_auth_objetivo`, `seeds/catalogos_reservas`, `seeds/permisos`— terminan su transacción insertando su propia fila con `ON CONFLICT DO NOTHING`. El estado aplicado se consulta con un `SELECT` en vez de inspeccionar la base a mano. **Lo que no se verificó**: la identidad de resultado entre dos entornos distintos, porque solo existe uno. La reproducibilidad del mecanismo está probada release a release (aplicar dos veces no duplica ni falla); entre máquinas distintas queda sin comprobar hasta que exista una segunda.

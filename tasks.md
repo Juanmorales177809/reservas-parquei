@@ -23,28 +23,30 @@ El caso que más importa es la concurrencia: `API-13` crea reservas y `DB-12` in
 
 ---
 
-## Fase 0 — Desbloqueo inmediato
+## Fase 0 — Desbloqueo inmediato · **cerrada**
 
-Sin esto nada más puede probarse contra la base ajustada.
+Sin esto nada más podía probarse contra la base ajustada.
 
-| Tarea | Por qué ahora |
+| Tarea | Por qué |
 |---|---|
-| ~~`BK-00`~~ | **Cerrada.** Las migraciones están rescatadas y verificadas |
-| `BK-01` a `BK-03` | Levantar el proyecto. `backend/app/` está vacío |
-| `DB-14` | **Las cinco tablas de `auth` no existen.** Sin ellas no hay sesión, ni invitación, ni permiso que comprobar |
-| `DB-08` | Los catálogos de tipos y estados están vacíos: ninguna reserva puede crearse |
-| `DB-09` | Sin el catálogo de permisos no hay autorización posible |
-| `BK-04` a `BK-07` | Las convenciones transversales, que son `API-01` a `API-04`. Reimplementarlas por módulo produce nueve APIs distintas |
+| ~~`BK-00`~~ | Las migraciones rescatadas y verificadas |
+| ~~`BK-01`~~ a ~~`BK-03`~~ | El proyecto levanta, con `/health` respondiendo desde el contenedor |
+| ~~`DB-14`~~ | Las cinco tablas de `auth` existen |
+| ~~`DB-08`~~ | Los cinco tipos y seis estados de reservas están cargados |
+| ~~`DB-09`~~ | Los catorce permisos están cargados |
+| ~~`BK-04`~~ a ~~`BK-07`~~ | Las convenciones transversales: envolvente de error, paginación, sesión/CSRF y `exigir_permiso` |
 
-**`DB-14` va antes que `DB-09`**: una carga el catálogo en la tabla que la otra crea. Y `BK-06` y `BK-07` dependen de las dos, así que son el primer punto donde los planes se tocan.
+Cada tarea quedó verificada contra `reservas_db` real, no solo escrita: peticiones HTTP de verdad contra el contenedor, y para `BK-07`, datos de prueba sembrados y revertidos en una transacción. El detalle de cada una está en [`backend.md`](specs/docs/tasks/backend.md) y [`base-de-datos.md`](specs/docs/tasks/base-de-datos.md).
 
-**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta. Existen las tablas de `reservas`, pero faltan las garantías y atributos objetivo de DB-12, además de las incorporaciones pendientes en los schemas compartidos.
+**El proyecto deniega por defecto.** `authz.py` deniega ante cualquier permiso que no pueda comprobarse, no solo ante uno explícitamente denegado — es el criterio de cierre de esta fase en `plan.md` §5.
 
-**El siguiente paso es `BK-01`**: escribir el primer archivo de `backend/app/`. No depende de la base ni de auth, así que puede arrancar mientras `DB-14` se prepara en paralelo.
+**La base no se borró.** Conserva sus 28 tablas de `reservas` y el volumen sigue montado. Faltan las garantías y atributos objetivo de `DB-12`, además de las incorporaciones pendientes en los schemas compartidos que cubre la Fase 1.
 
 ---
 
 ## Fase 1 — Los schemas que faltan
+
+**El siguiente paso es `DB-01`**, o cualquiera de los cuatro schemas de esta fase: son independientes entre sí y no dependen de nada de la Fase 0.
 
 Los cuatro schemas son independientes entre sí y pueden ir en paralelo.
 
@@ -58,7 +60,7 @@ En paralelo, los tres ajustes de identidad: `DB-06` (`personal.personal.estado`)
 
 También en paralelo, `BK-08`, que modela las tablas existentes. Solo puede modelar lo que ya esté creado, así que se cierra al final de la fase.
 
-Y `DB-13`, el gobierno del esquema. No la empuja ninguna otra tarea, pero cada migración que se escriba sin ella es una más de la que nadie sabrá si se aplicó. Esta fase escribe seis archivos.
+`~~DB-13~~` ya está cerrada: el ledger de `public.schema_migrations` existe y cada migración de esta fase debe seguir su convención, insertando su propia fila al terminar.
 
 ---
 
