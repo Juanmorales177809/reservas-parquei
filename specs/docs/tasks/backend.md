@@ -107,12 +107,13 @@ Al cerrarlo existe un servicio que responde y se conecta a la base, sin lógica 
 - **Aceptación:** `GET /health` informa si la base responde. **Arrancar dos veces seguidas no crea ni altera ninguna tabla**: el conteo de tablas de `reservas` sigue siendo 28.
 - **Resultado:** verificado contra `reservas_db` real, en su red de Docker, dos arranques consecutivos: `{"estado":"ok","base_de_datos":"conectada"}` ambas veces y 28 tablas antes y después. Sin base alcanzable responde `200` con `"sin_conexion"`, nunca un error sin controlar. `DATABASE_URL` se construye desde `POSTGRES_*` y admite anularse.
 
-### BK-03 — Añadir el servicio a Docker Compose
+### BK-03 — Añadir el servicio a Docker Compose · **cerrada**
 
 - **Objetivo:** el backend corre junto a `db` y `pgadmin`.
 - **Afectados:** `docker-compose.yml`.
 - **Dependencias:** BK-01.
 - **Aceptación:** `docker compose up` levanta la base y el backend, y `GET /health` responde desde el contenedor. **El servicio hay que crearlo**: se retiró al borrar el código anterior, porque apuntaba a una carpeta inexistente y rompía `docker compose up`. Se declara con lo que el backend necesita hoy —la cadena de conexión y poco más— **sin arrastrar las variables del arranque anterior** (`INITIAL_ADMIN_*`, `ALGORITHM`), que pertenecían a un modelo retirado. El servicio `frontend` tampoco existe y no se reintroduce aquí.
+- **Resultado:** verificado con `docker compose up -d --build backend`: construye, arranca junto a `db` ya saludable, y `curl http://localhost:8000/health` desde el host devuelve `{"estado":"ok","base_de_datos":"conectada"}`. Puerto `8000` expuesto, configurable por `BACKEND_HOST_PORT`.
 
 ---
 

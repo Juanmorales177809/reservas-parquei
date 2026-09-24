@@ -37,10 +37,32 @@ services:
     ports:
       - "${PGADMIN_HOST_PORT:-8085}:${PGADMIN_LISTEN_PORT:-5050}"
 
-# Los servicios backend y frontend se reintroducen al construirlos de nuevo,
-# conforme a BK-03 del plan de backend. Se retiraron al eliminar el código anterior,
-# porque apuntaban a carpetas que ya no existen y rompían `docker compose up`.
-# La base y pgadmin siguen levantando: el volumen conserva las 28 tablas aplicadas.
+  backend:
+    build:
+      context: ./backend
+    container_name: reservas_backend
+    restart: unless-stopped
+    environment:
+      # Solo lo que BK-02 usa hoy: la cadena de conexión. Nada del arranque
+      # anterior (INITIAL_ADMIN_*, ALGORITHM): pertenecía a un modelo retirado,
+      # y BK-04 en adelante declara lo que necesite cuando lo necesite.
+      POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - application_network
+      - database_network
+    ports:
+      - "${BACKEND_HOST_PORT:-8000}:8000"
+
+# El servicio frontend se reintroduce al construirlo de nuevo. Se retiro al
+# eliminar el codigo anterior, porque apuntaba a una carpeta que ya no existe
+# y rompia `docker compose up`.
 
 volumes:
   postgres_data:
