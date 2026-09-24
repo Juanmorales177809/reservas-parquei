@@ -9,7 +9,7 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -74,7 +74,9 @@ class Sesiones(Base):
     __tablename__ = "sesiones"
     __table_args__ = {"schema": "auth"}
 
-    id_sesion: Mapped[UUID] = mapped_column(primary_key=True)
+    # server_default explicito: el generador no lo detecta, y sin el a ORM no
+    # sabe que la base rellena el UUID (gen_random_uuid()) al insertar.
+    id_sesion: Mapped[UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
     id_cuenta: Mapped[int] = mapped_column(ForeignKey("auth.cuentas.id_cuenta"))
     refresh_token_hash: Mapped[str] = mapped_column()
     created_at: Mapped[datetime] = mapped_column()

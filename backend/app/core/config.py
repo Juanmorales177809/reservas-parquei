@@ -18,9 +18,24 @@ class Settings:
         # security.py aborta al arrancar en vez de firmar con un secreto
         # predecible. Para desarrollo local, docker-compose.yml lo declara.
         self.jwt_secret = os.environ.get("JWT_SECRET", "")
+        # Vigencia del JWT de acceso en sí (vida corta; el cliente renueva
+        # antes de que expire). No confundir con la vigencia máxima de la
+        # sesión, que se comprueba contra auth.sesiones, no contra el token.
         self.jwt_vigencia_acceso_segundos = int(os.environ.get("JWT_VIGENCIA_ACCESO_SEGUNDOS", "900"))
-        # Valores por defecto de auth/data-model.md: 12h sesión, 10min ventana CSRF/reautenticación.
         self.csrf_vigencia_segundos = int(os.environ.get("CSRF_VIGENCIA_SEGUNDOS", str(12 * 60 * 60)))
+
+        # Los tres límites de AUTH-A1, valores por defecto de auth/data-model.md:
+        # 12h de vigencia máxima de sesión, 30min de inactividad máxima,
+        # 10min de ventana de autenticación reciente.
+        self.sesion_vigencia_maxima_segundos = int(
+            os.environ.get("SESION_VIGENCIA_MAXIMA_SEGUNDOS", str(12 * 60 * 60))
+        )
+        self.sesion_inactividad_maxima_segundos = int(
+            os.environ.get("SESION_INACTIVIDAD_MAXIMA_SEGUNDOS", str(30 * 60))
+        )
+        self.reautenticacion_ventana_segundos = int(
+            os.environ.get("REAUTENTICACION_VENTANA_SEGUNDOS", str(10 * 60))
+        )
 
     @staticmethod
     def _build_database_url() -> str:

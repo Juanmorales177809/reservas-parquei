@@ -5,8 +5,10 @@ Regla 1 de plan.md: el backend nunca crea ni modifica tablas. No hay
 gobiernan las migraciones versionadas de `backend/migrations/`.
 """
 
+from typing import Iterator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 
@@ -15,3 +17,12 @@ from app.core.config import get_settings
 engine = create_engine(get_settings().database_url, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+def get_db() -> Iterator[Session]:
+    """Dependencia de FastAPI: una sesión por petición, cerrada al terminar."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

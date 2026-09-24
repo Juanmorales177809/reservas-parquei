@@ -9,16 +9,56 @@ doble envío — conforme a `auth/security.md` (`SEC-JWT-*`, `SEC-SES-*`,
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import secrets
 import time
 from typing import Any
 
+import bcrypt
 import jwt
 from fastapi import Request, Response
 
 from app.core.config import get_settings
 from app.core.errors import NoAutenticado, NoAutorizado
+
+# --- Contraseñas (SEC-PWD-02, SEC-PWD-06) -----------------------------------
+# architecture.md §3 fija bcrypt. Factor de trabajo 12: por encima del mínimo
+# de 10 de SEC-PWD-06, ajustable si la capacidad del servidor lo exige.
+_BCRYPT_ROUNDS = 12
+
+
+def hash_contrasena(contrasena: str) -> str:
+    # bcrypt trunca a 72 bytes; SEC-PWD-07 exige como máximo 64 caracteres,
+    # que en UTF-8 no supera ese límite salvo con caracteres de varios bytes
+    # en el extremo superior. Se acota explícitamente en vez de confiar en
+    # el truncado silencioso de la librería.
+    datos = contrasena.encode("utf-8")
+    if len(datos) > 72:
+        raise ValueError("La contraseña excede el límite de bytes de bcrypt.")
+    return bcrypt.hashpw(datos, bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)).decode("ascii")
+
+
+def verificar_contrasena(contrasena: str, hash_almacenado: str) -> bool:
+    try:
+        return bcrypt.checkpw(contrasena.encode("utf-8"), hash_almacenado.encode("ascii"))
+    except (ValueError, TypeError):
+        # Hash corrupto o con formato inesperado: nunca autentica.
+        return False
+
+
+# --- Tokens de un solo uso (invitación, recuperación) — SEC-TOK-04 ---------
+
+
+def generar_token() -> tuple[str, str]:
+    """Devuelve `(token, hash)`. El token se entrega una sola vez; solo el
+    hash se persiste (SEC-TOK-02): la base nunca puede reconstruir el token."""
+    token = secrets.token_urlsafe(32)
+    return token, hashear_token(token)
+
+
+def hashear_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 # SEC-JWT-01: el algoritmo se fija explícitamente en el servidor; un token
 # que declare alg:none o cualquier otro algoritmo se rechaza, nunca se infiere
