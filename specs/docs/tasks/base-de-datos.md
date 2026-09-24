@@ -121,13 +121,14 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 
 ## 3. Cierre de las referencias externas
 
-### DB-05 — Ejecutar `003_reservas_referencias_externas.sql`
+### DB-05 — Ejecutar `003_reservas_referencias_externas.sql` · **cerrada**
 
 - **Objetivo:** las cinco FK quedan instaladas y desaparecen los CHECK temporales `pendiente_fk_*`.
 - **Afectados:** `backend/migrations/003_reservas_referencias_externas.sql`, escrito y **nunca ejecutado**.
 - **Dependencias:** **DB-01** y **DB-02**. El script aborta si falta algún destino.
 - **Aceptación:** no queda ninguna constraint cuyo nombre empiece por `pendiente_fk_`, y una inserción con `recurso_id` inexistente falla por FK, no por CHECK.
 - **Modelo:** [database-status.md](../../modules/reservations/database-status.md), sección de referencias externas pendientes.
+- **Resultado:** ejecutado contra `reservas_db` real **sin modificar el archivo**, que sigue siendo el mismo rescatado y verificado por hash en `BK-00`. Las cinco FK están instaladas y cero `pendiente_fk_*` sobreviven. Verificado con una reserva real: `recurso_id = 999999` falla por `foreign_key_violation`, no por `CHECK`; con un `recurso_id` real de `recursos.recursos` la inserción procede, algo imposible antes de esta tarea. Como `003` es anterior a la convención de `DB-13` y no se edita, su fila del ledger se insertó como una sentencia aparte, no dentro del archivo.
 
 ---
 
