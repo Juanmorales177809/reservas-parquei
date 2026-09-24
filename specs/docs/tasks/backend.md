@@ -131,12 +131,13 @@ Es lo que hace que los nueve módulos se comporten igual, y **ninguna ruta de ne
 - **Aceptación:** una ruta inexistente devuelve `404 NO_ENCONTRADO` con esa forma, no el `detail` de FastAPI. Una excepción no controlada devuelve `500 ERROR_INTERNO` **sin traza en la respuesta**.
 - **Resultado:** `DomainError` y una subclase por cada uno de los catorce códigos comunes de `contratos/README.md` §2, más manejadores para `RequestValidationError` (422 `VALIDACION`, con `detalles` de campo/motivo sin el valor enviado) y `StarletteHTTPException` (404/405 → `NO_ENCONTRADO`). Verificado con peticiones reales contra el contenedor: 404 en ruta inexistente, 500 sin traza ni el mensaje original de una excepción con datos sensibles, 422 con dos campos inválidos. `DemasiadosIntentos` añade el encabezado `Retry-After` cuando se indica.
 
-### BK-05 — Paginación, filtros y orden
+### BK-05 — Paginación, filtros y orden · **cerrada**
 
 - **Objetivo:** una dependencia reutilizable que todo listado usa.
 - **Afectados:** `backend/app/core/pagination.py`.
 - **Dependencias:** BK-04. Cubre `API-02`.
 - **Aceptación:** un listado devuelve `datos` + `paginacion`; un filtro desconocido devuelve `400 SOLICITUD_INVALIDA`; un catálogo cerrado devuelve solo `datos` y rechaza `pagina`.
+- **Resultado:** `paginacion_para(filtros_admitidos, ordenes_admitidos)` y `catalogo_cerrado_para(filtros_admitidos)`, dos fábricas de dependencia que cada endpoint instancia con lo suyo. Verificado con peticiones reales: 137 elementos con `tamano=20` dan `paginas: 7`; filtro desconocido, campo de orden no admitido, `pagina=0` y `tamano=500` responden los cuatro `400 SOLICITUD_INVALIDA`; el catálogo cerrado devuelve solo `datos` y rechaza tanto `pagina` como un filtro no declarado.
 
 ### BK-06 — Sesión por cookie y CSRF
 
