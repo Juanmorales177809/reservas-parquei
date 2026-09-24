@@ -79,7 +79,17 @@ Cada módulo tiene la misma forma interna —`router.py`, `schemas.py`, `service
 
 **Los módulos del backend son los nueve de las especificaciones, con sus mismos nombres.** Un módulo que no corresponda a uno documentado es señal de que la superficie se está inventando.
 
-Auth es la única excepción a la forma de cuatro archivos: se construye a dos manos y parte su router y su servicio para que dos personas no editen el mismo archivo.
+Auth divide su router y servicio conforme a su plan. Reservations conserva las cuatro capas y añade el dominio, las estrategias y las políticas de su [arquitectura aprobada](specs/modules/reservations/architecture.md).
+
+### Reservations
+
+Flujo lógico: `router → service → Reserva/Strategy → repository`. El servicio carga y persiste mediante el repositorio; Context y estrategias no acceden directamente a SQL. El servicio conserva autorización, orquestación y transacciones. `Reserva` es el Context que delega comportamiento específico mediante `ReservationStrategy`, sin sustituir al servicio.
+
+`API-13` establece `domain/reserva.py`, `strategies/reservation_strategy.py`, el selector y las cinco estrategias: `EspacioStrategy`, `RecursoInternoStrategy`, `RecursoCampusStrategy`, `RecursoExternoStrategy` y `ListaEsperaStrategy`. Sus operaciones se completan en API-14 y API-16 según el contrato. Las policies se separan por acceso, contexto, apoyo, horario, disponibilidad y propuestas. `PrestamoFisicoPolicy` es un componente compartido por campus y externo, no una sexta Strategy.
+
+El retiro manual del Técnico no genera historial específico. Los retiros automáticos por préstamo conservan únicamente la trazabilidad exigida y se coordinan entre reservas en una transacción. Las garantías de base de DB-12 no se sustituyen con validaciones en Strategy.
+
+Lista de espera conserva viabilidad explícita, adjuntos y formulario tras viabilidad; recepción y aprobación atómicas; ejecución sin entrega de recursos y finalización con horas. Campus y externo generan la FGL 030 al aprobar dentro del proceso de salida y mantienen sus datos inmutables, sin regeneración ni versiones. Espacio e interno conservan sus transiciones automáticas por franja, con las diferencias definidas en sus reglas.
 
 ---
 
@@ -105,9 +115,9 @@ El orden lo detalla `tasks.md`. Lo que sigue es el criterio de salida de cada un
 |---|---|
 | **0 — Desbloqueo** | El proyecto levanta, responde `/health` y **deniega por defecto**: una operación sin permiso comprobable falla. Las tablas de `auth` existen y sus catálogos están cargados |
 | **1 — Los schemas que faltan** | Las cinco claves foráneas externas están instaladas y no queda ninguna restricción `pendiente_fk_*`. Los modelos reflejan la base y ninguno declara una tabla inexistente |
-| **2 — Identidad** | Auth funciona de punta a punta contra el contrato nuevo, y **queda como referencia de estilo**: cualquier módulo posterior que se estructure distinto se corrige, no se justifica |
+| **2 — Identidad** | Auth funciona de punta a punta contra el contrato nuevo y queda como referencia de las convenciones transversales; Reservations aplica además su arquitectura Strategy aprobada |
 | **3 — Catálogos e inventario** | Existen recursos, espacios y contextos reales, creados por la API y no insertados a mano |
-| **4 — Reservas** | Dos transacciones concurrentes sobre el mismo espacio y periodo terminan con **una sola reserva escrita**, verificado contra la base y no contra el backend |
+| **4 — Reservas** | Los cinco tipos cumplen el contrato actualizado; la base impide solapamientos temporales y compromisos físicos duplicados incluso con fechas distintas, incluidos los retiros atómicos de complementarios y sus carreras con el inicio del espacio |
 | **5 — Notificaciones y reportes** | Repetir una ocurrencia no genera una segunda notificación, y un fallo de entrega **no invalida la operación de negocio** que lo originó |
 
 Una fase no se da por cerrada porque sus tareas estén marcadas, sino porque su criterio se comprueba.
@@ -116,17 +126,13 @@ Cómo se comprueba está en [`testing.md`](specs/docs/testing.md), y qué falta 
 
 ---
 
-## 6. Las decisiones técnicas que siguen abiertas
+## 6. Decisiones cerradas y trabajo pendiente
 
-Tres, y **las tres bloquean código**. Ninguna es una tarea de escribir: son acuerdos que cuestan una conversación y, mal resueltos, cuestan rehacer.
+**Decisiones cerradas de Reservations:** DB-11 y ADR-001 fijaron `America/Bogota` y la proyección temporal; la entrega física abre el rango solo para campus y externo, sin alterar las fechas solicitadas. La ampliación funcional exige un único compromiso físico desde la incorporación, aunque los periodos no se solapen. Espacio e interno funcionan por franjas, sin entrega/devolución física. Los hallazgos funcionales y la arquitectura Strategy están cerrados documentalmente.
 
-**La zona horaria operativa.** `architecture.md` §15 exige fijar la convención de fechas y horas **antes** de implementar módulos que comparen tiempos, y ADR-001 lo repite: convertir los periodos locales a `tstzrange` exige una zona horaria explícita y uniforme, **nunca la implícita de cada conexión**. Sin esto, los disparadores de solapamiento se construyen sobre arena. Es prerrequisito de `DB-12`.
+**Garantías pendientes — DB-12:** diseñar, instalar y probar la exclusión temporal, la integridad del compromiso físico único y los campos objetivo del retiro automático por préstamo. Los índices ordinarios y la exclusión por periodo no bastan para la exclusividad física. Aprobar el diseño funcional no significa que esas garantías estén instaladas.
 
-**Si la entrega física abre el rango temporal.** ADR-001 propone que sí; el modelo de datos de reservations dice que entrega y devolución no alteran el periodo planificado. `database-status.md` lo señala como pendiente de resolver antes de tocar los disparadores. Es `DB-11`.
-
-**El mecanismo de migraciones.** `architecture.md` §15 exige reproducibilidad y versionado, no una herramienta concreta. Hoy los scripts están en el repositorio pero **nada registra cuáles se han aplicado** salvo un documento escrito a mano. Es `DB-13`.
-
-ADR-001 sigue **pendiente de aprobación formal**. Implementarlo antes de aprobarlo es asumir que se aprobará.
+**Gobierno de migraciones — DB-13:** sigue pendiente el mecanismo reproducible y versionado de aplicación sobre la base actual. No se reabren las decisiones funcionales al implementar.
 
 ---
 

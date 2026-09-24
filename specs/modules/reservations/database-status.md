@@ -61,6 +61,16 @@ Este ajuste instala la estructura; no entrega el módulo funcional completo.
 - El ADR-001 está aprobado (decisión DB-11, 2026-09-23): la entrega física abre el rango temporal del recurso y el modelo ya dice lo mismo. Faltan los disparadores, las exclusiones y las pruebas de concurrencia (`DB-12`). Tampoco se implementaron las validaciones del backend ni la exigencia diferida de detalle/contexto para escrituras directas.
 - Los módulos externos de inventario, notificaciones y auditoría no fueron implementados.
 
+## Revisión documental del 2026-09-24 — hallazgo 1
+
+Se aprobó un único compromiso vigente por recurso sujeto a entrega/devolución física, desde su incorporación en `SOLICITADA` o `APROBADA`, también con periodos distintos (`RN-RES-14` y `RN-DIS-06` de reservations). No se admite otra solicitud para esperar su devolución. La terminación válida del compromiso y la devolución cuando corresponda no garantizan habilitación u operatividad: se revalidan para toda nueva solicitud.
+
+Esta revisión no ejecutó consultas ni cambios contra la base. El inventario y la verificación anteriores conservan su fecha. Los índices existentes por reserva/asignación y las exclusiones temporales propuestas no garantizan el compromiso único. Su mecanismo de integridad y convivencia con franjas de espacios requieren diseño y una migración nueva, además de las exclusiones y disparadores pendientes. ADR-001 registra la ampliación; su aprobación funcional no significa que esté implementada. No se modifican las migraciones 002 ni 003.
+
+El cierre del caso mixto del hallazgo 1 exige retiro automático y atómico de complementarios en espacios `SOLICITADA` o `APROBADA`, rechazo con `409 CONFLICTO` si están `EN_EJECUCION` y ausencia de restauración automática al cancelar el préstamo (`RN-TIP-PE-28`). Los atributos objetivo `retirado_at`, `causa_retiro` y `reserva_causante_id` documentados en `reserva_recursos` no forman parte del inventario verificado: requieren una tarea DB, migración e integridad nuevas. No se ejecutó DDL ni se modificó la base. El historial debe preservar la asignación, causa y préstamo causante.
+
+Corrección documental del hallazgo 4: la exclusividad física y los rangos abiertos se limitan a `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. `RECURSO_INTERNO` usa disponibilidad por franja e inicio/finalización automáticos, sin registros de entrega/devolución. El historial existente registra estas transiciones y las de espacio acordadas; no se afirma que los procesos estén implementados ni se modifica el inventario aplicado.
+
 ## Verificación
 
 Antes de confirmar los cambios se ejecutó el DDL completo con pruebas SQL de `reservas_objetivo.sql` y `ROLLBACK`. Las pruebas comprueban tablas esperadas y retiradas, columnas exactas de cabecera, FK sin cascadas, cinco bloqueos externos, rechazo de horarios/fechas inválidos, contextos vacíos/incompatibles, recursos sin catálogo, adjuntos mayores de 5 MB y códigos duplicados. Después del COMMIT se verificaron las 28 tablas vacías y la ausencia de cambios estructurales fuera de `reservas`.

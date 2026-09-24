@@ -171,46 +171,59 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 
 ## 5. Reservas
 
-### API-13 — Creación y consulta de reservas
+### API-13 — Arquitectura, creación, edición y consulta de reservas
 
-- **Objetivo:** `POST /api/reservas` para los cinco tipos, el listado, el detalle y la disponibilidad.
-- **Afectados:** módulo de reservations del backend.
+- **Objetivo:** establecer la [arquitectura Strategy de Reservations](../../modules/reservations/architecture.md) e implementar creación de los cinco tipos, edición en SOLICITADA, listado, detalle, disponibilidad y operaciones de preparación de lista de espera. Incluye el componente compartido de generación/persistencia de FGL 030 necesario para la creación autoaprobada; API-14 lo reutiliza al aprobar manualmente.
+- **Afectados:** `backend/app/modules/reservations/`: `router.py`, `schemas.py`, `service.py`, `repository.py`, `domain/reserva.py`, `strategies/` y `policies/`; pruebas del módulo bajo `backend/tests/`.
 - **Dependencias:** API-10, API-11, **DB-08** y **DB-12**.
-- **Aceptación:** crear una reserva solapada responde `409 SOLAPAMIENTO` **por la restricción de la base**, no por una consulta previa. Un Usuario sin vinculación activa recibe `403 VINCULACION_REQUERIDA`.
-- **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §2 y §3.
-- **RN:** `RN-RES`, `RN-TIP`, `RN-CTX`, `RN-DIS-05`.
-- **Aviso:** sin **DB-12** este endpoint puede escribir dos reservas solapadas bajo concurrencia. No se da por correcto hasta cerrarla.
+- **Implementación:** `Reserva` es Context; `ReservationStrategy` define validación y determinación de cambios. Selector con `EspacioStrategy`, `RecursoInternoStrategy`, `RecursoCampusStrategy`, `RecursoExternoStrategy` y `ListaEsperaStrategy`. Policies de acceso, contexto, apoyo, horario, disponibilidad y propuestas; `PrestamoFisicoPolicy` compartida por campus/externo, sin sexta Strategy. El servicio controla acceso/transacción y usa el repositorio; Context/Strategy no ejecutan SQL.
+- **Aceptación:**
+  - Se cumplen cuerpos y respuestas de §2 y §3. Solapamiento temporal: `409 SOLAPAMIENTO`; compromiso físico ajeno incluso con otras fechas: `409 CONFLICTO`, con protección de DB-12. Usuario sin vinculación activa: `403 VINCULACION_REQUERIDA`.
+  - Edición directa solo en SOLICITADA; revalidación y efectos atómicos, sin campos inmutables ni cambios parciales. El retiro automático de complementarios conserva historial; no cancela el espacio ni restaura recursos al cancelar el préstamo.
+  - Lista de espera: viabilidad explícita, adjuntos conforme al contrato, formulario posterior a viabilidad y partes por actor. Cambiar descripción invalida evaluación y revisión como especificado; no crea estados ni tablas nuevos.
+  - La separación de capas y las cinco estrategias se verifica con los casos de servicio y contrato de [tests.md](../../modules/reservations/tests.md), sin duplicar reglas particulares en el router o el servicio.
+- **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §2 y §3; la creación autoaprobada genera y conserva la FGL conforme a §4.1 y §7, mediante el componente que reutiliza API-14.
+- **RN:** `RN-RES-12`, `RN-PRO-06`, `RN-DIS-05`, `RN-DIS-06`, `RN-TIP-PE-28`, `RN-TIP-PLE-03`, `RN-TIP-PLE-04`, `RN-TIP-PLE-09`.
+- **Cierre:** incluye probar creación autoaprobada y su FGL inmutable; no depende de una tarea posterior para cerrar ese caso. Las garantías de DB-12 son obligatorias.
 
-### API-14 — Gestión, propuestas y ejecución
+### API-14 — Gestión, propuestas y ejecución por tipo
 
-- **Objetivo:** aprobación, rechazo, recursos, propuestas de periodo, ejecución, finalización y cancelación.
-- **Afectados:** módulo de reservations del backend.
+- **Objetivo:** completar las estrategias con aprobación, rechazo, recursos, propuestas, ejecución, finalización y cancelación; generar y persistir FGL 030 al aprobar campus/externo dentro del proceso de salida.
+- **Afectados:** servicio, estrategias, políticas y repositorio de Reservations; pruebas de servicio/contrato bajo `backend/tests/`.
 - **Dependencias:** API-13.
-- **Aceptación:** finalizar una reserva de tipo `ESPACIO` responde `409 CONFLICTO`, e iniciar su ejecución responde `409 TIPO_NO_ADMITIDO`: ambas transiciones son automáticas. Finalizar una de recursos sin todos los entregados responde error, no cierre parcial.
-- **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §4 a §6.
-- **RN:** `RN-APR`, `RN-PROP`, `RN-TIP-PE-25`, `RN-TIP-PE-27`, `RN-TIP-RI-09`.
+- **Aceptación:**
+  - Agregar/retirar genéricos solo en ESPACIO y RECURSO_INTERNO, en los estados y roles admitidos. El principal de interno no se retira; retiro manual sin historial ni metadatos. Otros tipos: `409 TIPO_NO_ADMITIDO`.
+  - En APROBADA solo espacio/interno negocian periodo; al aceptar se revalida y conserva aprobación, o se revierte todo. Campus/externo bloquean datos de la FGL generada, incluidas propuestas anteriores.
+  - Lista de espera recibe material y aprueba en una operación atómica; inicia fabricación/prestación sin recursos y finaliza con horas válidas, sin entrega/devolución física.
+  - Campus/externo generan FGL al aprobar, también en autoaprobación, dentro del mismo proceso que registra entrega e inicio de ejecución por las rutas actuales. Orden inmutable, sin regeneración ni versiones; composición fija desde la salida hasta devolución. El retiro por deshabilitación solo aplica antes de ese proceso.
+  - Iniciar o finalizar manualmente espacio/interno responde `409 TIPO_NO_ADMITIDO`. Préstamos requieren devolución completa para finalizar. Operación incompatible con estado: `409 ESTADO_INCOMPATIBLE`; los demás errores son los específicos del contrato.
+- **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §4 a §6; persistencia de la orden consultada en §7.
+- **RN:** `RN-TIP-PE-21`, `RN-TIP-RI-10`, `RN-PROP-05`, `RN-TIP-PLE-05`, `RN-TIP-PLE-07`, `RN-TIP-PLE-08`, `RN-TIP-RC-07`, `RN-TIP-RE-07`, `RN-CAN-06`.
 
-### API-15 — Órdenes de salida, calendario y exportación
+### API-15 — Consulta de órdenes, calendario y exportación
 
-- **Objetivo:** el FGL 030 prellenado, el `.ics` y la exportación del listado.
-- **Afectados:** módulo de reservations del backend.
+- **Objetivo:** consultar y exportar la FGL 030 ya generada por API-13/API-14, el `.ics` y el listado.
+- **Afectados:** router, esquemas, servicio y consultas del repositorio de Reservations; pruebas de contrato bajo `backend/tests/`.
 - **Dependencias:** API-14.
-- **Aceptación:** la orden de salida **no contiene ningún campo de firma**: los jefes firman sobre el documento impreso. El `.ics` sobre un tipo que no lo admite responde `409 TIPO_NO_ADMITIDO`.
+- **Aceptación:** GET de orden/PDF usa snapshots originales, sin generar, modificar o versionar la orden. No captura firmas: se diligencian en papel. Tipo ajeno a FGL: `409 TIPO_NO_ADMITIDO`; orden aún no generada: `404 NO_ENCONTRADO`. El `.ics` admite únicamente espacio/interno y conserva los errores del contrato. Exportación respeta formato, filtros y ámbito autorizado.
 - **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §7 y §8.
-- **RN:** `RN-TIP-RC-11` a `RN-TIP-RC-14`, `RN-CAL`.
+- **RN:** `RN-TIP-RC-07`, `RN-TIP-RE-07`, `RN-TIP-RC-14`, `RN-TIP-RE-14`, `RN-CAL-01`, `RN-CAL-02`.
 
 ---
 
 ## 6. Procesos automáticos y consulta
 
-### API-16 — Transiciones automáticas de reservas por espacio
+### API-16 — Transiciones automáticas de espacio e interno
 
-- **Objetivo:** las tareas que inician y finalizan una reserva de espacio al llegar su hora.
-- **Afectados:** proceso programado del backend.
+- **Objetivo:** ejecutar por el servicio las decisiones horarias de EspacioStrategy y RecursoInternoStrategy, sin entrega/devolución física.
+- **Afectados:** proceso programado del backend y casos de uso del servicio de Reservations; pruebas de servicio e integración.
 - **Dependencias:** API-14.
-- **Aceptación:** una reserva `APROBADA` pasa a `EN_EJECUCION` al llegar su `hora_inicio` y a `FINALIZADA` al llegar su `hora_fin`. **Detener el proceso no impide reservar un intervalo posterior que no se solapa**: es la prueba de que la disponibilidad no depende de él.
-- **Contrato:** no tiene superficie HTTP.
-- **RN:** `RN-TIP-PE-25`, `RN-TIP-PE-26`, `RN-TIP-PE-27`, `RN-DIS-11`.
+- **Aceptación:**
+  - ESPACIO aprobado inicia en hora_inicio. Si se aprueba durante la franja, aprobación e inicio son inmediatos y conjuntos. En hora_fin, SOLICITADA pasa a CANCELADA y APROBADA/EN_EJECUCION a FINALIZADA.
+  - RECURSO_INTERNO aprobado inicia en hora_inicio y en ejecución finaliza en hora_fin. Desde EN_EJECUCION no se cancela. No se crean registros de entrega/devolución.
+  - RECHAZADA y CANCELADA no cambian automáticamente. Detener el proceso no bloquea intervalos posteriores no solapados. La carrera con retiro por préstamo respeta DB-12 y no retira complementarios de un espacio ya en ejecución.
+- **Contrato:** sin endpoint propio; [reservations](../../contratos/reservations/api-contract.md) §4.1 y §10; UF-RES-21 y UF-RES-22.
+- **RN:** `RN-TIP-PE-25`, `RN-TIP-PE-27`, `RN-TIP-PE-28`, `RN-TIP-RI-08`, `RN-TIP-RI-09`, `RN-TIP-RI-13`, `RN-DIS-11`.
 
 ### API-17 — Bandeja y preferencias de notificaciones
 

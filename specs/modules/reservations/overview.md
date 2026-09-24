@@ -20,13 +20,18 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 -  FINALIZADA;
 -  CANCELADA;
 
-### Transiciones generales
+### Transiciones por tipo
 
-- SOLICITADA -> APROBADA;
-- SOLICITADA -> RECHAZADA;
-- APROBADA -> EN_EJECUCION;
-- EN_EJECUCION -> FINALIZADA;
-- APROBADA -> CANCELADA
+Todos los tipos conservan los estados globales anteriores. La aprobación, rechazo y cancelación admitidos se rigen por las reglas del módulo, incluida `SOLICITADA → CANCELADA`.
+
+| Tipo | Inicio | Fin |
+|---|---|---|
+| `ESPACIO` | `APROBADA → EN_EJECUCION` en `hora_inicio`. Puede seguir `SOLICITADA` durante la franja; si se aprueba dentro de ella, pasa inmediatamente a `EN_EJECUCION` | En `hora_fin`: `SOLICITADA → CANCELADA`; `APROBADA` o `EN_EJECUCION → FINALIZADA` |
+| `RECURSO_INTERNO` | `APROBADA → EN_EJECUCION` automáticamente en `hora_inicio` | `EN_EJECUCION → FINALIZADA` automáticamente en `hora_fin` |
+| `RECURSO_CAMPUS`, `RECURSO_EXTERNO` | Entrega física tras aprobación | Devolución física completa y cierre |
+| `LISTA_ESPERA` | Inicio de fabricación/prestación tras aprobación | Registro de horas y finalización |
+
+`RECHAZADA` y `CANCELADA` no cambian automáticamente. Desde `EN_EJECUCION`, interno no puede cancelarse. Espacio e interno controlan disponibilidad por franja, sin registros de entrega/devolución; la exclusividad física solo aplica a campus y externo.
 
 ## Responsibilities
 
@@ -35,7 +40,7 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 - validar horarios;
 - validar disponibilidad;
 - coordinar aprobación y cancelación;
-- mantener trazabilidad de las operaciones de reserva.
+- conservar el historial de estados y los registros históricos exigidos expresamente por las reglas; el retiro manual del Técnico no genera historial específico y la auditoría general queda fuera del alcance actual.
 
 ## Owned Concepts
 
@@ -50,7 +55,8 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 
 - auth: identidad y autorización;
 - [researchs](../researchs/overview.md): contexto académico/investigativo y vinculaciones válidas del usuario;
-- resources: espacios y recursos;
+- [espacios](../espacios/overview.md): espacios, capacidad, configuración y recursos asociados;
+- resources: inventario y estado operativo de los recursos;
 - notifications: comunicación de eventos.
 
 ## Provides
@@ -69,10 +75,10 @@ Todas los tipos de reservas utilizan un conjunto común de estados.
 
 ## Related Documentation
 
-- `business-rules.md`
-- `../../docs/product-spec.md`
-- `../../docs/architecture.md`
-- `../../docs/data-model.md`
+- [Reglas de negocio](business-rules.md)
+- [Especificación del producto](../../docs/spec.md)
+- [Arquitectura general](../../docs/architecture.md)
+- [Modelo de datos general](../../docs/data-model.md)
 
 ## Modelo persistente
 

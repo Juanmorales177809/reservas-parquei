@@ -7,6 +7,7 @@ Esta tabla es la fuente que lee [`tools/validar.py`](../../../tools/validar.py) 
 | Identificador | Módulo | Retirado porque | Qué mirar en su lugar |
 |---|---|---|---|
 | `RN-ESP-HAB-03` | espacios | Enunciaba de forma genérica el mismo comportamiento que otra regla define completo, con la regla de cancelación citada, la advertencia previa y el efecto de no confirmar | `RN-ESP-HAB-05` de espacios |
+| `RN-APR-09` | reservations | Retirado el 2026-09-24 por la decisión del hallazgo 1: un recurso sujeto a préstamo admite un solo compromiso vigente; no existe una solicitud posterior válida esperando su devolución para aprobarse automáticamente | `RN-RES-14` y `RN-DIS-06` de reservations |
 
 ## Lo que no entra en esta tabla
 

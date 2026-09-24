@@ -20,7 +20,7 @@ El ajuste `002_reservas_objetivo.sql` se aplicó el 23 de septiembre de 2026 sob
 | **Pendiente** | Los schemas `recursos`, `administration` y `notificaciones`, y la parte de `investigacion` que no existe |
 | **Pendiente** | Las cinco FK externas, hoy sustituidas por CHECK temporales `pendiente_fk_*` |
 | **Pendiente** | Los datos iniciales de los catálogos, que están vacíos |
-| **Pendiente** | Los disparadores y exclusiones de ADR-001 |
+| **Pendiente** | Las exclusiones temporales, la garantía de compromiso físico único y los campos objetivo de trazabilidad del retiro por préstamo (DB-12) |
 
 **La base sobrevivió al borrado del backend anterior y sus scripts se rescataron** en `BK-00`: `002`, `003`, el respaldo estructural y las pruebas SQL están de vuelta en `backend/`, idénticos al original.
 
@@ -193,23 +193,28 @@ Las tres comparten el archivo `008_identidades.sql`, así que **van al mismo car
 
 ## 6. Concurrencia
 
-### DB-11 — Resolver la contradicción sobre el periodo de un recurso
+### DB-11 — Decisión sobre periodo y disponibilidad del recurso
 
-- **Objetivo:** existe una única respuesta a si la entrega física abre el rango temporal de la asignación.
-- **Afectados:** [ADR-001](../decisions/adr-001-doble-reserva.md) y [reservations/data-model.md](../../modules/reservations/data-model.md).
-- **Dependencias:** ninguna. **Bloquea DB-12.**
-- **Aceptación:** el ADR y el modelo dicen lo mismo, y la diferencia queda registrada como decisión con su fecha.
-- **Contexto:** el ADR propone que la entrega física abra el rango; el modelo indica que entrega y devolución no alteran el periodo planificado. `database-status.md` lo señala expresamente como pendiente de resolver **antes** de implementar los disparadores.
+- **Estado:** cerrada documentalmente; decisión temporal del 2026-09-23 y ampliación funcional del 2026-09-24. No acredita instalación de restricciones.
+- **Objetivo:** conservar la decisión vigente: zona `America/Bogota`; franjas para espacio/interno; apertura del rango por entrega solo en campus/externo y compromiso físico único desde la incorporación.
+- **Afectados:** [ADR-001](../decisions/adr-001-doble-reserva.md) y [reservations/data-model.md](../../modules/reservations/data-model.md), ya conciliados.
+- **Dependencias:** ninguna. Prerrequisito documental de DB-12 satisfecho.
+- **Aceptación:** ADR y modelo distinguen fechas de negocio, proyección temporal y compromiso físico; no se reabre la decisión funcional.
 
-### DB-12 — Instalar las exclusiones y disparadores de ADR-001
+### DB-12 — Instalar las garantías de disponibilidad y retiro por préstamo
 
-- **Objetivo:** la base impide que dos reservas ocupen el mismo espacio o recurso en periodos incompatibles.
-- **Afectados:** `backend/migrations/009_concurrencia.sql`.
-- **Dependencias:** **DB-11** y **DB-05**.
-- **Aceptación:** dos transacciones concurrentes que soliciten el mismo espacio en periodos solapados terminan con una sola reserva escrita y un error de exclusión en la otra. La prueba se ejecuta contra la base, no contra el backend.
-- **Modelo:** [ADR-001](../decisions/adr-001-doble-reserva.md).
-- **RN:** `RN-DIS-05`, `OQ-06`, `OQ-09`.
-- **Aviso:** `database-status.md` advierte que **la presencia de las columnas `periodo` y `bloqueante` y de índices ordinarios no equivale a la garantía**. Hasta cerrar esta tarea, la funcionalidad de crear reserva no puede darse por correcta bajo concurrencia.
+- **Objetivo:** diseñar e instalar las garantías pendientes del modelo: exclusión temporal, compromiso físico único por recurso y trazabilidad del retiro automático por préstamo. No añadir tablas o mecanismos funcionales ajenos al modelo.
+- **Afectados:** `backend/migrations/009_concurrencia.sql` y pruebas SQL bajo `backend/tests/sql/`; si se requieren scripts adicionales, serán migraciones nuevas conforme al gobierno del esquema. No editar `002` ni `003`. El diseño técnico previo se documenta contra el [modelo vigente](../../modules/reservations/data-model.md).
+- **Dependencias:** **DB-11** y **DB-05**. Bloquea el cierre de API-13 y, por dependencia, API-14 a API-16.
+- **Aceptación:**
+  - Dos transacciones con asignaciones temporales solapadas no confirman ambas; franjas contiguas de espacio e interno sí se admiten sin entrega/devolución física.
+  - Dos compromisos de campus/externo sobre el mismo recurso no confirman ambos aunque sus fechas sean distintas; la garantía cubre incorporación, aprobación, entrega, devolución y liberación, excluyendo el compromiso propio al revalidar.
+  - Incorporar un recurso a un préstamo y retirar sus complementarios de espacios SOLICITADA/APROBADA es atómico; si alguno está EN_EJECUCION, no se confirma el préstamo ni retiro parcial. Se verifica la carrera con el inicio del espacio.
+  - Los atributos objetivo `retirado_at`, `causa_retiro` y `reserva_causante_id` conservan la relación del retiro automático con el préstamo, sin extenderlos al retiro manual. Se verifican integridad y conservación histórica conforme al modelo.
+  - Una entrega abierta no se libera por cambiar el estado ni por retirar una asignación. La devolución completa y el cierre permiten reevaluar disponibilidad. Todas estas pruebas se ejecutan contra la base, no solo contra la API.
+- **Modelo:** [ADR-001](../decisions/adr-001-doble-reserva.md), [modelo de Reservations](../../modules/reservations/data-model.md), [estado de base](../../modules/reservations/database-status.md).
+- **RN:** `RN-DIS-05`, `RN-DIS-06`, `RN-DIS-11`, `RN-TIP-PE-28`, `RN-TIP-RI-13`, `RN-RES-14`.
+- **Aviso:** la zona horaria y el comportamiento están decididos; el mecanismo de integridad adicional, su migración y verificación siguen pendientes. Columnas e índices ordinarios no acreditan la garantía. Esta tarea no modifica estados ni crea tablas para lista de espera, versiones de FGL o auditoría general.
 
 ---
 

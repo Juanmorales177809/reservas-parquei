@@ -75,6 +75,12 @@ Al crear una reserva para una cuenta `USUARIO`, el backend aplica RN-RES-11 usan
 
 Cada reserva debe tener exactamente un detalle compatible con su tipo. La cabecera, el detalle y sus asociaciones se escriben en una única transacción; el backend valida la correspondencia. Cada detalle usa `reserva_id` como PK y FK, por lo que solo admite una fila de ese subtipo. Si se permiten escrituras directas fuera del servicio, se requiere una restricción diferida equivalente; no se propone un trigger complejo como requisito general.
 
+## Edición de reservas solicitadas
+
+`RN-PRO-02` y `RN-PRO-06` definen los campos editables por el reservista. La actualización de cabecera, detalle, contexto, acompañantes, campos y composición se guarda en una única transacción después de validar el resultado completo. El tipo, unidad y titular no cambian. `asistentes` se deriva de acompañantes; el apoyo efectivo se recalcula conforme a sus reglas. Los snapshots son generados por el servidor cuando cambia su selección de origen; los de selecciones sin cambios se conservan, no se actualizan indiscriminadamente desde catálogos.
+
+Un cambio de recursos conserva las asignaciones retiradas y crea las nuevas aplicando compromiso único y retiro atómico de complementarios (`RN-DIS-06`, `RN-TIP-PE-28`). Cambiar de espacio exige validar acompañantes, capacidad y valores de campos contra el nuevo espacio; no se conservan campos incompatibles como si pertenecieran a él. Un fallo revierte toda la operación. Editar conserva `SOLICITADA` y no escribe una transición ficticia ni activa autoaprobación. No se introduce una tabla de auditoría ni un historial general de versiones.
+
 ## Detalles por tipo
 
 ### `reservas.reserva_espacio`
@@ -110,7 +116,7 @@ La PK compuesta `(reserva_id, id_cuenta)` impide repetir una cuenta en la misma 
 | `hora_inicio` | time | NOT NULL |
 | `hora_fin` | time | NOT NULL; CHECK `hora_inicio < hora_fin` |
 
-CHECK `hora_inicio < hora_fin`. Debe tener al menos un recurso asociado y puede tener adicionales. Horario, habilitación y solapamientos son reglas de negocio.
+CHECK `hora_inicio < hora_fin`. Debe tener al menos un recurso asociado y puede tener adicionales. Horario, habilitación y solapamientos son reglas de negocio. Interno usa un intervalo horario acotado, representado como `[inicio, fin)`, sin rango físico abierto: permite franjas sucesivas no solapadas. `APROBADA → EN_EJECUCION` ocurre automáticamente en `hora_inicio` y `EN_EJECUCION → FINALIZADA` en `hora_fin`. No utiliza entrega/devolución ni compromiso físico exclusivo; el inicio y cierre se registran en el historial existente (`RN-TIP-RI-08`, `RN-TIP-RI-09`, `RN-TIP-RI-13`).
 
 ### `reservas.reserva_recurso_campus` y `reservas.reserva_recurso_externo`
 
@@ -136,7 +142,11 @@ Cada reserva tiene exactamente un recurso `PRINCIPAL` activo, admite `ADICIONAL`
 | `prioridad` | integer | NULL |
 | `horas_ejecucion` | numeric | NULL; CHECK `horas_ejecucion >= 0` |
 
-No requiere fecha ni horario de ejecución.
+No requiere fecha ni horario de ejecución. La acción técnica de viabilidad actualiza `viable` y `fecha_evaluacion_viabilidad` conjuntamente; una evaluación negativa registra también el rechazo y su motivo en `reserva_historial_estado`. Una positiva conserva `SOLICITADA`. No se añaden estados ni tablas (`RN-TIP-PLE-03`). Si cambia la descripción tras evaluación, `viable` y `fecha_evaluacion_viabilidad` pasan juntos a NULL para representar evaluación pendiente, manteniendo `SOLICITADA` (`RN-TIP-PLE-09`). Se conservan adjuntos y `datos_usuario`; si existe formulario, `datos_tecnico`, `revisado_por` y `revisado_at` pasan a NULL. Su edición queda bloqueada hasta nueva viabilidad positiva y exige revisión técnica nueva. No se agrega una tabla de historial de evaluaciones; los campos actuales describen la evaluación vigente.
+
+`fecha_recepcion_material` no se escribe mediante una operación independiente: se registra con `reservas.fecha_aprobacion`, el estado `APROBADA` y su historial en la misma transacción, después de revalidar viabilidad positiva y formulario completo con revisión vigente. Si falla, ninguna de esas escrituras persiste (`RN-TIP-PLE-05`). Las fechas las determina el servidor.
+
+Iniciar fabricación/prestación solo cambia a `EN_EJECUCION` y registra su transición; no crea asignaciones ni ejecuciones físicas de recursos. Finalizar exige guardar `horas_ejecucion` finitas y no negativas junto con `FINALIZADA` y su historial; NULL no es válido para el cierre aunque la columna sea nullable antes de él (`RN-TIP-PLE-07`, `RN-TIP-PLE-08`). Estas precondiciones del servicio no se presentan como restricciones ya instaladas.
 
 ### `reservas.reserva_lista_espera_formulario`
 
@@ -151,7 +161,7 @@ Formulario complementario, una fila por reserva de lista de espera. No tiene est
 | `revisado_por` | bigint | NULL, FK a `auth.cuentas(id_cuenta)` |
 | `revisado_at` | timestamptz | NULL |
 
-`datos_tecnico`, `revisado_por` y `revisado_at` se completan conjuntamente. La tabla no duplica `viable`, recepción de material, prioridad ni horas de ejecución, que pertenecen al detalle `reserva_lista_espera`.
+`datos_tecnico`, `revisado_por` y `revisado_at` se completan conjuntamente. Solo se diligencia mientras la reserva esté `SOLICITADA` y `viable = true`. Cada parte es un objeto JSON no vacío; no se introduce un catálogo de campos ni otra tabla. La parte técnica requiere una parte del reservista existente. Si este modifica `datos_usuario` tras una revisión, la misma operación actualiza `diligenciado_at` y deja `datos_tecnico`, `revisado_por` y `revisado_at` en NULL para exigir nueva revisión antes de aprobar (`RN-TIP-PLE-04`). Los instantes y la cuenta revisora se derivan del servidor y la sesión. La tabla no duplica `viable`, recepción de material, prioridad ni horas de ejecución, que pertenecen al detalle `reserva_lista_espera`.
 
 ## Recursos
 
@@ -170,23 +180,41 @@ El catálogo raíz `recursos.recursos` y la relación 1:1 con equipos, mobiliari
 | `periodo` | tstzrange | NULL; proyección técnica del periodo aplicable, mantenida desde el detalle y, cuando aplique, desde `incorporado_at` |
 | `bloqueante` | boolean | NOT NULL, DEFAULT `false`; proyección técnica mantenida desde estado y asignación |
 
-Índices `(recurso_id, estado_asignacion)` y `(reserva_id, recurso_id)`. No se borran asociaciones: los cambios conservan historial. El índice único parcial sobre `(reserva_id, recurso_id)` aplica cuando `estado_asignacion <> 'RETIRADO'`. Un segundo índice único sobre `(reserva_id)` admite como máximo un recurso con `rol = 'PRINCIPAL'` y `estado_asignacion = 'ASIGNADO'`.
+Índices `(recurso_id, estado_asignacion)` y `(reserva_id, recurso_id)`. El retiro manual del Técnico en `ESPACIO` y `RECURSO_INTERNO` elimina únicamente la asociación vigente permitida por `RN-TIP-PE-21` y `RN-TIP-RI-10`, sin fila histórica `RETIRADO` ni metadatos del retiro. No se elimina el `PRINCIPAL` de interno. Las operaciones genéricas no aplican a campus, externo ni lista de espera. Se conservan las asociaciones históricas cuando una regla lo exige expresamente: retiro automático por préstamo (`RN-TIP-PE-28`), deshabilitación (`RN-CAN-05`, `RN-CAN-08`) y edición del reservista (`RN-PRO-06`). El índice único parcial sobre `(reserva_id, recurso_id)` aplica cuando `estado_asignacion <> 'RETIRADO'`. Un segundo índice único sobre `(reserva_id)` admite como máximo un recurso con `rol = 'PRINCIPAL'` y `estado_asignacion = 'ASIGNADO'`.
 
 La FK de `recurso_id` depende del catálogo externo `recursos.recursos`, aún inexistente. El CHECK temporal `pendiente_fk_recursos` impide insertar asignaciones hasta que esa referencia esté disponible.
 
 La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. `LISTA_ESPERA` no registra filas en `reserva_recursos`: no tiene espacio ni recursos `PRINCIPAL` o `ADICIONAL`. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
 
-Las fechas de negocio se obtienen del detalle de la reserva y no se duplican como campos de inicio y fin en esta tabla. `periodo` es una proyección técnica mantenida por disparadores para la restricción de exclusión propuesta en ADR-001. Si un recurso se agrega durante `EN_EJECUCION` a una reserva por espacio o de uso interno, su extremo inicial es `incorporado_at`; si se asigna antes de la ejecución, usa el inicio normal del detalle. La entrega física abre el rango: un recurso entregado sin devolución registrada proyecta `periodo` como rango abierto `[inicio, )` hasta que `reserva_ejecucion_recursos.devuelto_at` lo cierra (decisión DB-11, 2026-09-23: ante la contradicción con ADR-001, rige el ADR). Las fechas de negocio del detalle no se modifican; solo la proyección técnica cambia.
+Las asignaciones físicas efectivas de `RECURSO_CAMPUS` y `RECURSO_EXTERNO` mantienen un compromiso exclusivo por `recurso_id` mientras la reserva esté `SOLICITADA`, `APROBADA` o `EN_EJECUCION`, tanto para `PRINCIPAL` como para `ADICIONAL`. No se admite otro compromiso aunque las fechas sean distintas, ni se permite eludirlo incorporando el recurso como complementario de espacio (`RN-RES-14`, `RN-DIS-06`, decisión del hallazgo 1, 2026-09-24). Los índices por `(reserva_id, recurso_id)` y por principal no garantizan esta exclusividad global. Su mecanismo de integridad requiere diseño y migración nuevos, todavía pendientes; su diseño de exclusividad no queda implementado aquí. Los atributos objetivo de trazabilidad se describen por separado, sin DDL ni migración aplicada.
+
+Las fechas de negocio se obtienen del detalle de la reserva y no se duplican como campos de inicio y fin en esta tabla. `periodo` es una proyección técnica mantenida por disparadores para la restricción de exclusión propuesta en ADR-001. Si un recurso se agrega durante `EN_EJECUCION` a una reserva por espacio o de uso interno, su extremo inicial es `incorporado_at`; si se asigna antes de la ejecución, usa el inicio normal del detalle. Solo en campus y externo, la entrega física abre el rango: un recurso entregado sin devolución registrada proyecta `periodo` como rango abierto `[inicio, )` hasta que `reserva_ejecucion_recursos.devuelto_at` lo cierra (decisión DB-11, 2026-09-23: ante la contradicción con ADR-001, rige el ADR). Las fechas de negocio del detalle no se modifican; solo la proyección técnica cambia.
+
+### Trazabilidad del retiro por préstamo — modelo objetivo, no instalado
+
+Para `RN-TIP-PE-28`, la fila original de `reserva_recursos` pasa a `RETIRADO` y se conserva. El modelo objetivo requiere los siguientes atributos adicionales de esa asignación; no se afirma que existan en la base y su incorporación exige una tarea DB y una migración nueva:
+
+| Campo objetivo | Tipo | Restricción objetivo |
+|---|---|---|
+| `retirado_at` | timestamptz | Obligatorio para retiro por préstamo; instante del retiro automático |
+| `causa_retiro` | varchar(40) | `PRESTAMO_FISICO` para esta causa; sin redefinir otras causas de retiro |
+| `reserva_causante_id` | integer | FK a `reservas.reservas(id)`, sin cascada; obligatorio para retiro por préstamo |
+
+Estos tres valores se registran conjuntamente con el retiro y el compromiso físico. Para esta causa, la asignación debe ser complementaria de `ESPACIO`, estar `RETIRADO` y referenciar una reserva distinta de tipo préstamo que incorpora el mismo recurso. El diseño de integridad debe garantizar estas correspondencias. La referencia se conserva aunque el préstamo se cancele o termine. Los retiros anteriores o de otras causas no se reinterpretan ni reciben una causa inventada.
+
+Las asignaciones retiradas automáticamente por préstamo quedan fuera del bloqueo efectivo; se conservan sus datos de asignación y trazabilidad. Una reincorporación permitida crea otra fila y no sobrescribe la retirada. No se generan filas de `reserva_ejecucion_recursos` para el espacio. Esta trazabilidad específica no introduce una auditoría general de Reservations.
 
 ## Disponibilidad y configuración por unidad
 
 El cálculo aplica [RN-DIS](business-rules.md#disponibilidad--rn-dis); los estados bloqueantes y no bloqueantes se definen únicamente en RN-EST-02 y RN-EST-03.
 
-La asignación del espacio corresponde a `reserva_espacio.espacio_id`, con el periodo definido por `fecha`, `hora_inicio` y `hora_fin`. Su `periodo tsrange` es una columna generada que devuelve NULL SQL si falta cualquier extremo; `bloqueante` se mantiene según el estado de la reserva y ambos campos participan en la restricción de exclusión propuesta en ADR-001. Para recursos, la asignación efectiva corresponde a una fila de `reserva_recursos` con `estado_asignacion = 'ASIGNADO'` y al periodo definido en el detalle del tipo. Este estado de asignación es independiente de la aprobación de la reserva: puede asignarse un recurso al registrar la solicitud, antes de su aprobación. Las filas `NO_DISPONIBLE` y `RETIRADO` no representan asignaciones bloqueantes.
+La asignación del espacio corresponde a `reserva_espacio.espacio_id`, con el periodo definido por `fecha`, `hora_inicio` y `hora_fin`. Su `periodo tsrange` es una columna generada que devuelve NULL SQL si falta cualquier extremo; `bloqueante` se mantiene según el estado de la reserva y ambos campos participan en la restricción de exclusión propuesta en ADR-001. Para recursos, la asignación efectiva corresponde a una fila de `reserva_recursos` con `estado_asignacion = 'ASIGNADO'` y al periodo definido en el detalle del tipo. Este estado de asignación es independiente de la aprobación de la reserva: puede asignarse un recurso al registrar la solicitud, antes de su aprobación. Las filas `NO_DISPONIBLE` y `RETIRADO` no representan asignaciones temporales bloqueantes. No obstante, retirar una asignación entregada no acredita devolución ni puede liberar su compromiso: se exige el cierre válido de `RN-DIS-06`.
 
 El periodo de negocio del recurso se obtiene del detalle de su tipo y no se duplican en `reserva_recursos` los campos de fecha u hora. La proyección técnica `periodo` se sincroniza desde ese detalle y, cuando exista, desde `incorporado_at` como extremo inicial. Un periodo no aplicable o incompleto se representa con NULL SQL. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, un recurso entregado sin devolución registrada proyecta un rango abierto `[inicio, )` que lo mantiene bloqueado hasta el cierre único que registra la devolución de todos los recursos entregados (decisión DB-11, 2026-09-23); la restricción de exclusión lo hace efectivo, conforme a RN-DIS-06. `LISTA_ESPERA` no tiene filas en `reserva_recursos`. Asignar o modificar un periodo posteriormente exige la misma validación transaccional.
 
-Los recursos complementarios no disponibles se conservan como `NO_DISPONIBLE`, sin asignación para el periodo incompatible, conforme a RN-TIP-PE-14. No impiden guardar la reserva del espacio. Al modificar o aprobar, la comparación excluye las asignaciones de la propia reserva.
+Los complementarios con incompatibilidad temporal y sin compromiso físico se conservan como `NO_DISPONIBLE`, sin asignación para ese periodo (`RN-TIP-PE-14`). Un recurso con compromiso físico vigente no puede incluirse en otra solicitud, ni como `NO_DISPONIBLE`; el espacio puede solicitarse sin él. Al modificar, reprogramar, aprobar o entregar, la comparación excluye las asignaciones y el compromiso propios.
+
+La exclusividad física comienza con la incorporación efectiva, antes de la entrega, y no termina al vencer las fechas. Una cancelación o rechazo válidos antes de entrega terminan el compromiso sin devolución; un retiro permitido antes de entrega termina la asignación conservando su historia. Si hubo entrega, deben registrarse la devolución de todos los recursos y el cierre único. El registro de devolución no cambia habilitación ni operatividad en Resources: esas condiciones se revalidan para toda nueva solicitud (`RN-DIS-04`). La planificación por franjas de espacios, recursos internos y complementarios sin préstamo se conserva. El diseño de integridad debe cubrir su convivencia con compromisos físicos y las operaciones concurrentes entre modalidades. El caso mixto queda definido por `RN-TIP-PE-28`: al establecer el préstamo se retiran automáticamente los complementarios efectivos de espacios en `SOLICITADA` o `APROBADA`; si alguno está `EN_EJECUCION`, se rechaza el préstamo completo. No se cancela el espacio ni se restauran asignaciones al cancelar el préstamo.
 
 Las opciones `mostrar_estado_reserva` y `mostrar_reservista` se almacenan únicamente en [reservas.laboratorios_config](../resources/data-model.md#reservaslaboratorios_config), ambas `boolean NOT NULL DEFAULT false`, por `id_unidad`. Reservations consulta esa configuración conforme a RN-DIS-07 a RN-DIS-10; no duplica esos campos en cada reserva. El backend filtra la respuesta de disponibilidad antes de enviarla al Usuario.
 
@@ -194,7 +222,9 @@ Las opciones `mostrar_estado_reserva` y `mostrar_reservista` se almacenan única
 
 Validar conflictos y escribir la reserva, el detalle y las asignaciones debe constituir una operación atómica protegida frente a concurrencia, conforme a RN-DIS-05. Dos operaciones incompatibles no pueden confirmar ambas. Un fallo de validación revierte las escrituras de la operación.
 
-La propuesta de diseño seleccionada, pendiente de aprobación formal, está documentada en [ADR-001](../../docs/decisions/adr-001-doble-reserva.md): una restricción de exclusión de PostgreSQL sobre `reserva_espacio` y `reserva_recursos`; el periodo de espacios es generado en la fila y el de recursos es una proyección mantenida por disparadores desde sus detalles. La condición de bloqueo también se sincroniza desde estado y asignación. Quedan pendientes la aprobación formal, la zona horaria explícita, los disparadores, las restricciones de exclusión y las pruebas de concurrencia enumeradas por el ADR, para creación, reprogramación, cambio de elementos, ejecución y devolución. Una transacción sin protección específica frente a concurrencia, una consulta previa o los índices ordinarios no acreditan esta garantía. Esta documentación define el requisito, no una protección ya implementada.
+El diseño temporal de [ADR-001](../../docs/decisions/adr-001-doble-reserva.md) fue aprobado el 2026-09-23 y se amplía funcionalmente el 2026-09-24: además de excluir solapamientos, la base debe impedir dos compromisos físicos vigentes del mismo recurso, incluso con fechas distintas. La exclusión temporal y la apertura del rango al entregar no bastan para ello. La representación y las restricciones adicionales quedan pendientes de diseño y migración; no se sustituye esta garantía por una consulta previa. Se conservan las exclusiones temporales y sus proyecciones como parte del diseño, no como solución completa.
+
+La zona operativa fijada por DB-11 es `America/Bogota`. Faltan la implementación de disparadores, exclusiones y garantía de compromiso único, y sus pruebas contra la base para creación, incorporación, reprogramación, aprobación, entrega, devolución y liberación. Debe comprobarse también concurrencia con periodos distintos, cruce de tipos y convivencia con complementarios de espacio. Una entrega abierta nunca se libera mediante cambio de estado o retirada de asignación. Esta documentación define requisitos, no una protección ya instalada.
 
 ## Contexto y campos de espacio
 
@@ -264,7 +294,7 @@ La aplicación verifica que el campo pertenece al espacio del detalle, que los o
 
 ### `reservas.reserva_adjuntos`
 
-Archivos que el Usuario adjunta a su requerimiento. El único flujo que hoy los produce es `UF-RES-05`, la creación de una reserva de lista de espera, donde se adjunta un archivo CAD, una imagen u otro archivo técnico.
+Archivos técnicos que el reservista adjunta a una reserva propia de `LISTA_ESPERA` en `SOLICITADA`, conforme a `UF-RES-05`, antes o después de evaluar viabilidad. La reserva se crea primero; la carga posterior utiliza su identificador. Cada carga válida crea una fila; no cambia el estado ni habilita el formulario. Un fallo de almacenamiento o validación no deja una fila que apunte a un archivo inexistente ni elimina la reserva. La consulta/descarga respeta el ámbito de acceso a la reserva; `storage_key` es interno y no se expone como ruta pública.
 
 | Campo | Tipo | Restricción |
 |---|---|---|
@@ -292,7 +322,7 @@ El backend valida que el contenido corresponda al tipo declarado y no confía en
 
 ### `reservas.reserva_ejecucion_recursos`
 
-Registro de entrega y devolución física para `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, independiente de la asignación temporal y de las firmas físicas del FGL 030.
+Registro de entrega y devolución física exclusivamente para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, independiente de la asignación temporal y de las firmas físicas del FGL 030. `ESPACIO` y `RECURSO_INTERNO` no generan filas en esta tabla: sus estados no dependen de entrega ni devolución. `LISTA_ESPERA` tampoco genera filas: recibir material, iniciar fabricación/prestación y finalizar con horas utilizan su detalle y el historial de estados existentes.
 
 | Campo | Tipo | Restricción |
 |---|---|---|
@@ -305,7 +335,7 @@ Registro de entrega y devolución física para `RECURSO_INTERNO`, `RECURSO_CAMPU
 | `observacion_entrega` | text | NULL |
 | `observacion_devolucion` | text | NULL |
 
-`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso: CHECK que exige que ambos sean NULL o ambos tengan valor. Un índice único parcial sobre `(reserva_recurso_id)` para las filas con `devuelto_at IS NULL` impide más de una entrega abierta por recurso asignado, que es lo que sostiene la disponibilidad física de `RN-DIS-06`. Para una reserva con recursos que requieren devolución, la finalización registra la devolución de todos ellos en una misma operación; no se permite cerrar parcialmente la reserva. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
+`recibido_por` y `devuelto_at` se completan juntos al devolver el recurso: CHECK que exige que ambos sean NULL o ambos tengan valor. Un índice único parcial sobre `(reserva_recurso_id)` para las filas con `devuelto_at IS NULL` impide más de una entrega abierta por recurso asignado, pero no impide entregas abiertas del mismo recurso en asignaciones de reservas distintas ni garantiza el compromiso único de `RN-DIS-06`. Esa protección adicional por recurso queda pendiente de diseño e implementación. Para una reserva con recursos que requieren devolución, la finalización registra la devolución de todos ellos en una misma operación; no se permite cerrar parcialmente la reserva. Las transiciones de la reserva se rigen por las reglas de ejecución del tipo; asignar o desasignar un recurso no provoca por sí solo el inicio o la finalización de ejecución.
 
 ### `reservas.reserva_datos_salida`
 
@@ -322,6 +352,8 @@ Datos obligatorios del FGL 030 capturados al crear una reserva `RECURSO_CAMPUS` 
 La orden copia estos valores como snapshot al generarse; no se capturan por primera vez en `ordenes_salida`.
 
 ### `reservas.ordenes_salida`
+
+La FGL 030 se genera junto con el paso a `APROBADA` de campus o externo, incluida la autoaprobación, dentro del mismo proceso de salida que registra la entrega física y el inicio de ejecución. El retiro automático por deshabilitación solo aplica antes de ese proceso (`RN-CAN-06`). Desde la salida, la composición queda fija hasta la devolución. Cabecera, actividades e ítems se fijan con los datos vigentes en ese momento. Desde entonces son inmutables y no se permiten cambios de fechas, recursos ni otros datos de la reserva que alteren su contenido (`RN-TIP-RC-07`, `RN-TIP-RE-07`). No se regenera ni versiona; no se incorporan tablas ni campos de versiones. La aprobación y la generación se confirman juntas o se revierten juntas.
 
 Datos con los que el sistema **prellena** el formato "FGL 030 Orden de salida equipos y herramientas" (`RN-TIP-RC-11`, `RN-TIP-RE-11`) para imprimirlo, generado para una reserva de tipo `RECURSO_CAMPUS` o `RECURSO_EXTERNO` y listando todos sus recursos —`PRINCIPAL` y `ADICIONAL`es— (`RN-TIP-RC-01`, `RN-TIP-RE-01`, `RN-TIP-RC-07`, `RN-TIP-RE-07`). Esta tabla **no captura firmas ni autorizaciones**: los jefes de cartera/laboratorios, el V.o.B.o del Centro Parque I y el técnico de bienes muebles firman físicamente sobre el documento impreso (`RN-TIP-RC-14`, `RN-TIP-RE-14`); igual ocurre con quien entrega, retira, regresa y recibe el bien. Ninguno de esos campos existe aquí. Los datos que sí se guardan se copian como snapshot en el momento de generación — los que se prellenan desde otra tabla (`RN-TIP-RC-13`, `RN-TIP-RE-13`) se copian, no se referencian, para que la orden conserve exactamente lo impreso aunque la fuente cambie después — el mismo principio de `reserva_contexto` (`RN-CTX-07`).
 
@@ -361,7 +393,7 @@ Campos generales restantes del formato:
 |---|---|---|
 | `observaciones` | text | NULL |
 
-`fecha_regreso_snapshot` conserva la fecha estimada de regreso impresa originalmente en la orden. La devolución efectiva se registra en `reserva_ejecucion_recursos.devuelto_at`; hasta que el Técnico la registre, el recurso sigue ocupado por la reserva en ejecución. Puede existir una solicitud posterior con periodo compatible, pero no se aprueba ni se entrega hasta que se cumpla RN-DIS-06.
+`fecha_regreso_snapshot` conserva la fecha estimada de regreso impresa originalmente en la orden. La devolución efectiva se registra en `reserva_ejecucion_recursos.devuelto_at`; hasta que el Técnico la registre, el recurso sigue ocupado por la reserva en ejecución. No puede crearse otra solicitud que incorpore el recurso mientras exista el compromiso vigente, aunque el periodo sea posterior. Una nueva solicitud solo es elegible tras terminar el compromiso y verificar habilitación y operatividad (`RN-RES-14`, `RN-DIS-06`).
 
 ### `reservas.orden_salida_actividades`
 
@@ -407,6 +439,7 @@ Las secciones 3, 4 y 5 del FGL 030 se firman físicamente sobre el documento. El
 
 La orden no almacena su propio tipo: se deriva de `reserva_id`, que es UNIQUE, hacia `tipos_reserva.codigo`, y solo existe para los tipos `RECURSO_CAMPUS` y `RECURSO_EXTERNO`. La aplicación comprueba que `orden_salida_items` incluye exactamente los recursos activos (`PRINCIPAL` y `ADICIONAL`es) de esa reserva, sin faltantes ni sobrantes.
 
+
 ## Propuestas de periodo
 
 ### `reservas.reserva_propuestas`
@@ -431,7 +464,7 @@ Propuestas y contrapropuestas de periodo alternativo (`RN-PROP-01` a `RN-PROP-07
 
 CHECK `fecha_fin_propuesta >= fecha_inicio_propuesta` y `hora_inicio < hora_fin` cuando ambas tienen valor. Para `ESPACIO` y `RECURSO_INTERNO`, las fechas de inicio y fin deben ser iguales; para `RECURSO_CAMPUS` y `RECURSO_EXTERNO` representan salida y devolución estimada. `LISTA_ESPERA` no admite propuestas. Índice único parcial sobre `(reserva_id)` para filas con `estado = 'VIGENTE'`, que garantiza `RN-PROP-07`: una sola propuesta o contrapropuesta vigente a la vez. Índice `(reserva_id, created_at)` para reconstruir la negociación.
 
-Una contrapropuesta marca la propuesta anterior como `SUSTITUIDA` y crea una fila nueva con `origen = 'USUARIO'`, conforme a `RN-PROP-03`. Aceptar una propuesta revalida las reglas del tipo antes de reprogramar la reserva (`RN-PROP-05`); rechazarla deja la reserva en `SOLICITADA` con su horario original (`RN-PROP-06`). Ninguna propuesta cambia por sí misma el estado de la reserva (`RN-PROP-02`).
+Una contrapropuesta marca la propuesta anterior como `SUSTITUIDA` y crea una fila nueva con `origen = 'USUARIO'`, conforme a `RN-PROP-03`. En campus y externo, una orden ya generada impide proponer, contraproponer o aceptar un cambio de periodo, incluso para propuestas anteriores a la aprobación; no se modifica la propuesta ni la orden. Aceptar una propuesta exige reserva en `SOLICITADA` o `APROBADA` y revalida todas las reglas aplicables a la reprogramación (`RN-PROP-05`). En una transacción actualiza el periodo y la propuesta a `ACEPTADA` con actor y fecha de resolución, conservando el estado de la reserva y su `fecha_aprobacion` si ya estaba aprobada. No inserta `APROBADA → APROBADA` en el historial. Ante fallo revierte periodo, asociaciones y resolución: la propuesta sigue `VIGENTE`. Rechazarla cambia únicamente su resolución y conserva el periodo y estado actual de la reserva, incluida `APROBADA` (`RN-PROP-06`). Ninguna propuesta cambia por sí misma el estado de la reserva (`RN-PROP-02`).
 
 ## Estados
 
@@ -449,7 +482,7 @@ Registra únicamente transiciones del ciclo de vida de la reserva.
 | `motivo` | text | NULL |
 | `created_at` | timestamptz | NOT NULL; DEFAULT `now()` |
 
-`actor_cuenta_id` admite NULL porque no toda transición tiene un actor humano: la finalización automática de una reserva por espacio la ejecuta el sistema al alcanzar `hora_fin`, conforme a `RN-TIP-PE-25` y `UF-RES-21`. Toda transición originada por una persona registra su cuenta con FK real. Índice `(reserva_id, created_at)` para reconstruir el ciclo de vida en orden.
+`actor_cuenta_id` admite NULL para las transiciones automáticas de espacio e interno. En espacio, al vencer `hora_fin`, `SOLICITADA → CANCELADA` registra también `fecha_cancelacion` y motivo de vencimiento sin aprobación, y `APROBADA` o `EN_EJECUCION → FINALIZADA` registra el cierre. Rechazadas y canceladas no cambian. Una aprobación de espacio durante la franja registra `SOLICITADA → APROBADA → EN_EJECUCION` en una misma transacción: aprobación con actor humano y fecha, e inicio automático con origen sistema. Interno registra sus transiciones automáticas por horario sin filas físicas. Se utiliza únicamente la cabecera y el historial existentes (`RN-TIP-PE-25`, `RN-TIP-PE-27`, `RN-TIP-RI-08`, `RN-TIP-RI-09`). Toda transición originada por una persona registra su cuenta con FK real. Índice `(reserva_id, created_at)` para reconstruir el ciclo de vida en orden.
 
 La auditoría de Reservations, incluidos `reserva_auditoria` y los snapshots del actor, está fuera del alcance funcional actual y queda pendiente de diseño futuro. `reserva_historial_estado` conserva únicamente las transiciones necesarias para el ciclo de vida de la reserva.
 
@@ -457,7 +490,7 @@ La auditoría de Reservations, incluidos `reserva_auditoria` y los snapshots del
 
 - PK/FK y la transacción de servicio garantizan la creación completa; el backend exige exactamente un detalle compatible con el tipo.
 - CHECK cubre comparaciones invariantes de horas y fechas. Fechas pasadas, disponibilidad, capacidad, pertenencia a unidad y horario vigente son reglas de negocio.
-- La exclusividad temporal de espacios y recursos requiere la garantía transaccional del dominio; los índices no la sustituyen.
+- La exclusividad temporal y el compromiso físico único requieren garantías en base de datos. Los índices actuales por asignación y la exclusión por periodo no garantizan por sí solos el compromiso único por recurso.
 - Todas las cuentas y actores usan FK real a `auth.cuentas`.
 
 ## Puntos pendientes

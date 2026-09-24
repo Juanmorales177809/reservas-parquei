@@ -18,15 +18,15 @@ Cuando el contexto de una reserva incluye proyecto o semillero, el reservista (c
 
 La composición de recursos de cada tipo sigue RN-RES-12. Una reserva por espacio puede continuar sin recursos complementarios y no solicita un recurso principal.
 
-En UF-RES-02, UF-RES-03 y UF-RES-04, el sistema registra la entrega física y, al cierre, la devolución de todos los recursos entregados con fecha, responsable y observaciones cuando correspondan, según [el registro de ejecución](data-model.md#reservasreserva_ejecucion_recursos). No se permite una devolución parcial durante la ejecución. Asignar un recurso a la reserva o retirarlo de su composición no acredita su entrega ni su devolución. Los cambios de estado siguen las reglas de ejecución del tipo.
+En UF-RES-03 y UF-RES-04, el sistema registra la entrega física y, al cierre, la devolución de todos los recursos entregados con fecha, responsable y observaciones cuando correspondan, según [el registro de ejecución](data-model.md#reservasreserva_ejecucion_recursos). No se permite una devolución parcial durante la ejecución. Asignar un recurso a la reserva o retirarlo de su composición no acredita su entrega ni su devolución. Los cambios de estado siguen las reglas de ejecución del tipo.
 
 ## Condición común de disponibilidad
 
 Los flujos de creación, modificación, asignación de elementos y aprobación aplican RN-DIS. Al confirmar la operación, el sistema revalida disponibilidad y guarda de forma transaccional con protección frente a concurrencia; si otra reserva bloquea un elemento obligatorio, informa del conflicto y no confirma los cambios. Al modificar o aprobar se excluye la propia reserva de la comparación. El mecanismo técnico está pendiente de implementación según el data-model.
 
-Solo las asignaciones con periodo definido y un estado bloqueante conforme a RN-EST-02 y RN-EST-03 ocupan disponibilidad. Una solicitud sin periodo, como lista de espera, no ocupa franjas futuras; al asignarle un periodo se aplica la misma validación. Los recursos complementarios no disponibles siguen la excepción RN-TIP-PE-14.
+En espacios, recursos internos y complementarios sin entrega física, las asignaciones bloquean por periodo conforme a RN-EST-02 y RN-EST-03. En préstamos físicos, la incorporación efectiva de cada recurso crea un compromiso exclusivo desde `SOLICITADA`, sin depender del solapamiento de fechas. Lista de espera no asigna recursos ni bloquea franjas. La excepción RN-TIP-PE-14 no permite incorporar recursos con compromiso físico vigente.
 
-En `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, la compatibilidad del periodo solicitado permite registrar solicitudes futuras, pero no sustituye la disponibilidad física: una entrega abierta o un compromiso anterior aprobado impiden aprobar y entregar el recurso hasta que corresponda según RN-DIS-06.
+En `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, otro compromiso vigente o una entrega abierta impiden crear la solicitud o incorporar el recurso, aunque el nuevo periodo sea posterior. La condición aplica a Usuarios y Técnicos, con o sin autoaprobación. No se crea una solicitud pendiente de liberación. Terminado válidamente el compromiso y registrada la devolución cuando corresponda, cada nueva solicitud revalida habilitación y operatividad conforme a RN-DIS-04 y RN-DIS-06. Una fecha estimada cumplida no acredita disponibilidad. Los complementarios ya asignados a espacios se resuelven mediante `UF-RES-23` al establecer el compromiso: retiro automático en `SOLICITADA` o `APROBADA`, rechazo del préstamo en `EN_EJECUCION`. El espacio nunca se cancela por esta causa.
 
 ---
 
@@ -45,7 +45,7 @@ Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 7. El usuario selecciona fecha, hora de inicio y hora de finalización.
 8. El sistema valida disponibilidad del espacio.
 9. El sistema muestra la disponibilidad de los recursos asociados.
-10. Los recursos complementarios no disponibles quedan sin asignar para ese periodo y se muestran como no disponibles, conforme a RN-TIP-PE-14; el usuario puede continuar con la reserva del espacio.
+10. Los complementarios con incompatibilidad temporal siguen RN-TIP-PE-14. Los que tengan un compromiso físico vigente se muestran como no seleccionables y no se incluyen, ni como `NO_DISPONIBLE`; el usuario puede continuar con el espacio sin ellos. Si intenta enviarlos, la operación se rechaza sin escrituras parciales.
 11. Si entre los equipos seleccionados alguno tiene `requiere_apoyo = true`, el sistema selecciona automáticamente “requiere técnico” y el usuario no puede desmarcarlo.
 12. Si ningún equipo exige apoyo, el usuario puede seleccionar voluntariamente “requiere técnico”.
 13. El usuario diligencia los campos adicionales obligatorios, cuando existan.
@@ -74,16 +74,16 @@ Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 4. El usuario selecciona uno o varios recursos: un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es (`RN-TIP-RI-01`, `RN-RES-12`).
 5. Si un equipo seleccionado tiene `requiere_apoyo = true`, el sistema selecciona “requiere técnico” y bloquea su desactivación; si ninguno lo exige, el usuario puede solicitarlo voluntariamente.
 6. Selecciona la fecha y el horario de inicio y finalización de uso, dentro de un mismo día y aplicables a todos los recursos (`RN-TIP-RI-02`).
-7. El sistema valida la disponibilidad de cada recurso durante todo el periodo.
+7. El sistema valida habilitación, operatividad, disponibilidad temporal y ausencia de otro compromiso vigente para cada recurso. Revalida al guardar; si algún recurso tiene otro compromiso físico, no crea la solicitud (`RN-DIS-06`). Se admiten franjas no solapadas. La reserva interna no genera compromiso físico ni retira complementarios de espacios.
 8. El usuario envía la solicitud.
 9. La reserva queda en `SOLICITADA` o `APROBADA` según la configuración de aprobación automática.
 
 ### Ejecución
-1. El Técnico  entrega físicamente el recurso.
-2. La reserva pasa a `EN_EJECUCION`.
-3. El Técnico  puede agregar recursos adicionales si están habilitados, operativos y disponibles durante el periodo aplicable.
-4. Al cerrar la reserva, el Técnico registra en una misma operación la devolución o finalización de todos los recursos entregados.
-5. La reserva pasa a `FINALIZADA`.
+1. Al alcanzar `hora_inicio`, el sistema cambia una reserva `APROBADA` a `EN_EJECUCION`.
+2. Desde `EN_EJECUCION` ya no puede cancelarse.
+3. El Técnico puede agregar recursos adicionales habilitados, operativos y disponibles desde su incorporación hasta el fin de la franja.
+4. Al alcanzar `hora_fin`, el sistema cambia `EN_EJECUCION` a `FINALIZADA`.
+5. No se registra entrega ni devolución física. La disponibilidad se controla por franja, sin depender de esos registros.
 
 ---
 
@@ -99,18 +99,21 @@ Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
 5. Selecciona fecha de salida y fecha estimada de devolución, aplicables a todos los recursos.
 6. Registra razón de la solicitud, nombre y dirección del lugar de uso, y el nombre de la actividad o evento cuando aplique. El sistema los conserva asociados a la reserva.
-7. El sistema valida que el periodo solicitado de cada recurso sea compatible con las reservas bloqueantes. La fecha estimada no libera un recurso prestado.
+7. El sistema valida habilitación, operatividad, compatibilidad temporal y ausencia de otro compromiso vigente por recurso. Revalida al guardar; otro compromiso físico impide crear la solicitud aunque las fechas sean distintas (`RN-DIS-06`). Los complementarios previos de espacio siguen `UF-RES-23`.
 8. El usuario envía la solicitud.
-9. La reserva queda en `APROBADA` según la configuración aplicable solo si todos los recursos obligatorios cumplen la disponibilidad física; en caso contrario queda en `SOLICITADA` hasta su devolución real.
+9. Si todas las validaciones se cumplen, la reserva queda en `SOLICITADA` o `APROBADA` según la configuración y el actor. Un recurso comprometido impide crear la solicitud; no se registra una reserva pendiente de su devolución.
 
-### Entrega y devolución
-1. Antes de aprobar o entregar, el sistema verifica que todos los recursos obligatorios estén físicamente en el laboratorio y que no exista un compromiso anterior aprobado pendiente para ellos; el Técnico no puede continuar si falla esa validación.
-2. El sistema genera la orden de salida para uso dentro del campus, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` y los datos registrados al crear la reserva conforme a RN-SAL.
+### Proceso de salida y devolución
+La aprobación, la generación de FGL 030 y el inicio de ejecución integran el mismo proceso de salida. El retiro automático por deshabilitación solo aplica antes de este proceso. Desde la salida, la composición queda fija hasta la devolución.
+
+1. Antes de aprobar o entregar, el sistema revalida habilitación, operatividad y disponibilidad física, excluyendo el compromiso de la propia reserva. No admite otro compromiso ni entrega abierta incompatible; el Técnico no puede continuar si falla la validación.
+2. Al pasar la reserva a `APROBADA`, incluida la autoaprobación, el sistema genera la FGL 030 para uso dentro del campus, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` y los datos registrados al crear la reserva conforme a RN-SAL.
+Desde la generación, la orden es inmutable, no se regenera ni versiona y no se permiten cambios de los datos que contiene.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
 5. Al cerrar la reserva, el Técnico registra la devolución de todos los recursos entregados en una sola operación.
 6. La reserva pasa a `FINALIZADA`.
-7. Si el Usuario necesita usar los recursos por un periodo posterior, puede crear la nueva solicitud antes de la devolución real, conforme a `RN-RES-14`. Queda `SOLICITADA` y solo se aprueba o entrega después de que los recursos estén disponibles físicamente.
+7. Para solicitar nuevamente los recursos, primero debe terminar el compromiso anterior y registrarse su devolución cuando corresponda. La nueva solicitud exige comprobar que siguen habilitados y operativos, además de las demás condiciones (`RN-RES-14`, `RN-DIS-06`).
 
 ---
 
@@ -125,18 +128,21 @@ Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 3. El sistema muestra los recursos autorizados para este tipo de salida.
 4. El usuario selecciona uno o varios recursos (un `PRINCIPAL` y, opcionalmente, `ADICIONAL`es).
 5. Selecciona fecha de salida y fecha estimada de devolución, aplicables a todos los recursos.
-6. El sistema valida que el periodo solicitado de cada recurso sea compatible con las reservas bloqueantes. La fecha estimada no libera un recurso prestado.
+6. El sistema valida habilitación, operatividad, compatibilidad temporal y ausencia de otro compromiso vigente por recurso. Revalida al guardar; otro compromiso físico impide crear la solicitud aunque las fechas sean distintas (`RN-DIS-06`). Los complementarios previos de espacio siguen `UF-RES-23`.
 7. El usuario envía la solicitud.
-8. La reserva queda en `APROBADA` según la configuración aplicable solo si todos los recursos obligatorios cumplen la disponibilidad física; en caso contrario queda en `SOLICITADA` hasta su devolución real.
+8. Si todas las validaciones se cumplen, la reserva queda en `SOLICITADA` o `APROBADA` según la configuración y el actor. Un recurso comprometido impide crear la solicitud; no se registra una reserva pendiente de su devolución.
 
-### Entrega y devolución
-1. Antes de aprobar o entregar, el sistema verifica que todos los recursos obligatorios estén físicamente en el laboratorio y que no exista un compromiso anterior aprobado pendiente para ellos; el Técnico no puede continuar si falla esa validación.
-2. El sistema genera la orden de salida externa, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` y los datos registrados al crear la reserva conforme a RN-SAL.
+### Proceso de salida y devolución
+La aprobación, la generación de FGL 030 y el inicio de ejecución integran el mismo proceso de salida. El retiro automático por deshabilitación solo aplica antes de este proceso. Desde la salida, la composición queda fija hasta la devolución.
+
+1. Antes de aprobar o entregar, el sistema revalida habilitación, operatividad y disponibilidad física, excluyendo el compromiso de la propia reserva. No admite otro compromiso ni entrega abierta incompatible; el Técnico no puede continuar si falla la validación.
+2. Al pasar la reserva a `APROBADA`, incluida la autoaprobación, el sistema genera la FGL 030 externa, listando todos los recursos y copiando las casillas del FGL 030 desde `reserva_contexto` y los datos registrados al crear la reserva conforme a RN-SAL.
+Desde la generación, la orden es inmutable, no se regenera ni versiona y no se permiten cambios de los datos que contiene.
 3. Las firmas de aprobación y recepción se diligencian físicamente en la orden; el seguimiento digital de entrega y devolución sigue la condición común de ejecución.
 4. Al entregar físicamente los recursos, la reserva pasa a `EN_EJECUCION`.
 5. Al devolverlos, el Técnico  registra la devolución.
 6. La reserva pasa a `FINALIZADA`.
-7. Si el Usuario necesita usar los recursos por un periodo posterior, puede crear la nueva solicitud antes de la devolución real, conforme a `RN-RES-14`. Queda `SOLICITADA` y solo se aprueba o entrega después de que los recursos estén disponibles físicamente.
+7. Para solicitar nuevamente los recursos, primero debe terminar el compromiso anterior y registrarse su devolución cuando corresponda. La nueva solicitud exige comprobar que siguen habilitados y operativos, además de las demás condiciones (`RN-RES-14`, `RN-DIS-06`).
 
 ---
 
@@ -150,22 +156,19 @@ Reservista con cuenta de tipo `USUARIO` o `PERSONAL`.
 2. Selecciona `Lista de espera`.
 3. El sistema no solicita espacio ni recursos para este tipo de reserva.
 4. Registra la descripción de la necesidad.
-5. Cuando corresponda, adjunta un archivo CAD, imagen u otro archivo técnico.
-6. Envía la solicitud.
-7. La reserva queda en `SOLICITADA`.
-8. El Técnico  revisa la solicitud y determina si es viable.
-9. Si no es viable, la reserva pasa a `RECHAZADA`.
-10. Si es viable, el sistema habilita el formulario complementario.
-11. El usuario diligencia y envía su parte del formulario, que el sistema conserva asociada a la reserva.
-12. El Técnico revisa el formulario y completa la información que le corresponde; el formulario no tiene una aprobación independiente.
-13. El usuario entrega el material.
-14. El Técnico  registra la recepción del material.
-15. La reserva pasa a `APROBADA`.
-16. Las reservas aprobadas permanecen disponibles para selección del Técnico  sin orden cronológico obligatorio.
-17. El Técnico  selecciona la siguiente según prioridad o criterio operativo.
-18. Al iniciar la fabricación o prestación, la reserva pasa a `EN_EJECUCION`.
-19. Al finalizar, el Técnico  registra las horas empleadas.
-20. La reserva pasa a `FINALIZADA`.
+5. Envía la solicitud con su contexto y descripción; la reserva queda en `SOLICITADA`.
+6. Con el identificador de la reserva, el reservista carga los archivos técnicos que correspondan mediante la operación de adjuntos. El sistema valida cada archivo; un fallo no registra ese adjunto ni elimina la reserva. Puede consultar y descargar sus archivos.
+7. El Técnico consulta la solicitud y sus adjuntos y registra explícitamente la evaluación de viabilidad.
+8. Si no es viable, registra el motivo; la evaluación y el paso a `RECHAZADA` se guardan juntos, conservando la información.
+9. Si es viable, se registra la evaluación, permanece `SOLICITADA` y se habilita el formulario complementario.
+10. Si el reservista cambia la descripción tras evaluarla, se invalida la viabilidad y la revisión técnica y se exige nueva evaluación (`RN-TIP-PLE-09`). Con viabilidad positiva vigente, el reservista diligencia y guarda su parte; el Técnico revisa y completa la suya. Una modificación posterior de la parte del reservista invalida la parte técnica y su revisión, que deben completarse de nuevo (`RN-TIP-PLE-04`).
+11. El reservista entrega el material. En una sola operación, el Técnico confirma su recepción y solicita la aprobación.
+12. El sistema revalida viabilidad positiva y ambas partes del formulario con revisión vigente. Registra recepción, aprobación e historial en una única transacción. Si falla, conserva `SOLICITADA` sin registrar recepción (`RN-TIP-PLE-05`).
+13. Las reservas `APROBADA` permanecen disponibles para selección del Técnico, sin orden cronológico obligatorio.
+14. El Técnico selecciona la siguiente según prioridad o criterio operativo e inicia la fabricación o prestación. La acción cambia a `EN_EJECUCION`, sin entrega de recursos ni filas en `reserva_ejecucion_recursos`.
+15. Al finalizar, registra las horas empleadas; horas y transición a `FINALIZADA` se guardan juntas. No hay devolución de recursos.
+
+Ninguna etapa introduce estados globales nuevos. Las acciones técnicas exigen permiso sobre la unidad; el reservista solo carga adjuntos y diligencia su parte de una reserva propia.
 
 ---
 
@@ -179,9 +182,9 @@ Técnico .
 2. Selecciona una reserva en estado `SOLICITADA`.
 3. El sistema muestra datos de la reserva, usuario, tipo, elementos asociados, disponibilidad, observaciones e información adicional aplicable.
 4. El Técnico  revisa la solicitud.
-5. El sistema revalida las condiciones aplicables al tipo de reserva. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, verifica además que todos los recursos obligatorios estén físicamente disponibles y sin un compromiso anterior aprobado pendiente.
+5. El sistema revalida las condiciones del tipo. Para campus y externo verifica habilitación, operatividad y disponibilidad física, excluyendo el compromiso propio; no permite otro compromiso ni entrega abierta incompatible (`RN-DIS-06`).
 6. El Técnico  puede ajustar los elementos permitidos por las reglas del tipo.
-7. Si cumple las validaciones, aprueba y la reserva pasa a `APROBADA`; si un recurso aún no está disponible físicamente, la reserva permanece en `SOLICITADA`.
+7. Si cumple las validaciones, aprueba y pasa a `APROBADA`. Para `ESPACIO`, si la aprobación ocurre dentro de la franja, pasa inmediatamente a `EN_EJECUCION` en la misma operación; al alcanzar `hora_fin` rige `UF-RES-21` y no se aprueba una franja vencida. Para `LISTA_ESPERA`, esta misma operación registra la recepción del material tras verificar viabilidad y formulario completo con revisión vigente (`UF-RES-05`); no hay una aprobación que omita esa recepción. Si las condiciones cambiaron desde la creación válida, rechaza la operación de aprobación sin cambios; esto no habilita crear solicitudes para esperar otra devolución.
 8. Si rechaza, registra el motivo y la reserva pasa a `RECHAZADA`.
 9. El sistema genera las notificaciones correspondientes.
 
@@ -196,11 +199,11 @@ Técnico .
 1. El Técnico selecciona su propia unidad organizacional.
 2. Crea la reserva correspondiente.
 3. El sistema valida las reglas aplicables al tipo.
-4. Si las validaciones se cumplen, la reserva se registra directamente en `APROBADA`, excepto `LISTA_ESPERA`, que sigue siempre su flujo específico en `SOLICITADA`. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, si falta la disponibilidad física de un recurso obligatorio, se registra en `SOLICITADA`.
+4. Si las validaciones se cumplen, la reserva se registra directamente en `APROBADA`, excepto `LISTA_ESPERA`, que sigue siempre su flujo específico en `SOLICITADA`. Si existe otro compromiso vigente o entrega abierta para un recurso, no se crea la solicitud; el permiso del Técnico no exceptúa RN-DIS-06. Los retiros de complementarios previos se coordinan según `UF-RES-23`.
 
 ---
 
-## UF-RES-09 — Agregar recursos a una reserva por espacio
+## UF-RES-09 — Agregar o retirar recursos complementarios de una reserva por espacio
 
 ### Actor principal
 Técnico .
@@ -208,18 +211,21 @@ Técnico .
 ### Precondición
 La reserva debe estar en `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 
-### Flujo
+### Flujo de incorporación
 1. El Técnico  abre la reserva.
 2. Selecciona la opción para gestionar recursos asociados.
 3. El sistema muestra recursos habilitados y su disponibilidad.
 4. El Técnico  selecciona uno o más recursos.
-5. El sistema valida habilitación, estado operativo, disponibilidad y pertenencia o disponibilidad para la unidad.
+5. El sistema valida habilitación, estado operativo, disponibilidad y pertenencia o disponibilidad para la unidad. Si existe un compromiso físico vigente en otra reserva, rechaza la incorporación sin cambios (`RN-DIS-06`).
 6. Si la reserva está en `EN_EJECUCION`, el sistema valida la disponibilidad desde el instante actual hasta la finalización prevista.
 7. El sistema agrega el recurso y, si la reserva está en `EN_EJECUCION`, registra automáticamente `incorporado_at` con ese instante en la misma transacción.
 
+### Retiro manual
+El Técnico selecciona recursos complementarios. El sistema revalida la disponibilidad de la composición resultante y retira los seleccionados de la composición vigente, sin historial específico, causa, actor, fecha ni otros metadatos de retiro. Se admiten los mismos estados de la precondición. Este retiro no modifica registros conservados por retiros automáticos ni sustituye sus flujos.
+
 ---
 
-## UF-RES-10 — Agregar recursos a una reserva de uso dentro del laboratorio
+## UF-RES-10 — Agregar o retirar recursos adicionales de una reserva de uso dentro del laboratorio
 
 ### Actor principal
 Técnico .
@@ -227,14 +233,17 @@ Técnico .
 ### Precondición
 La reserva debe estar en `SOLICITADA`, `APROBADA` o `EN_EJECUCION`.
 
-### Flujo
+### Flujo de incorporación
 1. El Técnico  abre la reserva.
 2. Selecciona la opción para agregar recursos.
 3. El sistema muestra recursos habilitados y disponibles.
 4. El Técnico  selecciona recursos adicionales.
-5. El sistema valida las condiciones aplicables.
+5. El sistema valida las condiciones aplicables, incluida la ausencia de otro compromiso vigente; incorporar un adicional a interno crea únicamente su asignación temporal por franja (`RN-DIS-06`), sin entrega física ni retiros de complementarios de otras reservas.
 6. Si la reserva está en `EN_EJECUCION`, el sistema valida la disponibilidad desde el instante actual hasta la finalización prevista.
 7. El sistema agrega los recursos y, si la reserva está en `EN_EJECUCION`, registra automáticamente `incorporado_at` con ese instante en la misma transacción.
+
+### Retiro manual
+El Técnico selecciona recursos adicionales; el `PRINCIPAL` no puede retirarse. El sistema revalida la disponibilidad de la composición resultante y retira los seleccionados de la composición vigente, sin historial específico, causa, actor, fecha ni otros metadatos de retiro. Se admiten los mismos estados de la precondición. Este retiro no modifica registros conservados por retiros automáticos ni sustituye sus flujos.
 
 ---
 
@@ -263,6 +272,8 @@ Sistema.
 ### Disparador
 Se deshabilita un espacio o recurso.
 
+En campus y externo, el retiro automático de adicionales solo aplica antes del proceso de aprobación, generación de FGL 030 y salida (`RN-CAN-06`). Desde la salida no altera la composición, que queda fija hasta la devolución.
+
 ### Flujo
 1. El sistema identifica las reservas futuras que dependan del elemento deshabilitado.
 2. Excluye las reservas cuya ejecución ya haya iniciado (`RN-CAN-06`).
@@ -281,12 +292,12 @@ Se deshabilita un espacio o recurso.
 Técnico .
 
 ### Alcance
-Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`, cuyo inicio coincide con la entrega física. **Las reservas de tipo `ESPACIO` quedan excluidas**: pasan a `EN_EJECUCION` automáticamente al alcanzar su `hora_inicio` conforme a `RN-TIP-PE-27` y `UF-RES-22`.
+Reservas de `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, cuyo inicio coincide con la entrega física, y `LISTA_ESPERA`, cuyo inicio corresponde a fabricar o prestar el servicio sin entrega de recursos. **`ESPACIO` y `RECURSO_INTERNO` quedan excluidos**: inician automáticamente por horario conforme a `RN-TIP-PE-27`, `RN-TIP-RI-08` y `UF-RES-22`.
 
 ### Flujo
-1. El Técnico  selecciona una reserva `APROBADA` de alguno de los tipos incluidos en el alcance.
-2. Verifica las condiciones requeridas para iniciar.
-3. Ejecuta la acción de inicio.
+1. Para campus y externo, el Técnico continúa el mismo proceso de salida en el que se aprueba y genera la FGL 030; no abre una etapa posterior de ajuste de recursos. Para `LISTA_ESPERA`, selecciona una reserva `APROBADA`.
+2. Verifica las condiciones requeridas para iniciar. Para los tipos de préstamo, revalida habilitación, operatividad y ausencia de otra entrega abierta o compromiso incompatible, excluyendo el compromiso propio (`RN-DIS-06`).
+3. Ejecuta la acción de inicio: entrega física para los tipos de préstamo; comienzo de fabricación o prestación para `LISTA_ESPERA`, sin registrar recursos ni entregas (`RN-TIP-PLE-07`).
 4. La reserva pasa a `EN_EJECUCION`.
 5. El sistema registra actor, fecha y hora.
 
@@ -298,16 +309,16 @@ Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPE
 Técnico .
 
 ### Alcance
-Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`. **Las reservas de tipo `ESPACIO` quedan excluidas**: finalizan automáticamente al alcanzar su `hora_fin` conforme a `RN-TIP-PE-25` y `UF-RES-21`, y no admiten cierre manual.
+Reservas de `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPERA`. `ESPACIO` y `RECURSO_INTERNO` quedan excluidos: sus transiciones al fin de franja son automáticas conforme a `RN-TIP-PE-25`, `RN-TIP-RI-09` y `UF-RES-21`, sin cierre manual.
 
 ### Flujo
 1. El Técnico  selecciona una reserva en `EN_EJECUCION` de alguno de los tipos incluidos en el alcance.
 2. Registra la información requerida por el tipo de reserva.
-3. Para una reserva de recursos que requiera devolución, registra en la misma operación la devolución de todos los recursos entregados; para lista de espera, registra las horas empleadas. Mientras esa devolución no se registre, la reserva no finaliza aunque su `hora_fin` ya haya transcurrido (`RN-TIP-RI-13`).
+3. Para una reserva de recursos que requiera devolución, registra en la misma operación la devolución de todos los recursos entregados; para lista de espera, registra obligatoriamente `horas_ejecucion` finitas y no negativas, sin recursos ni devoluciones, y guarda horas y cierre en la misma transacción (`RN-TIP-PLE-08`). En campus y externo, la reserva no finaliza mientras falte devolución, aunque haya pasado la fecha estimada (`RN-TIP-RC-10`, `RN-TIP-RE-10`).
 4. Confirma la finalización.
 5. La reserva pasa a `FINALIZADA`.
 6. El sistema genera las notificaciones correspondientes cuando aplique.
-7. Si se registró la devolución de un recurso de `RECURSO_CAMPUS` o `RECURSO_EXTERNO`, el sistema reevalúa la siguiente solicitud compatible conforme a RN-APR-09: la aprueba automáticamente solo cuando corresponda o la deja disponible para revisión del Técnico.
+7. La devolución y el cierre terminan el préstamo, incluso si el recurso regresa dañado o no operativo. No restablecen su habilitación ni operatividad: una nueva solicitud debe revalidarlas. No se aprueba otra solicitud en espera de devolución, porque no se admite un segundo compromiso vigente (`RN-DIS-04`, `RN-DIS-06`).
 
 ---
 
@@ -317,17 +328,17 @@ Reservas de `RECURSO_INTERNO`, `RECURSO_CAMPUS`, `RECURSO_EXTERNO` y `LISTA_ESPE
 Técnico .
 
 ### Precondición
-La reserva debe estar en `SOLICITADA`.
+La reserva debe estar en `SOLICITADA` o `APROBADA`.
 
 ### Flujo
-1. El Técnico abre una reserva temporal en `SOLICITADA` y, en vez de rechazarla, selecciona proponer un periodo alternativo. `LISTA_ESPERA` no admite esta acción.
+1. El Técnico abre una reserva temporal en `SOLICITADA` o `APROBADA` y selecciona proponer un periodo alternativo. En campus y externo no se permite proponer, contraproponer ni aceptar cambios de periodo desde la generación de la FGL 030 al aprobar, aunque la propuesta sea anterior; el intento no modifica reserva, orden ni propuesta. `LISTA_ESPERA` no admite esta acción.
 2. Registra el periodo propuesto y un motivo: fecha y horario para `ESPACIO` o `RECURSO_INTERNO`; fecha de salida y devolución estimada para `RECURSO_CAMPUS` o `RECURSO_EXTERNO`.
-3. El sistema notifica al usuario; la reserva permanece en `SOLICITADA`.
+3. El sistema notifica al usuario; la reserva conserva su estado y periodo vigentes.
 4. El usuario revisa la propuesta y elige aceptarla, rechazarla o contraproponer otro periodo con su propio motivo.
 5. Si contrapropone, el sistema notifica al Técnico .
 6. El Técnico  revisa la contrapropuesta y elige aceptarla o rechazarla.
-7. Al aceptarse cualquiera de las dos propuestas, el sistema revalida las reglas aplicables al tipo de reserva y reprograma la reserva con el nuevo periodo.
-8. Al rechazarse una propuesta o contrapropuesta, la reserva conserva su periodo original y permanece en `SOLICITADA`.
+7. Al aceptar, el sistema verifica que la reserva siga en `SOLICITADA` o `APROBADA` y revalida todas las reglas aplicables a la reprogramación. Si cumple, registra el periodo y la aceptación juntos, conservando el estado actual y, si estaba aprobada, `fecha_aprobacion`. Si falla, no cambia la reserva ni la propuesta, que sigue `VIGENTE`. En préstamos conserva el mismo compromiso, excluyéndolo de la comparación; no crea uno nuevo ni permite conflictos ajenos (`RN-DIS-06`).
+8. Al rechazar, la propuesta queda `RECHAZADA` y la reserva conserva su periodo y estado actual, incluida `APROBADA` cuando corresponda. No se crea una transición de estado de reserva.
 
 ---
 
@@ -381,7 +392,7 @@ Usuario.
 ### Flujo
 
 1. El Usuario selecciona la unidad, el espacio o recurso y el periodo que desea consultar.
-2. El sistema muestra los horarios configurados y las franjas disponibles conforme a RN-DIS-07.
+2. El sistema muestra los horarios y franjas disponibles conforme a RN-DIS-07. Un recurso con compromiso físico vigente no se presenta elegible para otra solicitud, tampoco después de su fecha estimada de devolución. Esta condición no modifica las franjas del espacio ni revela datos ajenos fuera de RN-DIS-08 y RN-DIS-10.
 3. Para las franjas ocupadas, el sistema consulta las opciones de visibilidad de la unidad y muestra el estado o el nombre del reservista únicamente cuando la opción correspondiente está habilitada.
 4. Si ambas opciones están desactivadas, la franja sigue apareciendo como no disponible, sin estado ni nombre del reservista. Esta consulta no permite abrir el detalle completo de reservas ajenas.
 5. El Usuario selecciona un periodo y continúa con el flujo del tipo de reserva. La consulta no garantiza la asignación hasta confirmar la operación según la condición común de disponibilidad.
@@ -404,66 +415,74 @@ Técnico de la unidad o Administrador.
 
 ---
 
-## UF-RES-21 — Finalizar automáticamente una reserva por espacio
+## UF-RES-21 — Resolver automáticamente el fin de franja
 
-### Actor principal
+### Actor y disparador
 
-El sistema. No interviene ningún actor humano: una reserva por espacio no tiene entrega ni devolución física que registrar.
-
-### Alcance
-
-Únicamente reservas de tipo `ESPACIO` (`RN-TIP-PE-25`). Los tipos `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` finalizan con el registro de la devolución física y quedan expresamente fuera de este flujo, conforme a `RN-TIP-RI-13`, `RN-TIP-RC-10` y `RN-TIP-RE-10`. `LISTA_ESPERA` finaliza con el registro de horas de `RN-TIP-PLE-08`.
-
-### Disparador
-
-Se alcanza la `hora_fin` de la franja registrada en `reservas.reserva_espacio`.
+Sistema, al alcanzar `hora_fin` de `ESPACIO` o `RECURSO_INTERNO`. No interviene entrega o devolución física.
 
 ### Flujo
 
-1. El sistema identifica las reservas de tipo `ESPACIO` cuya `hora_fin` ya transcurrió y que permanecen en un estado anterior a `FINALIZADA`.
-2. Por cada una, registra la transición a `FINALIZADA` conforme a `RN-TIP-PE-25`, indicando el sistema como origen del cambio y el instante efectivo.
-3. Los recursos complementarios terminan su asignación con la franja, sin entrega ni devolución y sin generar filas en `reservas.reserva_ejecucion_recursos` (`RN-TIP-PE-24`).
-4. La reserva conserva íntegra su información histórica conforme a `RN-EST-04`.
+1. El sistema evalúa el estado vigente dentro de la operación transaccional.
+2. Para `ESPACIO`, si sigue `SOLICITADA`, registra `CANCELADA` con motivo de vencimiento sin aprobación. Si está `APROBADA` o `EN_EJECUCION`, registra `FINALIZADA` (`RN-TIP-PE-25`).
+3. Para `RECURSO_INTERNO` en `EN_EJECUCION`, registra `FINALIZADA` (`RN-TIP-RI-09`).
+4. `RECHAZADA`, `CANCELADA` y `FINALIZADA` no cambian automáticamente. Se conserva el historial y se identifica al sistema como origen de las transiciones.
+5. La disponibilidad de espacios, internos y complementarios sin préstamo se evalúa por sus intervalos: una demora del proceso no bloquea franjas posteriores no solapadas (`RN-DIS-11`). No se crean filas de entrega/devolución.
 
-### Lo que este flujo no hace
-
-- **No libera la disponibilidad del intervalo.** La disponibilidad se determina por el periodo reservado y el solapamiento temporal (`RN-TIP-PE-26`, `RN-DIS-11`). Dos reservas consecutivas del mismo espacio se evalúan por sus intervalos conforme a `RN-DIS-01`, con independencia de que este proceso haya corrido.
-- **No es una precondición de nada.** Un retraso o una falla del proceso no impide crear, aprobar ni ejecutar una reserva posterior que no se solapa.
-- **No altera reservas de otros tipos**, ni el comportamiento de lista de espera, recursos dentro del campus o recursos fuera del campus.
-
-### Relación con el inicio automático
-
-La entrada al estado `EN_EJECUCION` la cubre `UF-RES-22`. Este flujo finaliza la reserva cualquiera que sea su estado anterior: no exige que haya pasado por `EN_EJECUCION`.
+Los préstamos de campus y externo finalizan con devolución física; lista de espera con horas de prestación. Este proceso no modifica sus estados.
 
 ---
 
-## UF-RES-22 — Iniciar automáticamente una reserva por espacio
+## UF-RES-22 — Iniciar automáticamente reservas por franja
 
-### Actor principal
+### Actor y disparador
 
-El sistema. No interviene ningún actor humano: una reserva por espacio no tiene entrega física que registrar.
-
-### Alcance
-
-Únicamente reservas de tipo `ESPACIO` en estado `APROBADA` (`RN-TIP-PE-27`). Los demás tipos inician con la entrega física que registra el Técnico conforme a `UF-RES-13`, que no aplica a este tipo.
-
-### Disparador
-
-Se alcanza la `hora_inicio` de la franja registrada en `reservas.reserva_espacio`.
+Sistema, al alcanzar `hora_inicio` de una reserva `ESPACIO` o `RECURSO_INTERNO` en `APROBADA`.
 
 ### Flujo
 
-1. El sistema identifica las reservas de tipo `ESPACIO` en estado `APROBADA` cuya `hora_inicio` ya transcurrió.
-2. Por cada una, registra la transición a `EN_EJECUCION` conforme a `RN-TIP-PE-27`, indicando el sistema como origen del cambio y el instante efectivo.
-3. A partir de ese momento el Técnico puede agregar recursos a la reserva en curso conforme a `RN-TIP-PE-21` y `RN-TIP-PE-23`.
-4. La reserva sigue su curso hasta que `UF-RES-21` la finaliza al llegar la `hora_fin`.
+1. Comprueba el tipo, el estado vigente y la franja.
+2. Registra `APROBADA → EN_EJECUCION` automáticamente, con origen sistema e instante (`RN-TIP-PE-27`, `RN-TIP-RI-08`). No registra entrega física ni asistencia.
+3. `ESPACIO` puede permanecer `SOLICITADA` durante su franja. Si se aprueba cuando `hora_inicio <= ahora < hora_fin`, la operación de aprobación registra el paso inmediato a `EN_EJECUCION`, sin esperar este proceso.
+4. Al llegar `hora_fin` se aplican las transiciones de `UF-RES-21`; un espacio vencido no se inicia por una ejecución tardía de este proceso.
+5. `RECHAZADA`, `CANCELADA` y `FINALIZADA` no cambian automáticamente. Desde `EN_EJECUCION`, el recurso interno no puede cancelarse.
 
-### Lo que este flujo no hace
+El estado no sustituye la evaluación de disponibilidad por franja. Campus, externo y lista de espera conservan sus acciones de inicio de `UF-RES-13`.
 
-- **No ocupa la disponibilidad del intervalo.** Ya la ocupaba desde que la reserva alcanzó un estado bloqueante (`RN-EST-02`). La transición no cambia qué franjas están libres (`RN-TIP-PE-26`, `RN-DIS-11`).
-- **No registra asistencia.** `EN_EJECUCION` significa que la franja reservada está en curso, no que el Usuario se haya presentado. El sistema no lo comprueba ni lo almacena.
-- **No transita una reserva que no esté `APROBADA`.** Una reserva `SOLICITADA` que llega a su hora de inicio permanece como está; la finalización automática la alcanzará igualmente al llegar la `hora_fin`.
-- **No altera reservas de otros tipos.**
+---
+
+## UF-RES-23 — Retirar complementarios por un préstamo posterior
+
+### Actor y disparador
+
+Sistema, al establecer un compromiso físico mediante la creación válida de un préstamo o la incorporación permitida de recursos. Aplica `RN-TIP-PE-28`.
+
+### Flujo
+
+1. Revalida las condiciones del préstamo y la ausencia de otro compromiso físico vigente para cada recurso.
+2. Identifica sus asignaciones complementarias efectivas en reservas de espacio y comprueba el estado vigente dentro de la transacción, incluyendo la concurrencia con el inicio automático del espacio.
+3. Si alguna reserva de espacio afectada está `EN_EJECUCION`, rechaza la operación completa con `409 CONFLICTO`. No crea ni amplía el préstamo y no retira ningún recurso de ninguna reserva.
+4. Para las reservas de espacio en `SOLICITADA` o `APROBADA`, marca las asignaciones afectadas `RETIRADO`, conservando fila e historial, instante, causa `PRESTAMO_FISICO` y reserva de préstamo causante. No modifica asignaciones de reservas terminadas.
+5. Confirma los retiros, su trazabilidad y el compromiso físico en una única transacción. Cualquier fallo revierte todo el conjunto.
+6. La reserva de espacio conserva su estado, espacio, franja y demás recursos; no se cancela ni se registra ejecución física para sus complementarios. Su detalle muestra los retiros con las restricciones de acceso aplicables.
+7. Cancelar posteriormente el préstamo no restaura esas asignaciones. Reincorporar el recurso exige una nueva operación permitida de `UF-RES-09` y revalidación; la fila retirada conserva su historia.
+
+---
+
+## UF-RES-24 — Editar directamente una reserva solicitada
+
+### Actor y precondición
+
+Reservista propietario de una reserva `SOLICITADA`, con sesión activa. Aplica `RN-PRO-02`, `RN-PRO-06` y, para cambio de descripción de lista de espera, `RN-TIP-PLE-09`.
+
+### Flujo
+
+1. Consulta su reserva y modifica únicamente los campos permitidos para su tipo.
+2. El sistema verifica propiedad, estado y campos inmutables. Una reserva `APROBADA` solo puede reprogramarse mediante `UF-RES-15` si es `ESPACIO` o `RECURSO_INTERNO`; campus y externo no admiten cambios del periodo de la FGL 030 generada. La edición directa se rechaza.
+3. Compone los datos resultantes y revalida contexto, acompañantes, apoyo, configuración de campos, capacidad, horario, periodo y recursos según corresponda. Deriva asistentes y apoyo efectivo; el cliente no modifica snapshots ni estados.
+4. Si cambian recursos, conserva las asignaciones retiradas, establece las nuevas y aplica exclusividad física y retiros de complementarios mediante `UF-RES-23`. Una reprogramación conserva el compromiso propio.
+5. Si cambia la descripción de lista de espera tras una evaluación, invalida esa viabilidad y la revisión técnica dentro de la misma operación; conserva adjuntos y la parte del reservista. El formulario queda bloqueado hasta nueva viabilidad positiva.
+6. Confirma los datos y sus efectos juntos, manteniendo `SOLICITADA`. Si falla cualquier condición o escritura, no cambia nada, incluidos retiros, snapshots o viabilidad. La edición no aprueba automáticamente la reserva.
 
 ---
 

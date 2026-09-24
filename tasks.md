@@ -19,7 +19,7 @@ La especificación está cerrada: nueve módulos con reglas, modelo, flujos y co
 
 **Una tarea de API no se cierra antes que la tarea de base de datos que la sostiene.** No por método, sino porque un endpoint sobre una tabla que no existe no se puede probar, y uno que "funciona" sin su restricción da una falsa sensación de terminado.
 
-El caso que más importa es la concurrencia: `API-13` crea reservas y `DB-12` instala la garantía de que dos no ocupen el mismo espacio. **Se puede crear reservas sin `DB-12`, y ahí está el peligro**: todo parece correcto en una prueba manual y falla con dos usuarios simultáneos.
+El caso que más importa es la concurrencia: `API-13` crea reservas y `DB-12` instala la exclusión temporal y la garantía de un único compromiso físico por recurso, incluso con periodos distintos, junto con el retiro atómico de complementarios. **Se puede crear reservas sin `DB-12`, y ahí está el peligro**: todo parece correcto en una prueba manual y falla con dos usuarios simultáneos.
 
 ---
 
@@ -38,7 +38,7 @@ Sin esto nada más puede probarse contra la base ajustada.
 
 **`DB-14` va antes que `DB-09`**: una carga el catálogo en la tabla que la otra crea. Y `BK-06` y `BK-07` dependen de las dos, así que son el primer punto donde los planes se tocan.
 
-**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta. Lo que le falta no es `reservas`, que está completo, sino lo que nunca se aplicó dentro de los schemas compartidos.
+**La base no se borró.** Conserva sus 28 tablas y el volumen sigue montado, así que el proyecto nuevo arranca contra un esquema que ya tiene la forma correcta. Existen las tablas de `reservas`, pero faltan las garantías y atributos objetivo de DB-12, además de las incorporaciones pendientes en los schemas compartidos.
 
 **El siguiente paso es `BK-01`**: escribir el primer archivo de `backend/app/`. No depende de la base ni de auth, así que puede arrancar mientras `DB-14` se prepara en paralelo.
 
@@ -92,13 +92,19 @@ Aquí convergen el plan de base de datos y el de contratos.
 
 | Orden | Tareas | Bloqueo |
 |---|---|---|
-| 1 | `DB-11` | Resolver la contradicción del ADR sobre el periodo del recurso |
-| 2 | `DB-12` | Instalar exclusiones y disparadores |
-| 3 | `API-13` | Creación y consulta |
-| 4 | `API-14` | Gestión, propuestas y ejecución |
-| 5 | `API-15` · `API-16` | Órdenes, calendario y transiciones automáticas |
+| 1 | `DB-11` | Decisión documental cerrada: zona horaria, proyección temporal y alcance físico |
+| 2 | `DB-12` | Diseñar, instalar y probar exclusiones temporales, compromiso físico único y retiro por préstamo |
+| 3 | `API-13` | Context/Strategy/policies, creación, edición, consulta, preparación de lista de espera y FGL en autoaprobación |
+| 4 | `API-14` | Gestión por tipo, propuestas, aprobación/FGL, recepción de material y ejecución |
+| 5 | `API-15` · `API-16` | Consulta/exportación de orden inmutable, calendario y transiciones automáticas de espacio/interno |
 
-`DB-11` es una decisión, no código: el ADR dice que la entrega física abre el rango temporal y el modelo dice que entrega y devolución no alteran el periodo planificado. Resolverla cuesta una conversación; implementarla mal cuesta rehacer los disparadores.
+`DB-11` está cerrada documentalmente: `America/Bogota`, proyección física solo en campus/externo y compromiso único desde incorporación; no implica que DB-12 esté instalada. No se reabren los hallazgos funcionales cerrados.
+
+La [arquitectura de Reservations](specs/modules/reservations/architecture.md) se implementa dentro de API-13 a API-16: `router → service → Reserva/Strategy → repository`, con el servicio como dueño de la transacción. `Reserva` es Context y delega en las cinco estrategias mediante `ReservationStrategy`; las policies comunes se separan por responsabilidad y `prestamo_fisico` no es una Strategy adicional.
+
+Se conserva el orden API-13 → API-14 → API-15/API-16. El componente de generación de FGL se prepara en API-13 para la creación autoaprobada y se reutiliza al aprobar en API-14; API-15 solo consulta/exporta. Así la creación no depende de una tarea posterior. Los criterios incluyen lista de espera sin nuevos estados ni tablas, FGL inmutable, interno por franja, retiro manual sin historial y retiro automático por préstamo con la trazabilidad exigida.
+
+Los archivos compartidos del servicio, estrategias y repositorio se entregan del carril A al B al cerrar API-14. API-15 y API-16 se secuencian cuando modifiquen esos mismos archivos; no se crean tareas adicionales ni se cambian los carriles existentes.
 
 ---
 
@@ -126,7 +132,7 @@ El corte es limpio: **A es la base de datos, B es el proyecto.** Ningún archivo
 
 | Carril | Fases 0–1 | Fases 2–3 | Fases 4–5 |
 |---|---|---|---|
-| **A** | `DB-14`, `DB-01` a `DB-10`, `DB-15`, `DB-13` | `BK-09` carril A, `API-09`, `API-10` | `DB-11`, `DB-12`, `API-13`, `API-14` |
+| **A** | `DB-14`, `DB-01` a `DB-10`, `DB-15`, `DB-13` | `BK-09` carril A, `API-09`, `API-10` | `DB-11` (cerrada), `DB-12`, `API-13`, `API-14` |
 | **B** | `BK-01` a `BK-07`, `BK-08` | `BK-09` carril B, `API-06`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-19` |
 
 `BK-00` está cerrada y no entra en el reparto. `BK-09` aparece en los dos carriles porque auth se construye a dos manos: el [plan de auth](specs/modules/auth/tasks.md) reparte sus doce tareas por archivo.
