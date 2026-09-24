@@ -111,14 +111,17 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 
 ## 3. Estructura institucional
 
-### API-07 — Unidades, cargos y permisos
+### API-07 — Unidades, cargos y permisos · **cerrada**
 
 - **Objetivo:** `/api/unidades`, `/api/cargos` y `/api/permisos`.
 - **Afectados:** módulo de administration del backend.
 - **Dependencias:** API-04, API-06 y **DB-03**, **DB-07**, **DB-09**.
 - **Aceptación:** asignar un permiso por unidad a una cuenta `PERSONAL` cuyo cargo pertenece a otra unidad responde `422 VALIDACION`; asignarlo a una cuenta `USUARIO` también. Retirar el último permiso global vigente del sistema responde `409 CONFLICTO`.
 - **Contrato:** [administration](../../contratos/administration/api-contract.md) §2 y §3.
-- **RN:** `RN-UNI`, `RN-PER-08`, `RN-PER-09`, `RN-AUTH-ROL-09`.
+- **RN:** `RN-UNI-01`, `RN-UNI-02`, `RN-UNI-03`, `RN-UNI-04`, `RN-UNI-05`, `RN-PER-03`, `RN-PER-04`, `RN-PER-05`, `RN-PER-06`, `RN-PER-08`, `RN-PER-09` (administration); `RN-AUTH-ROL-06`, `RN-AUTH-ROL-09` (auth).
+- **Alcance:** §2 (unidades y cargos) y §3 (permisos). §4 (importaciones) es `API-12` y §5 (auditoría) es `API-08`.
+- **Decisiones:** `DELETE /api/permisos/cuentas/{id}/{codigo}` retira todas las asignaciones de ese código (global y por unidad), auditando cada fila; `404` si no hay ninguna. `ambito` de `GET /api/permisos` sale de la tabla de ámbito habitual de `auth/data-model.md` (solo display). `GET` lista los 14 códigos; `POST` rechaza con `422` un código deshabilitado.
+- **Resultado:** `backend/app/modules/administration/` (`router_estructura.py` con `unidades.administrar`, `router_permisos.py` con `permisos.asignar`, `schemas.py`, `service.py`, `repository.py`; sin modelos nuevos, BK-08 ya los mapeó). Cada escritura audita en la misma transacción (`CREAR/EDITAR/CAMBIAR_ESTADO_UNIDAD`, `CREAR/EDITAR_CARGO`, `ASIGNAR/RETIRAR_PERMISO`). 9 pruebas en `test_administration.py` (T-ADM-01..06 más jerarquía, catálogo y unidad activa) en verde; suite completa 35/35. Se corrigieron 4 citas de `tests.md` de administration.
 
 ### API-08 — Auditoría administrativa
 

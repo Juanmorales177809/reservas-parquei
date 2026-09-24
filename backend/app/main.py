@@ -3,6 +3,8 @@ from sqlalchemy import text
 
 from app.core.errors import registrar_manejadores
 from app.db.session import engine
+from app.modules.administration.router_estructura import router_cargos, router_unidades
+from app.modules.administration.router_permisos import router as permisos_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router_cuentas import router as auth_cuentas_router
 from app.modules.auth.router_invitaciones import router as auth_invitaciones_router
@@ -17,6 +19,9 @@ app.include_router(auth_invitaciones_router)
 app.include_router(perfil_router)
 app.include_router(router_usuarios)
 app.include_router(router_personal)
+app.include_router(router_unidades)
+app.include_router(router_cargos)
+app.include_router(permisos_router)
 
 
 @app.get("/health")

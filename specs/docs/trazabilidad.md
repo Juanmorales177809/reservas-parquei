@@ -21,8 +21,8 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Módulo | Reglas | En contrato | En tarea | En prueba | Sin ningún camino |
 |---|---:|---:|---:|---:|---:|
-| administration | 62 | 62 | 57 | 23 | — |
-| auth | 89 | 85 | 89 | 43 | — |
+| administration | 62 | 62 | 57 | 19 | — |
+| auth | 89 | 85 | 89 | 44 | — |
 | espacios | 22 | 22 | 15 | 11 | — |
 | notifications | 60 | 49 | 50 | 15 | — |
 | reports | 58 | 58 | 19 | 20 | — |
@@ -30,7 +30,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | reservations | 182 | 175 | 144 | 79 | — |
 | resources | 57 | 33 | 44 | 22 | — |
 | usuarios | 19 | 19 | 19 | 4 | — |
-| **total** | **569** | **523** | **457** | **227** | **—** |
+| **total** | **569** | **523** | **457** | **224** | **—** |
 
 ---
 
@@ -41,13 +41,13 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
 | `RN-ADM` | 5 | 1/5 | — | — |
-| `RN-AUD` | 7 | 6/7 | 2/7 | 5/7 |
+| `RN-AUD` | 7 | 6/7 | 2/7 | 3/7 |
 | `RN-CUE` | 6 | 1/6 | 1/6 | — |
 | `RN-HAB` | 5 | 3/5 | 1/5 | — |
 | `RN-IMP` ⚠ | 12 | 10/12 | 5/12 | 7/12 |
 | `RN-INT` ⚠ | 4 | 1/4 | 1/4 | 1/4 |
-| `RN-PER` | 9 | 8/9 | 4/9 | 7/9 |
-| `RN-UNI` | 7 | 7/7 | 2/7 | 2/7 |
+| `RN-PER` | 9 | 8/9 | 7/9 | 5/9 |
+| `RN-UNI` | 7 | 7/7 | 5/7 | 2/7 |
 | `RN-USR` ⚠ | 7 | 5/7 | 5/7 | 1/7 |
 
 ### auth
@@ -55,10 +55,10 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
 | `RN-AUTH-ID` | 12 | 5/12 | 5/12 | 7/12 |
-| `RN-AUTH-ROL` | 9 | 7/9 | 4/9 | 3/9 |
+| `RN-AUTH-ROL` | 9 | 7/9 | 5/9 | 3/9 |
 | `RN-AUTH-SES` | 5 | 3/5 | 2/5 | — |
 | `SEC-ABU` | 3 | 3/3 | 3/3 | 3/3 |
-| `SEC-AUD` | 4 | 3/4 | 2/4 | — |
+| `SEC-AUD` | 4 | 3/4 | 2/4 | 1/4 |
 | `SEC-AUTZ` | 6 | 5/6 | 5/6 | 4/6 |
 | `SEC-CSRF` | 3 | 2/3 | 2/3 | 2/3 |
 | `SEC-INF` | 4 | — | 1/4 | — |

@@ -18,7 +18,7 @@ Dos cosas concentran el riesgo: **el permiso mal otorgado**, que amplía el alca
 ### T-ADM-02 — Una cuenta Usuario no recibe permisos administrativos
 
 - **Nivel:** contrato
-- **Cubre:** `RN-PER-02`
+- **Cubre:** `RN-PER-08`
 - **Caso:** se intenta asignar cualquier permiso administrativo a una cuenta de tipo `USUARIO`.
 - **Esperado:** `422 VALIDACION`.
 
@@ -39,7 +39,7 @@ Dos cosas concentran el riesgo: **el permiso mal otorgado**, que amplía el alca
 ### T-ADM-05 — No se puede quedar el sistema sin permiso global
 
 - **Nivel:** contrato
-- **Cubre:** `RN-PER-03`
+- **Cubre:** `RN-AUTH-ROL-09`
 - **Caso:** se retira el último permiso global vigente del sistema.
 - **Esperado:** `409 CONFLICTO`.
 
@@ -68,14 +68,14 @@ Dos cosas concentran el riesgo: **el permiso mal otorgado**, que amplía el alca
 ### T-ADM-08 — La auditoría no se puede escribir ni corregir
 
 - **Nivel:** contrato
-- **Cubre:** `RN-AUD-05`, `RN-AUD-06`
+- **Cubre:** `RN-AUD-05`
 - **Caso:** se intenta crear, modificar y borrar un registro de auditoría por la API.
 - **Esperado:** **no existe ninguna ruta** que lo permita. Un registro que se puede editar no es una auditoría.
 
 ### T-ADM-09 — El registro no guarda secretos
 
 - **Nivel:** servicio
-- **Cubre:** `RN-AUD-07`
+- **Cubre:** `SEC-AUD-03`
 - **Caso:** se audita una operación que manejó una contraseña y un token.
 - **Esperado:** ni la contraseña ni el token completo aparecen en el registro.
 
