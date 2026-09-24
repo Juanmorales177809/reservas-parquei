@@ -97,7 +97,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **RN:** `RN-INV`, `RN-ACT`.
 - **Resultado:** aplicado contra `reservas_db` real; las 13 tablas del schema existen. Verificado con inserciones y `ROLLBACK`: una vinculación usuario–pasantía nace activa, una vinculación duplicada la rechaza el `UNIQUE (id_usuario, id_pasantia)`, y el `CHECK` de fechas rechaza `fecha_fin < fecha_inicio` y acepta el caso válido. La reactivación de una vinculación existente en vez de duplicarla (`RN-INV-11`) es responsabilidad del servicio que la use, no del esquema.
 
-### DB-03 — Crear el schema `administration`
+### DB-03 — Crear el schema `administration` · **cerrada**
 
 - **Objetivo:** existen `administration.auditoria`, `administration.importaciones` y `administration.importacion_resultados`.
 - **Afectados:** `backend/migrations/006_administration.sql`.
@@ -105,6 +105,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **Aceptación:** una operación administrativa deja una fila en `auditoria` con `actor_cuenta_id` resoluble por FK; el CHECK de `importaciones.catalogo` rechaza un valor distinto de `PROYECTOS`, `SEMILLEROS` o `EQUIPOS`.
 - **Modelo:** [administration/data-model.md](../../modules/administration/data-model.md).
 - **RN:** `RN-AUD-01` a `RN-AUD-07`, `RN-IMP-08`.
+- **Resultado:** aplicado contra `reservas_db` real. Verificado con inserciones y `ROLLBACK`: una fila de auditoría se une por FK real a `auth.cuentas` y resuelve el correo del actor; `catalogo='INVENTADO'` lo rechaza el `CHECK`; una importación `EQUIPOS` con su resultado de fila se crea correctamente; un `numero_fila` repetido para la misma importación lo rechaza el `UNIQUE (importacion_id, numero_fila)`. `unidadOrganizacional.unidad_organizacional` y `cargos.cargo` **no son de esta tarea**: ya existían.
 
 ### DB-04 — Crear el schema `notificaciones`
 
