@@ -76,7 +76,7 @@ Lo que falta dentro de los schemas compartidos. **Bloquea la autenticación ente
 
 Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas, la posibilidad de insertar en `reserva_recursos` y `espacio_recursos`.
 
-### DB-01 — Crear el schema `recursos`
+### DB-01 — Crear el schema `recursos` · **cerrada**
 
 - **Objetivo:** existen `recursos.recursos`, `recursos.equipos`, `recursos.categorias_equipos`, `recursos.mobiliarios` y `recursos.otros_recursos`.
 - **Afectados:** `backend/migrations/004_recursos.sql`.
@@ -85,6 +85,7 @@ Estas tablas **bloquean** la instalación de las cinco FK externas y, con ellas,
 - **Modelo:** [resources/data-model.md](../../modules/resources/data-model.md).
 - **RN:** `RN-REC`, `RN-EQP`.
 - **Nota:** `nombre_equipo` es `varchar(100)`, no 50. El ancho se amplió al fijar la planilla real de importación (`OQ-10`).
+- **Resultado:** aplicado contra `reservas_db` real. Verificado con inserciones y `ROLLBACK`: un equipo, un mobiliario y un elemento de otros recursos creados sobre su especialización correspondiente; una placa duplicada la rechaza el `UNIQUE`; un `tipo` fuera del catálogo lo rechaza el `CHECK`. `reservas.laboratorios_config` y su histórico **no son de esta tarea**: ya estaban aplicados desde `002`. La FK de `reserva_recursos`/`espacio_recursos` queda pendiente de `DB-05`, que exige además `DB-02`.
 
 ### DB-02 — Completar el schema `investigacion`
 
