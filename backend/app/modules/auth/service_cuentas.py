@@ -12,7 +12,7 @@ from app.core import audit
 from app.core.authz import resolver_rol
 from app.core.config import get_settings
 from app.core.deps import ContextoAutenticado
-from app.core.errors import Conflicto, CredencialesInvalidas, NoAutorizado, NoEncontrado, TokenNoVigente, Validacion
+from app.core.errors import Conflicto, CredencialesInvalidas, DocumentoDuplicado, NoAutorizado, NoEncontrado, TelefonoDuplicado, TokenNoVigente, Validacion
 from app.core.rate_limit import limitar
 from app.core.security import emitir_token_acceso, generar_token, hash_contrasena, hashear_token, verificar_contrasena
 from app.db.models.auth import Cuentas
@@ -21,6 +21,7 @@ from app.modules.auth import repository as repo
 from app.modules.auth import repository_cuentas as repo_cuentas
 from app.modules.auth import schemas
 from app.modules.auth.service import VIGENCIA_REFRESH_SEGUNDOS, _actualizacion_inicial_pendiente
+from app.modules.usuarios import service as servicio_usuarios
 
 
 def _aware(dt: datetime) -> datetime:
@@ -40,23 +41,31 @@ def limitar_registro(clave: str) -> None:
 
 def registrar(db: Session, datos: schemas.RegistroSolicitud) -> None:
     """`202` idéntico en todos los casos (SEC-ABU-02): el llamador nunca
-    distingue éxito de rechazo por duplicado desde esta función."""
-    correo_en_usuarios = repo_cuentas.obtener_usuario_por_correo(db, datos.correo) is not None
-    correo_en_cuentas = repo_cuentas.obtener_cuenta_por_correo(db, datos.correo) is not None
-    duplicado = repo_cuentas.documento_o_telefono_duplicado(db, datos.documento, datos.telefono)
+    distingue éxito de rechazo por duplicado desde esta función.
 
-    if correo_en_usuarios or correo_en_cuentas or duplicado:
+    La identidad la crea el servicio propietario (usuarios, RN-DAT-01/02):
+    este módulo no duplica su validación (límite 4 de plan.md).
+    """
+    if servicio_usuarios.identidad_ocupada(
+        db, correo=datos.correo, documento=datos.documento, telefono=datos.telefono
+    ):
         return
 
-    usuario = repo_cuentas.crear_identidad_usuario(
-        db,
-        nombre=datos.nombre,
-        documento=datos.documento,
-        telefono=datos.telefono,
-        institucion=datos.institucion,
-        dependencia=datos.dependencia,
-        correo=datos.correo,
-    )
+    try:
+        usuario = servicio_usuarios.crear_identidad(
+            db,
+            nombre=datos.nombre,
+            documento=datos.documento,
+            telefono=datos.telefono,
+            institucion=datos.institucion,
+            dependencia=datos.dependencia,
+            correo=datos.correo,
+        )
+    except (DocumentoDuplicado, TelefonoDuplicado, Conflicto):
+        # Carrera con otra alta simultánea: la base ya lo rechazó; se responde
+        # el 202 genérico igual que en el chequeo previo.
+        db.rollback()
+        return
     repo_cuentas.crear_cuenta(
         db,
         correo=datos.correo,

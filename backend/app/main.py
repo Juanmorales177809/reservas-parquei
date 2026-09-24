@@ -6,12 +6,17 @@ from app.db.session import engine
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router_cuentas import router as auth_cuentas_router
 from app.modules.auth.router_invitaciones import router as auth_invitaciones_router
+from app.modules.usuarios.router import router as perfil_router
+from app.modules.usuarios.router_admin import router_personal, router_usuarios
 
 app = FastAPI(title="Reservas Parquei")
 registrar_manejadores(app)
 app.include_router(auth_router)
 app.include_router(auth_cuentas_router)
 app.include_router(auth_invitaciones_router)
+app.include_router(perfil_router)
+app.include_router(router_usuarios)
+app.include_router(router_personal)
 
 
 @app.get("/health")

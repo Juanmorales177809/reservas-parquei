@@ -25,7 +25,7 @@ El riesgo propio de este módulo es **la identidad partida**: si el correo de un
 ### T-USR-03 — El correo es inmutable con cuenta asociada
 
 - **Nivel:** contrato
-- **Cubre:** `RN-USR-08`, `RN-USR-09`
+- **Cubre:** `RN-AUTH-ID-02`, `RN-AUTH-ID-12`
 - **Caso:** se modifica el correo de una identidad que ya tiene cuenta.
 - **Esperado:** `409 CONFLICTO`. En `GET /api/perfil` el correo se devuelve **como solo lectura**.
 
@@ -50,14 +50,14 @@ El riesgo propio de este módulo es **la identidad partida**: si el correo de un
 ### T-USR-06 — Invitar Personal exige ficha activa
 
 - **Nivel:** contrato
-- **Cubre:** `RN-PRS-02`
+- **Cubre:** `RN-AUTH-ID-07`
 - **Caso:** se invita una cuenta `PERSONAL` para un correo sin ficha, y para uno con ficha inactiva.
-- **Esperado:** ambas se rechazan. La ficha se crea antes, en `/api/personal`.
+- **Esperado:** ambas se rechazan. La ficha se crea antes, en `/api/personal` (`RN-USR-07` de administration).
 
 ### T-USR-07 — Desactivar una ficha no borra su historial
 
 - **Nivel:** servicio
-- **Cubre:** `RN-PRS-05`
+- **Cubre:** `RN-PRS-04`
 - **Caso:** se desactiva una ficha que tiene cargo, permisos y operaciones auditadas.
 - **Esperado:** el registro y su historial permanecen; la cuenta asociada deja de resolver rol administrativo.
 
@@ -68,13 +68,13 @@ El riesgo propio de este módulo es **la identidad partida**: si el correo de un
 ### T-USR-08 — Una cuenta tiene exactamente una identidad
 
 - **Nivel:** base de datos
-- **Cubre:** `RN-USR-10`
+- **Cubre:** `RN-AUTH-ID-03`, `RN-AUTH-ID-04`
 - **Caso:** se intenta vincular una cuenta a una identidad de Usuario y a una ficha de Personal a la vez, y después a ninguna.
 - **Esperado:** el CHECK rechaza ambos. Es `USUARIO` o `PERSONAL`, nunca las dos ni ninguna.
 
 ### T-USR-09 — El correo coincide entre identidad y cuenta
 
 - **Nivel:** servicio
-- **Cubre:** `RN-USR-11`
+- **Cubre:** `RN-AUTH-ID-02`, `RN-AUTH-ID-03`
 - **Caso:** se compara el correo de una identidad con el de su cuenta asociada.
 - **Esperado:** son el mismo, y ambos inmutables.

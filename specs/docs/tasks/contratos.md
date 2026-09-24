@@ -96,14 +96,16 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** la definida en ese plan.
 - **Contrato:** [auth](../../contratos/auth/api-contract.md).
 
-### API-06 — Identidades funcionales y fichas de Personal
+### API-06 — Identidades funcionales y fichas de Personal · **cerrada**
 
 - **Objetivo:** `/api/perfil` para el perfil propio y sus vinculaciones, `/api/usuarios` para las identidades de Usuario y `/api/personal` para las fichas de Personal.
 - **Afectados:** módulo de usuarios del backend.
 - **Dependencias:** API-05, **DB-06** y **DB-15**, que instalan el estado de la ficha y las columnas objetivo de `usuarios.usuarios`. **Bloquea la invitación de cuentas `PERSONAL`**, que exige una ficha activa previa.
 - **Aceptación:** crear una ficha con un documento ya registrado responde `409 DOCUMENTO_DUPLICADO`; modificar el correo de una identidad con cuenta asociada responde `409 CONFLICTO`; el correo se devuelve como solo lectura en `GET /api/perfil`.
 - **Contrato:** [usuarios](../../contratos/usuarios/api-contract.md).
-- **RN:** `RN-DAT`, `RN-PRS`, `RN-USR-07` a `RN-USR-11`.
+- **RN:** `RN-DAT-01`, `RN-DAT-02`, `RN-PRS-05` (usuarios); `RN-USR-01`, `RN-USR-02`, `RN-USR-03`, `RN-USR-06`, `RN-USR-07` (administration); `RN-AUTH-ID-02`, `RN-AUTH-ID-03`, `RN-AUTH-ID-12`, `RN-AUTH-ROL-09` (auth).
+- **Alcance:** §2.1, §2.2, §5 y §6. §2.3, §3 y §4 (perfiles, vinculaciones, actualización inicial con vinculación) quedan para `API-11`, que implementa researchs; `GET /api/perfil` devuelve perfiles y vinculaciones vacíos hasta entonces. Una cuenta `PERSONAL` recibe `404 NO_ENCONTRADO` en `GET /api/perfil`: el perfil es concepto de Usuario.
+- **Resultado:** `backend/app/modules/usuarios/` (`router.py` perfil propio, `router_admin.py` con `usuarios.administrar` global, `schemas.py`, `service.py`, `repository.py`) + códigos propios `DOCUMENTO_DUPLICADO`/`TELEFONO_DUPLICADO`/`VINCULACION_DUPLICADA` en `errors.py`. `auth.registrar` delega la creación de identidad en `usuarios.service` (límite 4). 13 pruebas en `test_usuarios.py` (T-USR-01/02/03/04/06/07/08 + guarda RN-AUTH-ROL-09 y UF-USR-04) en verde contra `reservas_test`; las 13 de auth siguen verdes como regresión. Se corrigieron las citas de `tests.md` de usuarios, que apuntaban a reglas inexistentes con esos números.
 
 ---
 

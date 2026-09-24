@@ -109,6 +109,27 @@ class DemasiadosIntentos(DomainError):
         super().__init__(429, "DEMASIADOS_INTENTOS", mensaje, headers=headers)
 
 
+# --- Códigos propios de usuarios (contrato usuarios §1) ----------------------
+# Los lanza el módulo usuarios; no pertenecen al catálogo común.
+
+
+class DocumentoDuplicado(DomainError):
+    def __init__(self, mensaje: str = "El documento ya está registrado en otra identidad.") -> None:
+        super().__init__(409, "DOCUMENTO_DUPLICADO", mensaje)
+
+
+class TelefonoDuplicado(DomainError):
+    def __init__(self, mensaje: str = "El teléfono ya está registrado en otra identidad.") -> None:
+        super().__init__(409, "TELEFONO_DUPLICADO", mensaje)
+
+
+class VinculacionDuplicada(DomainError):
+    """Se declara aquí porque el contrato de usuarios §1 la define; la usa API-11."""
+
+    def __init__(self, mensaje: str = "La vinculación ya existe para ese usuario.") -> None:
+        super().__init__(409, "VINCULACION_DUPLICADA", mensaje)
+
+
 def _envolver(status_code: int, codigo: str, mensaje: str, detalles: list, headers: dict | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

@@ -314,3 +314,26 @@ def headers_autenticados(jar: dict[str, str]) -> dict[str, str]:
     headers = {"X-CSRF-Token": jar["rp_csrf"]}
     headers.update(cabecera_cookie(jar, "rp_access", "rp_refresh", "rp_csrf"))
     return headers
+
+
+def otorgar_permiso_global(db, cuenta, codigo: str):
+    """Otorga un permiso global vigente a la cuenta. Devuelve la cuenta."""
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from app.db.models.auth import CuentaPermisos, Permisos
+
+    permiso = db.scalar(select(Permisos).where(Permisos.codigo == codigo))
+    assert permiso is not None, f"permiso inexistente: {codigo}"
+    db.add(
+        CuentaPermisos(
+            id_cuenta=cuenta.id_cuenta,
+            permiso_id=permiso.id,
+            id_unidad=None,
+            otorgado_por=cuenta.id_cuenta,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+    return cuenta

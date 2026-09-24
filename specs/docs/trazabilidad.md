@@ -22,15 +22,15 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | Módulo | Reglas | En contrato | En tarea | En prueba | Sin ningún camino |
 |---|---:|---:|---:|---:|---:|
 | administration | 62 | 62 | 57 | 23 | — |
-| auth | 89 | 85 | 89 | 39 | — |
+| auth | 89 | 85 | 89 | 43 | — |
 | espacios | 22 | 22 | 15 | 11 | — |
 | notifications | 60 | 49 | 50 | 15 | — |
 | reports | 58 | 58 | 19 | 20 | — |
 | researchs | 20 | 20 | 20 | 10 | — |
 | reservations | 182 | 175 | 144 | 79 | — |
 | resources | 57 | 33 | 44 | 22 | — |
-| usuarios | 19 | 19 | 19 | 10 | — |
-| **total** | **569** | **523** | **457** | **229** | **—** |
+| usuarios | 19 | 19 | 19 | 4 | — |
+| **total** | **569** | **523** | **457** | **227** | **—** |
 
 ---
 
@@ -48,13 +48,13 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-INT` ⚠ | 4 | 1/4 | 1/4 | 1/4 |
 | `RN-PER` | 9 | 8/9 | 4/9 | 7/9 |
 | `RN-UNI` | 7 | 7/7 | 2/7 | 2/7 |
-| `RN-USR` ⚠ | 7 | 5/7 | 1/7 | 1/7 |
+| `RN-USR` ⚠ | 7 | 5/7 | 5/7 | 1/7 |
 
 ### auth
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-AUTH-ID` | 12 | 5/12 | 4/12 | 3/12 |
+| `RN-AUTH-ID` | 12 | 5/12 | 5/12 | 7/12 |
 | `RN-AUTH-ROL` | 9 | 7/9 | 4/9 | 3/9 |
 | `RN-AUTH-SES` | 5 | 3/5 | 2/5 | — |
 | `SEC-ABU` | 3 | 3/3 | 3/3 | 3/3 |
@@ -162,9 +162,9 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-DAT` | 3 | 2/3 | familia | 2/3 |
-| `RN-PRS` | 5 | 4/5 | 1/5 | 3/5 |
-| `RN-USR` ⚠ | 11 | 8/11 | 2/11 | 5/11 |
+| `RN-DAT` | 3 | 2/3 | 2/3 | 2/3 |
+| `RN-PRS` | 5 | 4/5 | 2/5 | 1/5 |
+| `RN-USR` ⚠ | 11 | 8/11 | 5/11 | 1/11 |
 
 ---
 
