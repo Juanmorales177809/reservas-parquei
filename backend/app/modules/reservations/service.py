@@ -20,6 +20,7 @@ franja ya está vigente en el instante de la operación.
 
 from __future__ import annotations
 
+import io
 from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo
 
@@ -31,6 +32,7 @@ from app.core.errors import (
     NoAutorizado,
     NoEncontrado,
     PerfilInicialPendiente,
+    SolicitudInvalida,
     TipoNoAdmitido,
     Validacion,
     VinculacionRequerida,
@@ -1177,3 +1179,233 @@ def cancelar_reserva(db, id_reserva: int, cuerpo: schemas.CancelacionCuerpo, con
     repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_cancelada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.motivo)
     db.commit()
     return {"id": id_reserva, "estado": "CANCELADA", "detalle": None}
+
+
+# --- §7 Orden de salida (API-15) ---------------------------------------------------------
+#
+# Solo lectura de snapshots inmutables: nada aquí genera, modifica ni
+# versiona la orden. La FGL se generó al aprobar (API-13/API-14).
+
+
+_TIPOS_CON_ORDEN = ("RECURSO_CAMPUS", "RECURSO_EXTERNO")
+
+
+def _orden_dict(db, orden) -> dict:
+    return {
+        "id": orden.id,
+        "reserva_id": orden.reserva_id,
+        "fecha_generacion": orden.fecha_generacion,
+        "razon_solicitud": orden.razon_solicitud,
+        "nombre_actividad_evento": orden.nombre_actividad_evento,
+        "lugar_nombre": orden.lugar_nombre,
+        "lugar_direccion": orden.lugar_direccion,
+        "dependencia_solicitante_snapshot": orden.dependencia_solicitante_snapshot,
+        "fecha_retiro_snapshot": orden.fecha_retiro_snapshot,
+        "fecha_regreso_snapshot": orden.fecha_regreso_snapshot,
+        "proyecto_codigo_snapshot": orden.proyecto_codigo_snapshot,
+        "responsable_nombre_snapshot": orden.responsable_nombre_snapshot,
+        "responsable_cedula_snapshot": orden.responsable_cedula_snapshot,
+        "responsable_correo_snapshot": orden.responsable_correo_snapshot,
+        "responsable_telefono_snapshot": orden.responsable_telefono_snapshot,
+        "observaciones": orden.observaciones,
+        "actividades": repo.actividades_de_orden(db, orden.id),
+        "items": [
+            {
+                "reserva_recurso_id": i.reserva_recurso_id,
+                "placa_snapshot": i.placa_snapshot,
+                "descripcion_snapshot": i.descripcion_snapshot,
+                "bodega_snapshot": i.bodega_snapshot,
+                "cc_snapshot": i.cc_snapshot,
+                "fecha_compra_snapshot": i.fecha_compra_snapshot,
+            }
+            for i in repo.items_de_orden(db, orden.id)
+        ],
+    }
+
+
+def obtener_orden(db, id_reserva: int, contexto: ContextoAutenticado) -> dict:
+    """§7.1. Cabecera con snapshots, actividades e ítems. Sin firmas."""
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    if tipo.codigo not in _TIPOS_CON_ORDEN:
+        raise TipoNoAdmitido("Este tipo de reserva no genera orden de salida.")
+    orden = repo.obtener_orden_por_reserva(db, id_reserva)
+    if orden is None:
+        raise NoEncontrado("La orden aún no se ha generado.")
+    return _orden_dict(db, orden)
+
+
+def generar_orden_pdf(db, id_reserva: int, contexto: ContextoAutenticado) -> bytes:
+    """§7.2. Renderiza los snapshots a PDF listo para imprimir. Las firmas
+    y recibidos se diligencian a mano sobre el papel (RN-TIP-RC-14)."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+
+    orden = _orden_dict(db, _orden_exigida(db, id_reserva, contexto))
+    estilos = getSampleStyleSheet()
+    normal = estilos["Normal"]
+    titulo = estilos["Heading1"]
+    seccion = estilos["Heading2"]
+
+    celdas = lambda etiqueta, valor: [Paragraph(f"<b>{etiqueta}</b>", normal), Paragraph(str(valor or "—"), normal)]  # noqa: E731
+
+    historia = [
+        Paragraph("FGL 030 — Orden de salida de equipos y herramientas", titulo),
+        Paragraph(f"Reserva {orden['reserva_id']} · Generada {orden['fecha_generacion']}", normal),
+        Spacer(1, 0.4 * cm),
+        Paragraph("1. Información general", seccion),
+        Table([
+            celdas("Razón de la solicitud", orden["razon_solicitud"]),
+            celdas("Actividad / evento", orden["nombre_actividad_evento"]),
+            celdas("Lugar", f"{orden['lugar_nombre']} — {orden['lugar_direccion']}"),
+            celdas("Dependencia solicitante", orden["dependencia_solicitante_snapshot"]),
+            celdas("Retiro", orden["fecha_retiro_snapshot"]),
+            celdas("Regreso", orden["fecha_regreso_snapshot"]),
+            celdas("Proyecto", orden["proyecto_codigo_snapshot"]),
+            celdas(
+                "Responsable",
+                f"{orden['responsable_nombre_snapshot']} · {orden['responsable_cedula_snapshot']} · "
+                f"{orden['responsable_correo_snapshot']} · {orden['responsable_telefono_snapshot']}",
+            ),
+        ], colWidths=[5 * cm, 11 * cm]),
+        Spacer(1, 0.4 * cm),
+        Paragraph("Actividades asociadas", seccion),
+        Paragraph(", ".join(orden["actividades"]) or "—", normal),
+        Spacer(1, 0.4 * cm),
+        Paragraph("2. Información técnica", seccion),
+        Table(
+            [["Descripción", "Placa", "Bodega", "C. costos", "Compra"]]
+            + [
+                [i["descripcion_snapshot"], i["placa_snapshot"], i["bodega_snapshot"], i["cc_snapshot"], i["fecha_compra_snapshot"]]
+                for i in orden["items"]
+            ],
+            colWidths=[6 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm],
+        ),
+        Spacer(1, 0.6 * cm),
+        Paragraph("3. Autorizaciones (firmas en papel)", seccion),
+        Table([
+            ["Jefe de laboratorio", "V.o.B.o. Parque I", "Bienes muebles"],
+            ["", "", ""],
+            ["Firma y fecha", "Firma y fecha", "Firma y fecha"],
+        ], colWidths=[5.3 * cm, 5.3 * cm, 5.3 * cm]),
+        Spacer(1, 0.4 * cm),
+        Paragraph("4. Entrega y 5. Devolución (firmas en papel)", seccion),
+        Table([
+            ["Entrega: quien entrega / quien retira", "Devolución: quien regresa / quien recibe"],
+            ["", ""],
+            ["Firmas y fechas", "Firmas y fechas"],
+        ], colWidths=[8 * cm, 8 * cm]),
+    ]
+    for flowable in historia:
+        if isinstance(flowable, Table):
+            flowable.setStyle(TableStyle([
+                ("GRID", (0, 0), (-1, -1), 0.5, "grey"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]))
+
+    buffer = io.BytesIO()
+    SimpleDocTemplate(buffer, pagesize=letter, title=f"FGL-030 reserva {orden['reserva_id']}").build(historia)
+    return buffer.getvalue()
+
+
+def _orden_exigida(db, id_reserva: int, contexto: ContextoAutenticado):
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    if tipo.codigo not in _TIPOS_CON_ORDEN:
+        raise TipoNoAdmitido("Este tipo de reserva no genera orden de salida.")
+    orden = repo.obtener_orden_por_reserva(db, id_reserva)
+    if orden is None:
+        raise NoEncontrado("La orden aún no se ha generado.")
+    return orden
+
+
+# --- §8.1 Calendario (API-15) -------------------------------------------------------------
+
+
+def generar_ics(db, id_reserva: int, contexto: ContextoAutenticado) -> str:
+    """Archivo iCalendar de una reserva APROBADA de ESPACIO o RECURSO_INTERNO."""
+    import io as _io
+
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    estado = repo.obtener_estado(db, reserva.estado_id)
+    if tipo.codigo not in ("ESPACIO", "RECURSO_INTERNO"):
+        raise TipoNoAdmitido("El calendario solo aplica a espacio y recurso interno.")
+    if estado.codigo != "APROBADA":
+        raise EstadoIncompatible("El calendario requiere una reserva aprobada.")
+
+    ubicacion = ""
+    if tipo.codigo == "ESPACIO":
+        detalle = repo.obtener_detalle_espacio(db, id_reserva)
+        espacio = esp_repo.obtener_espacio(db, detalle.espacio_id)
+        inicio = datetime.combine(detalle.fecha, detalle.hora_inicio, tzinfo=_ZONA_OPERATIVA)
+        fin = datetime.combine(detalle.fecha, detalle.hora_fin, tzinfo=_ZONA_OPERATIVA)
+        resumen = f"Reserva {id_reserva} — {espacio.nombre}"
+        if espacio.ubicacion:
+            ubicacion = f"LOCATION:{_ics_texto(espacio.ubicacion)}\r\n"
+    else:
+        detalle = repo.obtener_detalle_interno(db, id_reserva)
+        inicio = datetime.combine(detalle.fecha, detalle.hora_inicio, tzinfo=_ZONA_OPERATIVA)
+        fin = datetime.combine(detalle.fecha, detalle.hora_fin, tzinfo=_ZONA_OPERATIVA)
+        resumen = f"Reserva {id_reserva} — Recurso interno"
+
+    lineas = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ParqueI//Reservas//ES", "BEGIN:VEVENT",
+        f"UID:reserva-{id_reserva}@reservas.itm.edu.co",
+        f"DTSTART;TZID=America/Bogota:{inicio.strftime('%Y%m%dT%H%M%S')}",
+        f"DTEND;TZID=America/Bogota:{fin.strftime('%Y%m%dT%H%M%S')}",
+        f"SUMMARY:{_ics_texto(resumen)}",
+        ubicacion.rstrip("\r\n"),
+        "END:VEVENT", "END:VCALENDAR", "",
+    ]
+    return _io.StringIO("\r\n".join(l for l in lineas if l)).getvalue() + "\r\n"
+
+
+def _ics_texto(valor: str) -> str:
+    return valor.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+# --- §8.2 Exportación (API-15) ------------------------------------------------------------
+
+
+_COLUMNAS_EXPORTACION = ("id", "estado", "tipo_reserva", "id_unidad", "id_cuenta", "observacion", "requiere_apoyo", "created_at")
+
+
+def exportar_reservas(db, filtros: dict, formato: str, contexto: ContextoAutenticado) -> tuple[bytes, str, str]:
+    """Exporta lo visible según filtro y ámbito (RN-REP-03). Permiso `reservas.exportar`."""
+    import csv as _csv
+    import io as _io
+
+    if formato not in ("csv", "excel"):
+        raise SolicitudInvalida("formato debe ser 'csv' o 'excel'.")
+    exigir_permiso(db, contexto.id_cuenta, "reservas.exportar", id_unidad=filtros.get("id_unidad"))
+
+    _, total = listar_reservas(db, dict(filtros), 1, 1, None, contexto)
+    datos, _ = listar_reservas(db, dict(filtros), 1, total or 1, None, contexto)
+    filas = [[d[c] for c in _COLUMNAS_EXPORTACION] for d in datos]
+
+    if formato == "csv":
+        buffer = _io.StringIO()
+        escritor = _csv.writer(buffer)
+        escritor.writerow(_COLUMNAS_EXPORTACION)
+        escritor.writerows(filas)
+        return buffer.getvalue().encode("utf-8"), "text/csv", "reservas.csv"
+
+    import openpyxl
+
+    libro = openpyxl.Workbook()
+    hoja = libro.active
+    hoja.append(list(_COLUMNAS_EXPORTACION))
+    for fila in filas:
+        hoja.append([str(v) if v is not None else "" for v in fila])
+    buffer = _io.BytesIO()
+    libro.save(buffer)
+    return buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "reservas.xlsx"

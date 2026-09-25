@@ -93,6 +93,31 @@ def listar_reservas(
     )
 
 
+@router.get("/exportacion")
+def exportar_reservas(
+    request: Request,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> Response:
+    """§8.2. Antes de `/{id_reserva}`: si no, 'exportacion' caería en el id. Sin paginación."""
+    filtros = {
+        "estado": request.query_params.get("estado"),
+        "tipo_reserva": request.query_params.get("tipo_reserva"),
+        "id_unidad": _entero(request, "id_unidad"),
+        "desde": request.query_params.get("desde"),
+        "hasta": request.query_params.get("hasta"),
+        "espacio_id": _entero(request, "espacio_id"),
+        "recurso_id": _entero(request, "recurso_id"),
+    }
+    contenido, media_type, nombre = service.exportar_reservas(
+        db, filtros, request.query_params.get("formato", ""), contexto
+    )
+    return Response(
+        content=contenido, media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )
+
+
 @router.get("/disponibilidad", response_model=schemas.DisponibilidadRespuesta)
 def consultar_disponibilidad(
     request: Request,
@@ -341,3 +366,47 @@ def cancelar_reserva(
 ) -> TransicionRespuesta:
     """§6.3. Admitida mientras la ejecución no haya iniciado."""
     return TransicionRespuesta(**service.cancelar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+# --- §7 Orden de salida (API-15) ---------------------------------------------------------------
+
+
+@router.get("/{id_reserva}/orden-salida", response_model=schemas.OrdenSalidaRespuesta)
+def orden_salida(
+    id_reserva: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> schemas.OrdenSalidaRespuesta:
+    """§7.1. Lee snapshots inmutables; no genera ni versiona."""
+    return schemas.OrdenSalidaRespuesta(**service.obtener_orden(db, id_reserva, contexto))
+
+
+@router.get("/{id_reserva}/orden-salida.pdf")
+def orden_salida_pdf(
+    id_reserva: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> Response:
+    """§7.2. PDF listo para imprimir; las firmas van en papel."""
+    return Response(
+        content=service.generar_orden_pdf(db, id_reserva, contexto),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="orden-{id_reserva}.pdf"'},
+    )
+
+
+# --- §8 Calendario y exportación (API-15) -------------------------------------------------------
+
+
+@router.get("/{id_reserva}/calendario.ics")
+def calendario_ics(
+    id_reserva: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> Response:
+    """§8.1. Solo ESPACIO/RECURSO_INTERNO aprobadas."""
+    return Response(
+        content=service.generar_ics(db, id_reserva, contexto),
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="reserva-{id_reserva}.ics"'},
+    )

@@ -316,3 +316,36 @@ class DisponibilidadFranja(BaseModel):
 class DisponibilidadRespuesta(BaseModel):
     horario_unidad: HorarioUnidadItem
     franjas: list[DisponibilidadFranja]
+
+
+# --- §7 Orden de salida ------------------------------------------------------------------------
+
+
+class OrdenSalidaItemRespuesta(BaseModel):
+    reserva_recurso_id: int
+    placa_snapshot: str | None = None
+    descripcion_snapshot: str
+    bodega_snapshot: str | None = None
+    cc_snapshot: str | None = None
+    fecha_compra_snapshot: date | None = None
+
+
+class OrdenSalidaRespuesta(BaseModel):
+    id: int
+    reserva_id: int
+    fecha_generacion: datetime
+    razon_solicitud: str
+    nombre_actividad_evento: str | None = None
+    lugar_nombre: str
+    lugar_direccion: str
+    dependencia_solicitante_snapshot: str
+    fecha_retiro_snapshot: date
+    fecha_regreso_snapshot: date
+    proyecto_codigo_snapshot: str | None = None
+    responsable_nombre_snapshot: str
+    responsable_cedula_snapshot: str
+    responsable_correo_snapshot: str
+    responsable_telefono_snapshot: str
+    observaciones: str | None = None
+    actividades: list[str] = []
+    items: list[OrdenSalidaItemRespuesta] = []

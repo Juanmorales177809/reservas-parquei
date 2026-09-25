@@ -435,6 +435,22 @@ def obtener_orden_por_reserva(db: Session, reserva_id: int) -> OrdenesSalida | N
     return db.scalar(select(OrdenesSalida).where(OrdenesSalida.reserva_id == reserva_id))
 
 
+def actividades_de_orden(db: Session, orden_salida_id: int) -> list[str]:
+    return list(db.scalars(
+        select(OrdenSalidaActividades.actividad)
+        .where(OrdenSalidaActividades.orden_salida_id == orden_salida_id)
+        .order_by(OrdenSalidaActividades.actividad)
+    ).all())
+
+
+def items_de_orden(db: Session, orden_salida_id: int) -> list[OrdenSalidaItems]:
+    return list(db.scalars(
+        select(OrdenSalidaItems)
+        .where(OrdenSalidaItems.orden_salida_id == orden_salida_id)
+        .order_by(OrdenSalidaItems.id)
+    ).all())
+
+
 # --- Adjuntos (§2.5-2.7) -----------------------------------------------------------------------
 
 
