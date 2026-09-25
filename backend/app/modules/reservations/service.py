@@ -1,5 +1,6 @@
-"""Servicio de reservations (API-13): creación, edición, consulta,
-disponibilidad y preparación de lista de espera.
+"""Servicio de reservations (API-13/API-14): creación, edición, consulta,
+disponibilidad, preparación de lista de espera, gestión por el Técnico,
+propuestas de periodo y ejecución.
 
 Dueño de la transacción y de la selección de estrategia
 (`architecture.md`): comprueba acceso, carga datos, selecciona la
@@ -7,11 +8,14 @@ Dueño de la transacción y de la selección de estrategia
 delega la decisión y persiste el resultado con el repositorio. Ni
 `Reserva` ni las estrategias ejecutan SQL ni confirman transacciones.
 
-**Fuera de alcance de API-13, a propósito**: aprobación/rechazo manual,
-agregar/retirar recursos post-creación, propuestas de periodo, ejecución,
-finalización y cancelación (contrato §4 a §6) son API-14. `generar_fgl` de
-`PrestamoFisicoPolicy` sí se usa aquí, para la creación autoaprobada, y
-queda listo para que API-14 lo reutilice al aprobar manualmente.
+**Fuera de alcance de API-14, a propósito**: consulta y exportación de la
+FGL 030 ya generada (§7, orden-salida/orden-salida.pdf), calendario `.ics` y
+exportación de reservas (§8) son API-15. El proceso automático de horario
+que hace avanzar espacio/interno por el mero paso del tiempo sin ninguna
+petición HTTP (RN-TIP-PE-25/27, RN-TIP-RI-08/09) exige un planificador que
+no forma parte de ningún endpoint de este contrato; solo se implementa aquí
+el caso ya cubierto por creación y aprobación (`_al_aprobar`), cuando la
+franja ya está vigente en el instante de la operación.
 """
 
 from __future__ import annotations
@@ -40,6 +44,7 @@ from app.modules.reservations.policies import acceso as acceso_policy
 from app.modules.reservations.policies import apoyo as apoyo_policy
 from app.modules.reservations.policies import contexto as contexto_policy
 from app.modules.reservations.policies import prestamo_fisico as prestamo_policy
+from app.modules.reservations.policies import propuestas as propuestas_policy
 from app.modules.reservations import storage
 from app.modules.reservations.strategies import selector
 from app.modules.resources import repository as rec_repo
@@ -675,6 +680,13 @@ def obtener_reserva_detalle(db, id_reserva: int, contexto: ContextoAutenticado) 
             },
         }
 
+    propuesta = repo.obtener_propuesta_vigente(db, id_reserva)
+    propuesta_vigente = None if propuesta is None else {
+        "id": propuesta.id, "origen": propuesta.origen, "fecha_inicio_propuesta": propuesta.fecha_inicio_propuesta,
+        "fecha_fin_propuesta": propuesta.fecha_fin_propuesta, "hora_inicio": propuesta.hora_inicio,
+        "hora_fin": propuesta.hora_fin, "motivo": propuesta.motivo, "created_at": propuesta.created_at,
+    }
+
     return {
         "id": reserva.id, "estado": estado.codigo, "tipo_reserva": tipo.codigo, "id_unidad": reserva.id_unidad,
         "id_cuenta": reserva.id_cuenta, "observacion": reserva.observacion, "requiere_apoyo": reserva.requiere_apoyo,
@@ -696,7 +708,7 @@ def obtener_reserva_detalle(db, id_reserva: int, contexto: ContextoAutenticado) 
             }
             for h in repo.historial_de_reserva(db, id_reserva)
         ],
-        "propuesta_vigente": None,
+        "propuesta_vigente": propuesta_vigente,
         "lista_espera": lista_espera_extra,
     }
 
@@ -752,3 +764,416 @@ def consultar_disponibilidad(db, *, id_unidad: int, espacio_id: int | None, recu
                 franjas.append({"fecha": fecha, "hora_inicio": hora_i, "hora_fin": hora_f, "disponible": False})
 
     return {"horario_unidad": horario_unidad, "franjas": franjas}
+
+
+# --- §4.1 Aprobación --------------------------------------------------------------------
+
+
+def _asignacion_dict(a) -> dict:
+    return {
+        "reserva_recurso_id": a.id, "recurso_id": a.recurso_id, "rol": a.rol, "estado_asignacion": a.estado_asignacion,
+        "incorporado_at": a.incorporado_at, "retirado_at": a.retirado_at, "causa_retiro": a.causa_retiro,
+        "reserva_causante_id": a.reserva_causante_id,
+    }
+
+
+def aprobar_reserva(db, id_reserva: int, cuerpo: schemas.AprobacionCuerpo, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    if estado_actual.codigo != "SOLICITADA":
+        raise EstadoIncompatible()
+    if tipo.codigo != "LISTA_ESPERA" and cuerpo.material_recibido is not None:
+        raise Validacion("material_recibido no se admite para este tipo de reserva.")
+
+    ahora = _ahora()
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+
+    if tipo.codigo == "LISTA_ESPERA":
+        detalle_le = repo.obtener_detalle_lista_espera(db, id_reserva)
+        formulario = repo.obtener_formulario_lista_espera(db, id_reserva)
+        datos_op = {"material_recibido": cuerpo.material_recibido}
+        condiciones = {"viable": detalle_le.viable, "formulario": formulario}
+    else:
+        config = rec_repo.obtener_config(db, reserva.id_unidad)
+        detalle = _detalle_por_tipo(db, reserva, tipo.codigo)
+        recursos = [{"recurso_id": a.recurso_id, "rol": a.rol} for a in repo.asignaciones_de_reserva(db, id_reserva, solo_vigentes=True)]
+        datos_op = {"detalle": detalle, "recursos": recursos}
+        condiciones = {"db": db, "config": config, "ahora": ahora, "excluir_reserva_id": id_reserva}
+
+    reserva_ctx.validar("aprobar", datos_op, condiciones)
+
+    estado_aprobada_id = repo.obtener_estado_id_codigo(db, "APROBADA")
+    estado_anterior_id = reserva.estado_id
+    reserva.estado_id = estado_aprobada_id
+    repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_aprobada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.observacion)
+
+    detalle_extra = None
+    if tipo.codigo == "LISTA_ESPERA":
+        reserva.fecha_aprobacion = ahora
+        detalle_le.fecha_recepcion_material = ahora
+        detalle_extra = {"fecha_recepcion_material": ahora}
+    else:
+        _al_aprobar(db, reserva, contexto, ahora, tipo.codigo)
+
+    db.commit()
+    db.refresh(reserva)
+    estado_final = repo.obtener_estado(db, reserva.estado_id)
+    return {"id": reserva.id, "estado": estado_final.codigo, "fecha_aprobacion": reserva.fecha_aprobacion, "detalle": detalle_extra}
+
+
+# --- §4.2 Rechazo ------------------------------------------------------------------------
+
+
+def rechazar_reserva(db, id_reserva: int, cuerpo: schemas.RechazoCuerpo, contexto: ContextoAutenticado) -> dict:
+    """Sin dispatch por estrategia: la precondición de estado y el motivo
+    son comunes a los cinco tipos; una vez fuera de SOLICITADA/APROBADA
+    EN_EJECUCION ya implica entrega física (campus/externo) o inicio
+    automático (espacio/interno), así que RN-DIS-06 queda cubierto por el
+    propio chequeo de estado, sin una condición adicional por tipo."""
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    if estado_actual.codigo not in ("SOLICITADA", "APROBADA"):
+        raise EstadoIncompatible()
+    if not (cuerpo.motivo or "").strip():
+        raise Validacion("motivo es obligatorio.")
+
+    estado_rechazada_id = repo.obtener_estado_id_codigo(db, "RECHAZADA")
+    estado_anterior_id = reserva.estado_id
+    reserva.estado_id = estado_rechazada_id
+    repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_rechazada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.motivo)
+    db.commit()
+    return {"id": id_reserva, "estado": "RECHAZADA", "motivo": cuerpo.motivo}
+
+
+# --- §4.3/§4.4 Recursos genéricos ---------------------------------------------------------
+
+_TIPOS_CON_RECURSOS_GENERICOS = ("ESPACIO", "RECURSO_INTERNO")
+_ESTADOS_RECURSOS_GENERICOS = ("SOLICITADA", "APROBADA", "EN_EJECUCION")
+
+
+def agregar_recursos(db, id_reserva: int, cuerpo: schemas.RecursosAgregarCuerpo, contexto: ContextoAutenticado) -> list[dict]:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    if tipo.codigo not in _TIPOS_CON_RECURSOS_GENERICOS:
+        raise TipoNoAdmitido()
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    if estado_actual.codigo not in _ESTADOS_RECURSOS_GENERICOS:
+        raise EstadoIncompatible()
+
+    ahora = _ahora()
+    incorporado_at = ahora if estado_actual.codigo == "EN_EJECUCION" else None
+    detalle = _detalle_por_tipo(db, reserva, tipo.codigo)
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+    datos_op = {"detalle": detalle, "recursos": [{"recurso_id": r.recurso_id, "rol": r.rol} for r in cuerpo.recursos]}
+    condiciones = {"db": db, "incorporado_at": incorporado_at}
+
+    reserva_ctx.validar("agregar_recursos", datos_op, condiciones)
+    resultado = reserva_ctx.determinar_cambios("agregar_recursos", datos_op, condiciones)
+
+    creados = [
+        repo.crear_asignacion_recurso(db, reserva_id=id_reserva, recurso_id=r["recurso_id"], rol=r["rol"], incorporado_at=incorporado_at)
+        for r in resultado["recursos"]
+    ]
+    db.commit()
+    return [_asignacion_dict(a) for a in creados]
+
+
+def retirar_recurso(db, id_reserva: int, reserva_recurso_id: int, contexto: ContextoAutenticado) -> None:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    if tipo.codigo not in _TIPOS_CON_RECURSOS_GENERICOS:
+        raise TipoNoAdmitido()
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    if estado_actual.codigo not in _ESTADOS_RECURSOS_GENERICOS:
+        raise EstadoIncompatible()
+
+    asignacion = repo.obtener_asignacion(db, reserva_recurso_id)
+    if asignacion is None or asignacion.reserva_id != id_reserva or asignacion.estado_asignacion != "ASIGNADO":
+        raise NoEncontrado()
+
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+    reserva_ctx.validar("retirar_recurso", {"asignacion": asignacion}, {})
+
+    db.delete(asignacion)
+    db.commit()
+
+
+# --- §5 Propuestas de periodo --------------------------------------------------------------
+
+
+def _propuesta_dict(p) -> dict:
+    return {
+        "id": p.id, "reserva_id": p.reserva_id, "origen": p.origen, "fecha_inicio_propuesta": p.fecha_inicio_propuesta,
+        "fecha_fin_propuesta": p.fecha_fin_propuesta, "hora_inicio": p.hora_inicio, "hora_fin": p.hora_fin,
+        "motivo": p.motivo, "estado": p.estado, "creada_por": p.creada_por, "resuelta_por": p.resuelta_por,
+        "created_at": p.created_at, "resuelta_at": p.resuelta_at,
+    }
+
+
+def crear_propuesta(db, id_reserva: int, cuerpo: schemas.PropuestaCrear, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    propuestas_policy.validar_tipo_admite_propuesta(tipo.codigo)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    propuestas_policy.validar_estado_negociable(estado_actual.codigo)
+
+    if contexto.id_cuenta == reserva.id_cuenta:
+        origen = "USUARIO"
+    else:
+        exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+        origen = "TECNICO"
+
+    if cuerpo.fecha_fin_propuesta < cuerpo.fecha_inicio_propuesta:
+        raise Validacion("fecha_fin_propuesta debe ser posterior o igual a fecha_inicio_propuesta.")
+
+    if tipo.codigo in ("RECURSO_CAMPUS", "RECURSO_EXTERNO"):
+        orden_existente = repo.obtener_orden_por_reserva(db, id_reserva) is not None
+        propuestas_policy.validar_sin_fgl(tipo.codigo, orden_existente)
+        if cuerpo.hora_inicio is not None or cuerpo.hora_fin is not None:
+            raise Validacion("hora_inicio/hora_fin no aplican a RECURSO_CAMPUS/RECURSO_EXTERNO.")
+    else:
+        if cuerpo.fecha_inicio_propuesta != cuerpo.fecha_fin_propuesta:
+            raise Validacion("Para ESPACIO/RECURSO_INTERNO, fecha_inicio_propuesta debe ser igual a fecha_fin_propuesta.")
+        if cuerpo.hora_inicio is None or cuerpo.hora_fin is None:
+            raise Validacion("hora_inicio y hora_fin son obligatorias para ESPACIO/RECURSO_INTERNO.")
+        if cuerpo.hora_inicio >= cuerpo.hora_fin:
+            raise Validacion("hora_inicio debe ser anterior a hora_fin.")
+
+    vigente = repo.obtener_propuesta_vigente(db, id_reserva)
+    if vigente is not None:
+        repo.resolver_propuesta(db, vigente, estado="SUSTITUIDA", resuelta_por=contexto.id_cuenta, resuelta_at=_ahora())
+
+    nueva = repo.crear_propuesta(
+        db, reserva_id=id_reserva, origen=origen, fecha_inicio_propuesta=cuerpo.fecha_inicio_propuesta,
+        fecha_fin_propuesta=cuerpo.fecha_fin_propuesta, hora_inicio=cuerpo.hora_inicio, hora_fin=cuerpo.hora_fin,
+        motivo=cuerpo.motivo, creada_por=contexto.id_cuenta,
+    )
+    db.commit()
+    db.refresh(nueva)
+    return _propuesta_dict(nueva)
+
+
+def aceptar_propuesta_vigente(db, id_reserva: int, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    propuestas_policy.validar_tipo_admite_propuesta(tipo.codigo)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    propuestas_policy.validar_estado_negociable(estado_actual.codigo)
+
+    propuesta = repo.obtener_propuesta_vigente(db, id_reserva)
+    if propuesta is None:
+        raise NoEncontrado("No hay una propuesta vigente.")
+    if propuesta.origen == "TECNICO":
+        acceso_policy.validar_propietario(contexto, reserva.id_cuenta)
+    else:
+        exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+
+    if tipo.codigo in ("RECURSO_CAMPUS", "RECURSO_EXTERNO"):
+        orden_existente = repo.obtener_orden_por_reserva(db, id_reserva) is not None
+        propuestas_policy.validar_sin_fgl(tipo.codigo, orden_existente)
+
+    ahora = _ahora()
+    config = rec_repo.obtener_config(db, reserva.id_unidad)
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+
+    detalle_propuesto = dict(_detalle_por_tipo(db, reserva, tipo.codigo))
+    if tipo.codigo in ("ESPACIO", "RECURSO_INTERNO"):
+        detalle_propuesto["fecha"] = propuesta.fecha_inicio_propuesta
+        detalle_propuesto["hora_inicio"] = propuesta.hora_inicio
+        detalle_propuesto["hora_fin"] = propuesta.hora_fin
+    else:
+        detalle_propuesto["fecha_salida"] = propuesta.fecha_inicio_propuesta
+        detalle_propuesto["fecha_devolucion_estimada"] = propuesta.fecha_fin_propuesta
+
+    datos_op = {
+        "id_unidad": reserva.id_unidad,
+        "detalle": detalle_propuesto,
+        "recursos": [{"recurso_id": a.recurso_id, "rol": a.rol} for a in repo.asignaciones_de_reserva(db, id_reserva, solo_vigentes=True)],
+        "acompanantes": repo.acompanantes_de_reserva(db, id_reserva),
+        "campos_adicionales": [{"campo_id": c.campo_id} for c in repo.campos_valores_de_reserva(db, id_reserva)],
+    }
+    condiciones = {"db": db, "config": config, "ahora": ahora, "excluir_reserva_id": id_reserva}
+
+    reserva_ctx.validar("editar", datos_op, condiciones)
+    resultado = reserva_ctx.determinar_cambios("editar", datos_op, condiciones)
+
+    if "detalle_espacio" in resultado:
+        d = repo.obtener_detalle_espacio(db, id_reserva)
+        d.fecha, d.hora_inicio, d.hora_fin = detalle_propuesto["fecha"], detalle_propuesto["hora_inicio"], detalle_propuesto["hora_fin"]
+    elif "detalle_interno" in resultado:
+        d = repo.obtener_detalle_interno(db, id_reserva)
+        d.fecha, d.hora_inicio, d.hora_fin = detalle_propuesto["fecha"], detalle_propuesto["hora_inicio"], detalle_propuesto["hora_fin"]
+    elif "detalle_campus" in resultado:
+        d = repo.obtener_detalle_campus(db, id_reserva)
+        d.fecha_salida, d.fecha_devolucion_estimada = detalle_propuesto["fecha_salida"], detalle_propuesto["fecha_devolucion_estimada"]
+    elif "detalle_externo" in resultado:
+        d = repo.obtener_detalle_externo(db, id_reserva)
+        d.fecha_salida, d.fecha_devolucion_estimada = detalle_propuesto["fecha_salida"], detalle_propuesto["fecha_devolucion_estimada"]
+
+    repo.resolver_propuesta(db, propuesta, estado="ACEPTADA", resuelta_por=contexto.id_cuenta, resuelta_at=ahora)
+    reserva.updated_at = ahora
+    db.commit()
+    return obtener_reserva_detalle(db, id_reserva, contexto)
+
+
+def rechazar_propuesta_vigente(db, id_reserva: int, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None or not acceso_policy.validar_ambito_lectura(contexto, reserva.id_cuenta, reserva.id_unidad):
+        raise NoEncontrado()
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    propuestas_policy.validar_tipo_admite_propuesta(tipo.codigo)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    propuestas_policy.validar_estado_negociable(estado_actual.codigo)
+
+    propuesta = repo.obtener_propuesta_vigente(db, id_reserva)
+    if propuesta is None:
+        raise NoEncontrado("No hay una propuesta vigente.")
+    if propuesta.origen == "TECNICO":
+        acceso_policy.validar_propietario(contexto, reserva.id_cuenta)
+    else:
+        exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+
+    repo.resolver_propuesta(db, propuesta, estado="RECHAZADA", resuelta_por=contexto.id_cuenta, resuelta_at=_ahora())
+    db.commit()
+    return _propuesta_dict(propuesta)
+
+
+# --- §6.1 Ejecución ------------------------------------------------------------------------
+
+
+def ejecutar_reserva(db, id_reserva: int, cuerpo: schemas.EjecucionCuerpo, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+
+    if tipo.codigo == "LISTA_ESPERA":
+        if cuerpo.recursos is not None:
+            raise Validacion("LISTA_ESPERA no admite recursos en esta operación.")
+        datos_op, condiciones = {}, {"estado_actual": estado_actual.codigo}
+    else:
+        recursos_entrega = cuerpo.recursos or []
+        datos_op = {"recursos": [{"reserva_recurso_id": r.reserva_recurso_id, "observacion_entrega": r.observacion_entrega} for r in recursos_entrega]}
+        condiciones = {"db": db, "estado_actual": estado_actual.codigo}
+
+    reserva_ctx.validar("ejecutar", datos_op, condiciones)
+    resultado = reserva_ctx.determinar_cambios("ejecutar", datos_op, condiciones)
+
+    ahora = _ahora()
+    estado_ejecucion_id = repo.obtener_estado_id_codigo(db, "EN_EJECUCION")
+    estado_anterior_id = reserva.estado_id
+    reserva.estado_id = estado_ejecucion_id
+    repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_ejecucion_id, actor_cuenta_id=contexto.id_cuenta, motivo=None)
+
+    for entrega in resultado.get("entregas") or []:
+        repo.crear_ejecucion_recurso(
+            db, reserva_recurso_id=entrega["reserva_recurso_id"], entregado_por=contexto.id_cuenta,
+            entregado_at=ahora, observacion_entrega=entrega.get("observacion_entrega"),
+        )
+
+    db.commit()
+    return {"id": id_reserva, "estado": "EN_EJECUCION", "detalle": None}
+
+
+# --- §6.2 Finalización ---------------------------------------------------------------------
+
+
+def finalizar_reserva(db, id_reserva: int, cuerpo: schemas.FinalizacionCuerpo, contexto: ContextoAutenticado) -> dict:
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+    tipo = repo.obtener_tipo(db, reserva.tipo_reserva_id)
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    strategy = selector.seleccionar(tipo.codigo)
+    reserva_ctx = Reserva(tipo_codigo=tipo.codigo, strategy=strategy, cabecera=reserva)
+
+    if tipo.codigo == "LISTA_ESPERA":
+        if cuerpo.recursos is not None:
+            raise Validacion("LISTA_ESPERA no admite recursos en esta operación.")
+        datos_op = {"horas_ejecucion": cuerpo.horas_ejecucion}
+        condiciones = {"estado_actual": estado_actual.codigo}
+    else:
+        if cuerpo.horas_ejecucion is not None:
+            raise Validacion("horas_ejecucion no aplica a este tipo de reserva.")
+        recursos_devolucion = cuerpo.recursos or []
+        datos_op = {"recursos": [{"reserva_recurso_id": r.reserva_recurso_id, "observacion_devolucion": r.observacion_devolucion} for r in recursos_devolucion]}
+        condiciones = {"db": db, "estado_actual": estado_actual.codigo}
+
+    reserva_ctx.validar("finalizar", datos_op, condiciones)
+    resultado = reserva_ctx.determinar_cambios("finalizar", datos_op, condiciones)
+
+    ahora = _ahora()
+    estado_finalizada_id = repo.obtener_estado_id_codigo(db, "FINALIZADA")
+    estado_anterior_id = reserva.estado_id
+    reserva.estado_id = estado_finalizada_id
+    repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_finalizada_id, actor_cuenta_id=contexto.id_cuenta, motivo=None)
+
+    detalle_extra = None
+    if tipo.codigo == "LISTA_ESPERA":
+        detalle_le = repo.obtener_detalle_lista_espera(db, id_reserva)
+        detalle_le.horas_ejecucion = cuerpo.horas_ejecucion
+        detalle_extra = {"horas_ejecucion": cuerpo.horas_ejecucion}
+    else:
+        for devolucion in resultado.get("devoluciones") or []:
+            ejecucion = repo.entrega_abierta_de_asignacion(db, devolucion["reserva_recurso_id"])
+            ejecucion.recibido_por = contexto.id_cuenta
+            ejecucion.devuelto_at = ahora
+            ejecucion.observacion_devolucion = devolucion.get("observacion_devolucion")
+
+    db.commit()
+    return {"id": id_reserva, "estado": "FINALIZADA", "detalle": detalle_extra}
+
+
+# --- §6.3 Cancelación ----------------------------------------------------------------------
+
+
+def cancelar_reserva(db, id_reserva: int, cuerpo: schemas.CancelacionCuerpo, contexto: ContextoAutenticado) -> dict:
+    """Sin dispatch por estrategia: RN-CAN-02 se resuelve uniformemente por
+    estado en los cinco tipos, porque `EN_EJECUCION` siempre significa que
+    la ejecución ya inició (automática en espacio/interno, entrega física en
+    campus/externo, inicio de fabricación/prestación en lista de espera)."""
+    reserva = repo.obtener_reserva(db, id_reserva)
+    if reserva is None:
+        raise NoEncontrado()
+    if contexto.id_cuenta != reserva.id_cuenta:
+        exigir_permiso(db, contexto.id_cuenta, "reservas.administrar", id_unidad=reserva.id_unidad)
+
+    estado_actual = repo.obtener_estado(db, reserva.estado_id)
+    if estado_actual.codigo not in ("SOLICITADA", "APROBADA"):
+        raise EstadoIncompatible("La reserva ya inició su ejecución o está en un estado terminal.")
+
+    ahora = _ahora()
+    estado_cancelada_id = repo.obtener_estado_id_codigo(db, "CANCELADA")
+    estado_anterior_id = reserva.estado_id
+    reserva.estado_id = estado_cancelada_id
+    reserva.fecha_cancelacion = ahora
+    reserva.motivo_cancelacion = cuerpo.motivo
+    repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_cancelada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.motivo)
+    db.commit()
+    return {"id": id_reserva, "estado": "CANCELADA", "detalle": None}

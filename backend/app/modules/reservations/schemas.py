@@ -212,6 +212,91 @@ class ReservaDetalleRespuesta(BaseModel):
     lista_espera: dict[str, Any] | None = None
 
 
+# --- §4 Gestión por el Técnico -----------------------------------------------------------
+
+class AprobacionCuerpo(BaseModel):
+    observacion: str | None = None
+    material_recibido: bool | None = None
+
+
+class AprobacionRespuesta(BaseModel):
+    id: int
+    estado: str
+    fecha_aprobacion: datetime
+    detalle: dict[str, Any] | None = None
+
+
+class RechazoCuerpo(BaseModel):
+    motivo: str
+
+
+class RechazoRespuesta(BaseModel):
+    id: int
+    estado: str
+    motivo: str
+
+
+class RecursosAgregarCuerpo(BaseModel):
+    recursos: list[RecursoAsignarCrear]
+
+
+# --- §5 Propuestas de periodo ------------------------------------------------------------
+
+class PropuestaCrear(BaseModel):
+    fecha_inicio_propuesta: date
+    fecha_fin_propuesta: date
+    hora_inicio: time | None = None
+    hora_fin: time | None = None
+    motivo: str
+
+
+class PropuestaRespuesta(BaseModel):
+    id: int
+    reserva_id: int
+    origen: str
+    fecha_inicio_propuesta: date
+    fecha_fin_propuesta: date
+    hora_inicio: time | None
+    hora_fin: time | None
+    motivo: str
+    estado: str
+    creada_por: int
+    resuelta_por: int | None
+    created_at: datetime
+    resuelta_at: datetime | None
+
+
+# --- §6 Ejecución --------------------------------------------------------------------------
+
+class RecursoEntregaItem(BaseModel):
+    reserva_recurso_id: int
+    observacion_entrega: str | None = None
+
+
+class EjecucionCuerpo(BaseModel):
+    recursos: list[RecursoEntregaItem] | None = None
+
+
+class RecursoDevolucionItem(BaseModel):
+    reserva_recurso_id: int
+    observacion_devolucion: str | None = None
+
+
+class FinalizacionCuerpo(BaseModel):
+    recursos: list[RecursoDevolucionItem] | None = None
+    horas_ejecucion: float | None = None
+
+
+class CancelacionCuerpo(BaseModel):
+    motivo: str | None = None
+
+
+class TransicionRespuesta(BaseModel):
+    id: int
+    estado: str
+    detalle: dict[str, Any] | None = None
+
+
 # --- §3.3 Disponibilidad -----------------------------------------------------------------
 
 

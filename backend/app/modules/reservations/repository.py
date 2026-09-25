@@ -30,10 +30,12 @@ from app.db.models.reservas import (
     ReservaCamposValores,
     ReservaContexto,
     ReservaDatosSalida,
+    ReservaEjecucionRecursos,
     ReservaEspacio,
     ReservaHistorialEstado,
     ReservaListaEspera,
     ReservaListaEsperaFormulario,
+    ReservaPropuestas,
     ReservaRecursoCampus,
     ReservaRecursoExterno,
     ReservaRecursoInterno,
@@ -452,3 +454,61 @@ def adjuntos_de_reserva(db: Session, reserva_id: int, *, offset: int, tamano: in
 
 def obtener_adjunto(db: Session, adjunto_id: int) -> ReservaAdjuntos | None:
     return db.get(ReservaAdjuntos, adjunto_id)
+
+
+# --- Ejecución de recursos: entrega y devolución física (API-14 §6) ----------------------------
+
+
+def crear_ejecucion_recurso(db: Session, *, reserva_recurso_id: int, entregado_por: int, entregado_at: datetime, observacion_entrega: str | None) -> ReservaEjecucionRecursos:
+    fila = ReservaEjecucionRecursos(
+        reserva_recurso_id=reserva_recurso_id, entregado_por=entregado_por, entregado_at=entregado_at,
+        observacion_entrega=observacion_entrega,
+    )
+    db.add(fila)
+    db.flush()
+    return fila
+
+
+def entrega_abierta_de_asignacion(db: Session, reserva_recurso_id: int) -> ReservaEjecucionRecursos | None:
+    stmt = select(ReservaEjecucionRecursos).where(
+        ReservaEjecucionRecursos.reserva_recurso_id == reserva_recurso_id,
+        ReservaEjecucionRecursos.devuelto_at.is_(None),
+    )
+    return db.scalar(stmt)
+
+
+def entregas_abiertas_de_reserva(db: Session, reserva_id: int) -> list[ReservaEjecucionRecursos]:
+    stmt = (
+        select(ReservaEjecucionRecursos)
+        .join(ReservaRecursos, ReservaRecursos.id == ReservaEjecucionRecursos.reserva_recurso_id)
+        .where(ReservaRecursos.reserva_id == reserva_id, ReservaEjecucionRecursos.devuelto_at.is_(None))
+    )
+    return list(db.scalars(stmt).all())
+
+
+# --- Propuestas de periodo (API-14 §5) ----------------------------------------------------------
+
+
+def crear_propuesta(
+    db: Session, *, reserva_id: int, origen: str, fecha_inicio_propuesta: date, fecha_fin_propuesta: date,
+    hora_inicio: time | None, hora_fin: time | None, motivo: str, creada_por: int,
+) -> ReservaPropuestas:
+    propuesta = ReservaPropuestas(
+        reserva_id=reserva_id, origen=origen, fecha_inicio_propuesta=fecha_inicio_propuesta,
+        fecha_fin_propuesta=fecha_fin_propuesta, hora_inicio=hora_inicio, hora_fin=hora_fin, motivo=motivo,
+        estado="VIGENTE", creada_por=creada_por, resuelta_por=None, created_at=_ahora(), resuelta_at=None,
+    )
+    db.add(propuesta)
+    db.flush()
+    return propuesta
+
+
+def obtener_propuesta_vigente(db: Session, reserva_id: int) -> ReservaPropuestas | None:
+    stmt = select(ReservaPropuestas).where(ReservaPropuestas.reserva_id == reserva_id, ReservaPropuestas.estado == "VIGENTE")
+    return db.scalar(stmt)
+
+
+def resolver_propuesta(db: Session, propuesta: ReservaPropuestas, *, estado: str, resuelta_por: int, resuelta_at: datetime) -> None:
+    propuesta.estado = estado
+    propuesta.resuelta_por = resuelta_por
+    propuesta.resuelta_at = resuelta_at

@@ -18,6 +18,19 @@ from app.core.pagination import envolver_catalogo, envolver_listado, paginacion_
 from app.core.security import exigir_csrf
 from app.db.session import get_db
 from app.modules.reservations import schemas, service
+from app.modules.reservations.schemas import (
+    AprobacionCuerpo,
+    AprobacionRespuesta,
+    CancelacionCuerpo,
+    EjecucionCuerpo,
+    FinalizacionCuerpo,
+    PropuestaCrear,
+    PropuestaRespuesta,
+    RechazoCuerpo,
+    RechazoRespuesta,
+    RecursosAgregarCuerpo,
+    TransicionRespuesta,
+)
 
 router = APIRouter(prefix="/api/reservas", tags=["reservas"])
 
@@ -198,3 +211,133 @@ def actualizar_reserva(
 ) -> schemas.ReservaDetalleRespuesta:
     """§2.8. Solo el reservista propietario, solo en SOLICITADA."""
     return schemas.ReservaDetalleRespuesta(**service.actualizar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+# --- §4 Gestión por el Técnico (API-14) -------------------------------------------------
+
+
+@router.post("/{id_reserva}/aprobacion", response_model=AprobacionRespuesta)
+def aprobar_reserva(
+    id_reserva: int,
+    cuerpo: AprobacionCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> AprobacionRespuesta:
+    """§4.1. Para lista de espera registra también recepción de material."""
+    return AprobacionRespuesta(**service.aprobar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+@router.post("/{id_reserva}/rechazo", response_model=RechazoRespuesta)
+def rechazar_reserva(
+    id_reserva: int,
+    cuerpo: RechazoCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> RechazoRespuesta:
+    """§4.2."""
+    return RechazoRespuesta(**service.rechazar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+@router.post("/{id_reserva}/recursos", status_code=201, response_model=dict)
+def agregar_recursos(
+    id_reserva: int,
+    cuerpo: RecursosAgregarCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> dict:
+    """§4.3. Solo ESPACIO y RECURSO_INTERNO."""
+    return envolver_catalogo([
+        schemas.RecursoAsignadoDetalle(**a).model_dump(mode="json") for a in service.agregar_recursos(db, id_reserva, cuerpo, contexto)
+    ])
+
+
+@router.delete("/{id_reserva}/recursos/{reserva_recurso_id}", status_code=204)
+def retirar_recurso(
+    id_reserva: int,
+    reserva_recurso_id: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> Response:
+    """§4.4. Retiro manual sin historial ni metadatos propios."""
+    service.retirar_recurso(db, id_reserva, reserva_recurso_id, contexto)
+    return Response(status_code=204)
+
+
+# --- §5 Propuestas de periodo (API-14) ---------------------------------------------------
+
+
+@router.post("/{id_reserva}/propuestas", status_code=201, response_model=PropuestaRespuesta)
+def crear_propuesta(
+    id_reserva: int,
+    cuerpo: PropuestaCrear,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> PropuestaRespuesta:
+    """§5.1. `origen` se deriva del rol del actor, no del cuerpo."""
+    return PropuestaRespuesta(**service.crear_propuesta(db, id_reserva, cuerpo, contexto))
+
+
+@router.post("/{id_reserva}/propuestas/vigente/aceptacion", response_model=schemas.ReservaDetalleRespuesta)
+def aceptar_propuesta_vigente(
+    id_reserva: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> schemas.ReservaDetalleRespuesta:
+    """§5.2. Solo la contraparte de quien propuso puede aceptar."""
+    return schemas.ReservaDetalleRespuesta(**service.aceptar_propuesta_vigente(db, id_reserva, contexto))
+
+
+@router.post("/{id_reserva}/propuestas/vigente/rechazo", response_model=PropuestaRespuesta)
+def rechazar_propuesta_vigente(
+    id_reserva: int,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> PropuestaRespuesta:
+    """§5.3. No revoca una aprobación existente."""
+    return PropuestaRespuesta(**service.rechazar_propuesta_vigente(db, id_reserva, contexto))
+
+
+# --- §6 Ejecución (API-14) -----------------------------------------------------------------
+
+
+@router.post("/{id_reserva}/ejecucion", response_model=TransicionRespuesta)
+def ejecutar_reserva(
+    id_reserva: int,
+    cuerpo: EjecucionCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> TransicionRespuesta:
+    """§6.1. No aplica a ESPACIO ni RECURSO_INTERNO (inicio automático)."""
+    return TransicionRespuesta(**service.ejecutar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+@router.post("/{id_reserva}/finalizacion", response_model=TransicionRespuesta)
+def finalizar_reserva(
+    id_reserva: int,
+    cuerpo: FinalizacionCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> TransicionRespuesta:
+    """§6.2. No aplica a ESPACIO ni RECURSO_INTERNO (cierre automático)."""
+    return TransicionRespuesta(**service.finalizar_reserva(db, id_reserva, cuerpo, contexto))
+
+
+@router.post("/{id_reserva}/cancelacion", response_model=TransicionRespuesta)
+def cancelar_reserva(
+    id_reserva: int,
+    cuerpo: CancelacionCuerpo,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+    _csrf: None = Depends(exigir_csrf),
+) -> TransicionRespuesta:
+    """§6.3. Admitida mientras la ejecución no haya iniciado."""
+    return TransicionRespuesta(**service.cancelar_reserva(db, id_reserva, cuerpo, contexto))

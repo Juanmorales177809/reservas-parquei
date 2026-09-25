@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.core.errors import CapacidadExcedida, Conflicto, NoEncontrado, Validacion
+from app.core.errors import CapacidadExcedida, Conflicto, EstadoIncompatible, NoEncontrado, Validacion
 from app.modules.espacios import repository as esp_repo
 from app.modules.reservations import repository as repo
 from app.modules.reservations.policies import disponibilidad as disp_policy
@@ -106,3 +106,56 @@ class EspacioStrategy(ReservationStrategy):
 
     def cambios_editar(self, reserva, datos: dict, condiciones: dict) -> dict:
         return self.cambios_crear(reserva, datos, condiciones)
+
+    # --- §4.1 Aprobación (API-14) -------------------------------------------------------
+
+    def validar_aprobar(self, reserva, datos: dict, condiciones: dict) -> None:
+        """RN-APR-06/07: revalida habilitación, horario y disponibilidad
+        vigentes, sin exigir antelación (RN-HOR-06). RN-TIP-PE-25/27: una
+        franja ya vencida no puede aprobarse (T-RES-67)."""
+        db = condiciones["db"]
+        detalle = datos["detalle"]
+        espacio = esp_repo.obtener_espacio(db, detalle["espacio_id"])
+        if espacio is None or not espacio.habilitado:
+            raise NoEncontrado("El espacio no existe o no está habilitado.")
+
+        ahora_local = condiciones["ahora"].astimezone(_ZONA_OPERATIVA)
+        fin_local = datetime.combine(detalle["fecha"], detalle["hora_fin"], tzinfo=_ZONA_OPERATIVA)
+        if ahora_local >= fin_local:
+            raise EstadoIncompatible("La franja de la reserva ya venció; no puede aprobarse.")
+
+        horario_policy.validar_franja(
+            fecha=detalle["fecha"], hora_inicio=detalle["hora_inicio"], hora_fin=detalle["hora_fin"],
+            config=condiciones["config"], ahora=condiciones["ahora"],
+        )
+        asistentes = detalle.get("asistentes") or 0
+        if asistentes > espacio.capacidad:
+            raise CapacidadExcedida()
+
+        inicio, fin = _periodo_utc(detalle["fecha"], detalle["hora_inicio"], detalle["hora_fin"])
+        solapa = repo.existe_solapamiento_espacio(db, detalle["espacio_id"], inicio, fin, excluir_reserva_id=condiciones.get("excluir_reserva_id"))
+        disp_policy.exigir_sin_solapamiento(solapa)
+
+    # --- §4.3/§4.4 Recursos complementarios (API-14) ------------------------------------
+
+    def validar_agregar_recursos(self, reserva, datos: dict, condiciones: dict) -> None:
+        """RN-TIP-PE-21/22: mismas condiciones que la creación para un
+        complementario: habilitado y sin compromiso físico ajeno."""
+        db = condiciones["db"]
+        for r in datos["recursos"]:
+            if r["rol"] != "ADICIONAL":
+                raise Validacion("En ESPACIO, los recursos solo admiten rol ADICIONAL.")
+            recurso = rec_repo.obtener_recurso(db, r["recurso_id"])
+            if recurso is None or not recurso.habilitado:
+                raise NoEncontrado(f"El recurso {r['recurso_id']} no existe o no está habilitado.")
+            if repo.tiene_compromiso_fisico_vigente(db, r["recurso_id"]):
+                raise Conflicto(f"El recurso {r['recurso_id']} tiene un compromiso físico vigente y no puede incluirse.")
+
+    def cambios_agregar_recursos(self, reserva, datos: dict, condiciones: dict) -> dict:
+        return {"recursos": [{"recurso_id": r["recurso_id"], "rol": "ADICIONAL"} for r in datos["recursos"]]}
+
+    def validar_retirar_recurso(self, reserva, datos: dict, condiciones: dict) -> None:
+        """Cualquier complementario vigente de ESPACIO puede retirarse (RN-TIP-PE-21)."""
+
+    def cambios_retirar_recurso(self, reserva, datos: dict, condiciones: dict) -> dict:
+        return {}
