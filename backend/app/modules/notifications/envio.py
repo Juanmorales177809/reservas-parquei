@@ -24,7 +24,9 @@ class ErrorTransmision(Exception):
     """Falla ya sanitizada, apta para `ultimo_error`."""
 
 
-def transmitir(destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict] | None = None) -> None:
+def transmitir(destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict] | None = None, html: str | None = None) -> None:
+    """`cuerpo` es el texto plano; `html`, el snapshot HTML institucional.
+    Sin `html` se manda solo texto (compatibilidad y avisos simples)."""
     from app.core.config import get_settings
 
     settings = get_settings()
@@ -34,21 +36,49 @@ def transmitir(destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict]
         return
     try:
         if settings.email_transport == "smtp":
-            _enviar_smtp(settings, destinatario, titulo, cuerpo, adjuntos)
+            _enviar_smtp(settings, destinatario, titulo, cuerpo, adjuntos, html)
         else:
-            _enviar_graph(settings, destinatario, titulo, cuerpo, adjuntos)
+            _enviar_graph(settings, destinatario, titulo, cuerpo, adjuntos, html)
     except ErrorTransmision:
         raise
     except Exception as exc:
         raise ErrorTransmision(f"Transmisión fallida ({type(exc).__name__}).") from exc
 
 
-def _mensaje(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict]) -> EmailMessage:
+def _texto_plano(html: str) -> str:
+    from html.parser import HTMLParser
+
+    class _Extractor(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.partes: list[str] = []
+
+        def handle_data(self, data: str):
+            texto = data.strip()
+            if texto:
+                self.partes.append(texto)
+
+    extractor = _Extractor()
+    extractor.feed(html)
+    return "\n".join(extractor.partes)
+
+
+def _mensaje(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict], html: str | None = None) -> EmailMessage:
+    from app.modules.notifications import plantillas
+
     mensaje = EmailMessage()
     mensaje["From"] = settings.smtp_from or settings.graph_mail_sender or "reservas@itm.edu.co"
     mensaje["To"] = destinatario
     mensaje["Subject"] = titulo
-    mensaje.set_content(cuerpo)
+    if html:
+        mensaje.set_content(_texto_plano(html))
+        mensaje.add_alternative(html, subtype="html")
+        parte_html = mensaje.get_body(("html",))
+        for cid, tipo, contenido in plantillas.imagenes_inline_para(html):
+            principal, secundario = tipo.split("/", 1)
+            parte_html.add_related(contenido, maintype=principal, subtype=secundario, cid=cid)
+    else:
+        mensaje.set_content(cuerpo)
     for adjunto in adjuntos:
         mensaje.add_attachment(
             adjunto["contenido"], maintype=adjunto["content_type"].split("/")[0],
@@ -58,8 +88,8 @@ def _mensaje(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: li
     return mensaje
 
 
-def _enviar_smtp(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict]) -> None:
-    mensaje = _mensaje(settings, destinatario, titulo, cuerpo, adjuntos)
+def _enviar_smtp(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict], html: str | None = None) -> None:
+    mensaje = _mensaje(settings, destinatario, titulo, cuerpo, adjuntos, html)
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as cliente:
             cliente.starttls()
@@ -100,11 +130,15 @@ def _token_graph(settings) -> str:
     return resultado["access_token"]
 
 
-def _enviar_graph(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict]) -> None:
+def _enviar_graph(settings, destinatario: str, titulo: str, cuerpo: str, adjuntos: list[dict], html: str | None = None) -> None:
     import httpx
 
     if not settings.graph_mail_sender:
         raise ErrorTransmision("GRAPH_MAIL_SENDER sin configurar.")
+    # sendMail no admite inline `cid:` como los multipart de SMTP: el HTML
+    # viaja igual y los adjuntos descargables aparte; las imágenes `cid:`
+    # pueden no renderizar en algunos clientes por esta vía.
+    cuerpo_html = html or f"<pre>{cuerpo}</pre>"
     anexos = [
         {
             "@odata.type": "#microsoft.graph.fileAttachment",
@@ -121,7 +155,7 @@ def _enviar_graph(settings, destinatario: str, titulo: str, cuerpo: str, adjunto
         json={
             "message": {
                 "subject": titulo,
-                "body": {"contentType": "Text", "content": cuerpo},
+                "body": {"contentType": "HTML", "content": cuerpo_html},
                 "toRecipients": [{"emailAddress": {"address": destinatario}}],
                 "attachments": anexos,
             }

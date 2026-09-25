@@ -19,7 +19,7 @@ from app.db.models.notificaciones import (
     EnviosCorreo,
     Notificaciones,
 )
-from app.modules.notifications import repository as repo
+from app.modules.notifications import plantillas, repository as repo
 
 
 def _ahora():
@@ -134,9 +134,21 @@ def registrar_evento(
                     continue
                 if not forzar_correo and not repo.correo_habilitado_para(db, id_cuenta, tipo.id):
                     continue
-                repo.crear_envio(db, evento.id, notificacion_ids.get(id_cuenta), correo, titulo, cuerpo, ahora)
+                html = _html_envio(
+                    db, tipo_codigo, reserva_id, datos,
+                    nombre=_nombre_de_cuenta(db, id_cuenta),
+                    es_contraparte=_es_contraparte(db, tipo_codigo, reserva_id, id_cuenta),
+                )
+                repo.crear_envio(
+                    db, evento.id, notificacion_ids.get(id_cuenta), correo,
+                    titulo, html, ahora,
+                )
             for correo in correos or []:
-                repo.crear_envio(db, evento.id, None, correo, titulo, cuerpo, ahora)
+                html = _html_envio(
+                    db, tipo_codigo, reserva_id, datos,
+                    nombre=correo, es_contraparte=False,
+                )
+                repo.crear_envio(db, evento.id, None, correo, titulo, html, ahora)
 
     if adjuntos:
         import os
@@ -212,3 +224,108 @@ def anular_por_cambio(db, reserva_id: int, motivo: str) -> None:
         db.commit()
     except Exception:
         logger.exception("No se pudieron anular envíos de la reserva %s", reserva_id)
+
+
+def _nombre_de_cuenta(db, id_cuenta: int) -> str:
+    from app.db.models.auth import Cuentas
+    from app.db.models.identidad import Personal, Usuarios
+
+    cuenta = db.get(Cuentas, id_cuenta)
+    if cuenta is None:
+        return ""
+    if cuenta.id_usuario is not None:
+        usuario = db.get(Usuarios, cuenta.id_usuario)
+        if usuario is not None:
+            return usuario.nombre
+    if cuenta.id_persona is not None:
+        persona = db.get(Personal, cuenta.id_persona)
+        if persona is not None:
+            return persona.nombre
+    return cuenta.correo
+
+
+def _resumen_reserva(db, reserva_id: int | None) -> tuple[str, str]:
+    """(titulo_tarjeta, detalle) para el HTML a partir del detalle vigente."""
+    if reserva_id is None:
+        return "", ""
+    from app.modules.espacios import repository as _espacios
+    from app.modules.reservations import repository as _reservas
+
+    reserva = _reservas.obtener_reserva(db, reserva_id)
+    if reserva is None:
+        return "", ""
+    tipo = _reservas.obtener_tipo(db, reserva.tipo_reserva_id)
+    if tipo.codigo == "ESPACIO":
+        detalle = _reservas.obtener_detalle_espacio(db, reserva_id)
+        espacio = _espacios.obtener_espacio(db, detalle.espacio_id)
+        return espacio.nombre, f"{detalle.fecha} · {detalle.hora_inicio}–{detalle.hora_fin}"
+    if tipo.codigo == "RECURSO_INTERNO":
+        detalle = _reservas.obtener_detalle_interno(db, reserva_id)
+        return "Recurso interno", f"{detalle.fecha} · {detalle.hora_inicio}–{detalle.hora_fin}"
+    if tipo.codigo in ("RECURSO_CAMPUS", "RECURSO_EXTERNO"):
+        detalle = (
+            _reservas.obtener_detalle_campus(db, reserva_id)
+            if tipo.codigo == "RECURSO_CAMPUS"
+            else _reservas.obtener_detalle_externo(db, reserva_id)
+        )
+        return "Préstamo de recurso", f"Salida {detalle.fecha_salida} · Devolución {detalle.fecha_devolucion_estimada}"
+    return "Lista de espera", ""
+
+
+def _es_contraparte(db, tipo_codigo: str, reserva_id: int | None, id_cuenta: int) -> bool:
+    if tipo_codigo != "PROPUESTA_PERIODO_REGISTRADA" or reserva_id is None:
+        return False
+    from app.modules.reservations import repository as _reservas
+
+    reserva = _reservas.obtener_reserva(db, reserva_id)
+    return reserva is not None and id_cuenta != reserva.id_cuenta
+
+
+_ESTADO_HTML = {
+    "SOLICITADA": "pendiente", "APROBADA": "aprobada", "RECHAZADA": "rechazada",
+    "CANCELADA": "cancelada", "EN_EJECUCION": "aprobada", "FINALIZADA": "aprobada",
+}
+
+
+def _html_envio(db, tipo_codigo: str, reserva_id: int | None, datos: dict, *, nombre: str, es_contraparte: bool) -> str:
+    titulo, detalle = _resumen_reserva(db, reserva_id)
+    motivo = str(datos.get("motivo") or "")
+    if tipo_codigo == "INVITACION_CUENTA":
+        return plantillas.invitacion(nombre=nombre, link=str(datos.get("enlace") or ""))
+    if tipo_codigo == "RECUPERACION_CONTRASENA":
+        return plantillas.recuperacion(nombre=nombre, link=str(datos.get("enlace") or ""))
+    if tipo_codigo == "CONTRASENA_CAMBIADA":
+        return plantillas.contrasena_actualizada(nombre=nombre)
+    if tipo_codigo == "PROPUESTA_PERIODO_REGISTRADA":
+        return plantillas.propuesta(
+            nombre=nombre, reserva_id=reserva_id or 0, detalle=titulo or "Reserva",
+            motivo=motivo, contraparte_tecnico=es_contraparte,
+        )
+    if tipo_codigo == "RESERVA_RECORDATORIO":
+        return plantillas.recordatorio(
+            nombre=nombre, reserva_id=reserva_id or 0,
+            detalle=titulo or str(datos.get("cuando") or ""),
+        )
+    if tipo_codigo == "RECURSO_ADICIONAL_INCORPORADO":
+        return plantillas.reserva_estado(
+            nombre=nombre, reserva_id=reserva_id or 0, estado="actualizada",
+            titulo_tarjeta=titulo or "Reserva", detalle=detalle,
+        )
+    if tipo_codigo == "LISTA_ESPERA_CAMBIO_ESTADO":
+        estado = _ESTADO_HTML.get(str(datos.get("estado") or ""), "pendiente")
+        return plantillas.reserva_estado(
+            nombre=nombre, reserva_id=reserva_id or 0, estado=estado,
+            titulo_tarjeta=titulo or "Lista de espera", detalle=detalle,
+        )
+    estado = _ESTADO_HTML.get(
+        {
+            "SOLICITUD_REGISTRADA": "SOLICITADA", "RESERVA_APROBADA": "APROBADA",
+            "RESERVA_RECHAZADA": "RECHAZADA", "RESERVA_CANCELADA": "CANCELADA",
+            "RESERVA_AFECTADA_DESHABILITACION": "CANCELADA",
+        }.get(tipo_codigo, ""),
+        "pendiente",
+    )
+    return plantillas.reserva_estado(
+        nombre=nombre, reserva_id=reserva_id or 0, estado=estado,
+        titulo_tarjeta=titulo or "Reserva", detalle=detalle, motivo=motivo or None,
+    )

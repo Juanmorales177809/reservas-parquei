@@ -58,9 +58,12 @@ def procesar_envio(db, envio) -> str:
     """Transmite un envío y actualiza su estado. Devuelve el estado final."""
     ahora = _ahora()
     try:
+        # `cuerpo` guarda el snapshot HTML desde las plantillas; filas
+        # anteriores al formato guardan texto plano y viajan sin HTML.
+        html = envio.cuerpo if envio.cuerpo.lstrip().startswith("<") else None
         remitente.transmitir(
             envio.destinatario_correo, envio.titulo, envio.cuerpo,
-            _adjuntos(db, envio),
+            _adjuntos(db, envio), html=html,
         )
     except remitente.ErrorTransmision as exc:
         envio.intentos += 1

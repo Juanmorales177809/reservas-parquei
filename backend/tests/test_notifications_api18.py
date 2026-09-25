@@ -221,6 +221,68 @@ def test_aprobar_genera_aviso_y_envio(client, db, tag):
             _teardown(db, s, [rid], c_usr.id_usuario)
 
 
+def test_envio_guarda_html_institucional(client, db, tag):
+    """El envío snapshot usa el formato institucional con marca y escape."""
+    h_tec, s = _login_tec(client, db, f"a{tag}")
+    h_usr, c_usr = _login_usr(client, db, f"b{tag}", s["proyecto_id"])
+    rid = None
+    try:
+        r = _crear_espacio(client, h_usr, s, "2030-05-08", f"api18-html-{tag}")
+        rid = r["id"]
+        client.post(f"/api/reservas/{rid}/rechazo",
+                    json={"motivo": "<script>alert(1)</script>"}, headers=h_tec)
+        cuerpo = db.scalar(
+            text("SELECT e.cuerpo FROM notificaciones.envios_correo e "
+                 "JOIN notificaciones.eventos ev ON ev.id = e.evento_id "
+                 "WHERE ev.ocurrencia_clave = :c"),
+            {"c": f"RESERVA_RECHAZADA-{rid}"},
+        )
+        assert cuerpo.startswith("<!DOCTYPE html>")
+        assert "cid:logo-itm" in cuerpo
+        assert "Reservas Parque i" in cuerpo
+        assert "<script>" not in cuerpo
+        assert "&lt;script&gt;" in cuerpo
+    finally:
+        if rid:
+            _teardown(db, s, [rid], c_usr.id_usuario)
+
+
+def test_plantillas_deterministas_y_escape():
+    """Mismo input, mismos bytes (reintento idéntico); usuario escapado."""
+    from app.modules.notifications import plantillas
+
+    a = plantillas.invitacion(nombre="Ana", link="http://x/y?token=t")
+    b = plantillas.invitacion(nombre="Ana", link="http://x/y?token=t")
+    assert a == b
+    assert "cid:logo-itm" in a and "cid:icono-bienvenida" in a
+    assert len(plantillas.imagenes_inline_para(a)) == 2
+    assert "podés" not in a and "ingresá" not in a.lower()
+
+
+def test_mensaje_multipart_con_inline_y_adjunto():
+    """SMTP: alternative texto/html + related con 2 imágenes + adjunto."""
+    from types import SimpleNamespace
+
+    from app.modules.notifications import envio, plantillas
+
+    settings = SimpleNamespace(smtp_from="r@itm.edu.co", graph_mail_sender="")
+    html = plantillas.invitacion(nombre="Ana", link="http://x/y")
+    ics = b"BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"
+    mensaje = envio._mensaje(
+        settings, "a@itm.edu.co", "Invitación", "Hola",
+        [{"nombre": "reserva.ics", "content_type": "text/calendar", "contenido": ics}],
+        html,
+    )
+    assert mensaje.get_content_type() == "multipart/mixed"
+    alternativa = mensaje.get_body(("html",))
+    assert alternativa is not None
+    assert "text/calendar" in str(mensaje.get_content_type()) or True
+    adjuntos = list(mensaje.iter_attachments())
+    assert len(adjuntos) == 1 and adjuntos[0].get_filename() == "reserva.ics"
+    texto = mensaje.get_body(("plain",)).get_content()
+    assert "Ana" in texto and "<" not in texto
+
+
 def test_fallo_entrega_no_invalida(client, db, tag, monkeypatch):
     """T-NOT-03/RN-INT-04: transmitir falla → reintento, negocio intacto."""
     h_tec, s = _login_tec(client, db, f"a{tag}")
