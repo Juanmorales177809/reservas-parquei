@@ -254,7 +254,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Contrato:** no tiene superficie HTTP.
 - **RN:** `RN-NOT-05`, `RN-COR-03`, `RN-COR-04`, `RN-INT-04`.
 
-### API-19 — Reportes y exportación
+### API-19 — Reportes y exportación · **cerrada**
 
 - **Objetivo:** `/api/reportes` completo.
 - **Afectados:** módulo de reports del backend.
@@ -262,3 +262,4 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** un elemento sin horario de atención definido devuelve `porcentaje_ocupacion: null` y su total de horas, **nunca un cero**. `solicitudes` incluye todos los estados; `ocupacion` solo tres.
 - **Contrato:** [reports](../../contratos/reports/api-contract.md).
 - **RN:** `RN-OCU-04`, `RN-OCU-05`, `RN-OCU-06`, `RN-EXP`.
+- **Resultado:** módulo `modules/reports/` completo (`router.py`, `service.py`, `repository.py`, `schemas.py`), 4 endpoints (`/ocupacion`, `/solicitudes`, `/lista-espera`, `/{tipo}/exportacion`) reutilizando exclusivamente datos de los módulos propietarios, sin escritura ni tabla propia. `ocupacion` distingue asignación temporal (RN-DIS) del uso agregado por dimensión (`laboratorio`, `espacio`, `recurso`, `proyecto`, `semillero`); `porcentaje_ocupacion` es `null`, nunca `0`, cuando no hay versión de horario histórico vigente en el periodo. `solicitudes` cuenta los seis estados por unidad, y `lista-espera` sus horas de ejecución. La exportación (`csv`/`excel` vía `openpyxl`) reutiliza exactamente los mismos filtros y agregados que la consulta, con metadatos de periodo/criterios en cabecera. Bug real encontrado y corregido durante el cierre: `solicitudes()` construía el diccionario de conteos con claves en minúscula (`estado.lower()`) pero las leía con `.upper()`, de modo que el reporte devolvía siempre ceros para los seis estados a pesar de contar correctamente internamente; también se eliminó `repository.conteos_por_estado`, una función sin ningún llamador cuyo docstring describía un filtro por `created_at` que el servicio nunca usó (el filtro real, `_solapa_periodo`, compara contra la fecha del detalle de cada reserva). Verificado con la suite completa (81 pruebas, incluida `test_reports_api19.py`) y por HTTP real contra el contenedor: creación de una reserva `ESPACIO` `APROBADA`, confirmación de que `/solicitudes` la contaba correctamente tras el fix, `/ocupacion` con horas correctas y porcentaje `null` sin histórico de horario, `/lista-espera` vacío correcto, y exportación CSV/Excel con las mismas cifras que la consulta. Datos de prueba limpiados después, incluida la cadena de notificaciones (`notificaciones.eventos`/`notificaciones`/`envios_correo`) que la aprobación generó automáticamente.

@@ -118,7 +118,7 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 
 `API-17` bandeja → `API-18` generación y entrega. Ambas se apoyan en `DB-04` y `DB-10`, cerradas en la fase 1: sin los once tipos de evento cargados no hay ocurrencia que registrar.
 
-`API-19` reportes, que necesita reservas reales para tener qué reportar.
+`API-19` reportes, que necesita reservas reales para tener qué reportar. Cerrada: `/api/reportes` completo (ocupación, solicitudes, lista de espera y exportación csv/excel), verificado con 81 pruebas y por HTTP real.
 
 ---
 
