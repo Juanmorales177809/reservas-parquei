@@ -12,6 +12,7 @@ from app.modules.auth.router_cuentas import router as auth_cuentas_router
 from app.modules.auth.router_invitaciones import router as auth_invitaciones_router
 from app.modules.espacios.router import router as espacios_router
 from app.modules.researchs.router import router as investigacion_router
+from app.modules.reservations.router import router as reservas_router
 from app.modules.resources.router import router_laboratorios, router_recursos
 from app.modules.usuarios.router import router as perfil_router
 from app.modules.usuarios.router_admin import router_personal, router_usuarios
@@ -33,6 +34,7 @@ app.include_router(router_recursos)
 app.include_router(router_laboratorios)
 app.include_router(espacios_router)
 app.include_router(investigacion_router)
+app.include_router(reservas_router)
 
 
 @app.get("/health")

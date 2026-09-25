@@ -56,6 +56,15 @@ services:
       # solo se pida ese servicio); es `security.py` quien aborta al firmar
       # si llega vacío, no Compose al arrancar.
       JWT_SECRET: ${JWT_SECRET}
+      # API-13 §2.5-2.7: sin proveedor de almacenamiento externo en el
+      # proyecto, los adjuntos de lista de espera se guardan en disco local
+      # bajo un volumen con nombre, no en el filesystem efímero del
+      # contenedor. Limitación documentada, igual que la de rate_limit en
+      # BK-07: un solo proceso/host: no hay más de un backend en producción
+      # todavía, así que no hace falta un almacenamiento compartido hoy.
+      ADJUNTOS_STORAGE_DIR: /code/storage/reserva_adjuntos
+    volumes:
+      - reserva_adjuntos_data:/code/storage/reserva_adjuntos
     depends_on:
       db:
         condition: service_healthy
@@ -74,6 +83,8 @@ volumes:
     name: ${POSTGRES_VOLUME_NAME:-reservas_postgres_data}
   pgadmin_data:
     name: ${PGADMIN_VOLUME_NAME:-reservas_pgadmin_data}
+  reserva_adjuntos_data:
+    name: ${ADJUNTOS_VOLUME_NAME:-reservas_adjuntos_data}
 
 networks:
   application_network:

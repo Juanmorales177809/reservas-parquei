@@ -1,14 +1,14 @@
-"""Modelos de SQLAlchemy del schema `reservas` (BK-08).
+"""Modelos de SQLAlchemy del schema `reservas` (BK-08, ampliado por DB-12 y API-13).
 
 Generados desde la base real; no crean ni alteran tablas (regla 1 de
 plan.md). El esquema lo gobiernan las migraciones de backend/migrations/.
 
 `ReservaEspacio.periodo` y `.bloqueante`, y sus equivalentes en
-`ReservaRecursos`, son proyecciones técnicas: la primera es una columna
-`GENERATED` y la segunda la mantienen los disparadores de `DB-12`, aún sin
-instalar. Ningún servicio debe escribirlas directamente; se tipan como
-`str` aquí porque `tstzrange` no tiene un tipo Python nativo en este mapeo
-mínimo, no porque su contenido sea texto.
+`ReservaRecursos` (incluido `compromiso_fisico`), son proyecciones técnicas
+mantenidas por los disparadores de `DB-12` (`009_concurrencia.sql`). Ningún
+servicio debe escribirlas directamente; se tipan como `str` aquí porque
+`tstzrange` no tiene un tipo Python nativo en este mapeo mínimo, no porque
+su contenido sea texto.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import FetchedValue, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -274,8 +274,13 @@ class ReservaEspacio(Base):
     hora_inicio: Mapped[time] = mapped_column()
     hora_fin: Mapped[time] = mapped_column()
     asistentes: Mapped[int] = mapped_column()
-    periodo: Mapped[str | None] = mapped_column(nullable=True)
-    bloqueante: Mapped[bool] = mapped_column()
+    # `periodo` es GENERATED ALWAYS (Postgres la rechaza en cualquier INSERT
+    # explícito, ni con NULL); `bloqueante` la fija el disparador BEFORE
+    # INSERT de DB-12. `FetchedValue()` le dice al ORM que no las incluya en
+    # el INSERT cuando el código no las toca; `db.refresh()` trae el valor
+    # real que puso la base.
+    periodo: Mapped[str | None] = mapped_column(nullable=True, server_default=FetchedValue())
+    bloqueante: Mapped[bool] = mapped_column(server_default=FetchedValue())
 
 
 class ReservaHistorialEstado(Base):
@@ -373,8 +378,17 @@ class ReservaRecursos(Base):
     rol: Mapped[str] = mapped_column()
     estado_asignacion: Mapped[str] = mapped_column()
     incorporado_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    periodo: Mapped[str | None] = mapped_column(nullable=True)
+    # `periodo` es `tstzrange`, mantenida por los disparadores de DB-12;
+    # `Mapped[str]` no tiene un tipo Python nativo para rangos (ver
+    # docstring del módulo), así que el ORM la trataría como VARCHAR al
+    # insertar NULL si no se marca `FetchedValue()` — Postgres rechaza ese
+    # NULL::VARCHAR contra una columna tstzrange.
+    periodo: Mapped[str | None] = mapped_column(nullable=True, server_default=FetchedValue())
     bloqueante: Mapped[bool] = mapped_column()
+    compromiso_fisico: Mapped[bool] = mapped_column()
+    retirado_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    causa_retiro: Mapped[str | None] = mapped_column(nullable=True)
+    reserva_causante_id: Mapped[int | None] = mapped_column(ForeignKey("reservas.reservas.id"), nullable=True)
 
 
 class Reservas(Base):

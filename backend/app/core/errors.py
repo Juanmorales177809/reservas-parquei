@@ -143,6 +143,34 @@ class CampoSinOpciones(DomainError):
         super().__init__(409, "CAMPO_SIN_OPCIONES", mensaje)
 
 
+# --- Códigos propios de reservations (contrato reservations §1) -------------
+
+
+class Solapamiento(DomainError):
+    def __init__(self, mensaje: str = "El espacio o recurso ya está ocupado en el periodo solicitado.") -> None:
+        super().__init__(409, "SOLAPAMIENTO", mensaje)
+
+
+class EstadoIncompatible(DomainError):
+    def __init__(self, mensaje: str = "La operación no aplica al estado actual de la reserva.") -> None:
+        super().__init__(409, "ESTADO_INCOMPATIBLE", mensaje)
+
+
+class FueraDeHorario(DomainError):
+    def __init__(self, mensaje: str = "La fecha u horario quedan fuera del horario de atención de la unidad.") -> None:
+        super().__init__(409, "FUERA_DE_HORARIO", mensaje)
+
+
+class CapacidadExcedida(DomainError):
+    def __init__(self, mensaje: str = "Los asistentes superan la capacidad del espacio.") -> None:
+        super().__init__(409, "CAPACIDAD_EXCEDIDA", mensaje)
+
+
+class TipoNoAdmitido(DomainError):
+    def __init__(self, mensaje: str = "La operación no aplica al tipo de la reserva.") -> None:
+        super().__init__(409, "TIPO_NO_ADMITIDO", mensaje)
+
+
 def _envolver(status_code: int, codigo: str, mensaje: str, detalles: list, headers: dict | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

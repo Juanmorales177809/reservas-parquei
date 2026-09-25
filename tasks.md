@@ -100,11 +100,11 @@ Aquí convergen el plan de base de datos y el de contratos.
 |---|---|---|
 | 1 | ~~`DB-11`~~ | Decisión documental cerrada: zona horaria, proyección temporal y alcance físico |
 | 2 | ~~`DB-12`~~ | Diseñar, instalar y probar exclusiones temporales, compromiso físico único y retiro por préstamo |
-| 3 | `API-13` | Context/Strategy/policies, creación, edición, consulta, preparación de lista de espera y FGL en autoaprobación |
+| 3 | ~~`API-13`~~ | Context/Strategy/policies, creación, edición, consulta, preparación de lista de espera y FGL en autoaprobación |
 | 4 | `API-14` | Gestión por tipo, propuestas, aprobación/FGL, recepción de material y ejecución |
 | 5 | `API-15` · `API-16` | Consulta/exportación de orden inmutable, calendario y transiciones automáticas de espacio/interno |
 
-`DB-11` está cerrada documentalmente: `America/Bogota`, proyección física solo en campus/externo y compromiso único desde incorporación. `DB-12` instaló y verificó el mecanismo de integridad —incluida concurrencia real— en `backend/migrations/009_concurrencia.sql`; el siguiente paso es `API-13`.
+`DB-11` está cerrada documentalmente: `America/Bogota`, proyección física solo en campus/externo y compromiso único desde incorporación. `DB-12` instaló y verificó el mecanismo de integridad —incluida concurrencia real— en `backend/migrations/009_concurrencia.sql`. `API-13` está cerrada: implementa la arquitectura completa y verifica por HTTP real, incluida la protección de `DB-12` en la ruta completa; el siguiente paso es `API-14`.
 
 La [arquitectura de Reservations](specs/modules/reservations/architecture.md) se implementa dentro de API-13 a API-16: `router → service → Reserva/Strategy → repository`, con el servicio como dueño de la transacción. `Reserva` es Context y delega en las cinco estrategias mediante `ReservationStrategy`; las policies comunes se separan por responsabilidad y `prestamo_fisico` no es una Strategy adicional.
 

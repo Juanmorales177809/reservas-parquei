@@ -37,6 +37,12 @@ class Settings:
             os.environ.get("REAUTENTICACION_VENTANA_SEGUNDOS", str(10 * 60))
         )
 
+        # API-13 §2.5-2.7: sin proveedor de almacenamiento externo en el
+        # proyecto, los adjuntos de lista de espera se guardan en disco local.
+        # docker-compose.yml lo monta como volumen con nombre, no en el
+        # filesystem efímero del contenedor.
+        self.adjuntos_storage_dir = os.environ.get("ADJUNTOS_STORAGE_DIR", "/tmp/reserva_adjuntos")
+
     @staticmethod
     def _build_database_url() -> str:
         user = os.environ.get("POSTGRES_USER", "postgres")
