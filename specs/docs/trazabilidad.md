@@ -23,14 +23,14 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 |---|---:|---:|---:|---:|---:|
 | administration | 62 | 62 | 57 | 19 | — |
 | auth | 89 | 85 | 89 | 44 | — |
-| espacios | 22 | 22 | 15 | 11 | — |
+| espacios | 22 | 22 | 19 | 11 | — |
 | notifications | 60 | 49 | 50 | 15 | — |
 | reports | 58 | 58 | 19 | 20 | — |
 | researchs | 20 | 20 | 20 | 10 | — |
 | reservations | 182 | 175 | 144 | 79 | — |
 | resources | 57 | 33 | 44 | 22 | — |
 | usuarios | 19 | 19 | 19 | 4 | — |
-| **total** | **569** | **523** | **457** | **224** | **—** |
+| **total** | **569** | **523** | **461** | **224** | **—** |
 
 ---
 
@@ -77,7 +77,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-ESP` | 3 | 2/3 | — | — |
 | `RN-ESP-CAM` | 5 | 3/5 | 2/5 | 4/5 |
 | `RN-ESP-DIS` | 3 | 1/3 | 1/3 | 1/3 |
-| `RN-ESP-HAB` | 4 | 2/4 | — | 4/4 |
+| `RN-ESP-HAB` | 4 | 2/4 | 1/4 | 4/4 |
 | `RN-ESP-REC` | 7 | 5/7 | 1/7 | 2/7 |
 
 ### notifications

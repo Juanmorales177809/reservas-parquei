@@ -130,6 +130,19 @@ class VinculacionDuplicada(DomainError):
         super().__init__(409, "VINCULACION_DUPLICADA", mensaje)
 
 
+# --- Códigos propios de espacios (contrato espacios §1) ----------------------
+
+
+class NombreDuplicado(DomainError):
+    def __init__(self, mensaje: str = "Ya existe un espacio con ese nombre en la unidad.") -> None:
+        super().__init__(409, "NOMBRE_DUPLICADO", mensaje)
+
+
+class CampoSinOpciones(DomainError):
+    def __init__(self, mensaje: str = "Un campo de selección exige al menos una opción habilitada.") -> None:
+        super().__init__(409, "CAMPO_SIN_OPCIONES", mensaje)
+
+
 def _envolver(status_code: int, codigo: str, mensaje: str, detalles: list, headers: dict | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

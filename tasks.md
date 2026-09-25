@@ -82,7 +82,7 @@ Con `API-06` a `API-08` cerradas, `backend/tests/` tiene 38 pruebas formales en 
 
 ## Fase 3 — Catálogos e inventario
 
-~~`API-09`~~ recursos → `API-10` espacios, que necesita recursos para asociarlos.
+~~`API-09`~~ recursos → ~~`API-10`~~ espacios, que necesita recursos para asociarlos.
 
 `API-11` investigación en paralelo.
 
