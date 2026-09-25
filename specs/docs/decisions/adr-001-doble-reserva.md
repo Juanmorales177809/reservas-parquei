@@ -1,6 +1,6 @@
 # ADR-001 — Mecanismo contra la doble reserva concurrente
 
-- **Estado:** diseño temporal aprobado el 2026-09-23; ampliación funcional aprobada el 2026-09-24 (hallazgo 1). Pendientes diseño de integridad del compromiso físico único, migración e implementación y pruebas; DB-12 no acredita todavía la garantía ampliada.
+- **Estado:** diseño temporal aprobado el 2026-09-23; ampliación funcional aprobada el 2026-09-24 (hallazgo 1); **DB-12 instaló y verificó la garantía ampliada el 2026-09-25** (`backend/migrations/009_concurrencia.sql`; ver «Cierre de DB-12» al final de este documento).
 - **Fecha:** 2026-09-19
 - **Resuelve:** [OQ-06](open-questions.md)
 - **Afecta a:** `architecture.md` §10, modelo de reservas, contrato de reservations
@@ -167,9 +167,9 @@ Mientras esas pruebas no existan, `architecture.md` §10 y el contrato de reserv
 
 `RECURSO_INTERNO` no es un préstamo con entrega/devolución física: mantiene un periodo horario acotado también en `EN_EJECUCION`, admite franjas no solapadas y no abre rangos físicos. La exclusividad del hallazgo 1 y el retiro de complementarios de `RN-TIP-PE-28` de reservations corresponden solo a campus y externo. El inicio y fin automáticos de interno no crean registros de entrega/devolución. Las restricciones temporales deben proteger sus franjas independientemente de la puntualidad del proceso automático.
 
-## Pendiente de esta decisión
+## Pendiente de esta decisión — resuelto por DB-12
 
-El diseño temporal original se conserva, pero el mecanismo adicional de compromiso físico único y su coordinación con asignaciones por franjas requieren diseño y migración nuevos antes de implementar. La zona horaria operativa es `America/Bogota` (DB-11). Faltan instalar y verificar todas las restricciones y disparadores, inicializar las proyecciones y ejecutar las pruebas ampliadas contra una base aislada. Ningún fragmento SQL anterior acredita por sí solo la decisión del 2026-09-24.
+El diseño temporal original se conserva. El mecanismo adicional de compromiso físico único y su coordinación con asignaciones por franjas se diseñaron e instalaron en `backend/migrations/009_concurrencia.sql`, verificados contra `reservas_db` y `reservas_test` reales, incluida concurrencia real. Ver «Cierre de DB-12» al final de este documento para el diseño concreto y qué se verificó.
 
 ### Caso mixto — decisión final del 2026-09-24
 
@@ -180,3 +180,17 @@ El compromiso, todos los retiros y su trazabilidad se confirman atómicamente. S
 La integridad debe coordinar la exclusión temporal con el retiro previo de las asignaciones afectadas y la exclusividad entre préstamos. También protege la carrera con el inicio automático del espacio: si este inicia primero, se rechaza el préstamo; si el préstamo retira primero el complementario, el espacio inicia con su composición vigente. El caso mixto queda cerrado funcionalmente; permanece pendiente el diseño e implementación de las restricciones y de la trazabilidad objetivo.
 
 Pruebas adicionales requeridas: retiro en ambos estados permitidos; rechazo en ejecución; rollback del conjunto ante fallo; preservación de la reserva de espacio y del historial; causa y reserva causante persistidas; ausencia de restauración al cancelar; concurrencia con inicio del espacio e incorporación de complementarios.
+
+## Cierre de DB-12 — 2026-09-25
+
+Diseño instalado en `backend/migrations/009_concurrencia.sql`, contra `reservas_db` y `reservas_test` reales:
+
+- **Exclusión temporal**: `ex_reserva_espacio_solape` y `ex_reserva_recursos_solape` (`EXCLUDE USING gist` sobre `(elemento, periodo) WHERE bloqueante`), exactamente como proponía este ADR.
+- **Compromiso físico único**: no una variante de la exclusión temporal, sino un mecanismo aparte. `reserva_recursos` gana `compromiso_fisico` (verdadero solo para asignaciones efectivas de campus/externo en estado bloqueante) y un índice único parcial `uq_reserva_recursos_compromiso_fisico` sobre `recurso_id`. Esto es lo que resuelve el hallazgo 1: dos compromisos del mismo recurso con fechas que no se solapan violan igual este índice, porque la exclusión por periodo nunca los habría comparado.
+- **`periodo`/`bloqueante`**: mantenidos por disparadores sobre la asociación (`estado_asignacion`, `incorporado_at`), el detalle por tipo, `reserva_ejecucion_recursos` y el estado de la reserva, todos convirtiendo a `America/Bogota` explícito. Cada tipo calcula distinto: `ESPACIO` copia el periodo del espacio (recortado si se incorporó durante la ejecución); `RECURSO_INTERNO` usa su franja propia; campus/externo usa el rango de fechas completo o lo abre mientras haya una entrega sin devolver.
+- **Retiro atómico (RN-TIP-PE-28)**: `reservas.establecer_compromiso_fisico(recurso_id, reserva_causante_id)` es la única vía. Bloquea (`FOR UPDATE`) las reservas de espacio con ese recurso como complementario vigente —lo que también resuelve la carrera con el inicio automático del espacio descrita arriba—, rechaza con excepción si alguna está `EN_EJECUCION` sin retirar nada, y si ninguna lo está, retira las demás con `retirado_at`, `causa_retiro = 'PRESTAMO_FISICO'` y `reserva_causante_id` en la misma transacción.
+- **Entrega abierta protegida**: un disparador adicional (`trg_reserva_recursos_impedir_liberar_entrega_abierta`) impide cambiar `estado_asignacion` fuera de `ASIGNADO` mientras exista una entrega sin devolución registrada, encontrado y agregado durante la propia verificación de DB-12, no anticipado en el diseño original.
+
+**Verificación del checklist de este ADR**: los trece puntos de la sección «Verificación» se probaron contra la base, incluidos los de concurrencia real —no secuencial— (puntos 1 y 8, más la carrera con el inicio del espacio): dos transacciones simultáneas, una manteniendo su escritura sin comprometer mientras la otra intenta el conflicto, confirmando que la segunda bloquea de verdad y falla al resolverse la primera. Scripts en `backend/tests/sql/db12_no_concurrentes.sql` (nueve escenarios secuenciales) y `backend/tests/sql/db12_concurrencia.sh` (dos carreras reales), ambos autocontenidos y con limpieza propia. `architecture.md` §10 y el contrato de reservations ya describen una garantía instalada, no solo un requisito.
+
+**Lo que DB-12 no hace, a propósito**: no traduce las violaciones de restricción a los códigos HTTP del contrato (`409 SOLAPAMIENTO`, `409 CONFLICTO`) — corresponde a `API-13`/`API-14`, que todavía no existen y son quienes reciben la solicitud HTTP. No implementa el inicio/fin automático de espacio ni interno por horario (`RN-TIP-PE-25/27`, `RN-TIP-RI-08/09`) — eso es un proceso de aplicación, no de esta migración; la migración solo garantiza que, cuando ese proceso exista, no pueda correr una carrera con el establecimiento de un compromiso físico.

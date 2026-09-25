@@ -27,6 +27,7 @@ ir antes de 010 y de 004-008, porque esos tres insertan su propia fila en
     006_administration.sql
     007_notificaciones.sql
     003_reservas_referencias_externas.sql
+    009_concurrencia.sql
     seeds/tipos_evento.sql
     008_identidades.sql
     012_importacion_resultados_datos.sql

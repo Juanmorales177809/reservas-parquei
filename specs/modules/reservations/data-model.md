@@ -186,21 +186,23 @@ La FK de `recurso_id` depende del catálogo externo `recursos.recursos`, aún in
 
 La cardinalidad se valida por tipo conforme a RN-RES-12: `ESPACIO` admite cero o más recursos complementarios con rol `ADICIONAL`, sin recurso `PRINCIPAL`; `RECURSO_INTERNO`, `RECURSO_CAMPUS` y `RECURSO_EXTERNO` requieren un `PRINCIPAL` activo y admiten adicionales según sus reglas. `LISTA_ESPERA` no registra filas en `reserva_recursos`: no tiene espacio ni recursos `PRINCIPAL` o `ADICIONAL`. Para `RECURSO_CAMPUS` y `RECURSO_EXTERNO`, todos los adicionales comparten las fechas del principal y aparecen en la misma orden de salida.
 
-Las asignaciones físicas efectivas de `RECURSO_CAMPUS` y `RECURSO_EXTERNO` mantienen un compromiso exclusivo por `recurso_id` mientras la reserva esté `SOLICITADA`, `APROBADA` o `EN_EJECUCION`, tanto para `PRINCIPAL` como para `ADICIONAL`. No se admite otro compromiso aunque las fechas sean distintas, ni se permite eludirlo incorporando el recurso como complementario de espacio (`RN-RES-14`, `RN-DIS-06`, decisión del hallazgo 1, 2026-09-24). Los índices por `(reserva_id, recurso_id)` y por principal no garantizan esta exclusividad global. Su mecanismo de integridad requiere diseño y migración nuevos, todavía pendientes; su diseño de exclusividad no queda implementado aquí. Los atributos objetivo de trazabilidad se describen por separado, sin DDL ni migración aplicada.
+Las asignaciones físicas efectivas de `RECURSO_CAMPUS` y `RECURSO_EXTERNO` mantienen un compromiso exclusivo por `recurso_id` mientras la reserva esté `SOLICITADA`, `APROBADA` o `EN_EJECUCION`, tanto para `PRINCIPAL` como para `ADICIONAL`. No se admite otro compromiso aunque las fechas sean distintas, ni se permite eludirlo incorporando el recurso como complementario de espacio (`RN-RES-14`, `RN-DIS-06`, decisión del hallazgo 1, 2026-09-24). Los índices por `(reserva_id, recurso_id)` y por principal no garantizan esta exclusividad global por sí solos.
+
+**Instalado por `DB-12`** (`backend/migrations/009_concurrencia.sql`): la columna `compromiso_fisico` (aparte de `bloqueante`, que sigue protegiendo solapamientos de periodo) es verdadera únicamente para asignaciones efectivas de `RECURSO_CAMPUS`/`RECURSO_EXTERNO`, y el índice único parcial `uq_reserva_recursos_compromiso_fisico` sobre `recurso_id` la hace efectiva: es la restricción que resuelve el hallazgo 1, porque la exclusión por periodo no distingue dos compromisos con fechas que no se solapan. Verificado con transacciones concurrentes reales, no solo secuenciales, en `backend/tests/sql/`.
 
 Las fechas de negocio se obtienen del detalle de la reserva y no se duplican como campos de inicio y fin en esta tabla. `periodo` es una proyección técnica mantenida por disparadores para la restricción de exclusión propuesta en ADR-001. Si un recurso se agrega durante `EN_EJECUCION` a una reserva por espacio o de uso interno, su extremo inicial es `incorporado_at`; si se asigna antes de la ejecución, usa el inicio normal del detalle. Solo en campus y externo, la entrega física abre el rango: un recurso entregado sin devolución registrada proyecta `periodo` como rango abierto `[inicio, )` hasta que `reserva_ejecucion_recursos.devuelto_at` lo cierra (decisión DB-11, 2026-09-23: ante la contradicción con ADR-001, rige el ADR). Las fechas de negocio del detalle no se modifican; solo la proyección técnica cambia.
 
-### Trazabilidad del retiro por préstamo — modelo objetivo, no instalado
+### Trazabilidad del retiro por préstamo — instalada por DB-12
 
-Para `RN-TIP-PE-28`, la fila original de `reserva_recursos` pasa a `RETIRADO` y se conserva. El modelo objetivo requiere los siguientes atributos adicionales de esa asignación; no se afirma que existan en la base y su incorporación exige una tarea DB y una migración nueva:
+Para `RN-TIP-PE-28`, la fila original de `reserva_recursos` pasa a `RETIRADO` y se conserva, con tres atributos adicionales:
 
-| Campo objetivo | Tipo | Restricción objetivo |
+| Campo | Tipo | Restricción |
 |---|---|---|
 | `retirado_at` | timestamptz | Obligatorio para retiro por préstamo; instante del retiro automático |
 | `causa_retiro` | varchar(40) | `PRESTAMO_FISICO` para esta causa; sin redefinir otras causas de retiro |
 | `reserva_causante_id` | integer | FK a `reservas.reservas(id)`, sin cascada; obligatorio para retiro por préstamo |
 
-Estos tres valores se registran conjuntamente con el retiro y el compromiso físico. Para esta causa, la asignación debe ser complementaria de `ESPACIO`, estar `RETIRADO` y referenciar una reserva distinta de tipo préstamo que incorpora el mismo recurso. El diseño de integridad debe garantizar estas correspondencias. La referencia se conserva aunque el préstamo se cancele o termine. Los retiros anteriores o de otras causas no se reinterpretan ni reciben una causa inventada.
+Estos tres valores se registran conjuntamente con el retiro y el compromiso físico. El CHECK `ck_reserva_recursos_retiro_prestamo` (`backend/migrations/009_concurrencia.sql`) garantiza que las tres columnas estén todas NULL o todas presentes, y que cuando estén presentes la fila esté `RETIRADO` con `rol = 'ADICIONAL'` —los complementarios de `ESPACIO` siempre lo son—. La correspondencia con "la reserva causante es un préstamo que incorpora el mismo recurso" la garantiza la única función que escribe estas columnas, `reservas.establecer_compromiso_fisico()`, no un CHECK declarativo, porque exige comparar contra otra tabla. La referencia se conserva aunque el préstamo se cancele o termine. Los retiros anteriores o de otras causas no se reinterpretan ni reciben una causa inventada.
 
 Las asignaciones retiradas automáticamente por préstamo quedan fuera del bloqueo efectivo; se conservan sus datos de asignación y trazabilidad. Una reincorporación permitida crea otra fila y no sobrescribe la retirada. No se generan filas de `reserva_ejecucion_recursos` para el espacio. Esta trazabilidad específica no introduce una auditoría general de Reservations.
 
@@ -218,13 +220,13 @@ La exclusividad física comienza con la incorporación efectiva, antes de la ent
 
 Las opciones `mostrar_estado_reserva` y `mostrar_reservista` se almacenan únicamente en [reservas.laboratorios_config](../resources/data-model.md#reservaslaboratorios_config), ambas `boolean NOT NULL DEFAULT false`, por `id_unidad`. Reservations consulta esa configuración conforme a RN-DIS-07 a RN-DIS-10; no duplica esos campos en cada reserva. El backend filtra la respuesta de disponibilidad antes de enviarla al Usuario.
 
-### Garantía transaccional — pendiente de implementación
+### Garantía transaccional — instalada por DB-12
 
 Validar conflictos y escribir la reserva, el detalle y las asignaciones debe constituir una operación atómica protegida frente a concurrencia, conforme a RN-DIS-05. Dos operaciones incompatibles no pueden confirmar ambas. Un fallo de validación revierte las escrituras de la operación.
 
-El diseño temporal de [ADR-001](../../docs/decisions/adr-001-doble-reserva.md) fue aprobado el 2026-09-23 y se amplía funcionalmente el 2026-09-24: además de excluir solapamientos, la base debe impedir dos compromisos físicos vigentes del mismo recurso, incluso con fechas distintas. La exclusión temporal y la apertura del rango al entregar no bastan para ello. La representación y las restricciones adicionales quedan pendientes de diseño y migración; no se sustituye esta garantía por una consulta previa. Se conservan las exclusiones temporales y sus proyecciones como parte del diseño, no como solución completa.
+El diseño temporal de [ADR-001](../../docs/decisions/adr-001-doble-reserva.md) fue aprobado el 2026-09-23 y se amplió funcionalmente el 2026-09-24: además de excluir solapamientos, la base debe impedir dos compromisos físicos vigentes del mismo recurso, incluso con fechas distintas. `backend/migrations/009_concurrencia.sql` instala las dos garantías por separado: `EXCLUDE USING gist` sobre `(elemento, periodo) WHERE bloqueante` para el solapamiento temporal, y un índice único parcial sobre `recurso_id WHERE compromiso_fisico` para el compromiso físico —independiente del periodo—, porque la exclusión temporal por sí sola no distingue dos compromisos con fechas que no se solapan.
 
-La zona operativa fijada por DB-11 es `America/Bogota`. Faltan la implementación de disparadores, exclusiones y garantía de compromiso único, y sus pruebas contra la base para creación, incorporación, reprogramación, aprobación, entrega, devolución y liberación. Debe comprobarse también concurrencia con periodos distintos, cruce de tipos y convivencia con complementarios de espacio. Una entrega abierta nunca se libera mediante cambio de estado o retirada de asignación. Esta documentación define requisitos, no una protección ya instalada.
+La zona operativa es `America/Bogota` (DB-11), aplicada explícitamente en las conversiones de los disparadores de recálculo. Verificado contra la base para creación, incorporación, entrega, devolución y liberación, incluida concurrencia real (transacciones simultáneas, no secuenciales) con periodos distintos, cruce de tipos y convivencia con complementarios de espacio; ver `backend/tests/sql/`. Una entrega abierta no se libera mediante cambio de estado ni retirada de asignación: un disparador dedicado lo impide. Reprogramación y aprobación quedan para `API-13`/`API-14`, que son quienes las ejecutan; esta garantía protege cualquier escritura que pase por estas tablas, las use ese servicio o no.
 
 ## Contexto y campos de espacio
 
@@ -490,11 +492,11 @@ La auditoría de Reservations, incluidos `reserva_auditoria` y los snapshots del
 
 - PK/FK y la transacción de servicio garantizan la creación completa; el backend exige exactamente un detalle compatible con el tipo.
 - CHECK cubre comparaciones invariantes de horas y fechas. Fechas pasadas, disponibilidad, capacidad, pertenencia a unidad y horario vigente son reglas de negocio.
-- La exclusividad temporal y el compromiso físico único requieren garantías en base de datos. Los índices actuales por asignación y la exclusión por periodo no garantizan por sí solos el compromiso único por recurso.
+- La exclusividad temporal y el compromiso físico único requieren garantías en base de datos: **instaladas por `DB-12`** (`backend/migrations/009_concurrencia.sql`). Los índices por asignación y la exclusión por periodo, por sí solos, no habrían garantizado el compromiso único por recurso; por eso el compromiso físico usa un mecanismo aparte (índice único parcial sobre `recurso_id`), no una variante de la exclusión temporal.
 - Todas las cuentas y actores usan FK real a `auth.cuentas`.
 
 ## Puntos pendientes
 
-- Implementar y verificar el mecanismo contra solapamientos descrito en «Garantía transaccional — pendiente de implementación». Las opciones de visibilidad por unidad forman parte de `reservas.laboratorios_config`.
+- ~~Implementar y verificar el mecanismo contra solapamientos~~ instalado y verificado por `DB-12` (ver «Garantía transaccional» arriba). Traducir sus violaciones a `409 SOLAPAMIENTO`/`409 CONFLICTO` es tarea de `API-13`/`API-14`, que todavía no existen. Las opciones de visibilidad por unidad forman parte de `reservas.laboratorios_config`.
 - Completar las cinco FK externas y adaptar el backend conforme al [estado de PostgreSQL](database-status.md).
 - Las propuestas y contrapropuestas ya tienen reglas (`RN-PROP`), flujo (`UF-RES-15`) y respaldo persistente en `reserva_propuestas`. Los recordatorios tienen reglas (`RN-REC`), flujo (`UF-RES-16`) y su anticipación configurable en `laboratorios_config.recordatorio_horas_antes`; su constancia de envío pertenece a notificaciones y no se duplica aquí. El archivo `.ics` de confirmación se genera y adjunta al correo sin una tabla propia, sin sincronización directa con calendarios externos y sin persistir identificadores de eventos externos, conforme a RN-CAL.
