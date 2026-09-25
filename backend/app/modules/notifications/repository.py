@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models.notificaciones import (
+    EnviosCorreo,
     Eventos,
     Notificaciones,
     Preferencias,
@@ -64,6 +65,100 @@ def obtener_tipo(db: Session, tipo_evento_id: int) -> TiposEvento | None:
     return db.get(TiposEvento, tipo_evento_id)
 
 
+def obtener_tipo_por_codigo(db: Session, codigo: str) -> TiposEvento | None:
+    return db.scalar(select(TiposEvento).where(TiposEvento.codigo == codigo))
+
+
+def obtener_evento_por_clave(db: Session, clave: str) -> Eventos | None:
+    return db.scalar(select(Eventos).where(Eventos.ocurrencia_clave == clave))
+
+
+def crear_evento(db: Session, tipo_evento_id: int, reserva_id: int | None, clave: str, ahora) -> Eventos:
+    evento = Eventos(
+        tipo_evento_id=tipo_evento_id, reserva_id=reserva_id,
+        ocurrencia_clave=clave, created_at=ahora,
+    )
+    db.add(evento)
+    db.flush()
+    return evento
+
+
+def crear_notificacion_inapp(db: Session, evento_id: int, id_cuenta: int, titulo: str, cuerpo: str, ahora) -> None:
+    existe = db.scalar(
+        select(Notificaciones.id).where(
+            Notificaciones.evento_id == evento_id, Notificaciones.id_cuenta == id_cuenta
+        )
+    )
+    if existe is None:
+        db.add(Notificaciones(
+            evento_id=evento_id, id_cuenta=id_cuenta, titulo=titulo,
+            cuerpo=cuerpo, created_at=ahora,
+        ))
+        db.flush()
+
+
+def crear_envio(db: Session, evento_id: int, notificacion_id: int | None, correo: str, titulo: str, cuerpo: str, ahora) -> None:
+    existe = db.scalar(
+        select(EnviosCorreo.id).where(
+            EnviosCorreo.evento_id == evento_id, EnviosCorreo.destinatario_correo == correo
+        )
+    )
+    if existe is None:
+        db.add(EnviosCorreo(
+            evento_id=evento_id, notificacion_id=notificacion_id,
+            destinatario_correo=correo, titulo=titulo, cuerpo=cuerpo,
+            estado="PENDIENTE", intentos=0, proximo_intento_at=ahora, created_at=ahora,
+        ))
+        db.flush()
+
+
+def correo_de_cuenta(db: Session, id_cuenta: int) -> str | None:
+    from app.db.models.auth import Cuentas
+
+    cuenta = db.get(Cuentas, id_cuenta)
+    return cuenta.correo if cuenta is not None and cuenta.estado else None
+
+
+def correo_habilitado_para(db: Session, id_cuenta: int, tipo_evento_id: int) -> bool:
+    """Preferencia más específica vigente (RN-PREF-04); por defecto True."""
+    filas = db.scalars(
+        select(Preferencias).where(Preferencias.id_cuenta == id_cuenta)
+    ).all()
+    general = True
+    for p in filas:
+        if p.tipo_evento_id is None:
+            general = p.correo_habilitado
+        elif p.tipo_evento_id == tipo_evento_id:
+            return p.correo_habilitado
+    return general
+
+
+def unidad_permite_correo(db: Session, id_unidad: int) -> bool:
+    """RN-PREF-02: la unidad manda sobre la preferencia individual."""
+    from app.db.models.reservas import LaboratoriosConfig
+
+    config = db.scalar(
+        select(LaboratoriosConfig).where(LaboratoriosConfig.id_unidad == id_unidad)
+    )
+    return config is not None and bool(config.notificar_por_correo)
+
+
+def anular_pendientes_de_reserva(db: Session, reserva_id: int, motivo: str, ahora) -> int:
+    """RN-COR-07: anula envíos PENDIENTE cuya condición desapareció."""
+    filas = db.scalars(
+        select(EnviosCorreo)
+        .join(Eventos, Eventos.id == EnviosCorreo.evento_id)
+        .where(Eventos.reserva_id == reserva_id, EnviosCorreo.estado == "PENDIENTE")
+    ).all()
+    for envio in filas:
+        envio.estado = "ANULADO"
+        envio.anulado_at = ahora
+        envio.motivo_anulacion = motivo
+        envio.proximo_intento_at = None
+    db.flush()
+    return len(filas)
+
+
 def preferencias_de_cuenta(db: Session, id_cuenta: int) -> list[Preferencias]:
     return list(db.scalars(
         select(Preferencias).where(Preferencias.id_cuenta == id_cuenta)
@@ -79,3 +174,20 @@ def reemplazar_preferencias(db: Session, id_cuenta: int, general: bool, por_even
             correo_habilitado=item["correo_habilitado"],
         ))
     db.flush()
+
+
+def tecnicos_de_unidad(db: Session, id_unidad: int) -> list[int]:
+    """Cuentas PERSONAL activas con `reservas.administrar` en la unidad:
+    contraparte técnica de una contrapropuesta de Usuario (RN-EVT-08)."""
+    from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
+
+    return list(db.scalars(
+        select(Cuentas.id_cuenta)
+        .join(CuentaPermisos, CuentaPermisos.id_cuenta == Cuentas.id_cuenta)
+        .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
+        .where(
+            Cuentas.tipo_cuenta == "PERSONAL", Cuentas.estado.is_(True),
+            Permisos.codigo == "reservas.administrar",
+            CuentaPermisos.id_unidad == id_unidad,
+        )
+    ).all())

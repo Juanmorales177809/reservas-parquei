@@ -227,6 +227,13 @@ def cambiar_estado(db, id_espacio: int, datos: schemas.EstadoActualizar, context
         datos_nuevos={"habilitado": False, "reservas_canceladas": len(reservas)},
     )
     db.commit()
+    from app.modules.notifications import productor as notificador
+
+    for reserva in reservas:
+        notificador.notificar_reserva(
+            db, reserva.id, "RESERVA_AFECTADA_DESHABILITACION",
+            f"RESERVA_AFECTADA_DESHABILITACION-{reserva.id}",
+        )
     return {"id": id_espacio, "habilitado": False, "reservas_canceladas": len(reservas)}
 
 

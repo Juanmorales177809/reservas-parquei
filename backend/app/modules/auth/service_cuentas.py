@@ -21,6 +21,7 @@ from app.modules.auth import repository as repo
 from app.modules.auth import repository_cuentas as repo_cuentas
 from app.modules.auth import schemas
 from app.modules.auth.service import VIGENCIA_REFRESH_SEGUNDOS, _actualizacion_inicial_pendiente
+from app.modules.notifications import productor as notificador
 from app.modules.usuarios import service as servicio_usuarios
 
 
@@ -88,16 +89,23 @@ def solicitar_recuperacion(db: Session, correo: str) -> None:
     distingue los dos casos."""
     cuenta = repo_cuentas.obtener_cuenta_por_correo(db, correo)
     if cuenta is not None and cuenta.estado:
-        _, token_hash = generar_token()
+        token, token_hash = generar_token()
         repo_cuentas.crear_token_recuperacion(db, cuenta.id_cuenta, token_hash)
         audit.registrar(
             db, actor_cuenta_id=cuenta.id_cuenta, entidad="auth.tokens_recuperacion",
             entidad_id=cuenta.id_cuenta, accion="RECUPERACION_SOLICITADA",
         )
         db.commit()
-        # La entrega del enlace por correo es de notifications (API-18);
-        # aquí solo se origina el token. No es responsabilidad de auth
-        # enviarlo, conforme al contrato.
+        try:
+            base = get_settings().app_url
+            notificador.registrar_evento(
+                db, tipo_codigo="RECUPERACION_CONTRASENA",
+                ocurrencia_clave=f"RECUPERACION_CONTRASENA-{cuenta.id_cuenta}-{token_hash[:12]}",
+                cuentas=[cuenta.id_cuenta], forzar_correo=True,
+                datos={"enlace": f"{base}/auth/recuperacion?token={token}"},
+            )
+        except Exception:
+            pass
 
 
 def validar_token_recuperacion(db: Session, token: str) -> bool:
@@ -162,7 +170,7 @@ def emitir_invitacion(
     if anterior is not None:
         repo_cuentas.revocar_invitacion(db, anterior)  # SEC-INV-03
 
-    _, token_hash = generar_token()
+    token, token_hash = generar_token()
     inv = repo_cuentas.crear_invitacion(
         db, correo=correo, tipo_cuenta=tipo_cuenta, token_hash=token_hash,
         creada_por=emisor.id_cuenta, id_usuario=id_usuario, id_persona=id_persona,
@@ -172,6 +180,17 @@ def emitir_invitacion(
         accion="INVITACION_EMITIDA", datos_nuevos={"correo": correo, "tipo_cuenta": tipo_cuenta},
     )
     db.commit()
+    try:
+        base = get_settings().app_url
+        notificador.registrar_evento(
+            db, tipo_codigo="INVITACION_CUENTA",
+            ocurrencia_clave=f"INVITACION_CUENTA-{inv.id}",
+            cuentas=[cuenta_existente.id_cuenta] if cuenta_existente is not None else [],
+            correos=[correo], forzar_correo=True,
+            datos={"enlace": f"{base}/auth/invitacion?token={token}", "vence": str(inv.expira_at)},
+        )
+    except Exception:
+        pass
     return {"id": inv.id, "correo": inv.correo, "tipo_cuenta": inv.tipo_cuenta, "expira_en": inv.expira_at, "estado": "PENDIENTE"}
 
 
@@ -181,13 +200,23 @@ def reenviar_invitacion(db: Session, id_invitacion: int, emisor: ContextoAutenti
         raise NoEncontrado()
     if inv.usada_at is not None:
         raise Conflicto("La invitación ya fue utilizada.")
-    _, token_hash = generar_token()
+    token, token_hash = generar_token()
     repo_cuentas.renovar_token_invitacion(db, inv, token_hash)
     audit.registrar(
         db, actor_cuenta_id=emisor.id_cuenta, entidad="auth.invitaciones",
         entidad_id=inv.id, accion="INVITACION_REENVIADA",
     )
     db.commit()
+    try:
+        base = get_settings().app_url
+        notificador.registrar_evento(
+            db, tipo_codigo="INVITACION_CUENTA",
+            ocurrencia_clave=f"INVITACION_CUENTA-{inv.id}-{token_hash[:12]}",
+            correos=[inv.correo], forzar_correo=True,
+            datos={"enlace": f"{base}/auth/invitacion?token={token}", "vence": str(inv.expira_at)},
+        )
+    except Exception:
+        pass
     return {"id": inv.id, "expira_en": inv.expira_at, "estado": "PENDIENTE"}
 
 

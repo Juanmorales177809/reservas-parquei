@@ -136,6 +136,25 @@ def _teardown_unidad(db, s: dict, id_usuario: int | None = None) -> None:
 
 
 def _borrar_reserva(db, reserva_id: int) -> None:
+    # API-18: cada operación deja evento + in-app + envíos con FK.
+    db.execute(
+        text(
+            "DELETE FROM notificaciones.envios_correo WHERE evento_id IN "
+            "(SELECT id FROM notificaciones.eventos WHERE reserva_id = :i)"
+        ),
+        {"i": reserva_id},
+    )
+    db.execute(
+        text(
+            "DELETE FROM notificaciones.notificaciones WHERE evento_id IN "
+            "(SELECT id FROM notificaciones.eventos WHERE reserva_id = :i)"
+        ),
+        {"i": reserva_id},
+    )
+    db.execute(
+        text("DELETE FROM notificaciones.eventos WHERE reserva_id = :i"),
+        {"i": reserva_id},
+    )
     db.execute(
         text(
             "DELETE FROM reservas.orden_salida_items WHERE orden_salida_id IN "

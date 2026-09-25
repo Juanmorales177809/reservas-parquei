@@ -29,6 +29,7 @@ ir antes de 010 y de 004-008, porque esos tres insertan su propia fila en
     003_reservas_referencias_externas.sql
     009_concurrencia.sql
     seeds/tipos_evento.sql
+    seeds/tipos_evento_auth.sql
     008_identidades.sql
     012_importacion_resultados_datos.sql
 
@@ -106,6 +107,43 @@ def _limpiar_filas(tag):
     yield
     patron = f"%{tag}%"
     with engine.begin() as conexion:
+        # API-18: los eventos generan in-app y envíos con FK a cuentas.
+        # Se retiran primero para que el borrado de cuentas no falle.
+        conexion.execute(
+            text(
+                "DELETE FROM notificaciones.envios_correo WHERE notificacion_id IN "
+                "(SELECT n.id FROM notificaciones.notificaciones n JOIN auth.cuentas c "
+                "ON c.id_cuenta = n.id_cuenta WHERE c.correo LIKE :pat)"
+            ),
+            {"pat": patron},
+        )
+        conexion.execute(
+            text(
+                "DELETE FROM notificaciones.envios_correo WHERE destinatario_correo LIKE :pat"
+            ),
+            {"pat": patron},
+        )
+        conexion.execute(
+            text(
+                "DELETE FROM notificaciones.notificaciones WHERE id_cuenta IN "
+                "(SELECT id_cuenta FROM auth.cuentas WHERE correo LIKE :pat)"
+            ),
+            {"pat": patron},
+        )
+        conexion.execute(
+            text(
+                "DELETE FROM notificaciones.preferencias WHERE id_cuenta IN "
+                "(SELECT id_cuenta FROM auth.cuentas WHERE correo LIKE :pat)"
+            ),
+            {"pat": patron},
+        )
+        conexion.execute(
+            text(
+                "DELETE FROM notificaciones.eventos WHERE id NOT IN "
+                "(SELECT evento_id FROM notificaciones.notificaciones) "
+                "AND id NOT IN (SELECT evento_id FROM notificaciones.envios_correo)"
+            ),
+        )
         conexion.execute(
             text(
                 "DELETE FROM administration.auditoria WHERE actor_cuenta_id IN "

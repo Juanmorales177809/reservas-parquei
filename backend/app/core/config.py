@@ -43,6 +43,27 @@ class Settings:
         # filesystem efímero del contenedor.
         self.adjuntos_storage_dir = os.environ.get("ADJUNTOS_STORAGE_DIR", "/tmp/reserva_adjuntos")
 
+        # API-18: correo saliente. Sin servidor en desarrollo local, el
+        # transporte por defecto registra en el log y marca ENVIADO para no
+        # bloquear los flujos. Producción usa SMTP o Graph delegado.
+        self.email_enabled = os.environ.get("EMAIL_ENABLED", "true").lower() == "true"
+        self.email_transport = os.environ.get("EMAIL_TRANSPORT", "log")
+        if self.email_transport not in ("log", "smtp", "graph_delegado"):
+            raise ValueError("EMAIL_TRANSPORT debe ser 'log', 'smtp' o 'graph_delegado'")
+        self.smtp_host = os.environ.get("SMTP_HOST", "")
+        self.smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+        self.smtp_user = os.environ.get("SMTP_USER", "")
+        self.smtp_password = os.environ.get("SMTP_PASSWORD", "")
+        self.smtp_from = os.environ.get("SMTP_FROM", "")
+        # Patrón del repositorio anterior: cuenta que envía por Graph con
+        # token delegado cacheado (login interactivo único, fuera del backend).
+        self.graph_mail_sender = os.environ.get("GRAPH_MAIL_SENDER", "")
+        self.graph_token_cache_path = os.environ.get(
+            "GRAPH_TOKEN_CACHE_PATH", "/tmp/graph_token_cache.json"
+        )
+        # Base para los enlaces de un solo uso (invitación, recuperación).
+        self.app_url = os.environ.get("APP_URL", "http://localhost:3000")
+
     @staticmethod
     def _build_database_url() -> str:
         user = os.environ.get("POSTGRES_USER", "postgres")

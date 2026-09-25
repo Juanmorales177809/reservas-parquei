@@ -173,8 +173,12 @@ def test_tipos_evento_catalogo_cerrado(client, db, tag):
         r = client.get("/api/notificaciones/tipos-evento", headers=h)
         assert r.status_code == 200, r.text
         assert set(r.json().keys()) == {"datos"}
-        assert len(r.json()["datos"]) == 9
-        assert {"RESERVA_APROBADA", "RESERVA_RECHAZADA"} <= {
-            t["codigo"] for t in r.json()["datos"]}
+        codigos = {t["codigo"] for t in r.json()["datos"]}
+        assert {
+            "SOLICITUD_REGISTRADA", "RESERVA_APROBADA", "RESERVA_RECHAZADA",
+            "RESERVA_CANCELADA", "RESERVA_AFECTADA_DESHABILITACION",
+            "PROPUESTA_PERIODO_REGISTRADA", "RECURSO_ADICIONAL_INCORPORADO",
+            "LISTA_ESPERA_CAMBIO_ESTADO", "RESERVA_RECORDATORIO",
+        } <= codigos
     finally:
         _limpiar(db, cuenta)

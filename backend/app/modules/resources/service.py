@@ -229,6 +229,13 @@ def cambiar_estado(db: Session, id_recurso: int, datos: schemas.EstadoActualizar
         datos_nuevos={"habilitado": False, "reservas_canceladas": len(principales), "reservas_afectadas": len(asignaciones)},
     )
     db.commit()
+    from app.modules.notifications import productor as notificador
+
+    for asignacion in principales:
+        notificador.notificar_reserva(
+            db, asignacion.reserva_id, "RESERVA_AFECTADA_DESHABILITACION",
+            f"RESERVA_AFECTADA_DESHABILITACION-{asignacion.reserva_id}",
+        )
     return {
         "id": id_recurso, "habilitado": False,
         "reservas_canceladas": len(principales), "reservas_afectadas": len(asignaciones),

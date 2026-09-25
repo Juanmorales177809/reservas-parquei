@@ -38,6 +38,7 @@ from app.core.errors import (
     VinculacionRequerida,
 )
 from app.modules.espacios import repository as esp_repo
+from app.modules.notifications import productor as notificador
 from app.modules.researchs import repository as inv_repo
 from app.modules.reservations import repository as repo
 from app.modules.reservations import schemas
@@ -256,6 +257,14 @@ def crear_reserva(db, datos: schemas.ReservaCrear, contexto: ContextoAutenticado
 
     db.commit()
     db.refresh(reserva)
+    if datos.tipo_reserva == "LISTA_ESPERA":
+        notificador.notificar_reserva(
+            db, reserva.id, "LISTA_ESPERA_CAMBIO_ESTADO",
+            f"LISTA_ESPERA_CAMBIO_ESTADO-{reserva.id}-{estado_codigo}",
+            datos={"estado": estado_codigo},
+        )
+    else:
+        notificador.notificar_reserva(db, reserva.id, "SOLICITUD_REGISTRADA", f"SOLICITUD_REGISTRADA-{reserva.id}")
     return {"id": reserva.id, "estado": estado_codigo, "tipo_reserva": datos.tipo_reserva, "id_unidad": reserva.id_unidad, "requiere_apoyo": reserva.requiere_apoyo, "created_at": reserva.created_at}
 
 
@@ -825,6 +834,14 @@ def aprobar_reserva(db, id_reserva: int, cuerpo: schemas.AprobacionCuerpo, conte
     db.commit()
     db.refresh(reserva)
     estado_final = repo.obtener_estado(db, reserva.estado_id)
+    if tipo.codigo == "LISTA_ESPERA":
+        notificador.notificar_reserva(
+            db, reserva.id, "LISTA_ESPERA_CAMBIO_ESTADO",
+            f"LISTA_ESPERA_CAMBIO_ESTADO-{reserva.id}-APROBADA",
+            datos={"estado": "APROBADA"},
+        )
+    else:
+        notificador.notificar_reserva(db, reserva.id, "RESERVA_APROBADA", f"RESERVA_APROBADA-{reserva.id}")
     return {"id": reserva.id, "estado": estado_final.codigo, "fecha_aprobacion": reserva.fecha_aprobacion, "detalle": detalle_extra}
 
 
@@ -852,6 +869,10 @@ def rechazar_reserva(db, id_reserva: int, cuerpo: schemas.RechazoCuerpo, context
     reserva.estado_id = estado_rechazada_id
     repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_rechazada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.motivo)
     db.commit()
+    notificador.notificar_reserva(
+        db, id_reserva, "RESERVA_RECHAZADA", f"RESERVA_RECHAZADA-{id_reserva}",
+        datos={"motivo": cuerpo.motivo},
+    )
     return {"id": id_reserva, "estado": "RECHAZADA", "motivo": cuerpo.motivo}
 
 
@@ -889,6 +910,11 @@ def agregar_recursos(db, id_reserva: int, cuerpo: schemas.RecursosAgregarCuerpo,
         for r in resultado["recursos"]
     ]
     db.commit()
+    if estado_actual.codigo == "APROBADA":
+        notificador.notificar_reserva(
+            db, id_reserva, "RECURSO_ADICIONAL_INCORPORADO",
+            f"RECURSO_ADICIONAL_INCORPORADO-{id_reserva}-{creados[0].id}",
+        )
     return [_asignacion_dict(a) for a in creados]
 
 
@@ -970,6 +996,11 @@ def crear_propuesta(db, id_reserva: int, cuerpo: schemas.PropuestaCrear, context
     )
     db.commit()
     db.refresh(nueva)
+    notificador.notificar_reserva(
+        db, id_reserva, "PROPUESTA_PERIODO_REGISTRADA",
+        f"PROPUESTA_PERIODO_REGISTRADA-{nueva.id}",
+        datos={"motivo": nueva.motivo}, tecnicos=(origen == "USUARIO"),
+    )
     return _propuesta_dict(nueva)
 
 
@@ -1036,6 +1067,7 @@ def aceptar_propuesta_vigente(db, id_reserva: int, contexto: ContextoAutenticado
     repo.resolver_propuesta(db, propuesta, estado="ACEPTADA", resuelta_por=contexto.id_cuenta, resuelta_at=ahora)
     reserva.updated_at = ahora
     db.commit()
+    notificador.anular_por_cambio(db, id_reserva, "Reprogramación por propuesta aceptada.")
     return obtener_reserva_detalle(db, id_reserva, contexto)
 
 
@@ -1099,6 +1131,12 @@ def ejecutar_reserva(db, id_reserva: int, cuerpo: schemas.EjecucionCuerpo, conte
         )
 
     db.commit()
+    if tipo.codigo == "LISTA_ESPERA":
+        notificador.notificar_reserva(
+            db, id_reserva, "LISTA_ESPERA_CAMBIO_ESTADO",
+            f"LISTA_ESPERA_CAMBIO_ESTADO-{id_reserva}-EN_EJECUCION",
+            datos={"estado": "EN_EJECUCION"},
+        )
     return {"id": id_reserva, "estado": "EN_EJECUCION", "detalle": None}
 
 
@@ -1149,6 +1187,12 @@ def finalizar_reserva(db, id_reserva: int, cuerpo: schemas.FinalizacionCuerpo, c
             ejecucion.observacion_devolucion = devolucion.get("observacion_devolucion")
 
     db.commit()
+    if tipo.codigo == "LISTA_ESPERA":
+        notificador.notificar_reserva(
+            db, id_reserva, "LISTA_ESPERA_CAMBIO_ESTADO",
+            f"LISTA_ESPERA_CAMBIO_ESTADO-{id_reserva}-FINALIZADA",
+            datos={"estado": "FINALIZADA"},
+        )
     return {"id": id_reserva, "estado": "FINALIZADA", "detalle": detalle_extra}
 
 
@@ -1178,6 +1222,8 @@ def cancelar_reserva(db, id_reserva: int, cuerpo: schemas.CancelacionCuerpo, con
     reserva.motivo_cancelacion = cuerpo.motivo
     repo.registrar_historial(db, reserva_id=id_reserva, estado_anterior_id=estado_anterior_id, estado_nuevo_id=estado_cancelada_id, actor_cuenta_id=contexto.id_cuenta, motivo=cuerpo.motivo)
     db.commit()
+    notificador.anular_por_cambio(db, id_reserva, "Cancelación de la reserva.")
+    notificador.notificar_reserva(db, id_reserva, "RESERVA_CANCELADA", f"RESERVA_CANCELADA-{id_reserva}")
     return {"id": id_reserva, "estado": "CANCELADA", "detalle": None}
 
 

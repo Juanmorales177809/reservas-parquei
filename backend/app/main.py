@@ -45,15 +45,42 @@ async def _bucle_transiciones() -> None:
             logger.exception("Fallo el tick de transiciones automáticas")
 
 
+async def _bucle_notificaciones() -> None:
+    """API-18/UF-NOT-03: entrega y recordatorios cada 30 s (< 1 min, la
+    espera más corta de RN-COR-03). Sesión propia por tick."""
+    import asyncio
+    import logging
+
+    from app.modules.notifications.entrega import procesar_pendientes
+    from app.modules.notifications.recordatorio import revisar_recordatorios
+
+    logger = logging.getLogger("reservas.notificaciones")
+    while True:
+        try:
+            await asyncio.sleep(30)
+            db = SessionLocal()
+            try:
+                procesar_pendientes(db)
+                revisar_recordatorios(db, datetime.now(timezone.utc))
+            finally:
+                db.close()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Fallo el tick de notificaciones")
+
+
 @asynccontextmanager
 async def _ciclo_vida(_app: FastAPI):
     import asyncio
 
-    tarea = asyncio.create_task(_bucle_transiciones())
+    transiciones = asyncio.create_task(_bucle_transiciones())
+    notificaciones = asyncio.create_task(_bucle_notificaciones())
     try:
         yield
     finally:
-        tarea.cancel()
+        transiciones.cancel()
+        notificaciones.cancel()
 
 
 app = FastAPI(title="Reservas Parquei", lifespan=_ciclo_vida)
