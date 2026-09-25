@@ -197,7 +197,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Cierre:** incluye probar creación autoaprobada y su FGL inmutable; no depende de una tarea posterior para cerrar ese caso. Las garantías de DB-12 son obligatorias.
 - **Resultado:** módulo `modules/reservations/` completo: `domain/reserva.py` (Context), `strategies/` (`reservation_strategy.py` base con despacho `validar_<operacion>`/`cambios_<operacion>` por `getattr`, más `espacio.py`, `recurso_interno.py`, `recurso_campus.py`, `recurso_externo.py`, `lista_espera.py` y `selector.py`), `policies/` (`acceso.py`, `apoyo.py`, `contexto.py`, `horario.py`, `disponibilidad.py`, `prestamo_fisico.py` compartida por campus/externo con `establecer_compromisos`, `validar_creacion` y `generar_fgl`), `repository.py` y `service.py`, con 10 endpoints en `router.py` cubriendo §2 y §3 completos, incluidos los adjuntos de lista de espera (`storage.py`, almacenamiento local en disco con volumen con nombre, validación de firma binaria para los formatos que la tienen). `core/errors.py` gana `Solapamiento`, `EstadoIncompatible`, `FueraDeHorario`, `CapacidadExcedida` y `TipoNoAdmitido`. Tres bugs reales encontrados y corregidos en el camino: fechas/horas locales etiquetadas con el tzinfo de `ahora` (UTC) en vez de `America/Bogota` en varias policies/strategies; columnas `GENERATED`/gestionadas por trigger (`periodo`, `bloqueante` en `reserva_espacio` y `reserva_recursos`) que SQLAlchemy incluía en el INSERT por defecto, corregido marcándolas `server_default=FetchedValue()`; y valores de fecha/hora dentro de `detalle` (dict polimórfico sin tipado Pydantic) que llegaban como texto y rompían comparaciones, corregido con una normalización explícita antes de usarlos. Verificado por HTTP real contra el contenedor para los cinco tipos, incluida la creación autoaprobada con generación de FGL 030 para préstamos (campus y externo), el retiro atómico de complementarios (`RN-TIP-PE-28`), el compromiso físico único sin importar fechas (`RN-DIS-06`/`RN-RES-14`, con la protección de DB-12 activa en la ruta HTTP completa), edición en SOLICITADA con preservación de campos no enviados, el subflujo de lista de espera (formulario por actor, viabilidad positiva y negativa) y la subida/descarga de adjuntos con validación real de contenido binario (aceptación con PNG real, rechazo de contenido que no corresponde al tipo declarado, rechazo de MIME no admitido para el `tipo_adjunto`). No se creó una suite de pytest dedicada al módulo en `backend/tests/` (mencionada en "Afectados"): la verificación de este cierre fue íntegramente HTTP/SQL contra el contenedor en vivo, siguiendo la misma metodología que el resto de la sesión; queda como una brecha de cobertura automatizada explícita, no una omisión silenciosa. Todos los datos de prueba se limpiaron después.
 
-### API-14 — Gestión, propuestas y ejecución por tipo
+### API-14 — Gestión, propuestas y ejecución por tipo · **cerrada**
 
 - **Objetivo:** completar las estrategias con aprobación, rechazo, recursos, propuestas, ejecución, finalización y cancelación; generar y persistir FGL 030 al aprobar campus/externo dentro del proceso de salida.
 - **Afectados:** servicio, estrategias, políticas y repositorio de Reservations; pruebas de servicio/contrato bajo `backend/tests/`.
@@ -210,8 +210,9 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
   - Iniciar o finalizar manualmente espacio/interno responde `409 TIPO_NO_ADMITIDO`. Préstamos requieren devolución completa para finalizar. Operación incompatible con estado: `409 ESTADO_INCOMPATIBLE`; los demás errores son los específicos del contrato.
 - **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §4 a §6; persistencia de la orden consultada en §7.
 - **RN:** `RN-TIP-PE-21`, `RN-TIP-RI-10`, `RN-PROP-05`, `RN-TIP-PLE-05`, `RN-TIP-PLE-07`, `RN-TIP-PLE-08`, `RN-TIP-RC-07`, `RN-TIP-RE-07`, `RN-CAN-06`.
+- **Resultado:** 10 endpoints de §4 a §6 con orquestación en el servicio, dispatch por estrategia y `PropuestasPolicy` nueva (`policies/propuestas.py`: admisibilidad por tipo/estado y bloqueo por FGL). Verificado con `backend/tests/test_reservations_api14.py` (9 pruebas, incluidos los tres casos de aceptación) y suite completa en verde sin regresiones.
 
-### API-15 — Consulta de órdenes, calendario y exportación
+### API-15 — Consulta de órdenes, calendario y exportación · **cerrada**
 
 - **Objetivo:** consultar y exportar la FGL 030 ya generada por API-13/API-14, el `.ics` y el listado.
 - **Afectados:** router, esquemas, servicio y consultas del repositorio de Reservations; pruebas de contrato bajo `backend/tests/`.
@@ -219,12 +220,13 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** GET de orden/PDF usa snapshots originales, sin generar, modificar o versionar la orden. No captura firmas: se diligencian en papel. Tipo ajeno a FGL: `409 TIPO_NO_ADMITIDO`; orden aún no generada: `404 NO_ENCONTRADO`. El `.ics` admite únicamente espacio/interno y conserva los errores del contrato. Exportación respeta formato, filtros y ámbito autorizado.
 - **Contrato:** [reservations](../../contratos/reservations/api-contract.md) §7 y §8.
 - **RN:** `RN-TIP-RC-07`, `RN-TIP-RE-07`, `RN-TIP-RC-14`, `RN-TIP-RE-14`, `RN-CAL-01`, `RN-CAL-02`.
+- **Resultado:** 4 consultas (`orden-salida`, `orden-salida.pdf` con reportlab, `calendario.ics`, `exportacion` csv/excel) solo sobre snapshots inmutables, sin generar ni versionar. Verificado con `backend/tests/test_reservations_api15.py` (6 pruebas) y suite completa en verde.
 
 ---
 
 ## 6. Procesos automáticos y consulta
 
-### API-16 — Transiciones automáticas de espacio e interno
+### API-16 — Transiciones automáticas de espacio e interno · **cerrada**
 
 - **Objetivo:** ejecutar por el servicio las decisiones horarias de EspacioStrategy y RecursoInternoStrategy, sin entrega/devolución física.
 - **Afectados:** proceso programado del backend y casos de uso del servicio de Reservations; pruebas de servicio e integración.
@@ -235,8 +237,9 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
   - RECHAZADA y CANCELADA no cambian automáticamente. Detener el proceso no bloquea intervalos posteriores no solapados. La carrera con retiro por préstamo respeta DB-12 y no retira complementarios de un espacio ya en ejecución.
 - **Contrato:** sin endpoint propio; [reservations](../../contratos/reservations/api-contract.md) §4.1 y §10; UF-RES-21 y UF-RES-22.
 - **RN:** `RN-TIP-PE-25`, `RN-TIP-PE-27`, `RN-TIP-PE-28`, `RN-TIP-RI-08`, `RN-TIP-RI-09`, `RN-TIP-RI-13`, `RN-DIS-11`.
+- **Resultado:** `avanzar_por_horario` puro e idempotente (UF-RES-21/22, actor sistema, hora Bogota) corriendo cada 60 s en el `lifespan`, sin superficie HTTP. Verificado con `backend/tests/test_reservations_api16.py` (3 pruebas a nivel de servicio) y suite completa en verde.
 
-### API-17 — Bandeja y preferencias de notificaciones
+### API-17 — Bandeja y preferencias de notificaciones · **cerrada**
 
 - **Objetivo:** `/api/notificaciones` completo.
 - **Afectados:** módulo de notifications del backend.
@@ -244,8 +247,9 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** consultar una notificación ajena responde `404 NO_ENCONTRADO` sin revelar su existencia; marcar como leída **no altera** el estado de la reserva ni del correo asociado.
 - **Contrato:** [notifications](../../contratos/notifications/api-contract.md).
 - **RN:** `RN-CON-01`, `RN-EST-04`, `RN-PREF-04`.
+- **Resultado:** módulo `modules/notifications/` nuevo (5 endpoints con sesión, sin permiso administrativo) más los 6 modelos de `db/models/notificaciones.py`. Verificado con `backend/tests/test_notifications_api17.py` (4 pruebas) y suite completa en verde.
 
-### API-18 — Generación y entrega de notificaciones
+### API-18 — Generación y entrega de notificaciones · **cerrada**
 
 - **Objetivo:** cada evento de `RN-EVT` produce su ocurrencia, y la tarea programada entrega los correos con su política de reintento.
 - **Afectados:** proceso programado del backend y los módulos productores.
@@ -253,6 +257,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** repetir la misma ocurrencia no genera una segunda notificación; agotar los cinco reintentos deja el envío en `FALLIDO` **sin invalidar la operación de negocio** que lo originó.
 - **Contrato:** no tiene superficie HTTP.
 - **RN:** `RN-NOT-05`, `RN-COR-03`, `RN-COR-04`, `RN-INT-04`.
+- **Resultado:** productor idempotente por clave con canales vigentes, remitente log/smtp/Graph-delegado (patrón del repositorio anterior), tarea de entrega cada 30 s con reintentos 1/5/15/60/240, scanner de recordatorios y hooks en reservas, recursos, espacios y auth, más 3 tipos de evento de auth en seed y formato HTML institucional. Verificado con `backend/tests/test_notifications_api18.py` (12 pruebas) y suite completa en verde.
 
 ### API-19 — Reportes y exportación · **cerrada**
 

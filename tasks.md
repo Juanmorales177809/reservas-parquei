@@ -80,7 +80,7 @@ Con `API-06` a `API-08` cerradas, `backend/tests/` tiene 38 pruebas formales en 
 
 ---
 
-## Fase 3 — Catálogos e inventario
+## Fase 3 — Catálogos e inventario · **cerrada**
 
 ~~`API-09`~~ recursos → ~~`API-10`~~ espacios, que necesita recursos para asociarlos.
 
@@ -92,7 +92,7 @@ Fase 3 cerrada.
 
 ---
 
-## Fase 4 — Reservas
+## Fase 4 — Reservas · **cerrada**
 
 Aquí convergen el plan de base de datos y el de contratos.
 
@@ -101,10 +101,10 @@ Aquí convergen el plan de base de datos y el de contratos.
 | 1 | ~~`DB-11`~~ | Decisión documental cerrada: zona horaria, proyección temporal y alcance físico |
 | 2 | ~~`DB-12`~~ | Diseñar, instalar y probar exclusiones temporales, compromiso físico único y retiro por préstamo |
 | 3 | ~~`API-13`~~ | Context/Strategy/policies, creación, edición, consulta, preparación de lista de espera y FGL en autoaprobación |
-| 4 | `API-14` | Gestión por tipo, propuestas, aprobación/FGL, recepción de material y ejecución |
-| 5 | `API-15` · `API-16` | Consulta/exportación de orden inmutable, calendario y transiciones automáticas de espacio/interno |
+| 4 | ~~`API-14`~~ | Gestión por tipo, propuestas, aprobación/FGL, recepción de material y ejecución |
+| 5 | ~~`API-15`~~ · ~~`API-16`~~ | Consulta/exportación de orden inmutable, calendario y transiciones automáticas de espacio/interno |
 
-`DB-11` está cerrada documentalmente: `America/Bogota`, proyección física solo en campus/externo y compromiso único desde incorporación. `DB-12` instaló y verificó el mecanismo de integridad —incluida concurrencia real— en `backend/migrations/009_concurrencia.sql`. `API-13` está cerrada: implementa la arquitectura completa y verifica por HTTP real, incluida la protección de `DB-12` en la ruta completa; el siguiente paso es `API-14`.
+`DB-11` está cerrada documentalmente: `America/Bogota`, proyección física solo en campus/externo y compromiso único desde incorporación. `DB-12` instaló y verificó el mecanismo de integridad —incluida concurrencia real— en `backend/migrations/009_concurrencia.sql`. `API-13` está cerrada: implementa la arquitectura completa y verifica por HTTP real, incluida la protección de `DB-12` en la ruta completa. `API-14` a `API-16` están cerradas y verificadas con pruebas formales; el siguiente paso es la Fase 5.
 
 La [arquitectura de Reservations](specs/modules/reservations/architecture.md) se implementa dentro de API-13 a API-16: `router → service → Reserva/Strategy → repository`, con el servicio como dueño de la transacción. `Reserva` es Context y delega en las cinco estrategias mediante `ReservationStrategy`; las policies comunes se separan por responsabilidad y `prestamo_fisico` no es una Strategy adicional.
 
@@ -114,9 +114,9 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 
 ---
 
-## Fase 5 — Notificaciones y reportes
+## Fase 5 — Notificaciones y reportes · **cerrada**
 
-`API-17` bandeja → `API-18` generación y entrega. Ambas se apoyan en `DB-04` y `DB-10`, cerradas en la fase 1: sin los once tipos de evento cargados no hay ocurrencia que registrar.
+~~`API-17`~~ bandeja → ~~`API-18`~~ generación y entrega. Ambas se apoyan en `DB-04` y `DB-10`, cerradas en la fase 1: sin los doce tipos de evento cargados (nueve de reservas más tres de auth) no hay ocurrencia que registrar.
 
 `API-19` reportes, que necesita reservas reales para tener qué reportar. Cerrada: `/api/reportes` completo (ocupación, solicitudes, lista de espera y exportación csv/excel), verificado con 81 pruebas y por HTTP real.
 
@@ -124,7 +124,7 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 
 ## Los dos riesgos que conviene no perder de vista
 
-**La concurrencia no está garantizada.** `database-status.md` lo advierte expresamente: que existan las columnas `periodo` y `bloqueante` y algunos índices **no equivale** a la protección. Mientras `DB-12` siga abierta, la funcionalidad de crear reserva no puede darse por correcta bajo carga, aunque funcione en todas las pruebas manuales.
+**La concurrencia está garantizada por `DB-12`.** `database-status.md` advertía que columnas, periodo y bloqueante e índices ordinarios **no equivalen** a la protección: por eso se instaló la exclusión temporal con disparadores y se probó con transacciones concurrentes reales antes de dar por correcta la creación de reservas bajo carga.
 
 **El esquema no se puede reconstruir desde cero.** `002` no crea el schema `reservas`, lo transforma: exige el esquema anterior, que producía un script deliberadamente no rescatado. Y los schemas compartidos —`auth`, `personal`, `cargos`, `unidadOrganizacional`, `investigacion`— no los crea ningún script de este repositorio. **La única línea base es la base viva**, más el respaldo de `snapshots/`. Perder el volumen de PostgreSQL no se arregla volviendo a ejecutar las migraciones. Es lo que `DB-13` tiene que resolver, y por eso conviene cerrarla temprano, antes de que se acumulen más migraciones sin registro de cuáles se aplicaron.
 
