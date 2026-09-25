@@ -86,7 +86,9 @@ Con `API-06` a `API-08` cerradas, `backend/tests/` tiene 38 pruebas formales en 
 
 ~~`API-11`~~ investigación en paralelo.
 
-`API-12` importaciones al final de esta fase: escribe en recursos y en investigación, así que las necesita a ambas.
+~~`API-12`~~ importaciones al final de esta fase: escribe en recursos y en investigación, así que las necesita a ambas.
+
+Fase 3 cerrada.
 
 ---
 

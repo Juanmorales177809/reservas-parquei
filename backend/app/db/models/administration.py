@@ -1,9 +1,10 @@
-"""Modelos de SQLAlchemy del schema `administration` (API-08).
+"""Modelos de SQLAlchemy del schema `administration` (API-08, API-12).
 
-Primer modelo del schema, conforme a BK-08: se modela con el primer `API-XX`
-de su propio módulo. Solo `auditoria` por ahora: `importaciones` la modela
-API-12. Generado desde la base real; no crea ni altera tablas (regla 1 de
-plan.md). Las escrituras siguen por `core/audit.py` en cada transacción.
+Generado desde la base real; no crea ni altera tablas (regla 1 de
+plan.md). Las escrituras de auditoría siguen por `core/audit.py` en cada
+transacción; `importaciones`/`importacion_resultados` las escribe
+`modules/administration` directamente, porque son su propia entidad, no un
+registro de auditoría de otra operación.
 """
 
 from __future__ import annotations
@@ -30,3 +31,31 @@ class Auditoria(Base):
     datos_nuevos: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     motivo: Mapped[str | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column()
+
+
+class Importaciones(Base):
+    __tablename__ = "importaciones"
+    __table_args__ = {"schema": "administration"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_cuenta_id: Mapped[int] = mapped_column(ForeignKey("auth.cuentas.id_cuenta"))
+    catalogo: Mapped[str] = mapped_column()
+    archivo_referencia: Mapped[str] = mapped_column()
+    registros_creados: Mapped[int] = mapped_column()
+    registros_actualizados: Mapped[int] = mapped_column()
+    registros_desactivados: Mapped[int] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column()
+    confirmado_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+
+class ImportacionResultados(Base):
+    __tablename__ = "importacion_resultados"
+    __table_args__ = {"schema": "administration"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    importacion_id: Mapped[int] = mapped_column(ForeignKey("administration.importaciones.id"))
+    numero_fila: Mapped[int] = mapped_column()
+    codigo: Mapped[str | None] = mapped_column(nullable=True)
+    resultado: Mapped[str] = mapped_column()
+    detalle: Mapped[str | None] = mapped_column(nullable=True)
+    datos: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

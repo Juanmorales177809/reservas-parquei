@@ -5,6 +5,7 @@ from app.core.errors import registrar_manejadores
 from app.db.session import engine
 from app.modules.administration.router_auditoria import router as auditoria_router
 from app.modules.administration.router_estructura import router_cargos, router_unidades
+from app.modules.administration.router_importaciones import router as importaciones_router
 from app.modules.administration.router_permisos import router as permisos_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router_cuentas import router as auth_cuentas_router
@@ -27,6 +28,7 @@ app.include_router(router_unidades)
 app.include_router(router_cargos)
 app.include_router(permisos_router)
 app.include_router(auditoria_router)
+app.include_router(importaciones_router)
 app.include_router(router_recursos)
 app.include_router(router_laboratorios)
 app.include_router(espacios_router)

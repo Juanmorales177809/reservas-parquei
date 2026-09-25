@@ -60,8 +60,11 @@ Resultado resumido de cada importación masiva procesada (`RN-IMP-08`). Los cont
 | `registros_actualizados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `registros_desactivados` | integer | NN | DEFAULT `0`; CHECK `>= 0` |
 | `created_at` | timestamptz | NN | DEFAULT `now()` |
+| `confirmado_at` | timestamptz | Sí | `NULL` mientras la carga solo está validada; se fija al confirmar |
 
 Cuando se confirma, la importación escribe las entidades en el módulo propietario (`investigacion`, `recursos`) y registra aquí sus totales. Una carga rechazada conserva únicamente su resultado de validación y no escribe datos de catálogo. Índice `(catalogo, created_at)`.
+
+`confirmado_at` existe porque los tres contadores nacen en `0` y una confirmación real que no crea ni actualiza nada (por ejemplo, un archivo sin filas de datos) los deja también en `0`: sin una marca explícita no hay forma de distinguir esa carga confirmada de una que todavía no se confirmó, y el contrato exige `409 CONFLICTO` al intentar confirmar dos veces (`§4.2`). Migración `012_importacion_resultados_datos.sql`.
 
 ### `administration.importacion_resultados`
 
@@ -75,8 +78,11 @@ Resultado de cada fila procesada durante la validación de una importación conf
 | `codigo` | varchar(255) | Sí | identificador de la fila, incluso si es inválido: `codigo` para proyectos y semilleros, `placa` para equipos (`RN-IMP-04`) |
 | `resultado` | varchar(20) | NN | CHECK `CREADO`, `ACTUALIZADO`, `DESACTIVADO` o `ERROR` |
 | `detalle` | text | Sí | motivo del error o resultado de procesamiento |
+| `datos` | jsonb | Sí | valores normalizados de la fila, solo cuando `resultado` es `CREADO` o `ACTUALIZADO`; `NULL` en `ERROR` |
 
 La restricción única `(importacion_id, numero_fila)` conserva un único resultado por fila. Los totales de la cabecera se derivan de estas filas para la importación confirmada.
+
+`datos` existe porque la confirmación (`POST /api/importaciones/{id}/confirmacion` del [contrato](../../contratos/administration/api-contract.md#42-post-apiimportacionesidconfirmacion)) no recibe cuerpo y el archivo original no se conserva en ningún lado: sin los valores de cada fila, el paso de confirmación no tendría de dónde tomar qué escribir en `investigacion` o `recursos`. La validación (`POST /api/importaciones`) escribe aquí lo que escribiría cada fila; la confirmación lee esta columna, nunca vuelve a parsear el archivo. Migración `012_importacion_resultados_datos.sql`.
 
 ## Relaciones y responsabilidad
 

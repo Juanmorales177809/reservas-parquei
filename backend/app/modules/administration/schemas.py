@@ -122,6 +122,54 @@ class PermisoOtorgar(BaseModel):
     id_unidad: int | None = None
 
 
+# --- §4 Importaciones masivas ------------------------------------------------------
+
+
+class ImportacionResultadoFila(BaseModel):
+    numero_fila: int
+    codigo: str | None
+    resultado: str
+    detalle: str | None
+
+
+class ImportacionTotalesValidacion(BaseModel):
+    a_crear: int
+    a_actualizar: int
+    con_error: int
+
+
+class ImportacionValidacionRespuesta(BaseModel):
+    id: int
+    catalogo: str
+    id_unidad: int | None
+    archivo_referencia: str
+    confirmable: bool
+    totales: ImportacionTotalesValidacion
+    resultados: list[ImportacionResultadoFila]
+
+
+class ImportacionTotalesConfirmacion(BaseModel):
+    registros_creados: int
+    registros_actualizados: int
+    registros_desactivados: int
+
+
+class ImportacionResumen(BaseModel):
+    id: int
+    actor_cuenta_id: int
+    catalogo: str
+    archivo_referencia: str
+    registros_creados: int
+    registros_actualizados: int
+    registros_desactivados: int
+    created_at: datetime
+    confirmado_at: datetime | None
+
+
+class ImportacionDetalle(ImportacionResumen):
+    resultados: list[ImportacionResultadoFila]
+
+
 # --- §5 Auditoría ----------------------------------------------------------------------
 
 

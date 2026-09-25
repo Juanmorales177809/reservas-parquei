@@ -71,6 +71,11 @@ def existe_placa(db: Session, placa: str, excluir_id: int | None = None) -> bool
     return db.scalar(stmt) is not None
 
 
+def obtener_equipo_por_placa(db: Session, placa: str) -> Equipos | None:
+    """Idempotencia de la importación masiva por placa (API-12, RN-IMP-02 de resources)."""
+    return db.scalar(select(Equipos).where(Equipos.placa == placa))
+
+
 def existe_serial(db: Session, serial: str, excluir_id: int | None = None) -> bool:
     stmt = select(Equipos.id).where(Equipos.serial == serial)
     if excluir_id is not None:

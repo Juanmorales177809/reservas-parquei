@@ -29,6 +29,7 @@ ir antes de 010 y de 004-008, porque esos tres insertan su propia fila en
     003_reservas_referencias_externas.sql
     seeds/tipos_evento.sql
     008_identidades.sql
+    012_importacion_resultados_datos.sql
 
 Sobre PostgreSQL 13. No se usa `create_all` (regla 1 de plan.md): el
 esquema lo gobiernan las migraciones.

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.db.models.administration import Auditoria
+from app.db.models.administration import Auditoria, ImportacionResultados, Importaciones
 from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
 
@@ -264,5 +264,67 @@ def listar_auditoria(
     orden = Auditoria.created_at.desc() if descendente else Auditoria.created_at
     filas = db.scalars(
         consulta.order_by(orden).limit(limite).offset(desplazamiento)
+    ).all()
+    return list(filas), total
+
+
+# --- Importaciones masivas (API-12) ----------------------------------------------
+
+
+def crear_importacion(db: Session, *, actor_cuenta_id: int, catalogo: str, archivo_referencia: str) -> Importaciones:
+    importacion = Importaciones(
+        actor_cuenta_id=actor_cuenta_id, catalogo=catalogo, archivo_referencia=archivo_referencia,
+        registros_creados=0, registros_actualizados=0, registros_desactivados=0,
+        created_at=_ahora(), confirmado_at=None,
+    )
+    db.add(importacion)
+    db.flush()
+    return importacion
+
+
+def obtener_importacion(db: Session, id_importacion: int) -> Importaciones | None:
+    return db.get(Importaciones, id_importacion)
+
+
+def agregar_resultado_fila(
+    db: Session, *, importacion_id: int, numero_fila: int, codigo: str | None,
+    resultado: str, detalle: str | None, datos: dict | None,
+) -> ImportacionResultados:
+    fila = ImportacionResultados(
+        importacion_id=importacion_id, numero_fila=numero_fila, codigo=codigo,
+        resultado=resultado, detalle=detalle, datos=datos,
+    )
+    db.add(fila)
+    return fila
+
+
+def resultados_de_importacion(db: Session, importacion_id: int) -> list[ImportacionResultados]:
+    stmt = (
+        select(ImportacionResultados)
+        .where(ImportacionResultados.importacion_id == importacion_id)
+        .order_by(ImportacionResultados.numero_fila)
+    )
+    return list(db.scalars(stmt).all())
+
+
+def listar_importaciones(
+    db: Session, *, catalogo: str | None, desde: datetime | None, hasta: datetime | None,
+    limite: int, desplazamiento: int,
+) -> tuple[list[Importaciones], int]:
+    consulta = select(Importaciones)
+    conteo = select(func.count()).select_from(Importaciones)
+    condiciones = []
+    if catalogo is not None:
+        condiciones.append(Importaciones.catalogo == catalogo)
+    if desde is not None:
+        condiciones.append(Importaciones.created_at >= desde)
+    if hasta is not None:
+        condiciones.append(Importaciones.created_at <= hasta)
+    if condiciones:
+        consulta = consulta.where(*condiciones)
+        conteo = conteo.where(*condiciones)
+    total = db.scalar(conteo) or 0
+    filas = db.scalars(
+        consulta.order_by(Importaciones.created_at.desc()).limit(limite).offset(desplazamiento)
     ).all()
     return list(filas), total

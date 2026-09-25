@@ -55,6 +55,29 @@ def obtener_semillero(db: Session, id_semillero: int) -> Semilleros | None:
     return db.get(Semilleros, id_semillero)
 
 
+def obtener_proyecto_por_codigo(db: Session, codigo: str) -> Proyectos | None:
+    """Idempotencia de la importación masiva por código normalizado (API-12, RN-IMP-04 de administration)."""
+    return db.scalar(select(Proyectos).where(Proyectos.codigo == codigo))
+
+
+def obtener_semillero_por_codigo(db: Session, codigo: str) -> Semilleros | None:
+    return db.scalar(select(Semilleros).where(Semilleros.codigo == codigo))
+
+
+def crear_proyecto(db: Session, codigo: str, nombre: str, estado: bool) -> Proyectos:
+    proyecto = Proyectos(codigo=codigo, nombre=nombre, estado=estado)
+    db.add(proyecto)
+    db.flush()
+    return proyecto
+
+
+def crear_semillero(db: Session, codigo: str, nombre: str, estado: bool) -> Semilleros:
+    semillero = Semilleros(codigo=codigo, nombre=nombre, estado=estado)
+    db.add(semillero)
+    db.flush()
+    return semillero
+
+
 def _listar_catalogo(db: Session, modelo, campo_codigo, campo_nombre, *, estado, busqueda, orden, offset, tamano):
     stmt = select(modelo)
     if estado is not None:
