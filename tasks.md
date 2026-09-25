@@ -64,17 +64,19 @@ Los cuatro schemas se crearon en orden pero eran independientes entre sí:
 
 ---
 
-## Fase 2 — Identidad y estructura
+## Fase 2 — Identidad y estructura · **cerrada**
 
 | Orden | Tareas |
 |---|---|
-| 1 | `BK-09` auth de punta a punta, que es `API-05` y se desglosa en el [plan de auth](specs/modules/auth/tasks.md) |
-| 2 | `API-06` identidades y fichas de Personal |
-| 3 | `API-07` unidades, cargos y permisos · `API-08` auditoría |
+| 1 | ~~`BK-09`~~ auth de punta a punta, que es `API-05` y se desglosa en el [plan de auth](specs/modules/auth/tasks.md) |
+| 2 | ~~`API-06`~~ identidades y fichas de Personal |
+| 3 | ~~`API-07`~~ unidades, cargos y permisos · ~~`API-08`~~ auditoría |
 
-`API-06` **bloquea la invitación de cuentas `PERSONAL`**: auth exige una ficha activa antes de invitar, y esa ficha se crea en `/api/personal`. Es la única dependencia circular aparente del plan, y no lo es: `AUTH-B3` se implementa y se prueba con fichas cargadas a mano, y `API-06` las hace administrables después.
+`API-06` **bloqueaba la invitación de cuentas `PERSONAL`**: auth exige una ficha activa antes de invitar, y esa ficha se crea en `/api/personal`. Era la única dependencia circular aparente del plan, y no lo era: `AUTH-B3` se implementó y se probó con fichas cargadas a mano, y `API-06` las hizo administrables después.
 
-Auth se construye a dos carriles: sesión y credenciales por un lado, altas e invitaciones por otro. Al cerrarlo, **queda como la referencia de estilo** de los ocho módulos restantes.
+Auth se construyó a dos carriles: sesión y credenciales por un lado, altas e invitaciones por otro. Al cerrarlo, **quedó como la referencia de estilo** de los ocho módulos restantes.
+
+Con `API-06` a `API-08` cerradas, `backend/tests/` tiene 38 pruebas formales en verde contra `reservas_test` —una base PG13 aislada, construida con la misma cadena de migraciones—, cubriendo auth, administration y usuarios. **El siguiente paso es la Fase 3.**
 
 ---
 

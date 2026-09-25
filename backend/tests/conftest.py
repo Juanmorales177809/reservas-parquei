@@ -8,10 +8,30 @@ Cómo se ejecutan (la base de desarrollo nunca se toca, testing.md §"El entorno
       -e JWT_SECRET="secreto-solo-para-pruebas" \
       python:3.12-slim bash -c "pip install -q -r requirements.txt -r requirements-test.txt && python -m pytest tests/ -q"
 
-`reservas_test` se construyó con la misma cadena que la base viva
-(reconstruccion/000, 001, 001b, 002, limpieza, 004-008, 010, 003, 011 + seeds)
-más los catálogos, sobre PostgreSQL 13. No se usa `create_all` (regla 1 de
-plan.md): el esquema lo gobiernan las migraciones.
+`reservas_test` se construye con la misma cadena que la base real, **en
+este orden exacto** (verificado reconstruyendo la base desde cero: 011 debe
+ir antes de 010 y de 004-008, porque esos tres insertan su propia fila en
+`public.schema_migrations`, que 011 es quien crea):
+
+    reconstruccion/000_base_compartida.sql
+    reconstruccion/001_shared_postgres.sql
+    reconstruccion/001b_transicion_cuenta.sql
+    002_reservas_objetivo.sql
+    reconstruccion/003_limpieza_heredada.sql
+    011_gobierno.sql
+    010_auth_objetivo.sql
+    seeds/catalogos_reservas.sql
+    seeds/permisos.sql
+    004_recursos.sql
+    005_investigacion.sql
+    006_administration.sql
+    007_notificaciones.sql
+    003_reservas_referencias_externas.sql
+    seeds/tipos_evento.sql
+    008_identidades.sql
+
+Sobre PostgreSQL 13. No se usa `create_all` (regla 1 de plan.md): el
+esquema lo gobiernan las migraciones.
 
 Aislamiento: cada prueba usa correos/nombres con una etiqueta única y al
 terminar se borran sus filas en orden seguro para FK. `rate_limit` se vacía
