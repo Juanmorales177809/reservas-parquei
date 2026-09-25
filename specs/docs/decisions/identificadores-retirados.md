@@ -8,6 +8,21 @@ Esta tabla es la fuente que lee [`tools/validar.py`](../../../tools/validar.py) 
 |---|---|---|---|
 | `RN-ESP-HAB-03` | espacios | Enunciaba de forma genérica el mismo comportamiento que otra regla define completo, con la regla de cancelación citada, la advertencia previa y el efecto de no confirmar | `RN-ESP-HAB-05` de espacios |
 | `RN-APR-09` | reservations | Retirado el 2026-09-24 por la decisión del hallazgo 1: un recurso sujeto a préstamo admite un solo compromiso vigente; no existe una solicitud posterior válida esperando su devolución para aprobarse automáticamente | `RN-RES-14` y `RN-DIS-06` de reservations |
+| `RN-ID-01` | usuarios | Retirada la familia `RN-ID` de `usuarios`: la identidad la define `auth` | `RN-AUTH-ID-01` de auth |
+| `RN-ID-04` | usuarios | Retirada la familia `RN-ID` de `usuarios`: la identidad la define `auth` | `RN-AUTH-ID-03` de auth |
+| `RN-ID-05` | usuarios | Retirada la familia `RN-ID` de `usuarios`: la identidad la define `auth` | `RN-AUTH-ID-03` de auth |
+| `RN-ID-07` | usuarios | Retirada la familia `RN-ID` de `usuarios`: la identidad la define `auth` | `RN-AUTH-ID-05` de auth |
+| `RN-ID-12` | usuarios | Retirada la familia `RN-ID` de `usuarios`: la identidad la define `auth` | `RN-AUTH-ID-02` de auth |
+| `RN-AUT-03` | usuarios | Retirada la familia `RN-AUT` de `usuarios`: las sesiones las define `auth` | `RN-AUTH-SES-01` de auth |
+| `RN-AUT-04` | usuarios | Retirada la familia `RN-AUT` de `usuarios`: las sesiones las define `auth` | `RN-AUTH-SES-01` de auth |
+| `RN-AUT-06` | usuarios | Retirada la familia `RN-AUT` de `usuarios`: las sesiones las define `auth` | `RN-AUTH-SES-02` de auth |
+| `RN-AUTZ-01` | usuarios | Retirada la familia `RN-AUTZ` de `usuarios`: la autorización la define `auth` | `RN-AUTH-ROL-02` y `RN-AUTH-ROL-07` de auth |
+| `RN-AUTZ-02` | usuarios | Retirada la familia `RN-AUTZ` de `usuarios`: la autorización la define `auth` | `RN-AUTH-ROL-05` y `RN-AUTH-ROL-07` de auth |
+| `RN-AUTZ-03` | usuarios | Retirada la familia `RN-AUTZ` de `usuarios`: la autorización la define `auth` | `RN-AUTH-ROL-05` y `RN-AUTH-ROL-07` de auth |
+| `RN-PRF-01` | administration | Trasladados los perfiles académicos a `researchs`, que los define en `RN-INV` | `RN-INV-12` a `RN-INV-16` de researchs |
+| `RN-PRF-03` | administration | Retirado: sus citas usaban «perfil» como rol de cuenta | `RN-AUTH-ROL-04` de auth |
+| `RN-PRF-04` | administration | Trasladados los perfiles académicos a `researchs`, que los define en `RN-INV` | `RN-INV-12` a `RN-INV-16` de researchs |
+| `RN-PRF-05` | administration | Trasladados los perfiles académicos a `researchs`, que los define en `RN-INV` | `RN-INV-12` a `RN-INV-16` de researchs |
 
 ## Lo que no entra en esta tabla
 
