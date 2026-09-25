@@ -82,7 +82,7 @@ La conservación histórica no depende de esta decisión: `titulo` y `cuerpo` gu
 
 **Impacto.** Es la garantía central de integridad del dominio. Los índices ordinarios y una consulta previa no la sustituyen. La selección del mecanismo debe formalizarse mediante un ADR conforme a `architecture.md` §17. La especificación de producto ya acota la decisión: exige la garantía **a nivel de base de datos, no solo de aplicación**, por lo que un bloqueo resuelto únicamente en el backend no satisface el requisito. ADR-001 selecciona una restricción de exclusión de PostgreSQL a nivel de diseño; aprobada formalmente por DB-11 el 2026-09-23, no queda alternativa por elegir.
 
-**Estado.** Resuelta a nivel de diseño por [ADR-001](adr-001-doble-reserva.md), aprobada formalmente por DB-11 el 2026-09-23. La implementación y las pruebas de concurrencia siguen pendientes; hasta completarlas, la funcionalidad [001 — Crear una reserva](../../features/001-create-reservation/spec.md) no puede darse por correcta bajo concurrencia.
+**Estado.** Resuelta. [ADR-001](adr-001-doble-reserva.md) la selecciona a nivel de diseño, aprobada formalmente por DB-11 el 2026-09-23; DB-12 la implementó y la verificó el 2026-09-24 en `backend/migrations/009_concurrencia.sql`, con transacciones concurrentes reales, no solo secuenciales, en `backend/tests/sql/`. El documento de alcance `features/001-create-reservation/spec.md` que advertía sobre esta garantía se retiró: quedó superado por el contrato completo de [reservations](../../modules/reservations/architecture.md), implementado de punta a punta en API-13 a API-16.
 
 ---
 
@@ -135,7 +135,7 @@ Escribir administration reveló que `UF-ADM-03` no tenía superficie en ningún 
 
 **Impacto.** La restricción de exclusión requiere comparar el periodo del recurso junto con su asignación en la misma tabla, y debe conservar la indisponibilidad de un recurso en ejecución hasta registrar la devolución física.
 
-**Estado.** Resuelta a nivel de diseño por la propuesta de [ADR-001](adr-001-doble-reserva.md), aprobada formalmente por DB-11 el 2026-09-23: el periodo se mantiene como rango técnico en `reserva_recursos`, sincronizado transaccionalmente desde el detalle del tipo y `reserva_ejecucion_recursos.devuelto_at`; un recurso en ejecución sin devolución tiene rango superior abierto. La migración, los disparadores y las pruebas siguen pendientes.
+**Estado.** Resuelta. [ADR-001](adr-001-doble-reserva.md) la selecciona a nivel de diseño, aprobada formalmente por DB-11 el 2026-09-23: el periodo se mantiene como rango técnico en `reserva_recursos`, sincronizado transaccionalmente desde el detalle del tipo y `reserva_ejecucion_recursos.devuelto_at`; un recurso en ejecución sin devolución tiene rango superior abierto. DB-12 instaló la migración y los disparadores de recálculo el 2026-09-24 en `backend/migrations/009_concurrencia.sql` y los verificó con pruebas de concurrencia real en `backend/tests/sql/`.
 
 ---
 
