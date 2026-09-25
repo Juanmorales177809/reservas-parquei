@@ -23,7 +23,10 @@ from app.core.errors import (
     NoEncontrado,
     TelefonoDuplicado,
     Validacion,
+    VinculacionDuplicada,
 )
+from app.modules.researchs import repository as inv_repo
+from app.modules.researchs import service as inv_service
 from app.modules.usuarios import repository as repo
 from app.modules.usuarios import schemas
 
@@ -309,6 +312,7 @@ def obtener_perfil(db: Session, contexto: ContextoAutenticado) -> dict:
     usuario = repo.obtener_usuario(db, contexto.id_usuario)
     if usuario is None:
         raise NoEncontrado()
+    perfiles = [{"id_perfil": p.id_perfil, "nombre": p.nombre} for _, p in inv_repo.perfiles_activos_de_usuario(db, usuario.id_usuario)]
     return {
         "id_usuario": usuario.id_usuario,
         "nombre": usuario.nombre,
@@ -319,9 +323,8 @@ def obtener_perfil(db: Session, contexto: ContextoAutenticado) -> dict:
         "correo": usuario.correo,
         "actualizacion_inicial_pendiente": usuario.perfil_actualizado_at is None,
         "perfil_actualizado_at": usuario.perfil_actualizado_at,
-        # Perfiles y vinculaciones los aporta API-11 (researchs).
-        "perfiles": [],
-        "vinculaciones": {"proyectos": [], "semilleros": [], "pasantias": [], "trabajos_grado": []},
+        "perfiles": perfiles,
+        "vinculaciones": inv_service.vinculaciones_de_usuario(db, usuario.id_usuario),
     }
 
 
@@ -355,3 +358,144 @@ def actualizar_perfil(db: Session, contexto: ContextoAutenticado, datos: schemas
         db.rollback()
         _traducir_integridad_usuario(exc)
     return obtener_perfil(db, contexto)
+
+
+def confirmar_actualizacion_inicial(db: Session, contexto: ContextoAutenticado) -> dict:
+    """§2.3 (RN-USR-07): exige los cinco datos completos y al menos una
+    vinculación académica o investigativa activa y válida."""
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    usuario = repo.obtener_usuario(db, contexto.id_usuario)
+    if usuario is None:
+        raise NoEncontrado()
+
+    campos = (usuario.nombre, usuario.documento, usuario.telefono, usuario.institucion, usuario.dependencia)
+    datos_completos = all(c and c.strip() for c in campos)
+    tiene_vinculacion = inv_repo.tiene_vinculacion_activa(db, usuario.id_usuario)
+    if not datos_completos or not tiene_vinculacion:
+        faltantes = []
+        if not datos_completos:
+            faltantes.append("datos_personales")
+        if not tiene_vinculacion:
+            faltantes.append("vinculacion_activa")
+        raise Conflicto("Faltan condiciones para completar la actualización inicial.", detalles=faltantes)
+
+    usuario.perfil_actualizado_at = _ahora()
+    db.commit()
+    return {"perfil_actualizado_at": usuario.perfil_actualizado_at, "actualizacion_inicial_pendiente": False}
+
+
+# --- §3 Perfiles académicos e investigativos (orquesta researchs) -------------------
+
+
+def catalogo_perfiles(db: Session) -> list[dict]:
+    """§3.0. Catálogo cerrado: solo los habilitados."""
+    return [{"id_perfil": p.id_perfil, "nombre": p.nombre} for p in inv_repo.perfiles_habilitados(db)]
+
+
+def reemplazar_perfiles(db: Session, contexto: ContextoAutenticado, ids_perfiles: list[int]) -> list[dict]:
+    """§3.1. Reemplaza el conjunto completo: lo que no venga se desactiva."""
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    id_usuario = contexto.id_usuario
+
+    for id_perfil in ids_perfiles:
+        perfil = inv_repo.obtener_perfil_catalogo(db, id_perfil)
+        if perfil is None or not perfil.estado:
+            raise NoEncontrado(f"El perfil {id_perfil} no existe o está deshabilitado.")
+
+    deseados = set(ids_perfiles)
+    for asignacion, _perfil in inv_repo.perfiles_activos_de_usuario(db, id_usuario):
+        if asignacion.id_perfil not in deseados:
+            asignacion.estado = False
+    for id_perfil in deseados:
+        existente = inv_repo.obtener_asignacion_perfil(db, id_usuario, id_perfil)
+        if existente is None:
+            inv_repo.asignar_perfil(db, id_usuario, id_perfil)
+        elif not existente.estado:
+            existente.estado = True
+
+    db.commit()
+    return [{"id_perfil": p.id_perfil, "nombre": p.nombre} for _, p in inv_repo.perfiles_activos_de_usuario(db, id_usuario)]
+
+
+# --- §4 Vinculaciones académicas e investigativas (orquesta researchs) --------------
+
+
+def catalogo_vinculacion(db: Session, tipo: str, busqueda: str | None, pagina: int, tamano: int) -> tuple[list[dict], int]:
+    """§4.1. Solo los habilitados; `tipo` admite `proyectos` y `semilleros`."""
+    if tipo == "proyectos":
+        items, total = inv_repo.listar_proyectos(db, estado=True, busqueda=busqueda, orden=None, offset=(pagina - 1) * tamano, tamano=tamano)
+        return [{"id_proyecto": p.id_proyecto, "codigo": p.codigo, "nombre": p.nombre} for p in items], total
+    if tipo == "semilleros":
+        items, total = inv_repo.listar_semilleros(db, estado=True, busqueda=busqueda, orden=None, offset=(pagina - 1) * tamano, tamano=tamano)
+        return [{"id_semillero": s.id_semillero, "codigo": s.codigo, "nombre": s.nombre} for s in items], total
+    raise Validacion("'tipo' debe ser 'proyectos' o 'semilleros'.")
+
+
+def _vincular_propia(db: Session, contexto: ContextoAutenticado, tipo: str, entidad_id: int) -> dict:
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    id_usuario = contexto.id_usuario
+
+    entidad = inv_repo.obtener_entidad(db, tipo, entidad_id)
+    if entidad is None or not entidad.estado:
+        raise NoEncontrado(f"El {tipo[:-1]} no existe o está deshabilitado.")
+
+    existente = inv_repo.obtener_vinculacion(db, tipo, id_usuario, entidad_id)
+    if existente is not None and existente.estado:
+        raise VinculacionDuplicada()
+    if existente is not None:
+        inv_repo.reactivar_vinculacion(db, existente)
+        vinculacion = existente
+    else:
+        vinculacion = inv_repo.crear_vinculacion(db, tipo, id_usuario, entidad_id)
+    db.commit()
+    return inv_service.vinculacion_dict(db, tipo, vinculacion)
+
+
+def vincular_proyecto(db: Session, contexto: ContextoAutenticado, id_proyecto: int) -> dict:
+    return _vincular_propia(db, contexto, "proyectos", id_proyecto)
+
+
+def vincular_semillero(db: Session, contexto: ContextoAutenticado, id_semillero: int) -> dict:
+    return _vincular_propia(db, contexto, "semilleros", id_semillero)
+
+
+def registrar_pasantia(db: Session, contexto: ContextoAutenticado, datos: schemas.PasantiaCrear) -> dict:
+    """§4.4. A diferencia de proyectos/semilleros, la pasantía se crea aquí:
+    no es un catálogo administrado centralmente (RN-INV-02)."""
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    pasantia = inv_repo.crear_pasantia(db, datos.universidad, datos.docente_itm_nombre, str(datos.docente_itm_correo))
+    vinculacion = inv_repo.crear_vinculacion(db, "pasantias", contexto.id_usuario, pasantia.id_pasantia)
+    db.commit()
+    return inv_service.vinculacion_dict(db, "pasantias", vinculacion)
+
+
+def registrar_trabajo_grado(db: Session, contexto: ContextoAutenticado, datos: schemas.TrabajoGradoCrear) -> dict:
+    """§4.5. RN-INV-03: se crea aquí, no en un catálogo administrado."""
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    trabajo = inv_repo.crear_trabajo_grado(db, datos.director_nombre, str(datos.director_correo))
+    vinculacion = inv_repo.crear_vinculacion(db, "trabajos_grado", contexto.id_usuario, trabajo.id_trabajo_grado)
+    db.commit()
+    return inv_service.vinculacion_dict(db, "trabajos_grado", vinculacion)
+
+
+def desactivar_vinculacion_propia(db: Session, contexto: ContextoAutenticado, tipo: str, id_entidad: int) -> dict:
+    """§4.6. `id` es el identificador propio de la entidad (proyecto, semillero,
+    pasantía o trabajo de grado), no un identificador de fila de vinculación."""
+    if contexto.tipo_cuenta != "USUARIO" or contexto.id_usuario is None:
+        raise NoEncontrado("Esta cuenta no tiene perfil de Usuario.")
+    if tipo not in inv_service.TIPOS_VINCULACION:
+        raise NoEncontrado()
+    id_usuario = contexto.id_usuario
+
+    vinculacion = inv_repo.obtener_vinculacion(db, tipo, id_usuario, id_entidad)
+    if vinculacion is None or not vinculacion.estado:
+        raise NoEncontrado("La vinculación no existe o ya está inactiva.")
+
+    inv_repo.desactivar_vinculacion_fila(db, vinculacion)
+    db.commit()
+    return {"sin_vinculaciones_activas": not inv_repo.tiene_vinculacion_activa(db, id_usuario)}

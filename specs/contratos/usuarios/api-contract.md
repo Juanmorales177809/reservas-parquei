@@ -45,7 +45,7 @@ Perfil consolidado del actor. Flujo `UF-USR-03`.
   "perfil_actualizado_at": "2026-09-19T14:03:11Z",
   "perfiles": [{ "id_perfil": 2, "nombre": "Investigador" }],
   "vinculaciones": {
-    "proyectos": [{ "id_proyecto": 12, "codigo": "PRY-001", "nombre": "Ensayos no destructivos", "estado": true }],
+    "proyectos": [{ "id_proyecto": 12, "codigo": "PRY-001", "nombre": "Ensayos no destructivos", "activa": true }],
     "semilleros": [],
     "pasantias": [],
     "trabajos_grado": []
@@ -53,7 +53,7 @@ Perfil consolidado del actor. Flujo `UF-USR-03`.
 }
 ```
 
-`perfiles` y `vinculaciones` se obtienen de `researchs`; este módulo no los almacena ni decide su validez (`RN-INV-08` de researchs).
+`perfiles` y `vinculaciones` se obtienen de `researchs`; este módulo no los almacena ni decide su validez (`RN-INV-08` de researchs). `activa` es el estado de la vinculación en sí, no el `estado` del catálogo de la entidad (un proyecto puede deshabilitarse en el catálogo sin que eso desactive las vinculaciones ya existentes, conforme a `RN-INV-05` de researchs); el mismo campo aparece con el mismo nombre en `GET /api/investigacion/usuarios/{id_usuario}/vinculaciones` del contrato de researchs.
 
 Un **perfil** académico o investigativo (`investigacion.perfiles`) describe la situación de la persona —por ejemplo investigador o estudiante— y es distinto de una **vinculación**, que la asocia a un proyecto, semillero, pasantía o trabajo de grado concretos. Solo las vinculaciones cuentan para `RN-USR-07` y `RN-USR-11`: tener un perfil no habilita a reservar.
 
@@ -155,11 +155,11 @@ Registra un trabajo de grado con `director_nombre` y `director_correo`. Flujo `U
 
 ### 4.6 `DELETE /api/perfil/vinculaciones/{tipo}/{id}`
 
-Desactiva una vinculación propia. Flujo `UF-USR-10`. **`204 No Content`**.
+Desactiva una vinculación propia. Flujo `UF-USR-10`.
 
 No elimina el registro: lo marca inactivo y conserva el historial (`RN-INV-05` de researchs). Las reservas que la usaron como contexto conservan su referencia e interpretación (`RN-CTX-07` de reservations).
 
-**Advertencia de impacto:** si esta es la última vinculación activa, el Usuario deja de poder crear reservas hasta recuperar una (`RN-USR-11`). La respuesta incluye ese aviso:
+**Advertencia de impacto:** si esta es la última vinculación activa, el Usuario deja de poder crear reservas hasta recuperar una (`RN-USR-11`). Por eso la respuesta es **`200 OK`**, no `204`: siempre trae cuerpo, para que el cliente muestre el aviso sin una consulta extra:
 
 ```json
 { "sin_vinculaciones_activas": true }

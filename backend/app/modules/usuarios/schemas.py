@@ -201,6 +201,53 @@ class VinculacionesResumen(BaseModel):
     trabajos_grado: list[dict] = []
 
 
+class ActualizacionInicialRespuesta(BaseModel):
+    perfil_actualizado_at: datetime
+    actualizacion_inicial_pendiente: bool
+
+
+# --- §3/§4 Perfiles y vinculaciones académicas (API-11, orquestado aquí) -------------
+
+
+class PerfilesActualizar(BaseModel):
+    """PUT reemplaza el conjunto completo: lo que no venga se desactiva."""
+
+    perfiles: list[int]
+
+
+class ProyectoVincularBody(BaseModel):
+    id_proyecto: int
+
+
+class SemilleroVincularBody(BaseModel):
+    id_semillero: int
+
+
+class PasantiaCrear(BaseModel):
+    universidad: str = Field(max_length=255)
+    docente_itm_nombre: str = Field(max_length=150)
+    docente_itm_correo: EmailStr
+
+    @field_validator("universidad", "docente_itm_nombre")
+    @classmethod
+    def _v_no_vacio(cls, v):
+        return _no_vacio(v, 255)
+
+
+class TrabajoGradoCrear(BaseModel):
+    director_nombre: str = Field(max_length=150)
+    director_correo: EmailStr
+
+    @field_validator("director_nombre")
+    @classmethod
+    def _v_nombre(cls, v):
+        return _no_vacio(v, 150)
+
+
+class DesactivarVinculacionRespuesta(BaseModel):
+    sin_vinculaciones_activas: bool
+
+
 class PerfilRespuesta(BaseModel):
     id_usuario: int
     nombre: str
