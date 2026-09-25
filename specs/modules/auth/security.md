@@ -44,7 +44,7 @@ Los controles aquí definidos complementan las reglas de negocio y deben aplicar
 
 - **SEC-SES-09:** Las sesiones deben tener tiempo máximo de vigencia y tiempo máximo de inactividad definidos por configuración. Al superar cualquiera de los límites aplicables, se debe exigir una nueva autenticación.
 
-- **SEC-SES-10:** Después de un cambio de contraseña o de otro evento que comprometa la confianza en las credenciales, el sistema debe revocar las sesiones activas de la cuenta según la política aplicable.
+- **SEC-SES-10:** Después de un cambio de contraseña exitoso, el sistema debe revocar todas las sesiones activas de la cuenta, incluida la sesión actual. No crea automáticamente una nueva sesión; la persona debe iniciar sesión nuevamente con la nueva contraseña. Ante otros eventos que comprometan la confianza en las credenciales, debe revocar las sesiones activas según la política aplicable.
 
 - **SEC-SES-11:** Las respuestas que establezcan o contengan información sensible de sesión deben utilizar controles de caché que impidan su almacenamiento cuando corresponda.
 
@@ -126,7 +126,7 @@ Estas reglas aplican únicamente cuando el sistema utilice JWT para tokens firma
 
 - **SEC-REAUTH-02:** Como mínimo, deben considerarse operaciones sensibles el cambio de contraseña, la asignación o modificación de permisos administrativos y otras acciones que puedan alterar el control de la cuenta.
 
-- **SEC-REAUTH-03:** La reautenticación debe validar nuevamente un factor de autenticación aceptado por el sistema y no debe basarse únicamente en la existencia de una sesión activa antigua.
+- **SEC-REAUTH-03:** La reautenticación debe validar únicamente la contraseña actual de la cuenta identificada por la sesión. No solicita nuevamente correo ni incorpora OTP, MFA u otros factores. La existencia de una sesión activa antigua no sustituye esta validación.
 
 - **SEC-REAUTH-04:** Después de una reautenticación exitosa que implique elevación de privilegios o cambio sensible de seguridad, el identificador de sesión debe regenerarse conforme a `SEC-SES-13`.
 
@@ -150,7 +150,7 @@ Estas reglas aplican únicamente cuando el sistema utilice JWT para tokens firma
 
 - **SEC-AUTZ-03:** Los identificadores enviados por el cliente nunca sustituyen la identidad obtenida de la sesión autenticada.
 
-- **SEC-AUTZ-04:** Las operaciones sobre recursos pertenecientes a una unidad organizacional deben validar en el servidor tanto el permiso requerido como el ámbito organizacional aplicable. Para roles administrativos, la cuenta debe ser de tipo `PERSONAL` y su ámbito debe coincidir con la unidad asociada a su identidad de personal activa mediante el cargo vigente (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
+- **SEC-AUTZ-04:** Las operaciones sobre recursos pertenecientes a una unidad organizacional deben validar en el servidor tanto el permiso requerido como el ámbito organizacional aplicable. Para roles administrativos, la cuenta debe ser de tipo `PERSONAL` y estar vinculada a una identidad de personal activa. El alcance depende de la asignación concreta del permiso requerido: una asignación global permite ejecutarlo globalmente; una asignación por unidad exige coincidencia entre unidad asignada, unidad del recurso y unidad de la identidad mediante su cargo vigente, aunque el actor sea Administrador. El rol Administrador no concede permisos por sí mismo y una asignación global no amplía otros permisos por unidad (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-03`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
 
 - **SEC-AUTZ-05:** Los cambios de cargo, unidad, permisos o estado del personal deben reflejarse en las autorizaciones posteriores sin depender exclusivamente de información almacenada previamente en el cliente.
 

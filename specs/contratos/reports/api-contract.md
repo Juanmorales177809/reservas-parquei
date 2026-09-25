@@ -11,7 +11,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/reportes` |
-| Permiso administrativo | `reportes.consultar`. Un Técnico lo tiene sobre su unidad y solo consulta esa; un Administrador lo tiene con alcance global y consulta cualquiera (`RN-AMB-01`, `RN-AMB-02`) |
+| Permiso administrativo | `reportes.consultar`, con el alcance de su asignación vigente: global permite consultar cualquier unidad; por unidad permite consultar únicamente esa unidad, aunque la cuenta tenga rol Administrador por otro permiso. El rol no concede el permiso ni amplía su alcance (`RN-AUTH-ROL-03`, `RN-AUTH-ROL-07` de auth) |
 | Identificadores | `id_unidad`, `espacio_id`, `recurso_id`, `proyecto_id` y `semillero_id`, enteros de sus módulos propietarios |
 
 **Este contrato no define códigos de error propios.** Todos los que usa pertenecen al [catálogo común](../README.md#catálogo-común-de-códigos).

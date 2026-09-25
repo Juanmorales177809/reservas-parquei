@@ -196,7 +196,7 @@ Identidad autenticada vigente. Sustenta el paso 2 de `UF-AUTH-10` en el cliente.
 }
 ```
 
-En este ejemplo, la unidad 7 coincide con la unidad asociada al cargo vigente del registro de personal. `unidades_autorizadas` contiene únicamente la unidad que resulta de esa relación para `TECNICO`; las asignaciones a otras unidades no amplían ese ámbito (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`). `"GLOBAL"` solo se devuelve a una cuenta activa `PERSONAL` vinculada a personal activo que tenga una asignación global vigente (`RN-AUTH-ROL-03`). Para una cuenta `USUARIO`, o una cuenta `PERSONAL` sin permisos administrativos efectivos, es una lista vacía. Este resumen no sustituye la validación de cada permiso y unidad al ejecutar operaciones protegidas.
+En este ejemplo, la unidad 7 coincide con la unidad asociada al cargo vigente del registro de personal. `unidades_autorizadas` contiene únicamente la unidad que resulta de esa relación para `TECNICO`; las asignaciones a otras unidades no amplían ese ámbito (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-06`). `"GLOBAL"` solo se devuelve a una cuenta activa `PERSONAL` vinculada a personal activo que tenga una asignación global vigente (`RN-AUTH-ROL-03`). Para una cuenta `USUARIO`, o una cuenta `PERSONAL` sin permisos administrativos efectivos, es una lista vacía. Este resumen no sustituye la validación de cada permiso y unidad al ejecutar operaciones protegidas. `"GLOBAL"` indica la existencia de alguna asignación global, no que todos los permisos de la cuenta tengan ese alcance; el rol Administrador no concede permisos ni amplía las asignaciones por unidad (`RN-AUTH-ROL-03`).
 
 Esta respuesta sirve para adaptar la interfaz, **nunca como control de autorización**: el servidor revalida permiso y ámbito en cada operación (`SEC-AUTZ-01`).
 
@@ -268,7 +268,7 @@ El token se valida por completo antes de aplicar cualquier cambio (`SEC-TOK-01`,
 
 ### 3.9 `POST /api/auth/reautenticacion` — limitado
 
-Reautenticación para operaciones sensibles. Flujo `UF-AUTH-09`. Requiere sesión válida.
+Reautenticación para operaciones sensibles. Flujo `UF-AUTH-09`. Requiere sesión válida. `contrasena` es únicamente la contraseña actual de la cuenta identificada por esa sesión; no se solicita nuevamente correo ni se incorporan otros factores (`SEC-REAUTH-03`).
 
 ```json
 { "contrasena": "una frase larga de paso" }
@@ -290,7 +290,7 @@ Dentro de esa ventana, las operaciones sensibles de §5 y §6 no vuelven a exigi
 
 ### 4.1 `POST /api/auth/invitaciones`
 
-Emisión de invitación. Flujo `UF-AUTH-02`. Requiere el permiso global `cuentas.administrar`.
+Emisión de invitación. Flujo `UF-AUTH-02`. Requiere el permiso global `cuentas.administrar`. La cuenta destinataria no puede ser una cuenta cuyo alta fue completada y que posteriormente fue desactivada administrativamente: su reactivación corresponde exclusivamente a §6.1 (`RN-AUTH-ID-10`). Las altas incompletas pueden recibir una nueva invitación cuando se cumplan las demás condiciones del alta.
 
 ```json
 {
@@ -300,7 +300,7 @@ Emisión de invitación. Flujo `UF-AUTH-02`. Requiere el permiso global `cuentas
 }
 ```
 
-`id_unidad` es obligatorio para `tipo_cuenta = "PERSONAL"` y debe estar dentro del ámbito del emisor (`SEC-AUTZ-04`).
+`id_unidad` es obligatorio para `tipo_cuenta = "PERSONAL"` y debe estar dentro del alcance de la asignación del permiso `cuentas.administrar` del emisor (`SEC-AUTZ-04`). Este permiso es global: la unidad del cargo del emisor no limita su alcance. La coincidencia de unidad del cargo de la identidad invitada sigue siendo obligatoria.
 
 Para `tipo_cuenta = "USUARIO"`, debe existir una identidad creada previamente mediante el alta administrativa de Usuarios conforme a RN-DAT. El servidor la resuelve por el correo único del destinatario y valida sus datos obligatorios antes de emitir la invitación. La activación utiliza esa identidad existente, sin duplicar el perfil ni crear una identidad con campos vacíos.
 
@@ -320,13 +320,13 @@ Para `tipo_cuenta = "PERSONAL"`, debe existir previamente una ficha activa y com
 
 La respuesta **nunca incluye el token**: se entrega únicamente por correo a través de `notificaciones` (`SEC-TOK-02`). La invitación no concede permisos administrativos por sí misma; estos se administran en `administration` (`SEC-INV-04`).
 
-**Errores:** `401 NO_AUTENTICADO`, `403 NO_AUTORIZADO`, `409 CONFLICTO` si el correo ya corresponde a una cuenta activa, `422 VALIDACION`.
+**Errores:** `401 NO_AUTENTICADO`, `403 NO_AUTORIZADO`, `409 CONFLICTO` si el correo ya corresponde a una cuenta activa o a una cuenta cuyo alta se completó y que después fue desactivada administrativamente, `422 VALIDACION`. Para este último caso se indica al Administrador autorizado que corresponde la reactivación mediante §6.1; no se emite la invitación.
 
 ---
 
 ### 4.2 `POST /api/auth/invitaciones/{id}/reenvio`
 
-Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`.
+Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`. Requiere el permiso global `cuentas.administrar` y un alta incompleta; no permite reactivar una cuenta cuyo alta se completó y que después fue desactivada administrativamente (`RN-AUTH-ID-10`).
 
 **`200 OK`**
 
@@ -340,7 +340,7 @@ Reenvío de una invitación no completada. Flujo alterno de `UF-AUTH-02`.
 
 Emite un token nuevo e invalida el anterior (`SEC-INV-03`).
 
-**Errores:** `403 NO_AUTORIZADO`, `404 NO_ENCONTRADO`, `409 CONFLICTO` si la invitación ya fue utilizada.
+**Errores:** `403 NO_AUTORIZADO`, `404 NO_ENCONTRADO`, `409 CONFLICTO` si la invitación ya fue utilizada o si corresponde a una cuenta cuyo alta se completó y que después fue desactivada administrativamente. En este último caso no se emite un token nuevo y se indica al Administrador autorizado que corresponde §6.1. Se conserva el reenvío para altas incompletas que cumplan las precondiciones.
 
 ---
 
@@ -357,7 +357,7 @@ Validación previa del token, público. Paso 2 de `UF-AUTH-03`.
 }
 ```
 
-Se devuelve el correo destino porque quien posee el token ya lo recibió en ese buzón.
+Se devuelve el correo destino porque quien posee el token ya lo recibió en ese buzón. Esta consulta valida la vigencia del token; no garantiza que se cumplan las condiciones de activación de la cuenta, que se comprueban en §4.4.
 
 **Errores:** `410 TOKEN_NO_VIGENTE` cuando está vencida, utilizada o revocada (`SEC-INV-02`).
 
@@ -365,7 +365,7 @@ Se devuelve el correo destino porque quien posee el token ya lo recibió en ese 
 
 ### 4.4 `POST /api/auth/invitaciones/{token}/activacion` — limitado
 
-Activación de la cuenta invitada. Flujo `UF-AUTH-03`.
+Activación de la cuenta invitada. Flujo `UF-AUTH-03`. Además de un token válido y de las condiciones de identidad existentes, exige que la cuenta no corresponda a un alta completada seguida de desactivación administrativa (`RN-AUTH-ID-10`).
 
 ```json
 { "contrasena": "una frase larga de paso" }
@@ -385,11 +385,11 @@ Activación de la cuenta invitada. Flujo `UF-AUTH-03`.
 }
 ```
 
-La cuenta se crea o activa con el tipo e identidad definidos en la invitación almacenada, respetando la exclusividad de identidad (`RN-AUTH-ID-03`), y el token queda marcado como utilizado (`SEC-TOK-05`).
+Solo si se cumplen las precondiciones, la cuenta se crea o activa con el tipo e identidad definidos en la invitación almacenada, respetando la exclusividad de identidad (`RN-AUTH-ID-03`), y el token queda marcado como utilizado (`SEC-TOK-05`). Una cuenta cuyo alta se completó y que después fue desactivada administrativamente se rechaza sin reactivarla ni establecer cookies de sesión; su reactivación corresponde exclusivamente a §6.1.
 
-La activación deja la sesión iniciada, sin exigir un inicio de sesión posterior: quien activa acaba de demostrar control del correo y de definir su contraseña. El cliente usa `actualizacion_inicial_pendiente` para decidir a dónde dirigir a la persona: `true` conduce al flujo obligatorio de `usuarios` (`UF-USR-02`), mientras que `null` corresponde a una cuenta `PERSONAL`, que no tiene actualización inicial y accede según sus permisos. La invitación no concede permisos: una cuenta `PERSONAL` recién creada sin asignaciones administrativas vigentes recibe `rol: "USUARIO"`; cualquier rol administrativo se deriva después de las asignaciones válidas que gestione Administration.
+La activación exitosa deja la sesión iniciada, sin exigir un inicio de sesión posterior: quien activa acaba de demostrar control del correo y de definir su contraseña. El cliente usa `actualizacion_inicial_pendiente` para decidir a dónde dirigir a la persona: `true` conduce al flujo obligatorio de `usuarios` (`UF-USR-02`), mientras que `null` corresponde a una cuenta `PERSONAL`, que no tiene actualización inicial y accede según sus permisos. La invitación no concede permisos: una cuenta `PERSONAL` recién creada sin asignaciones administrativas vigentes recibe `rol: "USUARIO"`; cualquier rol administrativo se deriva después de las asignaciones válidas que gestione Administration.
 
-**Errores:** `410 TOKEN_NO_VIGENTE`, `422 VALIDACION`, `429 DEMASIADOS_INTENTOS`.
+**Errores:** `410 TOKEN_NO_VIGENTE`, `409 CONFLICTO` si la cuenta completó el alta y luego fue desactivada administrativamente, `422 VALIDACION`, `429 DEMASIADOS_INTENTOS`. Para ese conflicto se utiliza la envolvente común con el mensaje genérico «No se puede completar la activación.» y sin detalles sobre la cuenta. El estado incompatible de la cuenta no se presenta como `410 TOKEN_NO_VIGENTE` si el token sigue siendo válido.
 
 ---
 
@@ -397,13 +397,15 @@ La activación deja la sesión iniciada, sin exigir un inicio de sesión posteri
 
 ### 5.1 `PUT /api/auth/cuentas/actual/contrasena`
 
-Cambio de contraseña autenticado. Flujo `UF-AUTH-11`. Operación sensible (`SEC-REAUTH-02`).
+Cambio de contraseña autenticado. Flujo `UF-AUTH-11`. Operación sensible (`SEC-REAUTH-02`). Se comprueba la ventana de autenticación reciente existente: si está satisfecha, no se solicita reautenticación adicional; en caso contrario se responde `401 REAUTENTICACION_REQUERIDA` y debe completarse §3.9 antes de continuar con el cambio (`UF-AUTH-09`, `SEC-REAUTH-01`). El cuerpo siguiente contiene la contraseña nueva; la contraseña actual se presenta únicamente en §3.9 cuando se requiere reautenticación.
 
 ```json
 { "contrasena": "otra frase larga de paso" }
 ```
 
-**`204 No Content`** — revoca las sesiones activas según la política aplicable (`SEC-SES-10`) y `notificaciones` informa del cambio (`SEC-REC-04`).
+**`204 No Content`** — revoca todas las sesiones activas de la cuenta, incluida la sesión actual, y no crea automáticamente una sesión nueva (`SEC-SES-10`). `notificaciones` informa del cambio (`SEC-REC-04`).
+
+La respuesta elimina las cookies existentes `rp_access`, `rp_refresh` y `rp_csrf` mediante su expiración con los mismos ámbitos de cookie; no entrega credenciales de una nueva sesión ni añade cuerpo de respuesta. Cualquier cookie anterior que el cliente conserve sigue siendo inválida para la sesión revocada. El siguiente paso es obtener el CSRF mediante §3.0 e iniciar sesión nuevamente mediante §3.2 con la nueva contraseña. La renovación de §3.3 no puede recuperar una sesión revocada.
 
 **Errores:** `401 REAUTENTICACION_REQUERIDA` cuando no hay autenticación reciente, `401 NO_AUTENTICADO`, `422 VALIDACION`.
 
@@ -431,7 +433,7 @@ Desactivación o reactivación. Flujo `UF-AUTH-12`.
 }
 ```
 
-Desactivar marca la cuenta inactiva sin eliminar historial (`RN-AUTH-ID-05`, `RN-CUE-04`) y revoca sus sesiones activas (`SEC-SES-10`). Reactivar conserva el identificador y las relaciones previas, sin crear una identidad nueva (`RN-HAB-04`).
+Desactivar marca la cuenta inactiva sin eliminar historial (`RN-AUTH-ID-05`, `RN-CUE-04`) y revoca sus sesiones activas (`SEC-SES-10`). Reactivar conserva el identificador y las relaciones previas, sin crear una identidad nueva (`RN-HAB-04`). Este endpoint es la vía exclusiva para reactivar una cuenta cuyo alta se completó y que después fue desactivada administrativamente (`UF-AUTH-12`, `RN-AUTH-ID-10`); la emisión, el reenvío y la activación de invitaciones no la sustituyen.
 
 **Errores:** `403 NO_AUTORIZADO`, `404 NO_ENCONTRADO`, `409 CONFLICTO` cuando la operación dejaría al sistema sin ninguna cuenta con permisos de administrador.
 
@@ -499,6 +501,8 @@ La identidad proviene siempre de la sesión, nunca de identificadores enviados p
 
 La comprobación de que un recurso concreto pertenece al actor —una reserva, un perfil, un archivo— corresponde al módulo propietario del recurso, que la ejecuta además del permiso general (`SEC-AUTZ-06`). `auth` no conoce la propiedad de entidades ajenas.
 
+Cada operación evalúa el permiso requerido, su asignación vigente y el alcance de esa asignación. Una asignación global permite ejecutar únicamente ese permiso globalmente. Una asignación por unidad exige coincidencia entre la unidad asignada, la unidad vigente del cargo de la identidad de personal y la unidad del recurso; conserva esa restricción aunque la cuenta tenga rol Administrador por otro permiso global. El rol no concede permisos por sí mismo (`RN-AUTH-ROL-03`, `RN-AUTH-ROL-07`, `SEC-AUTZ-04`).
+
 Ante imposibilidad de comprobar el permiso requerido, la decisión es denegar (`SEC-AUTZ-02`).
 
 ---
@@ -531,7 +535,7 @@ Todo lo que este contrato expone tiene ya respaldo definido en [data-model.md](.
 | Recuperación de contraseña (§3.6–§3.8) | `auth.tokens_recuperacion` |
 | Permisos y ámbito (§3.4, §7) | `auth.permisos` y `auth.cuenta_permisos` |
 
-`rol` no se almacena. Se deriva en cada operación considerando tipo y estado de cuenta, identidad y estado de personal, cargo, unidad organizacional vigente y permisos efectivos: `ADMINISTRADOR` requiere cuenta `PERSONAL` activa y al menos una asignación global; `TECNICO` requiere cuenta `PERSONAL` activa y permisos asignados a la única unidad asociada a su cargo vigente; una cuenta `USUARIO` nunca adquiere rol administrativo. `unidades_autorizadas` no se calcula como la unión ciega de las unidades asignadas: para `TECNICO` contiene únicamente la unidad vigente de su registro de personal; para `ADMINISTRADOR` es `"GLOBAL"`. El servidor vuelve a validar permiso, identidad y ámbito en cada operación, y nunca copia esta información al token (`RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`, `RN-PER-02` de administration, `SEC-JWT-04`).
+`rol` no se almacena. Se deriva en cada operación considerando tipo y estado de cuenta, identidad y estado de personal, cargo, unidad organizacional vigente y permisos efectivos: `ADMINISTRADOR` requiere cuenta `PERSONAL` activa y al menos una asignación global; `TECNICO` requiere cuenta `PERSONAL` activa y permisos asignados a la única unidad asociada a su cargo vigente; una cuenta `USUARIO` nunca adquiere rol administrativo. `unidades_autorizadas` no se calcula como la unión ciega de las unidades asignadas: para `TECNICO` contiene únicamente la unidad vigente de su registro de personal; para `ADMINISTRADOR` es `"GLOBAL"`, como resumen de la existencia de una asignación global y no como alcance de todos sus permisos. Cada permiso conserva el alcance de su asignación conforme a §7. El servidor vuelve a validar permiso, identidad y ámbito en cada operación, y nunca copia esta información al token (`RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`, `RN-PER-02` de administration, `SEC-JWT-04`).
 
 Valores por defecto, configurables conforme a `SEC-SES-09`:
 

@@ -224,13 +224,15 @@ En lista de espera, cambiar efectivamente la descripción tras una evaluación l
 
 ### 3.1 `GET /api/reservas`
 
-Listado paginado conforme a las [convenciones](../README.md). Sustenta la consulta de `UF-RES-19` y la revisión previa a `UF-RES-07`. El ámbito lo determina el rol: un Usuario ve solo las suyas, un Técnico las de su unidad y un Administrador las de cualquier unidad.
+Listado paginado conforme a las [convenciones](../README.md). Sustenta la consulta de `UF-RES-19` y la revisión previa a `UF-RES-07`. La consulta de las reservas propias se mantiene sin permiso administrativo. Para consultar reservas ajenas se exige `reservas.administrar` y se aplica el alcance de su asignación vigente: una asignación global permite consultar cualquier unidad; una asignación por unidad solo permite consultar reservas de esa unidad, conforme a `RN-AUTH-ROL-07` de auth. El rol Administrador no concede ese permiso ni amplía una asignación por unidad.
 
 Filtros: `estado`, `tipo_reserva`, `id_unidad`, `desde`, `hasta`, `espacio_id`, `recurso_id`. Orden admitido: `created_at`, `fecha`, `estado`.
 
 **`200 OK`** con una fila resumida por reserva.
 
 ### 3.2 `GET /api/reservas/{id}`
+
+La consulta de reservas propias no exige permiso administrativo; el acceso a reservas ajenas aplica el permiso y alcance definidos en §3.1.
 
 Detalle completo: cabecera, detalle del tipo, recursos asignados con su rol y estado, contexto con sus snapshots, acompañantes, campos adicionales, propuesta vigente si existe e historial de estados. Para `LISTA_ESPERA`, incluye evaluación de viabilidad, recepción del material, horas y formulario complementario con ambas partes y su revisión cuando exista; los archivos se consultan mediante §2.6 y §2.7.
 

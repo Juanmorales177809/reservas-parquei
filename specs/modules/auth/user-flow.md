@@ -8,7 +8,7 @@ Roles funcionales usados en este documento (`RN-AUTH-ROL-01`):
 
 - **Usuario:** no tiene permisos administrativos efectivos. Normalmente es una cuenta de tipo `USUARIO` vinculada a `usuarios.usuarios`; una cuenta `PERSONAL` sin permisos administrativos efectivos también usa este rol funcional para las operaciones sin privilegios administrativos.
 - **Técnico:** cuenta activa de tipo `PERSONAL`, vinculada a personal activo, con permisos vigentes solo para la unidad asociada a su cargo vigente.
-- **Administrador:** cuenta activa de tipo `PERSONAL`, vinculada a personal activo, con al menos una asignación de permiso global.
+- **Administrador:** cuenta activa de tipo `PERSONAL`, vinculada a personal activo, con al menos una asignación de permiso global. El rol no concede permisos por sí mismo: cada permiso conserva el alcance de su asignación, global o por unidad.
 
 El tipo de identidad de la cuenta y su rol funcional son datos distintos; solo una cuenta `PERSONAL` puede derivar un rol administrativo (`RN-AUTH-ROL-02` a `RN-AUTH-ROL-07`).
 
@@ -58,7 +58,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 
 1. El Administrador accede a la administración de cuentas.
 2. Selecciona la opción de invitar y registra el correo destino, el tipo de cuenta (`USUARIO` o `PERSONAL`) y, para `PERSONAL`, la unidad asociada al cargo vigente.
-3. El sistema valida que el correo no corresponda a una cuenta activa existente (`RN-AUTH-ID-02`).
+3. El sistema valida que el correo no corresponda a una cuenta activa existente (`RN-AUTH-ID-02`) ni a una cuenta cuyo alta se completó y que posteriormente fue desactivada administrativamente (`RN-AUTH-ID-10`).
 4. Para `USUARIO`, el sistema resuelve la identidad previamente creada en Usuarios mediante su correo único. Para `PERSONAL`, resuelve la ficha activa de `personal.personal` mediante coincidencia exacta del correo, comprueba que esté completa y que la unidad del cargo coincida con `id_unidad`; el actor debe estar autorizado para esa unidad (`RN-AUTH-ID-07`).
 5. El sistema genera un token de invitación impredecible, de vigencia limitada y de un solo uso (`SEC-INV-01`, `SEC-TOK-04`).
 6. El sistema almacena la invitación ligada al `id_usuario` o `id_persona` resuelto, según corresponda; no crea ni duplica la identidad. El token no concede permisos superiores a los definidos por la invitación almacenada (`SEC-INV-04`).
@@ -67,6 +67,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 
 **Flujos alternos:**
 
+- Si la cuenta completó el alta y luego fue desactivada administrativamente, no se emite una invitación para reactivarla; corresponde exclusivamente `UF-AUTH-12` (`RN-AUTH-ID-10`).
 - **Reenviar invitación no completada:** el Administrador solicita una nueva emisión; el sistema genera un token nuevo e invalida el anterior (`SEC-INV-03`).
 - Si el Administrador no está autorizado para el tipo de cuenta o ámbito solicitado, la operación se deniega (`SEC-AUTZ-02`, `SEC-AUTZ-04`).
 - Los permisos asociados a la cuenta invitada se gestionan en `administration`; la invitación por sí sola no los concede.
@@ -88,7 +89,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 4. La persona define su contraseña.
 5. El sistema valida la longitud admitida y deriva el hash correspondiente (`SEC-PWD-02`, `SEC-PWD-07`).
 6. El sistema vuelve a validar que la identidad definida en la invitación exista, siga activa y conserve el correo asociado; para `PERSONAL`, valida además la ficha vinculada por `id_persona` (`RN-AUTH-ID-05`, `RN-AUTH-ID-07`).
-7. El sistema crea o activa la cuenta con el tipo y la identidad definidos en la invitación, respetando la exclusividad de identidad (`RN-AUTH-ID-03`).
+7. Antes de crear o activar la cuenta, el sistema comprueba que no se trate de un alta completada seguida de desactivación administrativa; en ese caso rechaza la activación y no inicia sesión (`RN-AUTH-ID-10`). Para las altas admitidas, crea o activa la cuenta con el tipo y la identidad definidos en la invitación, respetando la exclusividad de identidad (`RN-AUTH-ID-03`).
 8. El sistema marca el token como utilizado; un intento posterior con el mismo token se rechaza (`SEC-TOK-05`).
 9. El sistema registra el evento de activación (`SEC-AUD-02`).
 10. La activación deja la sesión iniciada: el sistema crea la sesión y entrega sus cookies igual que en `UF-AUTH-04`, sin pedir de nuevo la contraseña recién definida. El identificador de sesión se genera regenerado conforme a `SEC-SES-13`.
@@ -98,6 +99,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 
 - Si la invitación está vencida, ya fue utilizada o fue revocada, el proceso de alta no se completa y el sistema orienta a solicitar una nueva invitación (`SEC-INV-02`).
 - Si la ficha de `PERSONAL` fue desactivada, eliminada o su correo ya no coincide con el de la invitación, la activación se rechaza; debe corregirse la ficha y emitirse una invitación válida.
+- Si la cuenta completó el alta y luego fue desactivada administrativamente, la invitación no la reactiva: se rechaza el proceso sin iniciar sesión. La reactivación corresponde exclusivamente a `UF-AUTH-12` (`RN-AUTH-ID-10`), sin revelar innecesariamente datos de la cuenta en la respuesta pública (`SEC-ABU-02`).
 - Si la persona abandona el proceso, la cuenta no queda utilizable hasta completar la activación.
 
 ---
@@ -236,10 +238,10 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujo principal:**
 
 1. La persona solicita una operación sensible.
-2. El sistema determina si existe una autenticación suficientemente reciente (`SEC-REAUTH-01`).
+2. El sistema determina si la autenticación reciente satisface la ventana definida por la configuración; si la satisface, permite continuar sin reautenticación adicional (`SEC-REAUTH-01`).
 3. Si no la hay, el sistema solicita reautenticación explícita.
-4. La persona presenta nuevamente un factor de autenticación aceptado; la existencia de una sesión activa antigua no sustituye esta validación (`SEC-REAUTH-03`).
-5. El sistema valida el factor presentado.
+4. La persona presenta únicamente la contraseña actual de la cuenta identificada por la sesión. No se solicita nuevamente correo ni se incorporan OTP, MFA u otros factores; una sesión activa antigua no sustituye esta validación (`SEC-REAUTH-03`).
+5. El sistema valida la contraseña actual contra el hash de la cuenta identificada por la sesión (`SEC-PWD-04`, `SEC-AUTZ-03`).
 6. Cuando la operación implique elevación de privilegios o un cambio sensible de seguridad, el sistema regenera el identificador de sesión (`SEC-REAUTH-04`, `SEC-SES-13`).
 7. El sistema permite continuar con la operación solicitada.
 8. El sistema registra la reautenticación (`SEC-AUD-02`).
@@ -264,7 +266,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 2. El sistema determina la identidad autenticada a partir de la sesión, no de datos enviados por el cliente (`SEC-AUTZ-03`).
 3. El sistema verifica que la cuenta y la identidad funcional estén activas (`RN-AUTH-ID-01`, `RN-AUTH-ID-05`).
 4. El sistema evalúa el permiso requerido con información vigente, sin derivarlo del nombre del cargo ni de valores enviados por el cliente (`RN-AUTH-ROL-05`, `RN-PER-02` de administration).
-5. El sistema confirma que cualquier rol administrativo corresponda a una cuenta `PERSONAL` y a una identidad de personal activa. Para `TECNICO`, obtiene la unidad de la relación vigente personal-cargo-unidad y solo acepta permisos asignados a esa misma unidad; para `ADMINISTRADOR`, exige una asignación global vigente (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-03`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
+5. El sistema confirma que cualquier rol administrativo corresponda a una cuenta `PERSONAL` y a una identidad de personal activa. El rol `ADMINISTRADOR` requiere al menos una asignación global vigente, pero no concede permisos por sí mismo. Para ejecutar la operación, una asignación global del permiso requerido permite actuar globalmente; una asignación por unidad solo permite actuar en esa unidad y debe coincidir con la unidad vigente de la relación personal-cargo-unidad y la del recurso. Esta restricción se mantiene aunque la cuenta sea `ADMINISTRADOR` por otro permiso global (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-03`, `RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`).
 6. Cuando la operación recae sobre un recurso identificado por el cliente —una reserva, un perfil, un archivo—, el sistema verifica además que dicho recurso pertenezca o esté explícitamente permitido para la identidad autenticada (`SEC-AUTZ-06`).
 7. Si la cuenta es `USUARIO`, el sistema consulta la condición vigente de actualización inicial en Usuarios. Mientras esté pendiente, solo autoriza las operaciones necesarias para completar el perfil y sus vinculaciones, mantener la sesión para ese fin o cerrarla, conforme a RN-USR-08 de Usuarios. Las demás se rechazan aunque el cliente omita la redirección.
 8. Si el permiso, el ámbito y la condición de perfil lo permiten, `auth` entrega al módulo propietario la identidad y la autorización, y este aplica sus propias reglas funcionales.
@@ -273,7 +275,7 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujos alternos:**
 
 - Si el permiso requerido no puede comprobarse de forma válida, el sistema deniega por defecto (`SEC-AUTZ-02`).
-- Si la cuenta no es `PERSONAL`, su identidad de personal está inactiva, el permiso corresponde a otra unidad o el recurso queda fuera de la unidad vigente del Técnico, se deniega aunque exista una asignación (`RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`, `RN-PER-06` de administration, `SEC-AUTZ-04`).
+- Si la cuenta no es `PERSONAL`, su identidad de personal está inactiva, la asignación por unidad no coincide con la unidad vigente del personal o con la unidad del recurso, se deniega aunque exista una asignación (`RN-AUTH-ROL-06`, `RN-AUTH-ROL-07`, `RN-PER-06` de administration, `SEC-AUTZ-04`).
 - Si el recurso solicitado no pertenece a la identidad autenticada ni le está explícitamente permitido, se deniega aunque posea el permiso general (`SEC-AUTZ-06`).
 - Las operaciones que modifican estado no se ejecutan mediante métodos destinados únicamente a lectura y requieren protección contra solicitudes falsificadas entre sitios (`SEC-CSRF-01`, `SEC-CSRF-03`).
 
@@ -289,12 +291,13 @@ En todos los flujos, la autenticación y la autorización se resuelven en el ser
 **Flujo principal:**
 
 1. La persona accede a la opción de cambio de contraseña.
-2. El sistema exige reautenticación por tratarse de una operación sensible (`UF-AUTH-09`, `SEC-REAUTH-02`).
+2. El sistema aplica `UF-AUTH-09`: si la autenticación reciente satisface la ventana definida por la configuración, no solicita reautenticación adicional; si no la satisface, exige reautenticación explícita antes de continuar con la nueva contraseña (`SEC-REAUTH-01`, `SEC-REAUTH-02`).
 3. La persona define la nueva contraseña.
 4. El sistema valida la longitud admitida y deriva el nuevo hash (`SEC-PWD-02`, `SEC-PWD-07`).
-5. El sistema revoca las sesiones activas de la cuenta según la política aplicable (`SEC-SES-10`).
+5. El sistema revoca todas las sesiones activas de la cuenta, incluida la actual, y no crea automáticamente una nueva sesión (`SEC-SES-10`).
 6. El módulo `notificaciones` informa a la cuenta afectada del cambio (`SEC-REC-04`).
 7. El sistema registra el evento (`SEC-AUD-02`).
+8. La persona debe iniciar sesión nuevamente con la nueva contraseña (`UF-AUTH-04`).
 
 **Flujos alternos:**
 

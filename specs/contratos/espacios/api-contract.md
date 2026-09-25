@@ -11,7 +11,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/espacios` |
-| Permiso administrativo | `espacios.administrar` sobre la unidad; el Administrador lo tiene con alcance global (`RN-ESP-03` de espacios) |
+| Permiso administrativo | `espacios.administrar`, con el alcance de su asignación vigente: global solo si esa asignación es global; por unidad, limitado a dicha unidad aunque el actor tenga rol Administrador por otro permiso (`RN-AUTH-ROL-03`, `RN-AUTH-ROL-07` de auth) |
 | Identificadores | `id` entero del espacio; `campo_id` y `opcion_id` enteros de sus campos adicionales |
 
 Códigos de error propios, adicionales al catálogo común:

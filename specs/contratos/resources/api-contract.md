@@ -11,7 +11,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 | Aspecto | Valor |
 |---|---|
 | Base path | `/api/recursos` para el catálogo; `/api/laboratorios` para la configuración de unidad |
-| Permiso administrativo | `recursos.administrar` sobre la unidad para mobiliarios y otros recursos; equipos existentes: `recursos.editar_equipos` sobre la unidad para el Técnico y `recursos.administrar_equipos` global para el Administrador; crear equipos requiere `recursos.administrar_equipos` global; reasignar la unidad de un recurso requiere `recursos.reasignar_unidad` global; la configuración del laboratorio requiere `laboratorios.configurar` sobre la unidad |
+| Permiso administrativo | `recursos.administrar` sobre la unidad para mobiliarios y otros recursos; equipos existentes: `recursos.editar_equipos` sobre la unidad o `recursos.administrar_equipos` global, según la asignación vigente del permiso requerido, no el nombre del rol; crear equipos requiere `recursos.administrar_equipos` global; reasignar la unidad de un recurso requiere `recursos.reasignar_unidad` global; la configuración del laboratorio requiere `laboratorios.configurar` sobre la unidad |
 | Identificadores | `id` entero del recurso, compartido con su especialización; `id_unidad` entero de la unidad organizacional |
 
 Códigos de error propios, adicionales al catálogo común:
@@ -24,7 +24,7 @@ Códigos de error propios, adicionales al catálogo común:
 
 El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo: equipos, mobiliarios y otros. La creación del recurso y su especialización es **atómica**: o se escriben ambas o ninguna. No se ofrece eliminación física de equipos; para impedir su uso futuro se deshabilitan, conservando su historial.
 
-**El Técnico no crea ni elimina físicamente equipos.** Puede editar equipos existentes de su unidad y cambiar tanto su habilitación (`recursos.recursos.habilitado`) como su estado operativo (`recursos.equipos.estado`). El Administrador gestiona equipos con alcance global.
+**El Técnico no crea ni elimina físicamente equipos.** Puede editar equipos existentes de su unidad y cambiar tanto su habilitación (`recursos.recursos.habilitado`) como su estado operativo (`recursos.equipos.estado`). La gestión global de equipos requiere una asignación global de `recursos.administrar_equipos`; el rol Administrador no la concede por sí mismo. Una cuenta con rol Administrador por otro permiso global puede ejercer `recursos.editar_equipos` únicamente dentro de la unidad de su asignación, coincidente con la de su cargo vigente (`RN-AUTH-ROL-03`, `RN-AUTH-ROL-07` de auth). Ese permiso no permite crear ni eliminar equipos, administrarlos globalmente o reasignar su unidad; se mantienen las restricciones y los permisos específicos de cada operación.
 
 ---
 
@@ -67,11 +67,11 @@ Detalle con la especialización correspondiente al tipo. Flujo `UF-REC-05`. Para
 
 ### 2.4 `PATCH /api/recursos/{id}`
 
-Actualiza la especialización. Flujos `UF-REC-06`, `UF-REC-07` y `UF-REC-12`. Los campos admitidos dependen del tipo. Para equipos, el Técnico requiere `recursos.editar_equipos` en la unidad del equipo y puede actualizar los datos del equipo y `recursos.equipos.estado`; el Administrador requiere `recursos.administrar_equipos` global. Los cambios de equipo no admiten crear ni eliminar el registro ni modificar su unidad responsable. El campo común `recursos.recursos.habilitado` se modifica mediante el endpoint `/estado`.
+Actualiza la especialización. Flujos `UF-REC-06`, `UF-REC-07` y `UF-REC-12`. Los campos admitidos dependen del tipo. Para equipos, se requiere `recursos.editar_equipos` con alcance sobre la unidad del equipo o `recursos.administrar_equipos` global. La primera vía permite actualizar los datos del equipo y `recursos.equipos.estado` dentro de su unidad también cuando la cuenta sea Administrador por otro permiso global; este rol no amplía el alcance de edición. Los cambios de equipo no admiten crear ni eliminar el registro ni modificar su unidad responsable. El campo común `recursos.recursos.habilitado` se modifica mediante el endpoint `/estado`.
 
 ### 2.5 `PATCH /api/recursos/{id}/estado`
 
-Habilita o deshabilita el campo común `recursos.recursos.habilitado`. Flujos `UF-REC-08` y `UF-REC-09`. Para equipos se exige `recursos.editar_equipos` en la unidad del equipo al Técnico o `recursos.administrar_equipos` global al Administrador; para otros recursos se exige el permiso correspondiente a su tipo. Este endpoint no modifica `recursos.equipos.estado`, que se actualiza con `PATCH /api/recursos/{id}`.
+Habilita o deshabilita el campo común `recursos.recursos.habilitado`. Flujos `UF-REC-08` y `UF-REC-09`. Para equipos se exige `recursos.editar_equipos` con alcance sobre la unidad del equipo o `recursos.administrar_equipos` global, también para cuentas con permisos de distintos alcances según §1; para otros recursos se exige el permiso correspondiente a su tipo. Este endpoint no modifica `recursos.equipos.estado`, que se actualiza con `PATCH /api/recursos/{id}`.
 
 ```json
 { "habilitado": false, "confirmado": true }
@@ -107,7 +107,7 @@ Cambia la unidad responsable. Flujo `UF-REC-10`. Permiso: `recursos.reasignar_un
 
 La unidad del recurso y la de su especialización deben quedar coincidentes. Las reservas históricas conservan la referencia al recurso con independencia del cambio.
 
-**Errores:** `403 NO_AUTORIZADO` si el actor no tiene alcance global, `409 UNIDAD_INCOMPATIBLE`.
+**Errores:** `403 NO_AUTORIZADO` si el actor no tiene una asignación global de `recursos.reasignar_unidad`, `409 UNIDAD_INCOMPATIBLE`.
 
 ---
 
