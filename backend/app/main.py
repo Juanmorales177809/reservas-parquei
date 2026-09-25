@@ -9,6 +9,7 @@ from app.modules.administration.router_permisos import router as permisos_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router_cuentas import router as auth_cuentas_router
 from app.modules.auth.router_invitaciones import router as auth_invitaciones_router
+from app.modules.resources.router import router_laboratorios, router_recursos
 from app.modules.usuarios.router import router as perfil_router
 from app.modules.usuarios.router_admin import router_personal, router_usuarios
 
@@ -24,6 +25,8 @@ app.include_router(router_unidades)
 app.include_router(router_cargos)
 app.include_router(permisos_router)
 app.include_router(auditoria_router)
+app.include_router(router_recursos)
+app.include_router(router_laboratorios)
 
 
 @app.get("/health")

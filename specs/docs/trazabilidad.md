@@ -127,7 +127,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-ACO` | 7 | — | — | 7/7 |
 | `RN-APR` | 8 | 2/8 | — | 4/8 |
 | `RN-CAL` ⚠ | 5 | 2/5 | 2/5 | — |
-| `RN-CAN` | 8 | 5/8 | 1/8 | 6/8 |
+| `RN-CAN` | 8 | 5/8 | 3/8 | 6/8 |
 | `RN-CTX` ⚠ | 9 | 3/9 | — | 2/9 |
 | `RN-DIS` | 11 | 3/11 | 3/11 | 8/11 |
 | `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 5/5 |
@@ -155,7 +155,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-LAB` | 8 | 2/8 | 1/8 | 3/8 |
 | `RN-MOB` | 5 | — | — | 5/5 |
 | `RN-OTR` | 5 | — | — | 5/5 |
-| `RN-REC` ⚠ | 11 | 2/11 | familia | — |
+| `RN-REC` ⚠ | 11 | 2/11 | 1/11 | — |
 | `RN-ROL` | 3 | — | — | 3/3 |
 
 ### usuarios

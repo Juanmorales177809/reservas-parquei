@@ -137,7 +137,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 
 ## 4. Catálogos e inventario
 
-### API-09 — Recursos y configuración del laboratorio
+### API-09 — Recursos y configuración del laboratorio · **cerrada**
 
 - **Objetivo:** `/api/recursos` y `/api/laboratorios`.
 - **Afectados:** módulo de resources del backend.
@@ -145,6 +145,7 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Aceptación:** un Técnico puede editar un equipo de su unidad pero no crearlo; deshabilitar un recurso `PRINCIPAL` con reservas futuras sin `confirmado` responde `409 CONFLICTO` con el número en `detalles`. Cambiar el horario de la unidad conserva la versión anterior en el histórico.
 - **Contrato:** [resources](../../contratos/resources/api-contract.md).
 - **RN:** `RN-REC`, `RN-EQP-09`, `RN-DES-06`, `RN-LAB-08`.
+- **Resultado:** modelos `db/models/recursos.py` (`Recursos`, `Equipos`, `Mobiliarios`, `OtrosRecursos`, `CategoriasEquipos`) + módulo `modules/resources/` completo (`schemas`, `repository`, `service`, `router`), 11 endpoints en `router_recursos` (`/api/recursos`) y `router_laboratorios` (`/api/laboratorios`). El efecto mínimo de `RN-CAN-04`/`RN-CAN-05` (cancelar/retirar reservas al deshabilitar un recurso `PRINCIPAL`/`ADICIONAL`) se implementa aquí porque el servicio de escritura de reservations (`API-13`/`API-14`) todavía no existe; se documenta en `service.py` para moverse allí cuando exista. De paso corrige un bug real en `core/audit.py`: `json.dumps` no toleraba tipos `date`/`time` (afectaba a cualquier módulo que auditara ese tipo de dato), y añade la validación `409 UNIDAD_INCOMPATIBLE` de §2.7 (recurso asociado a un espacio de otra unidad; inerte hoy porque `espacios`/`API-10` no existe todavía, correcta para cuando empiece a escribir). Verificado por HTTP real contra el contenedor: creación de mobiliario/equipo con los permisos correctos y su rechazo cruzado (`403`), edición con lista blanca de campos por tipo, listado con filtro `reservable` excluyendo equipos acreditados (`RN-REC-11`), configuración de laboratorio creada por primera vez con versión en histórico (`RN-LAB-08`), impacto y deshabilitación con confirmación (conteo, `409` sin confirmar, `200` con cancelación real de una reserva `PRINCIPAL` verificada en BD), reasignación de unidad por el Administrador global y su rechazo para el Técnico, y el nuevo `409 UNIDAD_INCOMPATIBLE` con una asociación a espacio real sembrada para la prueba. Todos los datos de prueba (unidades, cuentas, recurso, reserva, espacio) se limpiaron después.
 
 ### API-10 — Espacios, recursos asociados y campos adicionales
 

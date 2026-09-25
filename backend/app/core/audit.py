@@ -1,9 +1,9 @@
 """Auditoría administrativa (AUTH-C1, contrato de auth §8; SEC-AUD-01/03).
 
-Escribe en `administration.auditoria` con SQL directo: esa tabla la creó
-`DB-03`, pero el schema `administration` no se modela todavía (no es su
-alcance; ver `BK-08`). Una sola sentencia no justifica adelantar ese
-alcance.
+Escribe en `administration.auditoria` con SQL directo en vez de por el
+modelo del schema (que `API-08` añadió después, solo de lectura): esta
+función ya existía como la única vía de escritura y no tenía motivo para
+cambiar de mecanismo.
 
 Corre dentro de la misma transacción que la operación auditada a
 propósito: si el registro no puede escribirse, la operación tampoco debe
@@ -44,8 +44,8 @@ def registrar(
             "entidad": entidad,
             "entidad_id": str(entidad_id),
             "accion": accion,
-            "antes": json.dumps(datos_anteriores) if datos_anteriores is not None else None,
-            "despues": json.dumps(datos_nuevos) if datos_nuevos is not None else None,
+            "antes": json.dumps(datos_anteriores, default=str) if datos_anteriores is not None else None,
+            "despues": json.dumps(datos_nuevos, default=str) if datos_nuevos is not None else None,
             "motivo": motivo,
         },
     )
