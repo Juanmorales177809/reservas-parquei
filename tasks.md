@@ -136,6 +136,7 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 | 3 | `FE-07` | Las nueve pantallas de auth, cuya especificación ya está cerrada — queda como referencia de estilo del resto, igual que auth lo fue para el backend |
 | 4 | `FE-08` a `FE-19` | Especificación e implementación, módulo por módulo: usuarios, administration, resources, espacios, researchs y reservations, en ese orden |
 | 5 | `FE-20` a `FE-23` | Especificación e implementación de notifications y reports |
+| 6 | `FE-24` a `FE-31` | Brechas frente a las reglas: navegación, reserva conforme a reglas, lista de espera, sesión, gestión de reservas, formularios completos y E2E |
 
 Dentro de cada módulo de los órdenes 4 y 5, la tarea de especificación de pantalla cierra antes que su implementación — la misma regla que impide cerrar una `API-XX` antes que su `DB-XX`.
 
@@ -171,7 +172,7 @@ El corte es limpio: **A es la base de datos, B es el proyecto.** Ningún archivo
 
 El carril B construye el proyecto nuevo y su núcleo mientras el A prepara lo que falta en la base. Convergen en `BK-08`, que solo puede modelar lo que ya existe, y vuelven a separarse dentro de auth.
 
-**Este reparto no cubre la Fase 6.** `FE-01` a `FE-23` no se dimensionaron para la pareja A/B de las fases 0–5 — se abrieron después de que ambos carriles convergieran, con el backend ya completo. El [plan de frontend](specs/docs/tasks/frontend.md) no reparte sus 23 tareas a dos carriles por archivo; cada módulo reparte su propia especificación (`FE-08`, `FE-10`, `FE-12`, `FE-14`, `FE-16`, `FE-18`, `FE-20`, `FE-22`) e implementación (`FE-09`, `FE-11`, `FE-13`, `FE-15`, `FE-17`, `FE-19`, `FE-21`, `FE-23`) como una secuencia, no como dos personas en paralelo — repartirlo así queda para cuando se abra la Fase 6.
+**Este reparto no cubre la Fase 6.** `FE-01` a `FE-23` no se dimensionaron para la pareja A/B de las fases 0–5 — se abrieron después de que ambos carriles convergieran, con el backend ya completo. El [plan de frontend](specs/docs/tasks/frontend.md) no reparte sus 23 tareas a dos carriles por archivo; cada módulo reparte su propia especificación (`FE-08`, `FE-10`, `FE-12`, `FE-14`, `FE-16`, `FE-18`, `FE-20`, `FE-22`) e implementación (`FE-09`, `FE-11`, `FE-13`, `FE-15`, `FE-17`, `FE-19`, `FE-21`, `FE-23`) como una secuencia, no como dos personas en paralelo — repartirlo así queda para cuando se abra la Fase 6. Las brechas que se detectaron después (`FE-24` a `FE-31`, Fase 7 del [plan de frontend](specs/docs/tasks/frontend.md)) tampoco se reparten a dos carriles: van en secuencia, porque casi todas tocan `GestionReservaClient` y la página de nueva reserva.
 
 ---
 

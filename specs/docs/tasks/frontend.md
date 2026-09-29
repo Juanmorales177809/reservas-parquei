@@ -351,21 +351,126 @@ El módulo central y el más complejo: cinco tipos de reserva con estrategias di
 - **Aceptación:** igual criterio que FE-09.
 - **Resultado:** dos rutas bajo `(app)/notificaciones` (bandeja WF-NOT-01 y `preferencias` WF-NOT-02) sin gate de rol, Client Components con `useState` + `apiRequest` como FE-09. Andamiaje: `src/lib/notificaciones-api.ts` (5 endpoints §2–§3) + `notificaciones-types.ts` sin `next/headers`. La bandeja filtra por estado y tipo, marca con `POST .../lectura` y trata ajena e inexistente igual (`404` → mismo mensaje); las preferencias envían reemplazo completo y lo no listado rige por la general; los tipos vienen de `GET tipos-evento` y `404`/`422` tienen mensaje de corrección propio. Sin estado de envíos, que el contrato no expone. Verificado: `tsc --noEmit`, `build` (2 rutas), `lint` limpios; `npm test` — 47 en verde (6 nuevas dirigidas: marcar conserva el texto, ajena/inexistente indistinguible, ya leída sin acción, reemplazo de preferencias, tipo inexistente, tipo repetido).
 
-### FE-22 — Especificación de pantallas — reports
+### FE-22 — Especificación de pantallas — reports · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `reports`: ocupación, solicitudes, lista de espera y exportación.
 - **Afectados:** `specs/modules/reports/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`reports/user-flow.md`](../../modules/reports/user-flow.md) y su contrato, cerrados.
 - **Aceptación:** igual criterio que FE-08. Fija qué informes se muestran como gráfico (con Recharts, único cargador de gráficos fijado en `architecture.md` §3) y cuáles como tabla exportable, en vez de dejarlo a criterio de quien implemente.
+- **Resultado:** tres pantallas, una por informe (`SCR-REP-01` ocupación, `SCR-REP-02` solicitudes, `SCR-REP-03` horas de lista de espera); `UF-REP-02` (exportar) es una acción de cada una y no una pantalla, porque la precondición es tener el reporte a la vista. **Gráfico o tabla, decidido con evidencia:** ocupación lleva tabla más un gráfico de barras horizontales de una sola medida y un solo color (porcentaje en laboratorio, espacio y recurso; horas en proyecto y semillero, que no tienen porcentaje; una fila sin porcentaje no dibuja barra, nunca una en cero); solicitudes y lista de espera son solo tabla. La razón de solicitudes se comprobó con el script de la guía de visualización: los colores de los tokens fallan como paleta categórica de seis series (luminosidad del ámbar, croma del gris, contraste de turquesa y ámbar bajo 3:1), y `FE-23` prohíbe salirse de los tokens; el verde de marca sí pasa como serie única en claro y en oscuro. Sin filas de total: sumarían solo la página a la vista (`RN-VIS-02`). **Dos discrepancias entre contrato y servidor, resueltas en el contrato:** `dimension` en solicitudes solo admite `laboratorio` (el texto decía «la dimensión seleccionada») y su periodo es opcional. Verificado: `python tools/validar.py` en 0 fallas con los documentos enlazados desde `reports/overview.md`.
 
-### FE-23 — Implementación — reports
+### FE-23 — Implementación — reports · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** los informes de `reports` funcionando contra el backend real, con sus gráficos y su exportación.
 - **Afectados:** `frontend/app/(app)/reportes/**`.
 - **Dependencias:** FE-22, FE-06. Es la única tarea del plan que introduce una librería de visualización (Recharts); antes de codificar un gráfico, conviene revisar la guía de la skill `dataviz` de este entorno para mantener paleta y forma consistentes con el resto del sistema de diseño.
 - **Aceptación:** igual criterio que FE-09. Ningún gráfico usa un color fuera de la paleta de [`design-tokens.md`](../../ui/design-tokens.md).
+- **Resultado:** portada `/reportes` y tres pantallas (`/reportes/ocupacion`, `/solicitudes`, `/lista-espera`) sobre un solo `ReporteClient` guiado por el tipo de informe. Ocupación lleva tabla y gráfico Recharts de barras horizontales de una sola medida y un solo color (`--color-primary-1`); una fila sin porcentaje no dibuja barra y se enumera bajo el gráfico; solicitudes y lista de espera son solo tabla. Unidad, espacio, recurso, proyecto y semillero se eligen por nombre; el periodo propone el mes en curso y la consulta es explícita; exportar CSV/Excel usa los filtros de la **última consulta**, no los del formulario; el vacío, el `422` y el `403` se muestran en la misma pantalla. **Hallazgo cerrado de paso:** `GET /api/unidades` exige `unidades.administrar`, así que un Usuario o Técnico no podía ni elegir la unidad al reservar. Se añadió `GET /api/laboratorios` (contrato de resources §3.0, legible por cualquier cuenta) y `SelectorUnidad` recurre a él ante un `403`; el selector de proyecto y semillero de reportes usa las opciones de la propia cuenta cuando la lista administrativa le está vedada. Quien tiene alcance por unidad ve ofrecidas solo las suyas. Verificado: Vitest 112/112, `tsc` y lint limpios, backend 116/116 contra `reservas_test`, y `e2e/reportes.spec.ts` (8/8) con tabla, gráfico y descarga reales.
+
+---
+
+## Fase 7 — Brechas frente a las especificaciones
+
+Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `screens.md` y las reglas de negocio de sus módulos. Se detectó el 2026-09-29 al probar la aplicación en un navegador real (Playwright y Chrome) y cruzar cada pantalla con sus reglas. Cada tarea de esta fase cita las reglas que cierra por su identificador completo; ninguna toca una regla de otro módulo sin nombrarlo.
+
+### FE-24 — Navegación completa · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que los ocho destinos de `layout.md` lleven a una pantalla. Hoy `/investigacion`, `/usuarios`, `/administracion` y `/reportes` responden 404: solo existen sus subpáginas.
+- **Afectados:** `frontend/app/(app)/investigacion/page.tsx`, `usuarios/page.tsx`, `administracion/page.tsx`, `reportes/page.tsx`; `frontend/e2e/`.
+- **Dependencias:** FE-06.
+- **Aceptación:** con una sesión de `ADMINISTRADOR`, cada destino del menú responde 200 con un `h1` y enlaces a las subpantallas de su módulo que la sesión puede usar; `/reportes` muestra que el módulo se construye en FE-23 en vez de un 404. La prueba de humo recorre los ocho destinos del menú, no solo las subrutas.
+- **Resultado:** cuatro portadas de módulo (`/investigacion`, `/usuarios`, `/administracion`, `/reportes`) con enlaces a sus pantallas, y `IndiceModulo` como componente común. La cabecera suma «Mi perfil» (solo Usuario) y «Cambiar contraseña», que existían como pantallas sin ningún enlace que las alcanzara. `/reportes` es hoy la portada de los tres informes (FE-23). Verificado: `e2e/menu.spec.ts` recorre los enlaces reales del menú con administrador y usuario (8/8). **Contradicción anotada, no resuelta:** `layout.md` muestra «Investigación» a los tres roles, pero todo `/api/investigacion/*` exige `usuarios.administrar`, así que para Usuario y Técnico ese destino redirige a `/reservas`.
+
+### FE-25 — Solicitud de reserva conforme a las reglas · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que `/reservas/nueva` cumpla `SCR-RES-01`: tipos ofrecidos por la unidad, contexto según el tipo de cuenta, campos adicionales del espacio, acompañantes y apoyo técnico.
+- **Afectados:** `frontend/app/(app)/reservas/nueva/**`, `frontend/src/components/reservas/**`, `frontend/src/lib/reservas-api.ts`, `frontend/src/lib/espacios-api.ts`.
+- **Dependencias:** FE-19, FE-15, FE-13, FE-17.
+- **Aceptación:** cada punto es una petición y su respuesta.
+  - Tipos (`RN-TIP-02`, `RN-TIP-03`, `RN-TIP-06`): el selector sale de `GET /api/reservas/tipos?id_unidad=`; con un solo tipo se elige solo; con ninguno se avisa que la unidad no admite reservas y no se puede guardar.
+  - Contexto (`RN-CTX-01`, `RN-CTX-04`, `RN-CTX-05`, `RN-CTX-08`, `RN-TIP-PE-08`, `RN-TIP-PE-09`, `RN-TIP-PE-11`): una cuenta `USUARIO` elige entre **sus** vinculaciones activas (proyecto, semillero, pasantía, trabajo de grado) o una actividad institucional, nunca ambas; una cuenta `PERSONAL` elige proyecto y/o semillero del catálogo general. Con una sola vinculación válida se preselecciona.
+  - Campos adicionales (`RN-TIP-PE-12`, `RN-TIP-PE-18`, `RN-TIP-PE-19`): al elegir un espacio se muestran sus campos habilitados según su tipo; los obligatorios impiden guardar y viajan en `campos_adicionales`.
+  - Recursos asociados (`RN-TIP-PE-12`, `RN-TIP-PE-13`): al elegir espacio y periodo se listan sus recursos asociados marcando cuáles están disponibles; los no disponibles no se envían.
+  - Acompañantes (`RN-ACO-01`, `RN-ACO-02`, `RN-ACO-04`, `RN-ACO-05`, `RN-TIP-PE-05`): solo con proyecto o semillero, elegidos por nombre entre las cuentas vinculadas; `asistentes` es su número y no supera la capacidad.
+  - Apoyo (`RN-RES-09`, `RN-RES-10`): casilla «requiere técnico», bloqueada en verdadero cuando algún equipo elegido lo exige.
+  - Salida (`RN-TIP-RC-12`, `RN-TIP-RE-12`): campo «nombre de la actividad o evento» en campus y externo.
+- **Resultado:** `/reservas/nueva` elige la unidad primero y ofrece los tipos que esa unidad habilita (autoselección con uno, aviso con ninguno); el contexto sale de `GET /api/reservas/contexto/opciones` (vinculaciones propias y actividades para `USUARIO`, catálogo general para `PERSONAL`; una actividad institucional excluye lo demás); campos adicionales del espacio según su tipo, con los obligatorios verificados antes de enviar; recursos asociados con su disponibilidad; acompañantes por nombre con asistentes = su número; apoyo técnico bloqueado cuando un equipo lo exige; nombre de actividad en campus y externo. **Contrato ampliado antes de codificar:** `reservations` §2.9 (`GET /api/reservas/contexto/opciones`) y §2.10 (`GET /api/reservas/acompanantes/opciones`), porque `/api/investigacion/*` exige permiso de administrador y ningún endpoint daba las cuentas elegibles. Backend con 2 pruebas nuevas; frontend con 11 pruebas de la página y `e2e/lista-espera.spec.ts` contra el backend real.
+
+### FE-26 — Lista de espera completa · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que el flujo de `SCR-RES-03` se pueda recorrer entero: solicitar, evaluar viabilidad, diligenciar el formulario por partes, aprobar con recepción de material, ejecutar y finalizar.
+- **Afectados:** `frontend/src/components/reservas/GestionReservaClient.tsx` y componentes nuevos de lista de espera; `frontend/src/lib/reservas-api.ts`.
+- **Dependencias:** FE-19, FE-25.
+- **Aceptación:**
+  - Formulario (`RN-TIP-PLE-03`, `RN-TIP-PLE-04`, `RN-TIP-PLE-09`): solo se ofrece con viabilidad positiva; cada actor edita únicamente su parte (`PUT .../formulario` con `datos_usuario` o `datos_tecnico`, nunca ambas); la parte técnica exige la del reservista; si el reservista cambia la suya, la pantalla avisa que la revisión técnica se invalida.
+  - Aprobación (`RN-TIP-PLE-05`): `POST .../aprobacion` con `material_recibido: true` tras una confirmación explícita; sin viabilidad, parte del reservista o parte técnica revisada se muestra el `409` del servidor.
+  - Rol: las acciones de gestión (aprobar, rechazar, viabilidad, ejecutar, finalizar) solo se ofrecen a quien puede gestionar la unidad; el reservista ve únicamente lo suyo (formulario, adjuntos, cancelar). Desaparece el `esTecnico = true` fijo de `GestionReservaClient`.
+  - Aviso `RN-TIP-PLE-09`: cambiar la descripción de una lista `SOLICITADA` con viabilidad avisa que deberá evaluarse de nuevo.
+- **Resultado:** `ListaEsperaPanel` (viabilidad con motivo obligatorio si es negativa; formulario por partes, cada actor solo la suya; aprobación con confirmación de recepción de material y lista de lo que falta) y `AdjuntosListaEspera` (subida y descarga). `GestionReservaClient` recibe la sesión y solo ofrece lo que corresponde a cada rol: desaparece el `esTecnico = true` fijo; el reservista responde las propuestas del técnico y el técnico las contrapropuestas (`RN-PROP-03`, `RN-PROP-04`); el principal de un recurso interno no ofrece retiro. `aprobarReserva` envía `material_recibido`. Verificado con `e2e/lista-espera-flujo.spec.ts`: crear → viable → formulario por partes → aprobar con recepción → ejecutar → finalizar con horas.
+
+### FE-27 — Renovación de sesión · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que la sesión no muera a los 15 minutos (`RN-AUTH-SES-01`, `RN-AUTH-SES-05`) sin abrir la cookie de refresco a las páginas.
+- **Afectados:** `frontend/src/lib/http.ts`, `frontend/src/components/shell/**`.
+- **Dependencias:** FE-03. Requiere decidir dónde se renueva: la cookie `rp_refresh` tiene `Path=/api/auth/sesiones` y solo la ve el navegador al llamar a la API.
+- **Aceptación:** una petición del cliente que recibe `401 NO_AUTENTICADO` llama una vez a `POST /api/auth/sesiones/renovacion` y reintenta la original solo si la renovación tuvo éxito; si falla, redirige a `/login?motivo=sesion_vencida`. Con el token de acceso vencido pero el refresco vigente, la navegación entre pantallas no vuelve a login. Se corrige la nota de `http.ts` que declara «sin reintento en 401».
+- **Resultado:** `apiRequest` renueva una sola vez ante `401 NO_AUTENTICADO` en el navegador y repite la petición solo si la renovación funcionó; varias peticiones vencidas comparten una renovación (el refresco rota). Como un Server Component no recibe `rp_refresh`, `AppShell` renueva cada 5 minutos **solo si hubo actividad**, para no anular el tiempo máximo de inactividad (`SEC-SES-09`). Verificado con 5 pruebas de `http.ts` y `e2e/sesion.spec.ts` (se borra `rp_access` y una acción del cliente renueva y continúa).
+
+### FE-28 — Consulta y gestión de reservas · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** cerrar `SCR-RES-02` y `SCR-RES-04`: listado útil, detalle con nombres, edición en `SOLICITADA`, recursos agregables, orden de salida y calendario.
+- **Afectados:** `frontend/app/(app)/reservas/**`, `frontend/src/components/reservas/**`, `frontend/src/lib/reservas-api.ts`.
+- **Dependencias:** FE-25, FE-26.
+- **Aceptación:**
+  - Listado: muestra fecha, espacio o recurso por nombre, unidad y solicitante (para quien gestiona); filtros `estado`, `tipo_reserva`, `id_unidad`, `desde`, `hasta`, `espacio_id`, `recurso_id` y paginación real.
+  - Detalle: recursos, cuentas, espacio y contexto por nombre; historial con actor y motivo.
+  - Edición (`RN-PRO-02`, `RN-PRO-06`): el reservista edita en `SOLICITADA` solo los campos que el tipo permite con `PATCH /api/reservas/{id}`; en otro estado no se ofrece.
+  - Recursos (`RN-TIP-PE-21`, `RN-TIP-RI-10`): el técnico puede agregar además de retirar, y el `PRINCIPAL` de interno no ofrece retiro.
+  - Cancelación (`RN-CAN-02`): solo se ofrece mientras no haya iniciado la ejecución del tipo.
+  - Órdenes y calendario (`RN-TIP-RC-07`, `RN-TIP-RC-11`, `RN-TIP-RE-07`, `RN-CAL-01`): campus y externo muestran la orden y descargan el PDF; espacio e interno aprobadas descargan el `.ics`; donde no aplica no se ofrece.
+- **Resultado:** el listado (`/reservas`) muestra cuándo, qué, tipo, unidad, solicitante y estado, con filtros por estado, tipo, unidad y espacio y paginación de a 20, más recientes primero. El detalle muestra unidad, solicitante, espacio, contexto, acompañantes, campos adicionales, recursos e historial con actor **por nombre** (`ResumenReserva`); el reservista edita su solicitud en `SOLICITADA` (periodo, datos de salida, descripción, observación) y solo viaja lo que cambió; el técnico agrega recursos además de retirarlos, y el principal de un recurso interno no ofrece retiro; campus y externo aprobados muestran la orden de salida FGL 030 con su PDF; espacio e interno aprobados ofrecen el `.ics`. **Contrato ampliado antes de codificar:** `reservations` §3.1 (`periodo`, `objeto`, `unidad_nombre`, `solicitante_nombre` por fila) y §3.2 (`unidad_nombre`, `solicitante_nombre`, `detalle.espacio_nombre`, `nombre` por recurso, `acompanantes_detalle`, `actor_nombre` en el historial). Verificado: backend con una prueba nueva, 14 pruebas de listado y detalle y `e2e/reservas.spec.ts`.
+- **No cubre (abierto como `FE-31`):** editar desde la pantalla el contexto, los acompañantes, los campos adicionales y los recursos de una solicitud (`RN-PRO-06`); los filtros `desde` y `hasta` del listado, porque el servidor los aplica sobre la fecha de creación y no sobre la fecha de la reserva, lo que el contrato no aclara.
+
+### FE-29 — Recursos, espacios, laboratorio e identidades completos · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que los formularios cubran los campos que `SCR-REC-01` a `SCR-REC-03`, `SCR-ESP-01` a `SCR-ESP-03` y la administración de identidades piden.
+- **Afectados:** `frontend/src/components/recursos/**`, `frontend/src/components/espacios/**`, `frontend/app/(app)/administracion/identidades/**`, `frontend/src/lib/*-api.ts`.
+- **Dependencias:** FE-13, FE-15, FE-11.
+- **Aceptación:**
+  - Equipos (`RN-EQP-08`, `RN-EQP-09`, `RN-REC-10`): categoría, serial, marca, modelo, calibración, `requiere_apoyo`, `acreditado`, bodega, centro de costo y estado operativo, con la restricción de rol del contrato.
+  - Mobiliario y otros: descripción.
+  - Laboratorio (`RN-LAB-03`, `RN-LAB-04`, `RN-LAB-07`, `RN-APR-02`, `RN-REC-01`): `habilitado_reservas`, días de atención, antelación, aprobación automática, recordatorio y `notificar_por_correo`.
+  - Espacios (`RN-ESP-01`, `RN-ESP-02`): ubicación y descripción al crear; edición de los datos; filtros en el listado; opciones de campos de tipo lista (`PATCH .../opciones/{opcion_id}`).
+  - Identidades (`RN-USR-01` de administration): listar, editar y habilitar o deshabilitar usuarios y personal (`PATCH /api/usuarios/{id}`, `/estado`, `/api/personal/{id}`, `/estado`).
+
+### FE-31 — Edición completa de la solicitud · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** cerrar `RN-PRO-06`: que el reservista pueda cambiar en `SOLICITADA` también el contexto, los acompañantes, los campos adicionales y los recursos, con los mismos selectores de `FE-25`. Y aclarar en el contrato el sentido de los filtros `desde` y `hasta` de `GET /api/reservas`.
+- **Afectados:** `frontend/src/components/reservas/EditarReservaPanel.tsx` y los componentes de `FE-25`; `specs/contratos/reservations/api-contract.md` §3.1.
+- **Dependencias:** FE-25, FE-28.
+- **Aceptación:** `PATCH /api/reservas/{id}` con cada bloque completo (`contexto`, `recursos`, `acompanantes`, `campos_adicionales`) según §2.8, con la respuesta del servidor ante cada rechazo visible; el contrato dice si `desde` y `hasta` filtran por fecha de creación o por fecha de la reserva, y el servidor y la pantalla lo cumplen.
+- **Resultado:** **Recursos:** el alta y la edición de un equipo piden nombre, placa, serial, marca, modelo, operatividad, apoyo técnico, acreditación, calibración (con su próxima fecha), próximo mantenimiento, instalador y guía rápida; mobiliario y otros piden nombre y descripción; bodega, centro de costos y fecha de compra se muestran de solo lectura (llegan por importación); la edición envía solo lo que cambió y un texto vaciado viaja como `null`; el catálogo filtra por unidad, tipo y texto. **Laboratorio:** se ven y editan `habilitado_reservas`, días de atención (lunes a domingo), horario, antelación, aprobación automática, recordatorio y `notificar_por_correo`, con validación de horario y días antes de enviar. **Espacios:** ubicación y descripción al crear, edición de los datos, filtros por unidad, estado y capacidad mínima, y campos adicionales completos (obligatoriedad, nombre, orden hacia arriba y hacia abajo, habilitar y opciones de una lista, que se renombran, deshabilitan y agregan). **Identidades:** nueva pantalla `/administracion/personas` para listar, buscar, filtrar por estado, editar y activar o desactivar usuarios y personal (el correo de quien ya tiene cuenta no se cambia; el cargo se elige por nombre). **Contrato ampliado antes de codificar:** `resources` §3.1 devuelve `notificar_por_correo` (se podía guardar pero no leer). Un `409` al editar un recurso ya no se disfraza de «reservas que exigen confirmación»: se muestra el motivo del servidor. Verificado: backend con una prueba nueva, 92 pruebas del frontend en total (24 archivos) y `e2e/gestion.spec.ts` contra el backend real.
+- **No cubre:** la **categoría** del equipo (existe la tabla `recursos.categorias_equipos`, pero está vacía y ningún endpoint del contrato la administra ni la lista); las **frecuencias** de calibración y mantenimiento (el modelo no dice en qué unidad van); registrar un espacio con recursos y campos en un solo paso (se agregan después, desde su detalle); reordenar las opciones de una lista.
+- **Resultado:** `EditarReservaPanel` cubre `RN-PRO-06`: además del periodo, los datos de salida, la descripción y la observación, el reservista cambia el **contexto**, los **recursos** (principal y adicionales, o solo complementarios en espacio), los **acompañantes**, los **campos adicionales** del espacio (con otro espacio se piden de nuevo) y el **apoyo técnico**, con los mismos selectores de `FE-25` y los valores actuales precargados. Cada bloque viaja completo y solo si cambió; el contexto nunca queda vacío; un equipo que exige apoyo lo vuelve obligatorio; en lista de espera se avisa antes de guardar que cambiar la descripción invalida la viabilidad. **Fechas del listado:** `desde` y `hasta` ahora acotan por la **fecha de uso** —la del espacio o interno, o de la salida a la devolución en campus y externo (`RN-DIS-02`)— y no por la de creación; la lista de espera queda fuera al filtrar; un rango invertido o una fecha mal escrita responden `422`. El contrato (§3.1) lo dice y el listado ofrece «Desde» y «Hasta». **Error de backend corregido:** editar una lista de espera respondía siempre `422`, porque el servicio fusiona los valores actuales (listas vacías) y la estrategia las rechazaba; ahora solo se rechaza lo que el cliente envía y no aplica al tipo (`recursos`, `acompanantes`, `campos_adicionales`, `requiere_apoyo`). Verificado: 3 pruebas de backend nuevas (lista de espera, espacio por bloques, fechas de uso), 5 del panel y `e2e/reservas.spec.ts` contra el backend real.
+- **No cubre:** el orden `fecha` del listado (`orden=fecha`) sigue ordenando por creación; el contrato lo admite y el servidor lo aproxima.
+
+### FE-30 — Pruebas de extremo a extremo con Playwright · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** dejar como parte del plan las pruebas E2E que hoy viven sin tarea en `frontend/e2e/`. Esto **cambia** la nota de «Lo que no está en este plan»: los E2E de navegador pasan a estar dentro.
+- **Afectados:** `frontend/e2e/**`, `frontend/playwright.config.ts`, `frontend/package.json`.
+- **Dependencias:** FE-24 a FE-29 (cada una añade sus pruebas).
+- **Aceptación:** `npm run e2e` contra la aplicación levantada en `localhost:3000` recorre los ocho destinos del menú, el login con cookie `HttpOnly`, y los flujos de reserva (espacio con recursos, recurso interno con varios recursos, lista de espera con adjunto). Documenta en `e2e/README.md` las cuentas y datos que necesita y que se siembran en una **copia** de la base, nunca en la viva.
+- **Resultado:** `frontend/e2e/` con la sesión guardada de administrador y de usuario (`preparacion.setup.ts`), y especificaciones de autenticación, menú, humo, sesión, reservas, gestión, lista de espera (formulario y flujo completo), un **usuario común** que reserva y edita sin permisos administrativos, y reportes: 73 pruebas contra el backend real, todas en verde. Se siembran en la copia `reservas_e2e`, no en la base viva. El límite de login (5 intentos en 15 minutos por cuenta) obliga a reiniciar `reservas_backend` antes de una corrida completa; está en `e2e/README.md`.
 
 ---
 
@@ -378,6 +483,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
@@ -387,5 +493,5 @@ Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre ci
 ## Lo que no está en este plan
 
 - **El despliegue del frontend en un entorno real.** `plan.md` §8 ya señala que no hay entorno desplegado; este plan construye contra un backend local.
-- **Tests end-to-end de navegador.** Este plan cubre pruebas de componente (React Testing Library). Un plan de `e2e` (Playwright u otro) es una decisión aparte, no asumida aquí.
+- **Tests end-to-end de navegador** en las Fases 1 a 6: esas cubren pruebas de componente (React Testing Library). Los E2E con Playwright entran en `FE-30` (Fase 7).
 - **La redacción de los textos de interfaz.** Los wireframes fijan estructura y contenido tipo, no la redacción final de cada mensaje — igual que ya aclara `wireframes.md` de auth.

@@ -93,11 +93,11 @@ Antes de darlo por cerrado:
 
 ---
 
-## Dos cosas que parecen hechas y no lo están
+## Dos cosas que conviene no dar por supuestas
 
-**La protección contra doble reserva no está instalada.** Las columnas `periodo` y `bloqueante` existen y hay índices ordinarios, pero **eso no es la garantía**. Hasta que se instalen las exclusiones de ADR-001, crear una reserva pasa toda prueba manual y falla con dos usuarios simultáneos. No la des por buena porque el endpoint responda `201`.
+**La protección contra doble reserva está instalada, y sigue siendo la base quien la da.** Las exclusiones `ex_reserva_espacio_solape` (`reservas.reserva_espacio`) y `ex_reserva_recursos_solape` (`reservas.reserva_recursos`) existen en la base viva (verificado el 2026-09-29: un solape parcial desde la interfaz devuelve `409 SOLAPAMIENTO` y no inserta fila). No las sustituyas por una consulta previa desde el servicio ni las quites en una migración. Si una base nueva no las tiene, la reserva "funciona" con un solo usuario y falla con dos simultáneos.
 
-**Los catálogos están vacíos.** Sin tipos de reserva, estados ni permisos cargados no puede crearse ninguna reserva ni autorizarse ninguna operación. Si algo falla con una clave foránea sin resolver, probablemente sea esto y no tu código.
+**Los catálogos deben estar cargados.** Sin tipos de reserva, estados ni permisos no puede crearse ninguna reserva ni autorizarse ninguna operación (en la base viva ya lo están; una base nueva no los trae). Si algo falla con una clave foránea sin resolver, probablemente sea esto y no tu código. Al cargar una semilla usa un cliente en UTF-8: una carga con otra codificación guardó `??` en lugar de los acentos (repara `013_corregir_textos_tipos_evento.sql`).
 
 ---
 
