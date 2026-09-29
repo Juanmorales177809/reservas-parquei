@@ -50,3 +50,4 @@ El catálogo de tipos de campo quedó cerrado en cinco valores. Esta documentaci
 - [Modelo de datos del módulo](data-model.md): tablas propias, relaciones y diferencias pendientes respecto al inventario principal.
 - [Flujos de usuario](user-flow.md).
 - [Contrato de API](../../contratos/espacios/api-contract.md).
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las cuatro superficies de espacios.

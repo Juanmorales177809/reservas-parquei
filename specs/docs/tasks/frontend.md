@@ -269,13 +269,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-09. La importación con filas en error no permite confirmar la carga y muestra el resultado por fila.
 - **Resultado:** tres rutas (catálogo con registro, detalle con edición/estado/unidad, laboratorio propio para no chocar con `[id]`), Server Components que deciden `puedeGestionar` por rol sin store en cliente. Andamiaje: `src/lib/recursos-api.ts` (endpoints §2–§3) + `recursos-types.ts` sin `next/headers`. Importación reutiliza `administracion/importaciones` sin pantalla propia, como fija FE-12. Verificado: `tsc --noEmit`, `build` (3 rutas), `lint` limpios; `npm test` — 28 en verde (4 dirigidas nuevas: crear por tipo, 403, impacto con confirmación explícita).
 
-### FE-14 — Especificación de pantallas — espacios
+### FE-14 — Especificación de pantallas — espacios · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `espacios`, incluidos los campos adicionales de los cinco tipos cerrados.
 - **Afectados:** `specs/modules/espacios/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`espacios/user-flow.md`](../../modules/espacios/user-flow.md) y su contrato, cerrados. FE-12 para reutilizar el patrón de asociación con recursos.
 - **Aceptación:** igual criterio que FE-08.
+- **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-ESP-01` registro, edición y estado (con advertencia de cancelaciones y confirmación explícita), `SCR-ESP-02` recursos asociados (misma unidad, sin doble asociación, retiro que deshabilita), `SCR-ESP-03` campos adicionales (los cinco tipos cerrados, opciones, reorden, deshabilitación sin perder historia), `SCR-ESP-04` consulta con visibilidad por rol. `UF-ESP-14` queda explícitamente sin superficie por ocurrir en `reservations`; disponibilidad temporal y horario propio, fuera por §6 del contrato. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-15 — Implementación — espacios
 
