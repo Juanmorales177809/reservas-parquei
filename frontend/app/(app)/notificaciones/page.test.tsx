@@ -72,7 +72,7 @@ describe("notificaciones/page.tsx", () => {
     bandejaMock.mockResolvedValue({ datos: [{ ...NOTIF, leida_at: "2026-10-09T16:02:44Z" }] });
 
     render(<PaginaNotificaciones />);
-    expect(await screen.findByText("Leída: 2026-10-09T16:02:44Z")).toBeInTheDocument();
+    expect(await screen.findByText(/^Leída: /)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Marcar como leída" })).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
@@ -133,6 +134,11 @@ export default function PaginaUnidades() {
               <span>{u.nombre} ({u.tipo}) {!u.estado && "(deshabilitada)"}</span>
               <Button variant="ghost" size="sm" disabled={ocupada}
                 onClick={() => void renombrarUnidad(u)}>Editar</Button>
+              {u.tipo === "LABORATORIO" && (
+                <Link href={`/laboratorios/${u.id_unidad}`} className="text-sm font-bold text-primary-2">
+                  Configurar
+                </Link>
+              )}
               <Button variant="ghost" size="sm" disabled={ocupada}
                 onClick={() => void cambiarEstado(u)}>
                 {u.estado ? "Deshabilitar" : "Habilitar"}

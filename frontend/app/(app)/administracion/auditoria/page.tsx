@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
+import { SelectorCuenta } from "@/src/components/selectores/selectores";
 import { Field } from "@/src/components/ui/Field";
+import { fechaHora } from "@/src/lib/formato";
 import { ApiRequestError } from "@/src/lib/http";
 import { listarAuditoria } from "@/src/lib/administracion-api";
 import type { AuditoriaFila } from "@/src/lib/administracion-types";
@@ -66,8 +68,8 @@ export default function PaginaAuditoria() {
       <form onSubmit={(e) => void filtrar(e)} className="flex flex-wrap items-end gap-2">
         <Field id="aud-entidad" label="Entidad" value={entidad}
           onChange={(e) => setEntidad(e.target.value)} />
-        <Field id="aud-actor" label="Actor (id cuenta)" value={actor}
-          onChange={(e) => setActor(e.target.value)} />
+        <SelectorCuenta id="aud-actor" label="Actor" value={actor} onChange={setActor}
+          textoVacio="Cualquiera" />
         <Field id="aud-accion" label="Acción" value={accion}
           onChange={(e) => setAccion(e.target.value)} />
         <Button type="submit" variant="secondary">Filtrar</Button>
@@ -77,7 +79,7 @@ export default function PaginaAuditoria() {
         <ul className="flex flex-col gap-2 text-sm text-text">
           {filas.map((f) => (
             <li key={f.id} className="border-b border-border pb-2">
-              {f.created_at} · cuenta {f.actor_cuenta_id} · {f.accion} · {f.entidad} {f.entidad_id}
+              {fechaHora(f.created_at)} · cuenta {f.actor_cuenta_id} · {f.accion} · {f.entidad} {f.entidad_id}
             </li>
           ))}
           {filas.length === 0 && <li className="text-muted">Sin resultados.</li>}

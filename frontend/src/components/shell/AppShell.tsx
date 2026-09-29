@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/src/components/ui/Button";
 import { ETIQUETA_ROL, type ContextoSesion } from "@/src/lib/auth-types";
-import { apiRequest } from "@/src/lib/http";
+import { apiRequest, renovarSesion } from "@/src/lib/http";
 import { destinosVisiblesPara, type DestinoNav } from "./nav-items";
 
 export interface AppShellProps {
@@ -22,6 +22,29 @@ export function AppShell({ sesion, children }: AppShellProps) {
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const pathname = usePathname();
   const destinos = destinosVisiblesPara(sesion.rol);
+
+  // FE-27: el acceso dura poco y un Server Component no puede renovarlo (no recibe `rp_refresh`).
+  // Mientras la persona esté usando la aplicación se renueva antes de que venza; si está inactiva no,
+  // para respetar el tiempo máximo de inactividad (SEC-SES-09).
+  const huboActividad = useRef(true);
+  useEffect(() => {
+    const marcar = () => {
+      huboActividad.current = true;
+    };
+    const eventos = ["pointerdown", "keydown", "focus"] as const;
+    eventos.forEach((e) => window.addEventListener(e, marcar));
+    const cada5Minutos = window.setInterval(() => {
+      if (!huboActividad.current) return;
+      huboActividad.current = false;
+      void renovarSesion().then((ok) => {
+        if (!ok) window.location.href = "/login?motivo=sesion_vencida";
+      });
+    }, 5 * 60 * 1000);
+    return () => {
+      eventos.forEach((e) => window.removeEventListener(e, marcar));
+      window.clearInterval(cada5Minutos);
+    };
+  }, []);
 
   async function cerrarSesion() {
     setCerrandoSesion(true);
@@ -48,6 +71,7 @@ export function AppShell({ sesion, children }: AppShellProps) {
           <span className="text-sm text-muted">
             {sesion.correo} · {ETIQUETA_ROL[sesion.rol]}
           </span>
+          <CuentaEnlaces rol={sesion.rol} />
           <Button
             variant="ghost"
             size="sm"
@@ -84,6 +108,9 @@ export function AppShell({ sesion, children }: AppShellProps) {
                 <p className="mb-2 text-sm text-muted">
                   {sesion.correo} · {ETIQUETA_ROL[sesion.rol]}
                 </p>
+                <div className="mb-2 flex flex-col gap-1" onClick={() => setMenuAbierto(false)}>
+                  <CuentaEnlaces rol={sesion.rol} />
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -103,6 +130,23 @@ export function AppShell({ sesion, children }: AppShellProps) {
         </main>
       </div>
     </div>
+  );
+}
+
+/** Enlaces de la cuenta que no son un destino del menú: mi perfil (solo Usuario) y cambiar contraseña. */
+function CuentaEnlaces({ rol }: { rol: ContextoSesion["rol"] }) {
+  const clase = `text-sm font-bold text-primary-2 ${ANILLO_FOCO}`;
+  return (
+    <>
+      {rol === "USUARIO" && (
+        <Link href="/usuarios/perfil" className={clase}>
+          Mi perfil
+        </Link>
+      )}
+      <Link href="/cambiar-contrasena" className={clase}>
+        Cambiar contraseña
+      </Link>
+    </>
   );
 }
 

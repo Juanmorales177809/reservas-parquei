@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
-import { Field } from "@/src/components/ui/Field";
+import { SelectorProyecto, SelectorSemillero, SelectorUsuario } from "@/src/components/selectores/selectores";
 import { Select } from "@/src/components/ui/Select";
 import { ApiRequestError } from "@/src/lib/http";
 import {
@@ -94,8 +94,7 @@ export default function PaginaVinculacionesAjenas() {
         .
       </p>
       <form onSubmit={(e) => void consultar(e)} className="flex items-end gap-2">
-        <Field id="vinc-usuario" label="Usuario (id)" value={idUsuario}
-          onChange={(e) => setIdUsuario(e.target.value)} required />
+        <SelectorUsuario id="vinc-usuario" label="Usuario" value={idUsuario} onChange={setIdUsuario} requerido />
         <Button type="submit" variant="secondary" loading={ocupada}>Consultar</Button>
       </form>
       {vinc && (
@@ -115,12 +114,19 @@ export default function PaginaVinculacionesAjenas() {
           </ul>
           <form onSubmit={(e) => void crear(e)} className="flex flex-col gap-2">
             <Select id="vinc-tipo" label="Tipo" value={tipo}
-              onChange={(e) => setTipo(e.target.value as "proyectos" | "semilleros")}>
+              onChange={(e) => {
+                setTipo(e.target.value as "proyectos" | "semilleros");
+                setIdEntidad("");
+              }}>
               <option value="proyectos">Proyectos</option>
               <option value="semilleros">Semilleros</option>
             </Select>
-            <Field id="vinc-entidad" label="Entidad (id)" value={idEntidad}
-              onChange={(e) => setIdEntidad(e.target.value)} required />
+            {tipo === "proyectos" ? (
+              <SelectorProyecto id="vinc-entidad" label="Proyecto" value={idEntidad} onChange={setIdEntidad}
+                textoVacio="Seleccionar proyecto" requerido />
+            ) : (
+              <SelectorSemillero id="vinc-entidad" label="Semillero" value={idEntidad} onChange={setIdEntidad} requerido />
+            )}
             <div>
               <Button type="submit" variant="primary" loading={ocupada}>Crear vinculación</Button>
             </div>

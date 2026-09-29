@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
-import { Field } from "@/src/components/ui/Field";
+import { SelectorCuenta, SelectorUnidad } from "@/src/components/selectores/selectores";
 import { Select } from "@/src/components/ui/Select";
 import { ApiRequestError } from "@/src/lib/http";
 import {
   asignacionesDe,
   catalogoPermisos,
+  listarUnidades,
   otorgarPermiso,
   retirarPermiso,
 } from "@/src/lib/administracion-api";
@@ -23,6 +24,7 @@ export default function PaginaPermisos() {
   const [asignaciones, setAsignaciones] = useState<Asignacion[] | null>(null);
   const [codigo, setCodigo] = useState("");
   const [unidad, setUnidad] = useState("");
+  const [nombresUnidad, setNombresUnidad] = useState<Record<number, string>>({});
   const [ocupada, setOcupada] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tono, setTono] = useState<"muted" | "error" | "exito">("muted");
@@ -46,6 +48,13 @@ export default function PaginaPermisos() {
       cancelado = true;
     };
   }, [router]);
+
+  // Solo para mostrar el nombre de la unidad de cada asignación; si falla, se ve «unidad #id».
+  useEffect(() => {
+    listarUnidades()
+      .then((r) => setNombresUnidad(Object.fromEntries(r.datos.map((u) => [u.id_unidad, u.nombre]))))
+      .catch(() => {});
+  }, []);
 
   async function consultar(evento: FormEvent) {
     evento.preventDefault();
@@ -100,8 +109,7 @@ export default function PaginaPermisos() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-text">Permisos de la cuenta</h1>
       <form onSubmit={(e) => void consultar(e)} className="flex items-end gap-2">
-        <Field id="perm-cuenta" label="Cuenta (id)" value={idCuenta}
-          onChange={(e) => setIdCuenta(e.target.value)} required />
+        <SelectorCuenta id="perm-cuenta" label="Cuenta" value={idCuenta} onChange={setIdCuenta} requerido />
         <Button type="submit" variant="secondary" loading={ocupada}>Consultar</Button>
       </form>
       {asignaciones && (
@@ -109,7 +117,7 @@ export default function PaginaPermisos() {
           <ul className="flex flex-col gap-1 text-sm text-text">
             {asignaciones.map((a) => (
               <li key={`${a.codigo}-${a.id_unidad ?? "global"}`} className="flex items-center gap-2">
-                <span>{a.codigo} ({a.id_unidad ?? "global"})</span>
+                <span>{a.codigo} ({a.id_unidad === null ? "global" : (nombresUnidad[a.id_unidad] ?? `unidad #${a.id_unidad}`)})</span>
                 <Button variant="ghost" size="sm" disabled={ocupada}
                   onClick={() => void retirar(a)}>Retirar</Button>
               </li>
@@ -123,8 +131,8 @@ export default function PaginaPermisos() {
                 <option key={p.codigo} value={p.codigo}>{p.codigo}</option>
               ))}
             </Select>
-            <Field id="perm-unidad" label="Unidad (vacío = global)" value={unidad}
-              onChange={(e) => setUnidad(e.target.value)} />
+            <SelectorUnidad id="perm-unidad" label="Unidad" value={unidad} onChange={setUnidad}
+              textoVacio="Global (todas las unidades)" />
             <div>
               <Button type="submit" variant="primary" loading={ocupada}>Otorgar permiso</Button>
             </div>

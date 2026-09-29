@@ -3,9 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/src/lib/http";
 import PaginaVinculacionesAjenas from "./page";
+import { elegir } from "@/src/test-utils";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("@/src/lib/administracion-api", () => ({
+  listarUsuarios: () =>
+    Promise.resolve({
+      datos: [{ id_usuario: 1042, id_cuenta: 9, nombre: "Ana Pérez", correo: "ana@itm.edu.co", estado: true }],
+    }),
 }));
 
 const vinculacionesMock = vi.fn();
@@ -15,6 +23,9 @@ vi.mock("@/src/lib/investigacion-api", () => ({
   vinculacionesDe: (...args: unknown[]) => vinculacionesMock(...args),
   crearVinculacionAjena: (...args: unknown[]) => crearMock(...args),
   desactivarVinculacionAjena: vi.fn(),
+  listarProyectos: () =>
+    Promise.resolve({ datos: [{ id_proyecto: 12, codigo: "PRY-001", nombre: "Ensayos", estado: true }] }),
+  listarSemilleros: () => Promise.resolve({ datos: [] }),
 }));
 
 const VACIAS = { proyectos: [], semilleros: [], pasantias: [], trabajos_grado: [] };
@@ -33,12 +44,12 @@ describe("investigacion/vinculaciones/page.tsx", () => {
     );
 
     render(<PaginaVinculacionesAjenas />);
-    await usuario.type(screen.getByLabelText("Usuario (id)"), "1042");
+    await elegir(usuario, "Usuario", "Ana Pérez · ana@itm.edu.co");
     await usuario.click(screen.getByRole("button", { name: "Consultar" }));
     await waitFor(() => {
       expect(vinculacionesMock).toHaveBeenCalledWith(1042);
     });
-    await usuario.type(screen.getByLabelText("Entidad (id)"), "12");
+    await elegir(usuario, "Proyecto", "Ensayos (PRY-001)");
     await usuario.click(screen.getByRole("button", { name: "Crear vinculación" }));
     expect(
       await screen.findByText("Ya existe una vinculación activa con esa entidad.")
@@ -56,14 +67,14 @@ describe("investigacion/vinculaciones/page.tsx", () => {
     });
 
     render(<PaginaVinculacionesAjenas />);
-    await usuario.type(screen.getByLabelText("Usuario (id)"), "1042");
+    await elegir(usuario, "Usuario", "Ana Pérez · ana@itm.edu.co");
     await usuario.click(screen.getByRole("button", { name: "Consultar" }));
-    await usuario.type(screen.getByLabelText("Entidad (id)"), "12");
+    await elegir(usuario, "Proyecto", "Ensayos (PRY-001)");
     await usuario.click(screen.getByRole("button", { name: "Crear vinculación" }));
     await waitFor(() => {
       expect(crearMock).toHaveBeenCalledWith(1042, "proyectos", 12);
     });
-    const filas = await screen.findAllByText(/PRY-001/);
+    const filas = await screen.findAllByText(/PRY-001/, { selector: "span" });
     expect(filas).toHaveLength(1);
   });
 });

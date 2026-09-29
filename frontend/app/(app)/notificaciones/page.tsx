@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
 import { Select } from "@/src/components/ui/Select";
+import { fechaHora } from "@/src/lib/formato";
 import { ApiRequestError } from "@/src/lib/http";
 import { bandeja, marcarLectura, tiposEvento } from "@/src/lib/notificaciones-api";
 import type { NotificacionItem, TipoEventoItem } from "@/src/lib/notificaciones-types";
@@ -125,12 +126,12 @@ export default function PaginaNotificaciones() {
                   {n.titulo} {!n.leida_at && "(sin leer)"}
                 </p>
                 <p className="text-muted">
-                  {n.tipo_evento.nombre} · {n.created_at}
+                  {n.tipo_evento.nombre} · {fechaHora(n.created_at)}
                   {n.reserva_id !== null && ` · Reserva #${n.reserva_id}`}
                 </p>
                 <p>{n.cuerpo}</p>
                 {n.leida_at ? (
-                  <p className="text-muted">Leída: {n.leida_at}</p>
+                  <p className="text-muted">Leída: {fechaHora(n.leida_at)}</p>
                 ) : (
                   <Button variant="ghost" size="sm" disabled={marcando} onClick={() => void marcar(n.id)}>
                     Marcar como leída
