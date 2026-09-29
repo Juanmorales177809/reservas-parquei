@@ -251,13 +251,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-09. La vista de auditoría no expone contraseñas, secretos de sesión, tokens completos ni claves, igual que exige `SEC-AUD-03`.
 - **Resultado:** cinco rutas nuevas (una por wireframe WF-ADM-01 a WF-ADM-05), Client Components con `useState` + `apiRequest` como FE-07/FE-09. Andamiaje: `src/lib/administracion-api.ts` (endpoints §2–§5 con formas tipadas) + `administracion-types.ts` sin `next/headers`; `http.ts` gana passthrough de `FormData` (multipart con boundary del navegador, CSRF intacto) para la carga Excel. Las pantallas de cuentas de FE-07 se reutilizan sin tocarse, salvo precarga de `?correo=&tipo=` al llegar desde identidades. Textos de error literales de cada fila. Verificado: `tsc --noEmit`, `build` (5 rutas), `lint` limpios; `npm test` — 24 en verde (3 dirigidas nuevas: duplicado junto al campo, carga no confirmable, auditoría sin secretos).
 
-### FE-12 — Especificación de pantallas — resources
+### FE-12 — Especificación de pantallas — resources · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `resources`, incluida la importación masiva de equipos.
 - **Afectados:** `specs/modules/resources/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`resources/user-flow.md`](../../modules/resources/user-flow.md) y su contrato, cerrados.
 - **Aceptación:** igual criterio que FE-08. La pantalla de importación documenta el resultado por fila y el rechazo total ante cualquier fila con error, conforme a la decisión ya cerrada en `decisiones_pendientes_para_revision.md`.
+- **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-REC-01` catálogo y registro (UF-REC-01 a UF-REC-05), `SCR-REC-02` edición, estado y unidad (UF-REC-06 a UF-REC-10, UF-REC-12, con advertencia de impacto y confirmación), `SCR-REC-03` laboratorio (UF-REC-13, con versionado de horario), `SCR-REC-04` validaciones de equipos en importación por referencia a `SCR-ADM-04` (sin superficie propia de carga). `UF-REC-11` queda explícitamente sin superficie por ser comunicación entre módulos. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-13 — Implementación — resources
 
