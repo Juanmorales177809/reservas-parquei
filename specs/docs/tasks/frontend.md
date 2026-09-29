@@ -101,13 +101,14 @@ Un directorio por módulo dentro de `app/(app)/`, con los mismos nombres que los
 
 No depende de ninguna pantalla: es infraestructura y el primer componente compartido. Puede empezar de inmediato.
 
-### FE-01 — Inicialización del proyecto
+### FE-01 — Inicialización del proyecto · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** `frontend/` existe, levanta con `npm run dev` y sirve una página en blanco.
 - **Afectados:** `frontend/package.json`, `frontend/app/layout.tsx`, `frontend/app/page.tsx`, `frontend/tsconfig.json`, `frontend/Dockerfile`.
 - **Dependencias:** ninguna.
 - **Aceptación:** `npm run build` termina sin errores de TypeScript (`strict: true`); `npm run dev` sirve `/` en `200`. Sin conexión al backend todavía — es infraestructura, no una pantalla.
+- **Resultado:** scaffold `create-next-app@14` (Next 14.2.35, React 18.3.1, TS 5.9.3, Tailwind 3.4.19, todo pineado exacto) recortado a página en blanco con `lang="es"` y título propio; `Dockerfile` multietapa sin cablear en compose. Política global `allow-scripts` documentada en `frontend/.npmrc` (`unrs-resolver`, única excepción). Verificado: `npm run build` y `npx tsc --noEmit` limpios, `/` en `200`.
 
 ### FE-02 — Tokens de diseño en Tailwind
 
