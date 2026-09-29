@@ -97,9 +97,9 @@ Un directorio por módulo dentro de `app/(app)/`, con los mismos nombres que los
 
 ---
 
-## Fase 1 — Cimientos
+## Fase 1 — Cimientos · **cerrada**
 
-No depende de ninguna pantalla: es infraestructura y el primer componente compartido. Puede empezar de inmediato.
+No depende de ninguna pantalla: es infraestructura y el primer componente compartido. `FE-01` a `FE-04` cerradas: proyecto Next.js levantado, tokens de diseño consumibles desde Tailwind, cliente HTTP con sesión/CSRF, y `Button` completo con pruebas en verde. **El siguiente paso es la Fase 2.**
 
 ### FE-01 — Inicialización del proyecto · **cerrada**
 
@@ -135,13 +135,20 @@ No depende de ninguna pantalla: es infraestructura y el primer componente compar
   `NEXT_PUBLIC_API_URL` con default `http://localhost:8000` (mismo puerto que `BACKEND_HOST_PORT` en `.env.example`); no se tocó ningún archivo de entorno, es solo el valor por defecto del módulo.
   Verificado: `npx tsc --noEmit` y `npm run build` limpios. Sin consumidor real todavía (ninguna pantalla existe): la prueba de comportamiento en runtime queda para `FE-06`/`FE-07`, primeros consumidores reales.
 
-### FE-04 — Componente compartido `Button`
+### FE-04 — Componente compartido `Button` · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** el componente `Button` completo, tal como lo fija [`components.md`](../../ui/components.md#botones).
-- **Afectados:** `frontend/src/components/ui/Button.tsx`, `frontend/src/components/ui/Button.test.tsx`.
+- **Afectados:** `frontend/src/components/ui/Button.tsx`, `frontend/src/components/ui/Button.test.tsx`, y **`frontend/package.json`, `frontend/vitest.config.ts`, `frontend/vitest.setup.ts`** (ampliación de alcance: no existía infraestructura de pruebas todavía — ver Resultado).
 - **Dependencias:** FE-02.
 - **Aceptación:** las siete variantes, los tres tamaños y `fullWidth` funcionan; `disabled` usa el atributo nativo; `loading` antepone el spinner sin perder el texto; el anillo de foco es igual en las siete variantes; `destructiveConfirm` arma con el primer clic, ejecuta con el segundo dentro de 4s y se desarma solo si no hay segundo clic. Pruebas de React Testing Library cubren el armado/desarmado de `destructiveConfirm` y que `disabled` bloquea el evento de clic. `tsc --noEmit` limpio.
+- **Resultado:** `Button` con `forwardRef`, tipado estricto (`ButtonVariant`, `ButtonSize`), sin dependencias nuevas de runtime (composición de clases con un `cx` local, sin `clsx`/`cva`).
+  **Ampliación de alcance:** no había infraestructura de pruebas — se añadió Vitest 2.1.9 + `@vitejs/plugin-react` + jsdom + React Testing Library + `jest-dom` + `user-event` como devDependencies, `vitest.config.ts`/`vitest.setup.ts`, y el script `test`. Se fijó Vitest 2.x (no la última 5.x) porque esa exige `@types/node` ≥22 y el proyecto fijó `@types/node` 20.x en `FE-01`; subir esa dependencia no entraba en el alcance de esta tarea.
+  Las siete variantes usan los tokens de `FE-02` por nombre (`from-primary-1`, `to-error-hover2`, `bg-primary-pressed`, `shadow-hover`…), nunca un hex. `primary` es la única con `hover-1` propio (única familia con ambos extremos de hover); `success`/`error`/`warning` solo cambian el segundo extremo en hover, igual que ya lo hacía el artifact original.
+  **Hallazgo sobre el anillo de foco:** el foco se implementó con las utilidades `ring-*` de Tailwind (`focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-sky)_55%,transparent)]`), no con el `--shadow-focus` que registró `FE-02`. Verificado en el CSS compilado: `ring-*` y `shadow-*` de Tailwind componen un único `box-shadow` mediante variables internas (`--tw-ring-shadow`, `--tw-shadow`), así que el anillo se **suma** a `shadow-hover`/`shadow-pressed` en vez de reemplazarlos — exactamente lo que pide la aceptación ("no sustituye a hover/pressed: puede combinarse con ellos"). Un `shadow-focus` aplicado como `boxShadow` normal habría *reemplazado* esas sombras en vez de sumarse, porque ambas comparten la misma propiedad CSS. `--shadow-focus` queda en `tokens.css` sin usarse por `Button` — no es incorrecto (la fórmula es la misma), pero es la pieza a retirar si una futura limpieza de tokens la encuentra sin consumidores.
+  `destructiveConfirm` usa `data-armed` en el DOM y el modificador de atributo arbitrario `data-[armed=true]:` de Tailwind para su estado armado (fondo sólido + anillo siempre visible, no solo en `:focus-visible`). El texto de ayuda auxiliar («Doble clic requerido…») y su `aria-live` quedan fuera de `Button`, tal como ya lo fija `components.md` — no es un olvido de esta tarea.
+  El `!important` en los cuatro overrides de `disabled` (`bg-none`, `bg-disabled-bg`, `text-disabled-text`, `shadow-none`) es deliberado: garantiza que ganen sobre la clase de variante sin depender del orden interno de los *variants* de Tailwind en la hoja compilada — confirmado leyendo el CSS generado.
+  Verificado: `npx tsc --noEmit` limpio; `npm run build` limpio; `npm test` — 7 pruebas en verde (siete variantes renderizan, `fullWidth`, `disabled` bloquea el clic sin llamar `onClick`, `loading` antepone el spinner sin perder el texto, y las tres del patrón `destructiveConfirm`: arma sin ejecutar, ejecuta y desarma al segundo clic, se desarma solo a los 4s sin ejecutar). Inspección del CSS compilado confirma que `from-primary-1`, los `color-mix(...)` de foco/pressed/ghost y `data-[armed=true]:` generan exactamente las reglas esperadas.
 
 ---
 
