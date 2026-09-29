@@ -156,13 +156,18 @@ No depende de ninguna pantalla: es infraestructura y el primer componente compar
 
 Bloqueada en parte por specs/ui, que todavía no fija la distribución general.
 
-### FE-05 — Completar `specs/ui/layout.md`
+### FE-05 — Completar `specs/ui/layout.md` · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** cerrar la estructura general de pantallas y la ubicación de navegación, contenido y acciones — hoy «Pendiente» salvo la regla de `fullWidth` en móvil.
 - **Afectados:** [`specs/ui/layout.md`](../../ui/layout.md).
 - **Dependencias:** ninguna técnica; es una decisión de producto/diseño que el equipo tiene que tomar, no una que se infiera del artifact de botones (que no cubre navegación).
 - **Aceptación:** `layout.md` no tiene ninguna sección marcada «Pendiente»; `python tools/validar.py` sigue en 0 fallas.
+- **Resultado:** shell autenticado de tres regiones (cabecera, navegación, contenido), con la pública de auth referenciada, no redefinida. Navegación: ocho destinos fijos por nombre (Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Notificaciones, Reportes — auth no es un destino propio, vive dentro de Administración), con visibilidad calculada en runtime contra `GET /api/auth/sesiones/actual`, nunca una tabla fija por rol — así cumple la aceptación de `FE-06` tal cual está escrita.
+  **Hallazgo relevante para `FE-06`:** `sesiones/actual` no devuelve nombre, solo `correo` y `rol` (`GET /api/perfil`, de `usuarios`, sí lo tiene, pero `FE-06` no lo lista como dependencia). Se decidió mostrar `correo · rol` en vez del nombre, precisamente para no sumar esa dependencia cruzada en silencio — anotado como pregunta abierta en `decisiones_pendientes_para_revision.md`, junto con la ausencia de marca en la cabecera y de contador de notificaciones (ambas esperan componentes o decisiones de contenido que todavía no existen).
+  Móvil y tablet (`<1024px`) comparten el mismo comportamiento de navegación (panel superpuesto de 240px, no persistente): a 768–1023px un panel persistente dejaría 528–783px para pantallas con tablas (reportes, listados de reservas/recursos), insuficiente sin scroll horizontal constante. Dos dimensiones nuevas se documentan como tales (ancho del panel 240px, alto de cabecera 64px); el resto reutiliza precedentes ya cerrados (max-width/padding de contenido del artifact aprobado, gutter del catálogo de `design-tokens.md`) — nada inventado sin marcarlo.
+  Tokens de chrome (fondo, borde, ítem activo, foco) reutilizan exactamente los que ya cierra `design-system.md`; ninguno nuevo salvo extender el anillo de foco —ya fijado solo para `Button`— a los ítems de navegación, un tipo de elemento interactivo que ese documento no cubría.
+  Verificado: `python tools/validar.py` en 0 fallas.
 
 ### FE-06 — Shell de navegación autenticado
 

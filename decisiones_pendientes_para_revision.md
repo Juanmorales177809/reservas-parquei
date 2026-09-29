@@ -76,6 +76,20 @@ Detalle completo, con el porqué de cada una, en [`specs/docs/tasks/frontend.md`
 
 ---
 
+## Shell autenticado — tres preguntas abiertas (29 de septiembre, pendiente de revisión)
+
+Al cerrar [`specs/ui/layout.md`](specs/ui/layout.md) (`FE-05`) quedaron tres puntos decididos con el criterio más barato/reversible disponible, no porque fueran obvios. **Nadie del equipo los ha revisado todavía:**
+
+| Asunto | Decisión tomada | Alternativa, y su costo |
+|---|---|---|
+| Estado de sesión en la cabecera | Mostrar `correo · rol` | Mostrar el nombre real exige que `FE-06` llame también a `GET /api/perfil` (módulo `usuarios`), una dependencia que hoy no tiene |
+| Marca o rótulo en la cabecera | Ninguno | Ningún token ni artifact respalda un logo todavía; añadirlo sería una decisión de contenido, no de layout |
+| Contador de notificaciones en la navegación | Ninguno | Necesita un componente de badge que `components.md` aún no especifica («Badge de estado/rol: Pendiente») |
+
+Ninguna de las tres es estructural: cambiar cualquiera es un ajuste de contenido o una dependencia nueva declarada, no una reescritura del shell. Detalle en [`specs/ui/layout.md`](specs/ui/layout.md#ubicación-de-elementos).
+
+---
+
 ## Estado del proyecto
 
 Los siete bloques de corrección están ejecutados y subidos. Los cinco contratos existentes quedaron cotejados contra los modelos de datos, las reglas y los flujos, y las inconsistencias que ese cotejo encontró están corregidas.
