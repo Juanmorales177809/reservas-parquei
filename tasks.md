@@ -8,6 +8,7 @@ Une los cuatro planes de trabajo y fija el orden entre ellos. El **qué** y el *
 | [Contratos de API](specs/docs/tasks/contratos.md) | 19 tareas `API-XX`: convenciones transversales y los nueve contratos |
 | [Backend nuevo](specs/docs/tasks/backend.md) | 10 tareas `BK-XX`: dónde vive el proyecto, con qué estructura y cómo se levanta antes de la primera ruta de negocio |
 | [Auth en detalle](specs/modules/auth/tasks.md) | 12 tareas `AUTH-XX`: el primer módulo completo, construido a dos carriles |
+| [Frontend](specs/docs/tasks/frontend.md) | 23 tareas `FE-XX`: cimientos, componentes compartidos y, módulo por módulo, la especificación de pantalla que falta seguida de su implementación en Next.js |
 
 **Dos parejas de tareas son la misma cosa vista desde dos planes.** `BK-04` a `BK-07` son `API-01` a `API-04`, y `BK-09` es `API-05`, que a su vez se desglosa en el plan de auth. No se cuentan ni se cierran dos veces: manda la `BK-XX`, que nombra los archivos.
 
@@ -120,6 +121,24 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 
 `API-19` reportes, que necesita reservas reales para tener qué reportar. Cerrada: `/api/reportes` completo (ocupación, solicitudes, lista de espera y exportación csv/excel), verificado con 81 pruebas y por HTTP real.
 
+**Con las fases 0 a 5 cerradas, el backend está completo.** El siguiente paso es la Fase 6.
+
+---
+
+## Fase 6 — Frontend
+
+`frontend/` se borró y no tenía plan (`plan.md` §8). Ya no aplica el motivo por el que se aplazó: **el backend está completo**, con sesión real que consumir y los 19 contratos cerrados. Lo que falta no es API — es la especificación de pantalla de ocho de los nueve módulos, que solo existe hoy para auth, y después el código. El desglose completo, con esa distinción entre especificación e implementación, está en el [plan de frontend](specs/docs/tasks/frontend.md).
+
+| Orden | Tareas | Qué cierra |
+|---|---|---|
+| 1 | `FE-01` a `FE-04` | Proyecto Next.js 14, tokens de diseño en Tailwind, cliente HTTP con sesión/CSRF y el componente `Button` completo |
+| 2 | `FE-05`, `FE-06` | Completar `specs/ui/layout.md` (hoy solo fija una regla) y el shell de navegación autenticado |
+| 3 | `FE-07` | Las nueve pantallas de auth, cuya especificación ya está cerrada — queda como referencia de estilo del resto, igual que auth lo fue para el backend |
+| 4 | `FE-08` a `FE-19` | Especificación e implementación, módulo por módulo: usuarios, administration, resources, espacios, researchs y reservations, en ese orden |
+| 5 | `FE-20` a `FE-23` | Especificación e implementación de notifications y reports |
+
+Dentro de cada módulo de los órdenes 4 y 5, la tarea de especificación de pantalla cierra antes que su implementación — la misma regla que impide cerrar una `API-XX` antes que su `DB-XX`.
+
 ---
 
 ## Los dos riesgos que conviene no perder de vista
@@ -152,10 +171,11 @@ El corte es limpio: **A es la base de datos, B es el proyecto.** Ningún archivo
 
 El carril B construye el proyecto nuevo y su núcleo mientras el A prepara lo que falta en la base. Convergen en `BK-08`, que solo puede modelar lo que ya existe, y vuelven a separarse dentro de auth.
 
+**Este reparto no cubre la Fase 6.** `FE-01` a `FE-23` no se dimensionaron para la pareja A/B de las fases 0–5 — se abrieron después de que ambos carriles convergieran, con el backend ya completo. El [plan de frontend](specs/docs/tasks/frontend.md) no reparte sus 23 tareas a dos carriles por archivo; cada módulo reparte su propia especificación (`FE-08`, `FE-10`, `FE-12`, `FE-14`, `FE-16`, `FE-18`, `FE-20`, `FE-22`) e implementación (`FE-09`, `FE-11`, `FE-13`, `FE-15`, `FE-17`, `FE-19`, `FE-21`, `FE-23`) como una secuencia, no como dos personas en paralelo — repartirlo así queda para cuando se abra la Fase 6.
+
 ---
 
 ## Qué no está en ningún plan
 
-- **La interfaz de usuario.** `frontend/` se borró entero y no tiene plan todavía. El orden natural es después de `BK-09`, cuando auth funcione y haya una sesión real que consumir. Su stack ya está fijado en `architecture.md` §3.
 - **El despliegue.** No hay entorno desplegado: todo esto es desarrollo sobre una base local.
 - **La carga de datos reales.** Los catálogos de proyectos, semilleros y equipos llegan por importación, y esa importación necesita `API-12`.

@@ -27,12 +27,13 @@ PLANES = {
     "contratos": RAIZ / "specs" / "docs" / "tasks" / "contratos.md",
     "backend": RAIZ / "specs" / "docs" / "tasks" / "backend.md",
     "auth": MODULOS / "auth" / "tasks.md",
+    "frontend": RAIZ / "specs" / "docs" / "tasks" / "frontend.md",
 }
 
 # Un identificador de regla o control: RN-TIP-PE-25, RN-REC-04, SEC-SES-01.
 ID_REGLA = r"(?:RN|SEC)-[A-Z]+(?:-[A-Z]+)?-\d{2}"
 ID_FLUJO = r"UF-[A-Z]+-\d{2}"
-ID_TAREA = r"(?:DB|API|BK|AUTH)-[A-Z]?\d{1,2}"
+ID_TAREA = r"(?:DB|API|BK|AUTH|FE)-[A-Z]?\d{1,2}"
 ID_PRUEBA = r"T-[A-Z]+-\d{2}"
 
 

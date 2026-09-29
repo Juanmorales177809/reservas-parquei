@@ -6,28 +6,33 @@ Definir dónde se implementarán los tokens y estilos en el frontend y cómo ser
 
 ## Estado
 
-Estructura base pendiente de completar. Las rutas, los mecanismos de integración y las decisiones de implementación quedan por definir.
+`frontend/` todavía no existe en este repositorio (se borró y no tiene tarea abierta en `tasks.md`). Lo que sigue es el objetivo de implementación tomado del artifact de diseño «Botones ITM · Corporativo», para cuando se abra esa tarea — no hay código escrito todavía.
 
 ## Ubicación de tokens
 
-Pendiente: archivos o directorios donde se implementarán los valores documentados en [Tokens de diseño](design-tokens.md), su formato y su forma de exposición.
+Objetivo: los tokens de [Tokens de diseño](design-tokens.md) se implementan como variables CSS (`--color-*`, `--radius`, `--shadow-*`, `--fs-*`, `--fw-*`) en una única hoja global de tokens, con el bloque de overrides de tema oscuro (`prefers-color-scheme: dark` y `data-theme="dark"`) junto a la definición base — no en un archivo aparte.
 
 ## Ubicación de estilos
 
-Pendiente: archivos o directorios de estilos globales y estilos de componentes, y responsabilidades de cada uno.
+Objetivo: estilos globales (reset mínimo, tipografía base) separados de los estilos por componente. Cada componente compartido resuelve sus propias variantes con clases de Tailwind, sin hojas de estilo propias por componente salvo necesidad puntual (p. ej. la animación del spinner de `Button`).
 
 ## Integración con Tailwind
 
-Pendiente: mecanismo de integración de los tokens y estilos con Tailwind y forma de consumo mediante sus utilidades.
+Objetivo, tal como lo deja escrito el artifact: los tokens de color se consumen desde Tailwind por valor literal mapeado a la variable CSS (p. ej. `bg-gradient-to-br from-[#10A83F] to-[#00681F]` para `btn-primary`), no por reimplementación de la paleta en `tailwind.config`. El radio estándar de botón (12px) y la sombra elevada (`--shadow-default/hover/pressed`) se consumen igual, como utilidades de Tailwind parametrizadas con esos mismos valores. Confirmar en la tarea de implementación si conviene además registrar los tokens como `theme.extend` de Tailwind para poder referenciarlos por nombre (`bg-primary-1`) en vez de por valor literal.
 
 ## Consumo en componentes compartidos
 
-Pendiente: ubicación de los componentes compartidos y forma de consumir los tokens, estilos y utilidades de Tailwind para implementar sus variantes y estados.
+Objetivo: los componentes compartidos (empezando por `Button`, ver [Componentes UI](components.md#api-objetivo-react)) viven bajo un directorio propio de UI compartida (p. ej. `frontend/src/components/ui/`), resuelven variante/tamaño/estado con utilidades de Tailwind sobre los tokens, y no acceden a valores de color o radio fuera de los documentados en [Tokens de diseño](design-tokens.md).
 
 ## Consumo en pantallas
 
-Pendiente: forma de utilizar los componentes compartidos, tokens y estilos en las pantallas, aplicando las reglas de distribución que se definan.
+Pendiente: forma de utilizar los componentes compartidos, tokens y estilos en las pantallas, aplicando las reglas de distribución que se definan en [Distribución de la interfaz](layout.md).
 
 ## Correspondencia con las especificaciones UI
 
-Pendiente: documentar la correspondencia entre los archivos de implementación y las definiciones de [Tokens de diseño](design-tokens.md), [Sistema de diseño](design-system.md), [Componentes UI](components.md) y [Distribución de la interfaz](layout.md).
+| Especificación | Se implementa en |
+|---|---|
+| [Tokens de diseño](design-tokens.md) | Hoja global de variables CSS (ver «Ubicación de tokens») |
+| [Sistema de diseño](design-system.md) | Reglas aplicadas dentro de cada componente compartido, no en un archivo propio |
+| [Componentes UI](components.md) | `frontend/src/components/ui/` (objetivo) |
+| [Distribución de la interfaz](layout.md) | Pendiente, junto con esa especificación |

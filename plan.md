@@ -22,9 +22,9 @@ La especificación está cerrada: nueve módulos con reglas, modelo, flujos y co
 | Componente | Estado |
 |---|---|
 | Especificación y contratos | Completos y cotejados entre sí. 122 rutas documentadas |
-| Base de datos | El schema `reservas` aplicado: 28 tablas, vacías. Faltan cuatro schemas, cinco tablas de `auth` y las columnas objetivo de `usuarios.usuarios` |
-| Backend | Vacío. El anterior se retiró entero porque respondía a un contrato distinto |
-| Frontend | Vacío. Sin plan todavía |
+| Base de datos | Completa: los cinco schemas y las 51+ tablas aplicados, con las garantías de concurrencia de `DB-12` instaladas y probadas |
+| Backend | Completo: 56 tareas de base de datos, contratos y backend cerradas, `auth` incluida |
+| Frontend | Vacío. Con plan: [`specs/docs/tasks/frontend.md`](specs/docs/tasks/frontend.md), 23 tareas `FE-XX` |
 
 El backend anterior autenticaba por `username`, devolvía el token en el cuerpo y metía el rol dentro del JWT. No eran defectos de implementación sino de contrato, así que se retiró en vez de adaptarse pieza a pieza.
 
@@ -91,6 +91,24 @@ El retiro manual del Técnico no genera historial específico. Los retiros autom
 
 Lista de espera conserva viabilidad explícita, adjuntos y formulario tras viabilidad; recepción y aprobación atómicas; ejecución sin entrega de recursos y finalización con horas. Campus y externo generan la FGL 030 al aprobar dentro del proceso de salida y mantienen sus datos inmutables, sin regeneración ni versiones. Espacio e interno conservan sus transiciones automáticas por franja, con las diferencias definidas en sus reglas.
 
+### Frontend
+
+```text
+frontend/
+  app/
+    (auth)/        rutas publicas: login, registro, activacion, recuperacion
+    (app)/         rutas autenticadas, una carpeta por modulo
+  src/
+    components/ui/ componentes compartidos, empezando por Button
+    lib/           cliente HTTP y hooks de datos
+    styles/        tokens.css, generado desde specs/ui/design-tokens.md
+  tests/
+```
+
+Next.js 14 con **App Router**, no Pages Router: Server Components por defecto para las vistas de solo lectura, `'use client'` solo donde hay estado o interacción. El detalle completo de esta arquitectura —por qué App Router, cómo se maneja la sesión en el cliente, dónde vive TanStack Query— está en el [plan de frontend](specs/docs/tasks/frontend.md), porque no estaba fijado en `architecture.md` y se decide ahí por primera vez. Anotado en [`decisiones_pendientes_para_revision.md`](decisiones_pendientes_para_revision.md) para revisión del equipo.
+
+Un directorio por módulo dentro de `app/(app)/`, con los mismos nueve nombres que el backend — la misma regla del límite 4: un directorio que no corresponda a un módulo documentado es señal de que la superficie se está inventando.
+
 ---
 
 ## 4. Los cinco límites que no se cruzan
@@ -119,6 +137,7 @@ El orden lo detalla `tasks.md`. Lo que sigue es el criterio de salida de cada un
 | **3 — Catálogos e inventario** | Existen recursos, espacios y contextos reales, creados por la API y no insertados a mano |
 | **4 — Reservas** | Los cinco tipos cumplen el contrato actualizado; la base impide solapamientos temporales y compromisos físicos duplicados incluso con fechas distintas, incluidos los retiros atómicos de complementarios y sus carreras con el inicio del espacio |
 | **5 — Notificaciones y reportes** | Repetir una ocurrencia no genera una segunda notificación, y un fallo de entrega **no invalida la operación de negocio** que lo originó |
+| **6 — Frontend** | Los nueve módulos tienen su especificación de pantalla (`screens.md`, `wireframes.md`, `screen-flow.md`) y su implementación en `frontend/`, consumiendo la API real y no una simulada; ningún componente compartido usa un color, radio o sombra fuera de [`design-tokens.md`](specs/ui/design-tokens.md) |
 
 Una fase no se da por cerrada porque sus tareas estén marcadas, sino porque su criterio se comprueba.
 
@@ -148,6 +167,5 @@ Cómo se comprueba está en [`testing.md`](specs/docs/testing.md), y qué falta 
 
 ## 8. Qué queda fuera
 
-- **El frontend.** Su stack está fijado, pero no tiene plan. Construirlo exige antes una API contra la que trabajar: el orden natural es después de que auth funcione de punta a punta y haya una sesión real que consumir.
 - **El despliegue.** No hay entorno desplegado. Todo esto es desarrollo sobre una base local.
 - **La carga de datos reales.** Proyectos, semilleros y equipos llegan por importación masiva, que es superficie de API y no un paso de instalación.

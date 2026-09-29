@@ -26,7 +26,9 @@ Pendiente: reglas de aplicación de espaciados y dimensiones, con referencia a l
 
 ## Adaptación a tamaños de pantalla
 
-Pendiente: reglas de adaptación y reorganización del contenido.
+Pendiente: reglas generales de adaptación y reorganización del contenido.
+
+Una regla ya fijada, tomada del artifact de diseño «Botones ITM · Corporativo»: en viewport móvil, el botón `primary` de una pantalla usa `fullWidth` (ancho 100%, ver [Componentes UI](components.md#tamaños)). En desktop y tablet conserva su ancho intrínseco. No aplica a otras variantes salvo que se decida lo contrario.
 
 ## Documentos relacionados
 

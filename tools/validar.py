@@ -93,8 +93,8 @@ def cobertura_de_tareas():
     general = ix.leer(ix.PLANES["general"]).replace("`", "").replace("~", "")
 
     def expandir(texto):
-        vistos = set(re.findall(r"\b(?:DB|API|BK)-\d{2}\b", texto))
-        for pre, a, b in re.findall(r"\b(DB|API|BK)-(\d{2})\s+a\s+(?:DB|API|BK)-(\d{2})\b", texto):
+        vistos = set(re.findall(r"\b(?:DB|API|BK|FE)-\d{2}\b", texto))
+        for pre, a, b in re.findall(r"\b(DB|API|BK|FE)-(\d{2})\s+a\s+(?:DB|API|BK|FE)-(\d{2})\b", texto):
             for n in range(int(a), int(b) + 1):
                 vistos.add(f"{pre}-{n:02d}")
         return vistos

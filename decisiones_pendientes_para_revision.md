@@ -60,6 +60,22 @@ Esto no es documentación: es la garantía de que dos personas no puedan reserva
 
 ---
 
+## Frontend — arquitectura interna (29 de septiembre, pendiente de revisión)
+
+`architecture.md` §3 fija el stack de frontend (Next.js 14, React 18, TypeScript, Tailwind, Recharts) pero no su arquitectura interna. Al abrir el [plan de frontend](specs/docs/tasks/frontend.md) se tomaron estas decisiones, que **nadie del equipo ha revisado todavía**:
+
+| Asunto | Decisión |
+|---|---|
+| Router de Next.js 14 | App Router, no Pages Router |
+| Componentes por defecto | Server Component; `'use client'` solo con estado o interacción |
+| Datos en lectura inicial | `fetch` nativo desde Server Components |
+| Mutaciones y refetch | TanStack Query en Client Components |
+| Estado de sesión/rol en el cliente | Ninguno persistido; cada acción sensible se revalida contra el backend |
+
+Detalle completo, con el porqué de cada una, en [`specs/docs/tasks/frontend.md`](specs/docs/tasks/frontend.md#decisiones-que-fija-este-plan). Si el equipo las corrige, se corrige ese documento primero, igual que un contrato.
+
+---
+
 ## Estado del proyecto
 
 Los siete bloques de corrección están ejecutados y subidos. Los cinco contratos existentes quedaron cotejados contra los modelos de datos, las reglas y los flujos, y las inconsistencias que ese cotejo encontró están corregidas.
