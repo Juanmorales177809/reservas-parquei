@@ -72,7 +72,11 @@ COOKIE_ACCESO = "rp_access"
 COOKIE_REFRESH = "rp_refresh"
 COOKIE_CSRF = "rp_csrf"
 
-RUTA_COOKIE_ACCESO = "/api"
+# "/" y no "/api": el frontend decide la sesión en el servidor (layout de `(app)`),
+# y el navegador solo envía a una página las cookies cuyo Path la cubre. Con "/api"
+# ninguna pantalla autenticada era alcanzable. Sigue siendo HttpOnly y Secure; el
+# Path no era una frontera de seguridad (contrato de auth, §2 Cookies).
+RUTA_COOKIE_ACCESO = "/"
 RUTA_COOKIE_REFRESH = "/api/auth/sesiones"
 
 ENCABEZADO_CSRF = "X-CSRF-Token"

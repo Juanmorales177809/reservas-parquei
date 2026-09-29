@@ -28,9 +28,11 @@ La arquitectura fija JWT como mecanismo de autenticación (`architecture.md` §1
 
 | Cookie | Contenido | Atributos | Vigencia |
 |---|---|---|---|
-| `rp_access` | JWT de acceso | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api` | Corta, por configuración |
+| `rp_access` | JWT de acceso | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` | Corta, por configuración |
 | `rp_refresh` | Secreto de refresco; su hash se persiste en `auth.sesiones.refresh_token_hash` | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/auth/sesiones` | Hasta `expires_at` de la sesión |
 | `rp_csrf` | Token CSRF de doble envío | `Secure`, `SameSite=Lax`, legible por JavaScript | Se emite en §3.0 antes de existir sesión y se renueva con cada sesión nueva |
+
+`rp_access` usa `Path=/` (decisión del 2026-09-29; antes `Path=/api`). El frontend resuelve la sesión en el servidor al renderizar cada página protegida, y el navegador solo adjunta a una petición de página las cookies cuyo `Path` la cubre: con `Path=/api` la cookie no llegaba nunca y toda pantalla autenticada redirigía a login. El `Path` no era una frontera de seguridad —la cookie sigue siendo `HttpOnly`, `Secure` y de vida corta—; `rp_refresh` conserva su ruta estrecha porque solo lo consume `POST /api/auth/sesiones/renovacion`.
 
 `rp_csrf` es intencionalmente legible por el cliente: no es el secreto de sesión y su exposición no contradice `SEC-SES-05`.
 
