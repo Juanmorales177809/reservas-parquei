@@ -79,6 +79,7 @@ Todos los tipos conservan los estados globales anteriores. La aprobación, recha
 - [Especificación del producto](../../docs/spec.md)
 - [Arquitectura general](../../docs/architecture.md)
 - [Modelo de datos general](../../docs/data-model.md)
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las cuatro superficies de reservas.
 
 ## Modelo persistente
 

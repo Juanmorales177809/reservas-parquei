@@ -311,13 +311,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 
 El módulo central y el más complejo: cinco tipos de reserva con estrategias distintas (`architecture.md` §6.3–6.4, [`reservations/architecture.md`](../../modules/reservations/architecture.md)).
 
-### FE-18 — Especificación de pantallas — reservations
+### FE-18 — Especificación de pantallas — reservations · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `reservations`: solicitud por tipo, gestión, calendario, lista de espera y transiciones de estado.
 - **Afectados:** `specs/modules/reservations/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`reservations/user-flows.md`](../../modules/reservations/user-flows.md) y los cuatro contratos que lo cubren (`API-13` a `API-16`), cerrados. FE-14 para el selector de espacios, FE-12 para el de recursos.
 - **Aceptación:** igual criterio que FE-08. Cubre los seis estados de una reserva y las cinco estrategias (espacio, recurso interno, recurso de campus, recurso externo, lista de espera) como flujos de pantalla distintos, no como una sola pantalla genérica con campos condicionales sin documentar.
+- **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-RES-01` solicitud por estrategia (con disponibilidad consultada sin garantía y edición en solicitada), `SCR-RES-02` gestión del Técnico por tipo y estado, `SCR-RES-03` lista de espera separada, `SCR-RES-04` consulta, calendario y órdenes de solo lectura. Siete flujos de sistema sin superficie propia, documentados en vez de omitidos. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-19 — Implementación — reservations
 
