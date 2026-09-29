@@ -10,6 +10,8 @@
  *   lee ni almacena esas cookies.
  * - Toda mutación exige `X-CSRF-Token` con el valor de la cookie legible
  *   `rp_csrf`, obtenida primero de `GET /api/auth/csrf` si aún no existe.
+ * - El cuerpo viaja como JSON, salvo `FormData` (importaciones), que se
+ *   envía tal cual para que el navegador fije el boundary multipart.
  * - Sin reintento en `401`: una sesión vencida o revocada se propaga como
  *   `ApiRequestError` para que quien llame decida (p. ej. redirigir a
  *   login), nunca se reintenta la misma petición con credenciales viejas.
@@ -84,10 +86,13 @@ export async function apiRequest<T>(
   options: ApiRequestOptions = {}
 ): Promise<T> {
   const method = options.method ?? "GET";
+  const esFormulario = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...options.headers,
   };
+  if (!esFormulario) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (options.cookieHeader) {
     headers["Cookie"] = options.cookieHeader;
@@ -108,7 +113,12 @@ export async function apiRequest<T>(
     headers,
     credentials: "include",
     cache: "no-store",
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body:
+      options.body !== undefined
+        ? esFormulario
+          ? (options.body as FormData)
+          : JSON.stringify(options.body)
+        : undefined,
   });
 
   if (respuesta.status === 204) {

@@ -38,9 +38,10 @@ function FormularioInvitar() {
   const tipoReenvio = searchParams.get("tipo") as TipoCuenta | null;
   const esReenvio = Boolean(idReenvio && correoReenvio && tipoReenvio);
 
-  const [correo, setCorreo] = useState("");
-  const [tipoCuenta, setTipoCuenta] = useState<TipoCuenta>("USUARIO");
-  const [idUnidad, setIdUnidad] = useState("");
+  // FE-11: al llegar desde identidades con ?correo=&tipo=, el formulario
+  // arranca precargado. En modo reenvío esta rama no se pinta.
+  const [correo, setCorreo] = useState(correoReenvio ?? "");
+  const [tipoCuenta, setTipoCuenta] = useState<TipoCuenta>(tipoReenvio ?? "USUARIO");  const [idUnidad, setIdUnidad] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tono, setTono] = useState<"error" | "exito">("error");

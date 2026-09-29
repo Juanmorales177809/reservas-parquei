@@ -242,13 +242,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-08.
 - **Resultado:** cinco pantallas agrupadas por superficie compartida: `SCR-ADM-01` unidades/cargos, `SCR-ADM-02` permisos, `SCR-ADM-03` identidades con invitación (UF-ADM-02/03), `SCR-ADM-04` importaciones (UF-ADM-01/04, con unidad destino para equipos y rechazo total), `SCR-ADM-05` auditoría de solo lectura. Las superficies de contrato sin flujo propio (§2, §3, §5) se documentan desde contrato y reglas sin inventar flujos. Cuentas de FE-07 referenciadas, no redefinidas. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-11 — Implementación — administration
+### FE-11 — Implementación — administration · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `administration` (unidades, cargos, permisos, auditoría) funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/administracion/**`.
 - **Dependencias:** FE-10, FE-04, FE-06, FE-07 (comparte área de administración de cuentas con auth).
 - **Aceptación:** igual criterio que FE-09. La vista de auditoría no expone contraseñas, secretos de sesión, tokens completos ni claves, igual que exige `SEC-AUD-03`.
+- **Resultado:** cinco rutas nuevas (una por wireframe WF-ADM-01 a WF-ADM-05), Client Components con `useState` + `apiRequest` como FE-07/FE-09. Andamiaje: `src/lib/administracion-api.ts` (endpoints §2–§5 con formas tipadas) + `administracion-types.ts` sin `next/headers`; `http.ts` gana passthrough de `FormData` (multipart con boundary del navegador, CSRF intacto) para la carga Excel. Las pantallas de cuentas de FE-07 se reutilizan sin tocarse, salvo precarga de `?correo=&tipo=` al llegar desde identidades. Textos de error literales de cada fila. Verificado: `tsc --noEmit`, `build` (5 rutas), `lint` limpios; `npm test` — 24 en verde (3 dirigidas nuevas: duplicado junto al campo, carga no confirmable, auditoría sin secretos).
 
 ### FE-12 — Especificación de pantallas — resources
 
