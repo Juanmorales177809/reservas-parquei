@@ -69,6 +69,26 @@ def tipos_habilitados(
     return envolver_catalogo(service.tipos_habilitados(db, id_unidad))
 
 
+@router.get("/contexto/opciones", response_model=dict)
+def opciones_contexto(
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> dict:
+    """§2.9. Contextos elegibles según el tipo de cuenta (RN-CTX-05, RN-CTX-08)."""
+    return service.opciones_contexto(db, contexto)
+
+
+@router.get("/acompanantes/opciones", response_model=dict)
+def opciones_acompanantes(
+    proyecto_id: int | None = None,
+    semillero_id: int | None = None,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> dict:
+    """§2.10. Cuentas elegibles como acompañantes (RN-ACO-02, RN-ACO-04)."""
+    return envolver_catalogo(service.opciones_acompanantes(db, proyecto_id, semillero_id, contexto))
+
+
 @router.get("", response_model=dict)
 def listar_reservas(
     request: Request,

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import func, select, text
+from sqlalchemy import exists, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.db.models.auth import Cuentas
@@ -70,6 +70,43 @@ def obtener_estado(db: Session, id_estado: int) -> EstadosReserva | None:
 
 def id_usuario_de_cuenta(db: Session, id_cuenta: int) -> int | None:
     return db.scalar(select(Cuentas.id_usuario).where(Cuentas.id_cuenta == id_cuenta))
+
+
+def nombre_de_cuenta(db: Session, id_cuenta: int | None) -> str | None:
+    """Nombre de la persona titular de la cuenta (usuario o personal); las pantallas no muestran ids."""
+    if id_cuenta is None:
+        return None
+    from app.db.models.identidad import Usuarios
+
+    fila = db.execute(select(Cuentas.id_usuario, Cuentas.id_persona).where(Cuentas.id_cuenta == id_cuenta)).first()
+    if fila is None:
+        return None
+    if fila[0] is not None:
+        return db.scalar(select(Usuarios.nombre).where(Usuarios.id_usuario == fila[0]))
+    if fila[1] is not None:
+        return db.scalar(select(Personal.nombre).where(Personal.id_persona == fila[1]))
+    return None
+
+
+def nombre_de_espacio(db: Session, espacio_id: int) -> str | None:
+    from app.db.models.reservas import Espacios
+
+    return db.scalar(select(Espacios.nombre).where(Espacios.id == espacio_id))
+
+
+def cuentas_activas_de_usuarios(db: Session, ids_usuario: list[int]) -> list[tuple[int, str]]:
+    """(id_cuenta, nombre) de las cuentas activas de esos usuarios, ordenadas por nombre."""
+    if not ids_usuario:
+        return []
+    from app.db.models.identidad import Usuarios
+
+    filas = db.execute(
+        select(Cuentas.id_cuenta, Usuarios.nombre)
+        .join(Usuarios, Usuarios.id_usuario == Cuentas.id_usuario)
+        .where(Cuentas.id_usuario.in_(ids_usuario), Cuentas.estado.is_(True))
+        .order_by(Usuarios.nombre)
+    ).all()
+    return [(f[0], f[1]) for f in filas]
 
 
 def unidad_del_cargo_de_persona(db: Session, id_persona: int) -> int | None:
@@ -132,10 +169,24 @@ def listar_reservas(
         stmt = stmt.join(EstadosReserva, EstadosReserva.id == Reservas.estado_id).where(EstadosReserva.codigo == estado_codigo)
     if tipo_codigo is not None:
         stmt = stmt.join(TiposReserva, TiposReserva.id == Reservas.tipo_reserva_id).where(TiposReserva.codigo == tipo_codigo)
-    if desde is not None:
-        stmt = stmt.where(Reservas.created_at >= desde)
-    if hasta is not None:
-        stmt = stmt.where(Reservas.created_at <= hasta)
+    if desde is not None or hasta is not None:
+        # Fecha de uso, no de creación: una reserva entra si su periodo comparte al menos un día con
+        # [desde, hasta] (RN-DIS-02). La lista de espera no tiene fecha y queda fuera cuando se filtra por ella.
+        periodos = (
+            (ReservaEspacio, ReservaEspacio.fecha, ReservaEspacio.fecha),
+            (ReservaRecursoInterno, ReservaRecursoInterno.fecha, ReservaRecursoInterno.fecha),
+            (ReservaRecursoCampus, ReservaRecursoCampus.fecha_salida, ReservaRecursoCampus.fecha_devolucion_estimada),
+            (ReservaRecursoExterno, ReservaRecursoExterno.fecha_salida, ReservaRecursoExterno.fecha_devolucion_estimada),
+        )
+        condiciones = []
+        for modelo, inicio, fin in periodos:
+            partes = [modelo.reserva_id == Reservas.id]
+            if hasta is not None:
+                partes.append(inicio <= hasta)
+            if desde is not None:
+                partes.append(fin >= desde)
+            condiciones.append(exists().where(*partes))
+        stmt = stmt.where(or_(*condiciones))
     if espacio_id is not None:
         stmt = stmt.join(ReservaEspacio, ReservaEspacio.reserva_id == Reservas.id).where(ReservaEspacio.espacio_id == espacio_id)
     if recurso_id is not None:

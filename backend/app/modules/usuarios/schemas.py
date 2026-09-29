@@ -90,6 +90,7 @@ class UsuarioActualizar(BaseModel):
 
 class UsuarioRespuesta(BaseModel):
     id_usuario: int
+    id_cuenta: int | None = None
     nombre: str
     documento: str
     telefono: str
@@ -155,6 +156,7 @@ class UnidadResumen(BaseModel):
 
 class PersonalRespuesta(BaseModel):
     id_persona: int
+    id_cuenta: int | None = None
     nombre: str
     documento: str
     correo: str

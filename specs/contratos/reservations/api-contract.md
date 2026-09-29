@@ -220,6 +220,40 @@ En lista de espera, cambiar efectivamente la descripción tras una evaluación l
 
 ---
 
+### 2.9 `GET /api/reservas/contexto/opciones`
+
+Contextos que la cuenta autenticada puede elegir al crear o editar una reserva (`RN-CTX-05`, `RN-CTX-08`, `RN-TIP-PE-08`, `RN-TIP-PE-09`, `RN-TIP-PE-11`). Existe porque `/api/investigacion/*` exige `usuarios.administrar` y por tanto no lo puede leer quien reserva. Sin permiso administrativo; no pagina (catálogo cerrado por cuenta).
+
+**`200 OK`**
+
+```json
+{
+  "tipo_cuenta": "USUARIO",
+  "proyectos": [{ "id": 12, "codigo": "PRY-012", "nombre": "Ensayos de tracción" }],
+  "semilleros": [{ "id": 3, "codigo": "SEM-003", "nombre": "Semillero de materiales" }],
+  "pasantias": [{ "id": 8, "universidad": "Universidad de Antioquia", "docente_nombre": "Ana Ruiz" }],
+  "trabajos_grado": [{ "id": 5, "director_nombre": "Luis Mora" }],
+  "actividades": [{ "id": 2, "nombre": "Feria de ciencia", "dependencia": "Extensión" }]
+}
+```
+
+`tipo_cuenta` (`USUARIO` o `PERSONAL`) permite a la pantalla aplicar `RN-TIP-PE-08`: solo a un `USUARIO` se le preselecciona la única vinculación válida de un tipo.
+
+- **`USUARIO`:** solo las entidades con **vinculación activa** de su titular y habilitadas, y las actividades institucionales activas (`RN-ACT-02`).
+- **`PERSONAL`:** todos los proyectos y semilleros activos del catálogo general; `pasantias`, `trabajos_grado` y `actividades` llegan vacíos, porque no pueden usarse como contexto (`RN-CTX-08`).
+
+### 2.10 `GET /api/reservas/acompanantes/opciones?proyecto_id=&semillero_id=`
+
+Cuentas que pueden registrarse como acompañantes de una reserva con ese proyecto y/o semillero (`RN-ACO-01`, `RN-ACO-02`, `RN-ACO-04`): la unión de las cuentas activas con vinculación activa a cualquiera de los dos, sin la cuenta que consulta. Catálogo cerrado, sin paginación.
+
+**`200 OK`**
+
+```json
+{ "datos": [{ "id_cuenta": 1099, "nombre": "Camila Torres" }] }
+```
+
+**Errores:** `422 VALIDACION` si no se indica ni proyecto ni semillero; `404 NO_ENCONTRADO` si alguno no existe o está deshabilitado.
+
 ## 3. Consulta
 
 ### 3.1 `GET /api/reservas`
@@ -228,13 +262,26 @@ Listado paginado conforme a las [convenciones](../README.md). Sustenta la consul
 
 Filtros: `estado`, `tipo_reserva`, `id_unidad`, `desde`, `hasta`, `espacio_id`, `recurso_id`. Orden admitido: `created_at`, `fecha`, `estado`.
 
-**`200 OK`** con una fila resumida por reserva.
+`desde` y `hasta` (fechas `AAAA-MM-DD`) acotan por la **fecha de uso** de la reserva, no por la de creación: entra la reserva cuyo periodo comparte al menos un día con `[desde, hasta]` —la `fecha` en espacio e interno; de la salida a la devolución estimada en campus y externo (`RN-DIS-02`)—. La lista de espera no tiene fecha y queda fuera cuando se usa cualquiera de los dos. Cualquiera de los dos puede omitirse (intervalo abierto). `desde` posterior a `hasta` o una fecha mal escrita responde `422 VALIDACION`. La exportación de §8.2 aplica el mismo criterio (`RN-EXP-02`).
+
+**`200 OK`** con una fila resumida por reserva. Además de `id`, `estado`, `tipo_reserva`, `id_unidad`, `id_cuenta`, `observacion`, `requiere_apoyo` y `created_at`, cada fila trae lo necesario para no abrir cada reserva ni mostrar identificadores:
+
+```json
+{
+  "periodo": { "fecha": "2026-10-14", "hora_inicio": "08:00:00", "hora_fin": "12:00:00" },
+  "objeto": "Sala de Redes",
+  "unidad_nombre": "Laboratorio de Redes",
+  "solicitante_nombre": "Camila Torres"
+}
+```
+
+`periodo` es `{ fecha, hora_inicio, hora_fin }` en espacio e interno, `{ fecha_salida, fecha_devolucion_estimada }` en campus y externo, y `null` en lista de espera. `objeto` es el nombre del espacio, el del recurso `PRINCIPAL` (con «y N más» si hay adicionales) o, en lista de espera, el comienzo de la descripción de la necesidad.
 
 ### 3.2 `GET /api/reservas/{id}`
 
 La consulta de reservas propias no exige permiso administrativo; el acceso a reservas ajenas aplica el permiso y alcance definidos en §3.1.
 
-Detalle completo: cabecera, detalle del tipo, recursos asignados con su rol y estado, contexto con sus snapshots, acompañantes, campos adicionales, propuesta vigente si existe e historial de estados. Para `LISTA_ESPERA`, incluye evaluación de viabilidad, recepción del material, horas y formulario complementario con ambas partes y su revisión cuando exista; los archivos se consultan mediante §2.6 y §2.7.
+Detalle completo, con nombres además de identificadores (`unidad_nombre`, `solicitante_nombre`, `detalle.espacio_nombre` en espacio, `nombre` en cada recurso asignado, `acompanantes_detalle` con `{ id_cuenta, nombre }` y `actor_nombre` en cada transición del historial): cabecera, detalle del tipo, recursos asignados con su rol y estado, contexto con sus snapshots, acompañantes, campos adicionales, propuesta vigente si existe e historial de estados. Para `LISTA_ESPERA`, incluye evaluación de viabilidad, recepción del material, horas y formulario complementario con ambas partes y su revisión cuando exista; los archivos se consultan mediante §2.6 y §2.7.
 
 Las asignaciones cuyo retiro exige conservar historial permanecen en el historial de recursos; el retiro manual de §4.4 no genera ese historial. Para retiros por préstamo incluyen `estado_asignacion: "RETIRADO"`, `retirado_at` (ISO 8601 UTC), `causa_retiro: "PRESTAMO_FISICO"` y `reserva_causante_id`. Se excluyen de los recursos efectivos. La referencia causante se conserva internamente, pero solo se expone su identificador si el actor tiene acceso a esa reserva; en otro caso se devuelve `reserva_causante_id: null`, sin conceder acceso ni revelar datos del préstamo ajeno. Cancelar el préstamo no borra esa relación histórica.
 

@@ -31,7 +31,7 @@ class ListaEsperaStrategy(ReservationStrategy):
         detalle = datos.get("detalle") or {}
         if "descripcion_necesidad" in detalle and not (detalle["descripcion_necesidad"] or "").strip():
             raise Validacion("detalle.descripcion_necesidad no puede quedar vacío.")
-        if datos.get("recursos") is not None or datos.get("acompanantes") is not None:
+        if datos.get("recursos") or datos.get("acompanantes"):
             raise Validacion("LISTA_ESPERA no admite recursos ni acompañantes.")
 
     def cambios_editar(self, reserva, datos: dict, condiciones: dict) -> dict:

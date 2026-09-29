@@ -154,10 +154,19 @@ def cambiar_estado_usuario(db: Session, id_usuario: int, estado: bool) -> dict:
     return _usuario_dict(db, usuario)
 
 
+def _id_cuenta_por_correo(db: Session, correo: str) -> int | None:
+    """Cuenta asociada a la identidad (comparten correo). Permite ofrecerla por nombre en las pantallas."""
+    from app.modules.auth import repository_cuentas as repo_cuentas
+
+    cuenta = repo_cuentas.obtener_cuenta_por_correo(db, correo)
+    return cuenta.id_cuenta if cuenta else None
+
+
 def _usuario_dict(db: Session, usuario) -> dict:
     db.refresh(usuario)
     return {
         "id_usuario": usuario.id_usuario,
+        "id_cuenta": _id_cuenta_por_correo(db, usuario.correo),
         "nombre": usuario.nombre,
         "documento": usuario.documento,
         "telefono": usuario.telefono,
@@ -265,6 +274,7 @@ def ficha_dict(db: Session, persona) -> dict:
     unidad = repo.obtener_unidad(db, cargo.id_unidad) if cargo else None
     return {
         "id_persona": persona.id_persona,
+        "id_cuenta": _id_cuenta_por_correo(db, persona.correo),
         "nombre": persona.nombre,
         "documento": persona.documento,
         "correo": persona.correo,

@@ -183,7 +183,7 @@ Crea la identidad funcional de un Usuario, paso previo a invitarlo. Flujo `UF-AD
 
 ### 5.2 `GET /api/usuarios` y `GET /api/usuarios/{id_usuario}`
 
-Listado paginado y detalle. Filtros: `estado`, `busqueda` sobre nombre, documento y correo.
+Listado paginado y detalle. Filtros: `estado`, `busqueda` sobre nombre, documento y correo. Cada elemento incluye `id_cuenta` (o `null` si la identidad aún no tiene cuenta), para que las pantallas de administración elijan la cuenta por el nombre de la persona.
 
 **Errores:** `404 NO_ENCONTRADO` si la identidad no existe.
 
@@ -227,7 +227,7 @@ Los cinco datos son obligatorios. Documento, correo y teléfono son únicos en l
 
 ### 6.2 `GET /api/personal` y `GET /api/personal/{id_persona}`
 
-Listado paginado con la envolvente completa, y detalle con el cargo y la unidad que de él se deriva. Filtros: `estado`, `id_unidad`, `busqueda` sobre nombre, documento y correo.
+Listado paginado con la envolvente completa, y detalle con el cargo y la unidad que de él se deriva. Filtros: `estado`, `id_unidad`, `busqueda` sobre nombre, documento y correo. Cada elemento incluye `id_cuenta` (o `null` si la ficha aún no tiene cuenta).
 
 ### 6.3 `PATCH /api/personal/{id_persona}`
 

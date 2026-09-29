@@ -133,6 +133,7 @@ class ReservaActualizar(BaseModel):
 class RecursoAsignadoDetalle(BaseModel):
     reserva_recurso_id: int
     recurso_id: int
+    nombre: str | None = None
     rol: str
     estado_asignacion: str
     incorporado_at: datetime | None = None
@@ -160,6 +161,7 @@ class ContextoDetalle(BaseModel):
 
 
 class HistorialEstadoItem(BaseModel):
+    actor_nombre: str | None = None
     estado_anterior: str | None
     estado_nuevo: str
     actor_cuenta_id: int | None
@@ -187,6 +189,10 @@ class ReservaListItem(BaseModel):
     observacion: str | None
     requiere_apoyo: bool
     created_at: datetime
+    periodo: dict[str, Any] | None = None
+    objeto: str | None = None
+    unidad_nombre: str | None = None
+    solicitante_nombre: str | None = None
 
 
 class ReservaDetalleRespuesta(BaseModel):
@@ -206,6 +212,9 @@ class ReservaDetalleRespuesta(BaseModel):
     contexto: ContextoDetalle
     recursos: list[RecursoAsignadoDetalle] = []
     acompanantes: list[int] = []
+    acompanantes_detalle: list[dict[str, Any]] = []
+    unidad_nombre: str | None = None
+    solicitante_nombre: str | None = None
     campos_adicionales: list[dict[str, Any]] = []
     historial: list[HistorialEstadoItem] = []
     propuesta_vigente: PropuestaVigente | None = None

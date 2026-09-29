@@ -142,6 +142,76 @@ def _resolver_contexto(db, contexto_datos: dict, contexto: ContextoAutenticado) 
     return snapshot
 
 
+def opciones_contexto(db, contexto: ContextoAutenticado) -> dict:
+    """§2.9. Qué contextos puede elegir la cuenta al reservar (RN-CTX-05, RN-CTX-08).
+
+    `USUARIO`: solo sus vinculaciones activas y vigentes, más las actividades institucionales
+    activas. `PERSONAL`: proyectos y semilleros activos del catálogo general, sin pasantías,
+    trabajos de grado ni actividades (no se le consulta vinculación propia).
+    """
+    respuesta: dict = {
+        "tipo_cuenta": contexto.tipo_cuenta,
+        "proyectos": [], "semilleros": [], "pasantias": [], "trabajos_grado": [], "actividades": [],
+    }
+
+    if contexto.tipo_cuenta != "USUARIO":
+        proyectos, _ = inv_repo.listar_proyectos(db, estado=True, busqueda=None, orden="nombre", offset=0, tamano=500)
+        semilleros, _ = inv_repo.listar_semilleros(db, estado=True, busqueda=None, orden="nombre", offset=0, tamano=500)
+        respuesta["proyectos"] = [{"id": p.id_proyecto, "codigo": p.codigo, "nombre": p.nombre} for p in proyectos]
+        respuesta["semilleros"] = [{"id": s.id_semillero, "codigo": s.codigo, "nombre": s.nombre} for s in semilleros]
+        return respuesta
+
+    def entidades_vigentes(tipo: str):
+        campo = inv_repo.campo_fk_vinculacion(tipo)
+        for vinculo in inv_repo.vinculaciones_usuario(db, tipo, contexto.id_usuario):
+            if not vinculo.estado:
+                continue
+            entidad = inv_repo.obtener_entidad(db, tipo, getattr(vinculo, campo))
+            if entidad is not None and entidad.estado:
+                yield entidad
+
+    respuesta["proyectos"] = [
+        {"id": e.id_proyecto, "codigo": e.codigo, "nombre": e.nombre} for e in entidades_vigentes("proyectos")
+    ]
+    respuesta["semilleros"] = [
+        {"id": e.id_semillero, "codigo": e.codigo, "nombre": e.nombre} for e in entidades_vigentes("semilleros")
+    ]
+    respuesta["pasantias"] = [
+        {"id": e.id_pasantia, "universidad": e.universidad, "docente_nombre": e.docente_itm_nombre}
+        for e in entidades_vigentes("pasantias")
+    ]
+    respuesta["trabajos_grado"] = [
+        {"id": e.id_trabajo_grado, "director_nombre": e.director_nombre} for e in entidades_vigentes("trabajos_grado")
+    ]
+    actividades, _ = inv_repo.listar_actividades(db, estado=True, dependencia=None, busqueda=None, offset=0, tamano=500)
+    respuesta["actividades"] = [
+        {"id": a.id_actividad, "nombre": a.nombre, "dependencia": a.dependencia} for a in actividades
+    ]
+    return respuesta
+
+
+def opciones_acompanantes(db, proyecto_id: int | None, semillero_id: int | None, contexto: ContextoAutenticado) -> list[dict]:
+    """§2.10. Cuentas que pueden acompañar: vinculación activa con el proyecto o el semillero (RN-ACO-02, RN-ACO-04)."""
+    if proyecto_id is None and semillero_id is None:
+        raise Validacion("Indica un proyecto o un semillero.")
+    ids_usuario: set[int] = set()
+    if proyecto_id is not None:
+        proyecto = inv_repo.obtener_proyecto(db, proyecto_id)
+        if proyecto is None or not proyecto.estado:
+            raise NoEncontrado("El proyecto no existe o está deshabilitado.")
+        ids_usuario.update(inv_repo.usuarios_vinculados(db, "proyectos", proyecto_id))
+    if semillero_id is not None:
+        semillero = inv_repo.obtener_semillero(db, semillero_id)
+        if semillero is None or not semillero.estado:
+            raise NoEncontrado("El semillero no existe o está deshabilitado.")
+        ids_usuario.update(inv_repo.usuarios_vinculados(db, "semilleros", semillero_id))
+    return [
+        {"id_cuenta": id_cuenta, "nombre": nombre}
+        for id_cuenta, nombre in repo.cuentas_activas_de_usuarios(db, sorted(ids_usuario))
+        if id_cuenta != contexto.id_cuenta
+    ]
+
+
 def _validar_acompanantes(db, ids_cuentas: list[int], contexto_resuelto: dict) -> None:
     if not ids_cuentas:
         return
@@ -325,6 +395,10 @@ def actualizar_reserva(db, id_reserva: int, datos: schemas.ReservaActualizar, co
     cambios_entrada = datos.model_dump(exclude_unset=True)
     if not cambios_entrada:
         raise Validacion("El cuerpo debe contener al menos un campo editable.")
+    if tipo.codigo == "LISTA_ESPERA":
+        no_aplicables = sorted({"recursos", "acompanantes", "campos_adicionales", "requiere_apoyo"} & cambios_entrada.keys())
+        if no_aplicables:
+            raise Validacion(f"LISTA_ESPERA no admite editar: {', '.join(no_aplicables)}.")
 
     # Construye el estado resultante completo: lo no enviado conserva su valor actual.
     detalle_actual = _detalle_por_tipo(db, reserva, tipo.codigo)
@@ -642,6 +716,40 @@ def _detalle_por_tipo(db, reserva, tipo_codigo: str) -> dict:
     return {}
 
 
+def _resumen_legible(db, reserva, tipo_codigo: str) -> dict:
+    """Lo que una persona necesita ver en un listado sin abrir cada reserva: cuándo, qué, dónde y quién."""
+    detalle = _detalle_por_tipo(db, reserva, tipo_codigo)
+    asignaciones = repo.asignaciones_de_reserva(db, reserva.id, solo_vigentes=True)
+    nombres = rec_repo.nombres_de_recursos(db, [a.recurso_id for a in asignaciones])
+
+    if tipo_codigo in ("ESPACIO", "RECURSO_INTERNO"):
+        periodo = {"fecha": detalle["fecha"], "hora_inicio": detalle["hora_inicio"], "hora_fin": detalle["hora_fin"]}
+    elif tipo_codigo in ("RECURSO_CAMPUS", "RECURSO_EXTERNO"):
+        periodo = {"fecha_salida": detalle["fecha_salida"], "fecha_devolucion_estimada": detalle["fecha_devolucion_estimada"]}
+    else:
+        periodo = None
+
+    if tipo_codigo == "ESPACIO":
+        objeto = repo.nombre_de_espacio(db, detalle["espacio_id"])
+    elif tipo_codigo == "LISTA_ESPERA":
+        texto = detalle.get("descripcion_necesidad") or ""
+        objeto = texto if len(texto) <= 80 else texto[:77] + "..."
+    else:
+        principal = next((a for a in asignaciones if a.rol == "PRINCIPAL"), None)
+        extras = len(asignaciones) - (1 if principal else 0)
+        objeto = nombres.get(principal.recurso_id) if principal else None
+        if objeto and extras > 0:
+            objeto = f"{objeto} y {extras} más"
+
+    unidad = rec_repo.obtener_unidad(db, reserva.id_unidad)
+    return {
+        "periodo": periodo,
+        "objeto": objeto,
+        "unidad_nombre": unidad.nombre if unidad else None,
+        "solicitante_nombre": repo.nombre_de_cuenta(db, reserva.id_cuenta),
+    }
+
+
 def _contexto_dict(contexto) -> dict:
     if contexto is None:
         return {}
@@ -665,14 +773,17 @@ def obtener_reserva_detalle(db, id_reserva: int, contexto: ContextoAutenticado) 
     estado = repo.obtener_estado(db, reserva.estado_id)
 
     recursos = []
-    for a in repo.asignaciones_de_reserva(db, id_reserva):
+    asignaciones = repo.asignaciones_de_reserva(db, id_reserva)
+    nombres_recursos = rec_repo.nombres_de_recursos(db, [a.recurso_id for a in asignaciones])
+    for a in asignaciones:
         reserva_causante_id = None
         if a.reserva_causante_id is not None:
             causante = repo.obtener_reserva(db, a.reserva_causante_id)
             if causante is not None and acceso_policy.validar_ambito_lectura(contexto, causante.id_cuenta, causante.id_unidad):
                 reserva_causante_id = a.reserva_causante_id
         recursos.append({
-            "reserva_recurso_id": a.id, "recurso_id": a.recurso_id, "rol": a.rol, "estado_asignacion": a.estado_asignacion,
+            "reserva_recurso_id": a.id, "recurso_id": a.recurso_id, "nombre": nombres_recursos.get(a.recurso_id),
+            "rol": a.rol, "estado_asignacion": a.estado_asignacion,
             "incorporado_at": a.incorporado_at, "retirado_at": a.retirado_at, "causa_retiro": a.causa_retiro,
             "reserva_causante_id": reserva_causante_id,
         })
@@ -703,10 +814,18 @@ def obtener_reserva_detalle(db, id_reserva: int, contexto: ContextoAutenticado) 
         "id_cuenta": reserva.id_cuenta, "observacion": reserva.observacion, "requiere_apoyo": reserva.requiere_apoyo,
         "created_at": reserva.created_at, "updated_at": reserva.updated_at, "fecha_aprobacion": reserva.fecha_aprobacion,
         "fecha_cancelacion": reserva.fecha_cancelacion, "motivo_cancelacion": reserva.motivo_cancelacion,
-        "detalle": _detalle_por_tipo(db, reserva, tipo.codigo),
+        "detalle": {**_detalle_por_tipo(db, reserva, tipo.codigo), **(
+            {"espacio_nombre": repo.nombre_de_espacio(db, _detalle_por_tipo(db, reserva, tipo.codigo)["espacio_id"])}
+            if tipo.codigo == "ESPACIO" else {}
+        )},
+        "unidad_nombre": (lambda u: u.nombre if u else None)(rec_repo.obtener_unidad(db, reserva.id_unidad)),
+        "solicitante_nombre": repo.nombre_de_cuenta(db, reserva.id_cuenta),
         "contexto": _contexto_dict(repo.obtener_contexto(db, id_reserva)),
         "recursos": recursos,
         "acompanantes": repo.acompanantes_de_reserva(db, id_reserva),
+        "acompanantes_detalle": [
+            {"id_cuenta": c, "nombre": repo.nombre_de_cuenta(db, c)} for c in repo.acompanantes_de_reserva(db, id_reserva)
+        ],
         "campos_adicionales": [
             {"campo_id": c.campo_id, "campo_nombre": c.campo_nombre_snapshot, "valor_texto": c.valor_texto, "opcion_id": c.opcion_id, "opcion_nombre": c.opcion_nombre_snapshot}
             for c in repo.campos_valores_de_reserva(db, id_reserva)
@@ -715,13 +834,25 @@ def obtener_reserva_detalle(db, id_reserva: int, contexto: ContextoAutenticado) 
             {
                 "estado_anterior": (repo.obtener_estado(db, h.estado_anterior_id).codigo if h.estado_anterior_id else None),
                 "estado_nuevo": repo.obtener_estado(db, h.estado_nuevo_id).codigo,
-                "actor_cuenta_id": h.actor_cuenta_id, "motivo": h.motivo, "created_at": h.created_at,
+                "actor_cuenta_id": h.actor_cuenta_id, "actor_nombre": repo.nombre_de_cuenta(db, h.actor_cuenta_id),
+                "motivo": h.motivo, "created_at": h.created_at,
             }
             for h in repo.historial_de_reserva(db, id_reserva)
         ],
         "propuesta_vigente": propuesta_vigente,
         "lista_espera": lista_espera_extra,
     }
+
+
+def _fecha_de_filtro(valor, nombre: str) -> date | None:
+    if valor in (None, ""):
+        return None
+    if isinstance(valor, date):
+        return valor
+    try:
+        return date.fromisoformat(str(valor))
+    except ValueError:
+        raise Validacion(f"'{nombre}' debe ser una fecha AAAA-MM-DD.") from None
 
 
 def listar_reservas(db, filtros: dict, pagina: int, tamano: int, orden: str | None, contexto: ContextoAutenticado) -> tuple[list[dict], int]:
@@ -734,9 +865,13 @@ def listar_reservas(db, filtros: dict, pagina: int, tamano: int, orden: str | No
         if contexto.unidades_autorizadas != "GLOBAL" and id_unidad not in contexto.unidades_autorizadas:
             id_cuenta = contexto.id_cuenta  # fuera de su unidad: solo lo propio
 
+    desde = _fecha_de_filtro(filtros.get("desde"), "desde")
+    hasta = _fecha_de_filtro(filtros.get("hasta"), "hasta")
+    if desde is not None and hasta is not None and desde > hasta:
+        raise Validacion("'desde' no puede ser posterior a 'hasta'.")
     items, total = repo.listar_reservas(
         db, id_cuenta=id_cuenta, id_unidad=id_unidad, estado_codigo=filtros.get("estado"),
-        tipo_codigo=filtros.get("tipo_reserva"), desde=filtros.get("desde"), hasta=filtros.get("hasta"),
+        tipo_codigo=filtros.get("tipo_reserva"), desde=desde, hasta=hasta,
         espacio_id=filtros.get("espacio_id"), recurso_id=filtros.get("recurso_id"),
         orden=orden, offset=(pagina - 1) * tamano, tamano=tamano,
     )
@@ -747,6 +882,7 @@ def listar_reservas(db, filtros: dict, pagina: int, tamano: int, orden: str | No
         datos.append({
             "id": r.id, "estado": estado.codigo, "tipo_reserva": tipo.codigo, "id_unidad": r.id_unidad,
             "id_cuenta": r.id_cuenta, "observacion": r.observacion, "requiere_apoyo": r.requiere_apoyo, "created_at": r.created_at,
+            **_resumen_legible(db, r, tipo.codigo),
         })
     return datos, total
 

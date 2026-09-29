@@ -225,6 +225,16 @@ def vinculaciones_usuario(db: Session, tipo: str, id_usuario: int) -> list:
     return list(db.scalars(select(modelo).where(modelo.id_usuario == id_usuario)).all())
 
 
+def usuarios_vinculados(db: Session, tipo: str, entidad_id: int) -> list[int]:
+    """`id_usuario` de quienes tienen una vinculación activa con la entidad (base de RN-ACO-02)."""
+    modelo, campo_fk = _VINCULACION[tipo]
+    return list(
+        db.scalars(
+            select(modelo.id_usuario).where(getattr(modelo, campo_fk) == entidad_id, modelo.estado.is_(True))
+        ).all()
+    )
+
+
 def tiene_vinculacion_activa(db: Session, id_usuario: int) -> bool:
     """RN-USR-07/RN-USR-11 de usuarios: ¿tiene al menos una vinculación
     activa de cualquiera de los cuatro tipos?"""
