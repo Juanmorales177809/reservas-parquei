@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/src/components/ui/Button";
-import { ETIQUETA_ROL, type ContextoSesion } from "@/src/lib/auth";
+import { ETIQUETA_ROL, type ContextoSesion } from "@/src/lib/auth-types";
 import { apiRequest } from "@/src/lib/http";
 import { destinosVisiblesPara, type DestinoNav } from "./nav-items";
 

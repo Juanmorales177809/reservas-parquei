@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ContextoSesion } from "@/src/lib/auth";
+import type { ContextoSesion } from "@/src/lib/auth-types";
 import AppLayout from "./layout";
 
 const obtenerSesionActualMock =
@@ -46,7 +46,7 @@ describe("AppLayout ((app)/layout.tsx)", () => {
 
     await expect(
       AppLayout({ children: <div>Contenido protegido</div> })
-    ).rejects.toThrow("NEXT_REDIRECT:/login");
+    ).rejects.toThrow("NEXT_REDIRECT:/login?motivo=sesion_vencida");
   });
 
   it("con sesión válida, pinta el shell y el contenido de la ruta", async () => {

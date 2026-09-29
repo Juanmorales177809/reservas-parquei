@@ -1,23 +1,6 @@
 import { cookies } from "next/headers";
 import { apiRequest, ApiRequestError } from "./http";
-
-/**
- * specs/contratos/auth/api-contract.md §7, §9 — el rol se deriva en el
- * servidor y nunca se guarda; estos son los tres únicos valores posibles.
- */
-export type Rol = "USUARIO" | "TECNICO" | "ADMINISTRADOR";
-
-/** Forma exacta de la respuesta de `GET /api/auth/sesiones/actual` (§3.4). */
-export interface ContextoSesion {
-  id_cuenta: number;
-  tipo_cuenta: "USUARIO" | "PERSONAL";
-  rol: Rol;
-  correo: string;
-  actualizacion_inicial_pendiente: boolean | null;
-  id_sesion: string;
-  unidades_autorizadas: number[] | "GLOBAL";
-  autenticacion_reciente: boolean;
-}
+import type { ContextoSesion } from "./auth-types";
 
 /**
  * Solo desde un Server Component: `apiRequest` no importa `next/headers`
@@ -26,6 +9,16 @@ export interface ContextoSesion {
  *
  * `null` cuando no hay sesión válida (401 `NO_AUTENTICADO`) — el shell
  * autenticado decide qué hacer con eso (specs/ui/layout.md).
+ *
+ * Nota: se evaluó envolver esta función en `cache()` de `react` para que
+ * un layout anidado (p. ej. `(app)/administracion/layout.tsx`) no repita
+ * la petición HTTP dentro del mismo request. Se descartó: `cache()` solo
+ * está disponible en la versión de React que Next.js empaqueta para App
+ * Router en build — bajo el `react@18.3.1` de npm que usa Vitest no
+ * existe, y rompía las pruebas (`TypeError: cache is not a function`).
+ * Repetir la llamada es una petición HTTP de más por request en rutas
+ * anidadas, no un error — se revisita si se sube a React 19, donde
+ * `cache()` es parte estable del paquete público.
  */
 export async function obtenerSesionActual(): Promise<ContextoSesion | null> {
   const cookieHeader = cookies().toString();
@@ -40,10 +33,3 @@ export async function obtenerSesionActual(): Promise<ContextoSesion | null> {
     throw error;
   }
 }
-
-/** specs/ui/layout.md#navegación — etiqueta de rol para el estado de sesión. */
-export const ETIQUETA_ROL: Record<Rol, string> = {
-  USUARIO: "Usuario",
-  TECNICO: "Técnico",
-  ADMINISTRADOR: "Administrador",
-};

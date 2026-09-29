@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { ContextoSesion } from "@/src/lib/auth";
+import type { ContextoSesion } from "@/src/lib/auth-types";
 import { apiRequest } from "@/src/lib/http";
 import { AppShell } from "./AppShell";
 

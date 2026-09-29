@@ -1,4 +1,4 @@
-import type { Rol } from "@/src/lib/auth";
+import type { Rol } from "@/src/lib/auth-types";
 
 /** specs/ui/layout.md#navegación — los ocho destinos, en este orden. */
 export interface DestinoNav {
