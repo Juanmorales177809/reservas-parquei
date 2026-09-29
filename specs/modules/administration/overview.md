@@ -146,6 +146,7 @@ Estas decisiones pertenecen a los módulos propietarios correspondientes.
 - `../../docs/product-spec.md`
 - `../../docs/architecture.md`
 - `../../docs/data-model.md`
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las cinco superficies de administración.
 
 Los contratos API específicos de administración deben mantenerse en la documentación central de API.
 

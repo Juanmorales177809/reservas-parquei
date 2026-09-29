@@ -233,13 +233,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** corresponde uno a uno con los wireframes de FE-08; `tsc --noEmit` limpio.
 - **Resultado:** cinco rutas bajo `(app)/usuarios/perfil` (una por wireframe WF-USR-01 a WF-USR-05), Client Components con `useState` + `apiRequest` como FE-07, sin TanStack. Andamiaje: `src/lib/usuarios-api.ts` (12 endpoints §2–§4, ninguna ruta a mano) + `usuarios-types.ts` sin `next/headers`, y `SeccionVinculaciones` compartida entre actualización inicial y gestión (la misma superficie en ambos recorridos, según screen-flow). Textos de error literales de cada fila de `wireframes.md`; sin pantalla para §5–§6 de administration. Verificado: `tsc --noEmit`, `build` (5 rutas), `lint` limpios; `npm test` — 21 en verde (3 nuevas dirigidas: aviso sin vinculación + 409 al continuar, aviso RN-USR-11 al desactivar la última, duplicado junto al campo).
 
-### FE-10 — Especificación de pantallas — administration
+### FE-10 — Especificación de pantallas — administration · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `administration`.
 - **Afectados:** `specs/modules/administration/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`administration/user-flow.md`](../../modules/administration/user-flow.md) y su contrato, cerrados.
 - **Aceptación:** igual criterio que FE-08.
+- **Resultado:** cinco pantallas agrupadas por superficie compartida: `SCR-ADM-01` unidades/cargos, `SCR-ADM-02` permisos, `SCR-ADM-03` identidades con invitación (UF-ADM-02/03), `SCR-ADM-04` importaciones (UF-ADM-01/04, con unidad destino para equipos y rechazo total), `SCR-ADM-05` auditoría de solo lectura. Las superficies de contrato sin flujo propio (§2, §3, §5) se documentan desde contrato y reglas sin inventar flujos. Cuentas de FE-07 referenciadas, no redefinidas. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-11 — Implementación — administration
 
