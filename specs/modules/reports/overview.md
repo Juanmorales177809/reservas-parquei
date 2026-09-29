@@ -159,3 +159,7 @@ Los contratos API específicos de reportes deben mantenerse en la documentación
 ## Modelo persistente
 
 [Modelo de datos del módulo](data-model.md): tablas propias, relaciones y diferencias pendientes respecto al inventario principal.
+
+## Pantallas
+
+[Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las tres superficies de reportes (ocupación, solicitudes y lista de espera) y la decisión de qué se muestra como gráfico y qué solo como tabla exportable.

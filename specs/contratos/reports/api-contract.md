@@ -92,7 +92,9 @@ Un mismo elemento no se contabiliza más de una vez dentro de la misma unidad de
 
 ### 3.2 `GET /api/reportes/solicitudes`
 
-Conteo de reservas agrupadas por estado, para la dimensión y el periodo seleccionados. Flujo `UF-REP-01`. Listado paginado con la envolvente completa. Permiso: `reportes.consultar`.
+Conteo de reservas agrupadas por estado, por laboratorio, para el periodo seleccionado. Flujo `UF-REP-01`. Listado paginado con la envolvente completa. Permiso: `reportes.consultar`.
+
+`dimension` solo admite `laboratorio` (su valor por omisión); cualquier otra responde `400 SOLICITUD_INVALIDA`. A diferencia de los otros dos reportes, **el periodo es opcional**, pero `desde` y `hasta` viajan juntos o ninguno: sin periodo se cuenta todo lo registrado.
 
 **No aplica el filtro de ocupación de `RN-OCU-04`**: incluye todos los estados, porque su objeto es la demanda, no el uso efectivo (`RN-OCU-05`).
 
