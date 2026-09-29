@@ -122,13 +122,18 @@ No depende de ninguna pantalla: es infraestructura y el primer componente compar
   **Ampliación de alcance:** `--font-body` referenciaba `'Inter'`, pero ningún archivo de la lista original podía cargarlo — se añadió `next/font/google` en `layout.tsx` (pesos 400/700, variable `--font-inter`) para que el token no cayera en silencio a Arial.
   Verificado: `npx tsc --noEmit` y `npm run build` limpios, sin más aviso que "no se detectaron clases de utilidad" (esperado: `page.tsx` sigue en blanco, es tarea de FE-04 en adelante). Los radios de 14/16/20px y el de píldora (999px) siguen sin tokenizar, tal como ya lo dejaba `design-tokens.md` ("candidatos a tokenizarse") — no es una omisión de esta tarea. La verificación mecánica de "ningún color fuera de los tokens" (p. ej. Stylelint) queda pendiente como mejora opcional, no como parte de esta tarea; el primer consumidor real de los tokens es `FE-04`.
 
-### FE-03 — Cliente HTTP y sesión
+### FE-03 — Cliente HTTP y sesión · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** un módulo único que llama al backend con la cookie de sesión y el CSRF de doble envío, y traduce la envolvente de error común a un tipo de TypeScript.
 - **Afectados:** `frontend/src/lib/http.ts`.
 - **Dependencias:** FE-01. Contrato: `contratos/README.md` §2 (envolvente de error), `contratos/auth/api-contract.md` §2 y §9 (cookie y CSRF).
 - **Aceptación:** una respuesta `401` no reintenta silenciosamente con credenciales viejas; toda mutación (`POST`/`PUT`/`PATCH`/`DELETE`) envía el token CSRF obtenido de `GET /api/auth/csrf`; el tipo de error del cliente tiene exactamente `codigo`, `mensaje` y `detalles`, igual que el contrato.
+- **Resultado:** `apiRequest<T>(path, options)`, único punto de entrada. `rp_access`/`rp_refresh` (`HttpOnly`) las adjunta el navegador solo con `credentials: "include"` — el módulo nunca las lee ni las guarda. Para mutaciones, `rp_csrf` (legible, no `HttpOnly`) se lee de `document.cookie` y, si no existe todavía, se pide una vez a `GET /api/auth/csrf` antes de reintentar la lectura, conforme a §3.0. Sin lógica de reintento en ningún código de estado: un `401` se propaga como `ApiRequestError` (con `status` y el `ApiError` del contrato) para que quien llame decida — así se cumple la aceptación de que un `401` no reintenta con credenciales viejas, por ausencia de ese mecanismo, no por manejarlo con cuidado.
+  `ApiError` tiene exactamente `codigo: string`, `mensaje: string`, `detalles: unknown[]`, igual que `contratos/README.md` §2; si el cuerpo de un error no trae esa forma (p. ej. un `502` de un proxy intermedio, no del backend), se sustituye por `{ codigo: "ERROR_INTERNO", mensaje: "Error no controlado.", detalles: [] }` en vez de propagar un cuerpo con forma desconocida.
+  El módulo no importa `next/headers`, para poder usarse igual desde Client Components (mutaciones, vía TanStack Query en tareas posteriores) y desde Server Components (lecturas iniciales): estos últimos deben leer `cookies()` ellos mismos y pasar el resultado como `cookieHeader`, porque un `fetch` desde un Server Component no reenvía automáticamente las cookies de la petición entrante — eso se resuelve en la tarea que use el módulo (a partir de `FE-06`), no aquí.
+  `NEXT_PUBLIC_API_URL` con default `http://localhost:8000` (mismo puerto que `BACKEND_HOST_PORT` en `.env.example`); no se tocó ningún archivo de entorno, es solo el valor por defecto del módulo.
+  Verificado: `npx tsc --noEmit` y `npm run build` limpios. Sin consumidor real todavía (ninguna pantalla existe): la prueba de comportamiento en runtime queda para `FE-06`/`FE-07`, primeros consumidores reales.
 
 ### FE-04 — Componente compartido `Button`
 
