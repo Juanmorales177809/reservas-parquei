@@ -260,13 +260,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-08. La pantalla de importación documenta el resultado por fila y el rechazo total ante cualquier fila con error, conforme a la decisión ya cerrada en `decisiones_pendientes_para_revision.md`.
 - **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-REC-01` catálogo y registro (UF-REC-01 a UF-REC-05), `SCR-REC-02` edición, estado y unidad (UF-REC-06 a UF-REC-10, UF-REC-12, con advertencia de impacto y confirmación), `SCR-REC-03` laboratorio (UF-REC-13, con versionado de horario), `SCR-REC-04` validaciones de equipos en importación por referencia a `SCR-ADM-04` (sin superficie propia de carga). `UF-REC-11` queda explícitamente sin superficie por ser comunicación entre módulos. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-13 — Implementación — resources
+### FE-13 — Implementación — resources · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `resources` funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/recursos/**`.
 - **Dependencias:** FE-12, FE-04, FE-06.
 - **Aceptación:** igual criterio que FE-09. La importación con filas en error no permite confirmar la carga y muestra el resultado por fila.
+- **Resultado:** tres rutas (catálogo con registro, detalle con edición/estado/unidad, laboratorio propio para no chocar con `[id]`), Server Components que deciden `puedeGestionar` por rol sin store en cliente. Andamiaje: `src/lib/recursos-api.ts` (endpoints §2–§3) + `recursos-types.ts` sin `next/headers`. Importación reutiliza `administracion/importaciones` sin pantalla propia, como fija FE-12. Verificado: `tsc --noEmit`, `build` (3 rutas), `lint` limpios; `npm test` — 28 en verde (4 dirigidas nuevas: crear por tipo, 403, impacto con confirmación explícita).
 
 ### FE-14 — Especificación de pantallas — espacios
 
