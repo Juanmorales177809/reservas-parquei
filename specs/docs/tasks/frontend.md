@@ -333,13 +333,14 @@ El módulo central y el más complejo: cinco tipos de reserva con estrategias di
 
 ## Fase 6 — Notificaciones y reportes
 
-### FE-20 — Especificación de pantallas — notifications
+### FE-20 — Especificación de pantallas — notifications · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `notifications`: bandeja y preferencias.
 - **Afectados:** `specs/modules/notifications/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`notifications/user-flow.md`](../../modules/notifications/user-flow.md) y su contrato, cerrados.
 - **Aceptación:** igual criterio que FE-08.
+- **Resultado:** dos superficies agrupadas por superficie compartida: `SCR-NOT-01` bandeja (propias, filtros, marcar sin efectos colaterales, ajena indistinguible) y `SCR-NOT-02` preferencias (general por defecto, reemplazo completo, solo canal correo). `UF-NOT-03` queda explícitamente sin superficie por ser tarea del sistema; el estado de envíos no se consulta por decisión del contrato. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-21 — Implementación — notifications
 

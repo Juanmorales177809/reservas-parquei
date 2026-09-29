@@ -129,6 +129,7 @@ Estas decisiones pertenecen a los módulos propietarios correspondientes.
 - `../../docs/product-spec.md`
 - `../../docs/architecture.md`
 - `../../docs/data-model.md`
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las dos superficies de notificaciones.
 
 Los contratos API específicos para consulta y gestión de notificaciones deben mantenerse en la documentación central de API.
 
