@@ -224,13 +224,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
   `wireframes.md` referencia los doce endpoints del contrato (§2 a §4) con sus tres códigos de error propios (`DOCUMENTO_DUPLICADO`, `TELEFONO_DUPLICADO`, `VINCULACION_DUPLICADA`) más el catálogo común; ninguna sección de ningún documento quedó marcada «Pendiente».
   Verificado: `python tools/validar.py` en 0 fallas — sin referencias colgadas a los `RN-INV-*` de `investigacion` citados, y las tres tareas enlazadas correctamente desde `usuarios/overview.md`.
 
-### FE-09 — Implementación — usuarios
+### FE-09 — Implementación — usuarios · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `usuarios` funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/usuarios/**`.
 - **Dependencias:** FE-08, FE-04, FE-06.
 - **Aceptación:** corresponde uno a uno con los wireframes de FE-08; `tsc --noEmit` limpio.
+- **Resultado:** cinco rutas bajo `(app)/usuarios/perfil` (una por wireframe WF-USR-01 a WF-USR-05), Client Components con `useState` + `apiRequest` como FE-07, sin TanStack. Andamiaje: `src/lib/usuarios-api.ts` (12 endpoints §2–§4, ninguna ruta a mano) + `usuarios-types.ts` sin `next/headers`, y `SeccionVinculaciones` compartida entre actualización inicial y gestión (la misma superficie en ambos recorridos, según screen-flow). Textos de error literales de cada fila de `wireframes.md`; sin pantalla para §5–§6 de administration. Verificado: `tsc --noEmit`, `build` (5 rutas), `lint` limpios; `npm test` — 21 en verde (3 nuevas dirigidas: aviso sin vinculación + 409 al continuar, aviso RN-USR-11 al desactivar la última, duplicado junto al campo).
 
 ### FE-10 — Especificación de pantallas — administration
 
