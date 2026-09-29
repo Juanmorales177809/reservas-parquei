@@ -57,3 +57,40 @@ export interface AuditoriaFila {
   motivo: string | null;
   created_at: string;
 }
+
+/** Identidad con su cuenta (contratos/usuarios §5.2 y §6.2): sirve para elegir una cuenta por nombre. */
+export interface IdentidadConCuenta {
+  id_usuario?: number;
+  id_persona?: number;
+  id_cuenta: number | null;
+  nombre: string;
+  correo: string;
+  estado: boolean;
+}
+
+/** Identidad de un usuario (contrato usuarios §5). */
+export interface UsuarioIdentidad {
+  id_usuario: number;
+  id_cuenta: number | null;
+  nombre: string;
+  documento: string;
+  telefono: string;
+  institucion: string;
+  dependencia: string;
+  correo: string;
+  estado: boolean;
+}
+
+/** Ficha de personal con su cargo y unidad (contrato usuarios §6). */
+export interface FichaPersonal {
+  id_persona: number;
+  id_cuenta: number | null;
+  nombre: string;
+  documento: string;
+  telefono: string;
+  correo: string;
+  estado: boolean;
+  id_cargo: number;
+  cargo: { id_cargo: number; nombre_cargo: string } | null;
+  unidad: { id_unidad: number; nombre: string } | null;
+}

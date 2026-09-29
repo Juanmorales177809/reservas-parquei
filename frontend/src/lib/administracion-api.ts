@@ -3,7 +3,10 @@ import type {
   Asignacion,
   AuditoriaFila,
   Cargo,
+  FichaPersonal,
+  IdentidadConCuenta,
   PermisoCatalogo,
+  UsuarioIdentidad,
   Unidad,
   ValidacionImportacion,
 } from "./administracion-types";
@@ -129,4 +132,62 @@ export function crearFichaPersonal(datos: {
   id_cargo: number;
 }) {
   return apiRequest<{ id_persona: number }>("/api/personal", { method: "POST", body: datos });
+}
+
+/** usuarios §5.2 */
+export function listarUsuarios() {
+  return apiRequest<{ datos: IdentidadConCuenta[] }>("/api/usuarios?tamano=100");
+}
+
+/** usuarios §6.2 */
+export function listarPersonal() {
+  return apiRequest<{ datos: IdentidadConCuenta[] }>("/api/personal?tamano=100");
+}
+
+export interface FiltrosIdentidades {
+  estado?: boolean;
+  busqueda?: string;
+  pagina?: number;
+}
+
+function consulta(f: FiltrosIdentidades) {
+  const params = new URLSearchParams({ tamano: "50" });
+  if (f.pagina) params.set("pagina", String(f.pagina));
+  if (f.estado !== undefined) params.set("estado", String(f.estado));
+  if (f.busqueda) params.set("busqueda", f.busqueda);
+  return params.toString();
+}
+
+/** usuarios §5.2 (listado completo, con filtros) */
+export function buscarUsuarios(filtros: FiltrosIdentidades = {}) {
+  return apiRequest<{ datos: UsuarioIdentidad[]; paginacion: { pagina: number; paginas: number; total: number } }>(
+    `/api/usuarios?${consulta(filtros)}`
+  );
+}
+
+/** usuarios §5.3 */
+export function editarUsuario(id: number, datos: Partial<Omit<UsuarioIdentidad, "id_usuario" | "id_cuenta" | "estado">>) {
+  return apiRequest<UsuarioIdentidad>(`/api/usuarios/${id}`, { method: "PATCH", body: datos });
+}
+
+/** usuarios §5.4 */
+export function cambiarEstadoUsuario(id: number, estado: boolean) {
+  return apiRequest<UsuarioIdentidad>(`/api/usuarios/${id}/estado`, { method: "PATCH", body: { estado } });
+}
+
+/** usuarios §6.2 (listado completo, con filtros) */
+export function buscarPersonal(filtros: FiltrosIdentidades & { id_unidad?: number } = {}) {
+  return apiRequest<{ datos: FichaPersonal[]; paginacion: { pagina: number; paginas: number; total: number } }>(
+    `/api/personal?${consulta(filtros)}${filtros.id_unidad ? `&id_unidad=${filtros.id_unidad}` : ""}`
+  );
+}
+
+/** usuarios §6.3 */
+export function editarPersonal(id: number, datos: { nombre?: string; documento?: string; telefono?: string; correo?: string; id_cargo?: number }) {
+  return apiRequest<FichaPersonal>(`/api/personal/${id}`, { method: "PATCH", body: datos });
+}
+
+/** usuarios §6.4 */
+export function cambiarEstadoPersonal(id: number, estado: boolean) {
+  return apiRequest<FichaPersonal>(`/api/personal/${id}/estado`, { method: "PATCH", body: { estado } });
 }

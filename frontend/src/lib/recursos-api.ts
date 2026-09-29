@@ -24,11 +24,12 @@ export function crearRecurso(datos: {
 }
 
 /** §2.2 */
-export function listarRecursos(filtros: { id_unidad?: number; tipo?: string; reservable?: boolean } = {}) {
+export function listarRecursos(filtros: { id_unidad?: number; tipo?: string; reservable?: boolean; busqueda?: string } = {}) {
   const params = new URLSearchParams({ tamano: "100" });
   if (filtros.id_unidad !== undefined) params.set("id_unidad", String(filtros.id_unidad));
   if (filtros.tipo) params.set("tipo", filtros.tipo);
   if (filtros.reservable) params.set("reservable", "true");
+  if (filtros.busqueda) params.set("busqueda", filtros.busqueda);
   return apiRequest<{ datos: RecursoResumen[] }>(`/api/recursos?${params.toString()}`);
 }
 
@@ -96,4 +97,9 @@ export function guardarVisibilidad(
     method: "PATCH",
     body: datos,
   });
+}
+
+/** §3.0: catálogo de laboratorios, legible por cualquier cuenta autenticada. */
+export function listarLaboratorios() {
+  return apiRequest<{ datos: { id_unidad: number; nombre: string; habilitado_reservas: boolean }[] }>("/api/laboratorios");
 }

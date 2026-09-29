@@ -9,6 +9,7 @@ export type TipoRecurso = "EQUIPO" | "MOBILIARIO" | "OTRO";
 export interface RecursoResumen {
   id: number;
   tipo: TipoRecurso;
+  nombre: string | null;
   id_unidad: number;
   habilitado: boolean;
 }
@@ -42,5 +43,6 @@ export interface ConfiguracionLaboratorio {
   recordatorio_horas_antes: number;
   mostrar_estado_reserva: boolean;
   mostrar_reservista: boolean;
+  notificar_por_correo?: boolean;
   tipos_reserva: string[];
 }

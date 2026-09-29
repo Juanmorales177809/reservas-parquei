@@ -6,6 +6,11 @@ import type {
   RechazoRespuesta,
   ReservaCrear,
   ReservaDetalleRespuesta,
+  AcompananteOpcion,
+  AdjuntoItem,
+  OpcionesContexto,
+  OrdenSalida,
+  PaginacionRespuesta,
   ReservaResumen,
   TipoReservaItem,
   TransicionRespuesta,
@@ -31,12 +36,27 @@ export function tiposHabilitados(idUnidad: number) {
 }
 
 /** §3.1 */
-export function listarReservas(filtros: { estado?: string; tipo_reserva?: string; id_unidad?: number } = {}) {
-  const params = new URLSearchParams({ tamano: "100" });
+export function listarReservas(
+  filtros: {
+    estado?: string;
+    tipo_reserva?: string;
+    id_unidad?: number;
+    espacio_id?: number;
+    desde?: string;
+    hasta?: string;
+    pagina?: number;
+    tamano?: number;
+  } = {}
+) {
+  const params = new URLSearchParams({ tamano: String(filtros.tamano ?? 20), orden: "-created_at" });
+  if (filtros.pagina) params.set("pagina", String(filtros.pagina));
   if (filtros.estado) params.set("estado", filtros.estado);
   if (filtros.tipo_reserva) params.set("tipo_reserva", filtros.tipo_reserva);
   if (filtros.id_unidad !== undefined) params.set("id_unidad", String(filtros.id_unidad));
-  return apiRequest<{ datos: ReservaResumen[] }>(`/api/reservas?${params.toString()}`);
+  if (filtros.espacio_id !== undefined) params.set("espacio_id", String(filtros.espacio_id));
+  if (filtros.desde) params.set("desde", filtros.desde);
+  if (filtros.hasta) params.set("hasta", filtros.hasta);
+  return apiRequest<{ datos: ReservaResumen[]; paginacion: PaginacionRespuesta }>(`/api/reservas?${params.toString()}`);
 }
 
 /** §3.2 */
@@ -63,7 +83,12 @@ export function consultarDisponibilidad(datos: {
 }
 
 /** §2.8 */
-export function editarReserva(id: number, datos: { observacion?: string; detalle?: Record<string, unknown> }) {
+/** §2.8: cada bloque, si viaja, es la selección completa resultante; los omitidos conservan su valor. */
+export type CambiosReserva = Partial<Pick<ReservaCrear, "observacion" | "requiere_apoyo" | "contexto" | "recursos" | "acompanantes" | "campos_adicionales">> & {
+  detalle?: Record<string, unknown>;
+};
+
+export function editarReserva(id: number, datos: CambiosReserva) {
   return apiRequest<ReservaDetalleRespuesta>(`/api/reservas/${id}`, {
     method: "PATCH",
     body: datos,
@@ -71,10 +96,14 @@ export function editarReserva(id: number, datos: { observacion?: string; detalle
 }
 
 /** §4.1 */
-export function aprobarReserva(id: number, observacion?: string) {
+export function aprobarReserva(id: number, datos: { observacion?: string; material_recibido?: boolean } = {}) {
   return apiRequest<AprobacionRespuesta>(`/api/reservas/${id}/aprobacion`, {
     method: "POST",
-    body: observacion ? { observacion } : {},
+    body: {
+      ...(datos.observacion ? { observacion: datos.observacion } : {}),
+      // Lista de espera: la aprobación registra también la recepción del material (RN-TIP-PLE-05).
+      ...(datos.material_recibido !== undefined ? { material_recibido: datos.material_recibido } : {}),
+    },
   });
 }
 
@@ -185,7 +214,40 @@ export function subirAdjunto(id: number, archivo: File, tipo_adjunto: string) {
   });
 }
 
+/** §2.9 */
+export function opcionesContexto() {
+  return apiRequest<OpcionesContexto>("/api/reservas/contexto/opciones");
+}
+
+/** §2.10 */
+export function opcionesAcompanantes(filtros: { proyecto_id?: number; semillero_id?: number }) {
+  const params = new URLSearchParams();
+  if (filtros.proyecto_id) params.set("proyecto_id", String(filtros.proyecto_id));
+  if (filtros.semillero_id) params.set("semillero_id", String(filtros.semillero_id));
+  return apiRequest<{ datos: AcompananteOpcion[] }>(`/api/reservas/acompanantes/opciones?${params.toString()}`);
+}
+
+/** §2.6 */
+export function listarAdjuntos(id: number) {
+  return apiRequest<{ datos: AdjuntoItem[] }>(`/api/reservas/${id}/lista-espera/adjuntos?tamano=100`);
+}
+
+/** §2.7: descarga autenticada; el navegador envía la cookie de sesión al abrir el enlace. */
+export function urlAdjunto(id: number, adjuntoId: number) {
+  return `/api/reservas/${id}/lista-espera/adjuntos/${adjuntoId}`;
+}
+
 /** §7.1 */
 export function ordenSalida(id: number) {
-  return apiRequest<Record<string, unknown>>(`/api/reservas/${id}/orden-salida`);
+  return apiRequest<OrdenSalida>(`/api/reservas/${id}/orden-salida`);
+}
+
+/** §7.2: PDF de la orden; el navegador envía la cookie de sesión al abrir el enlace. */
+export function urlOrdenSalidaPdf(id: number) {
+  return `/api/reservas/${id}/orden-salida.pdf`;
+}
+
+/** §8.1: archivo iCalendar de una reserva aprobada de espacio o recurso interno. */
+export function urlCalendario(id: number) {
+  return `/api/reservas/${id}/calendario.ics`;
 }

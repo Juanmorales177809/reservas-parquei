@@ -37,10 +37,11 @@ export function editarEspacio(id: number, datos: {
 }
 
 /** §2.3 */
-export function listarEspacios(filtros: { id_unidad?: number; habilitado?: boolean } = {}) {
+export function listarEspacios(filtros: { id_unidad?: number; habilitado?: boolean; capacidad_minima?: number } = {}) {
   const params = new URLSearchParams({ tamano: "100" });
   if (filtros.id_unidad !== undefined) params.set("id_unidad", String(filtros.id_unidad));
   if (filtros.habilitado !== undefined) params.set("habilitado", String(filtros.habilitado));
+  if (filtros.capacidad_minima !== undefined) params.set("capacidad_minima", String(filtros.capacidad_minima));
   return apiRequest<{ datos: EspacioResumen[] }>(`/api/espacios?${params.toString()}`);
 }
 
@@ -114,5 +115,13 @@ export function agregarOpciones(id: number, campoId: number, opciones: { valor: 
   return apiRequest<unknown>(`/api/espacios/${id}/campos/${campoId}/opciones`, {
     method: "POST",
     body: { opciones },
+  });
+}
+
+/** §4.6 */
+export function editarOpcion(id: number, campoId: number, opcionId: number, datos: { valor?: string; orden?: number; habilitado?: boolean }) {
+  return apiRequest<unknown>(`/api/espacios/${id}/campos/${campoId}/opciones/${opcionId}`, {
+    method: "PATCH",
+    body: datos,
   });
 }
