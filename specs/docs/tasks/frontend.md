@@ -296,13 +296,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-08. No introduce ninguna asociación de proyecto o semillero con un laboratorio: en este sistema se asocian a personas, no limitan dónde puede reservar el usuario.
 - **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-INV-01` catálogos (consulta y estado), `SCR-INV-02` actividades, `SCR-INV-03` perfiles, `SCR-INV-04` vinculaciones ajenas (crear/desactivar/reactivar con aviso de última activa). Vinculaciones propias e importación sin superficie propia (viven en usuarios y administration). Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-17 — Implementación — researchs
+### FE-17 — Implementación — researchs · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `researchs` funcionando contra el backend real, incluida la importación masiva.
 - **Afectados:** `frontend/app/(app)/investigacion/**`.
 - **Dependencias:** FE-16, FE-13 (reutiliza el patrón de importación de FE-13), FE-06.
 - **Aceptación:** igual criterio que FE-09.
+- **Resultado:** cuatro rutas (catálogos con estado, actividades, perfiles, vinculaciones ajenas) tras guard de layout solo-Admin — todo `/api/investigacion/*` exige `usuarios.administrar` global, así que el guard por rol basta y el servidor autoriza cada operación. Andamiaje: `src/lib/investigacion-api.ts` (endpoints §2–§5) + `investigacion-types.ts` sin `next/headers`. Importación sin pantalla propia: enlaza a `administracion/importaciones`. Verificado: `tsc --noEmit`, `build` (4 rutas), `lint` limpios; `npm test` — 37 en verde (4 dirigidas nuevas: guard sin parpadeo, duplicada, reactivación sin duplicar).
 
 ---
 
