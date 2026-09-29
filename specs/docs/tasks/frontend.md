@@ -320,13 +320,14 @@ El módulo central y el más complejo: cinco tipos de reserva con estrategias di
 - **Aceptación:** igual criterio que FE-08. Cubre los seis estados de una reserva y las cinco estrategias (espacio, recurso interno, recurso de campus, recurso externo, lista de espera) como flujos de pantalla distintos, no como una sola pantalla genérica con campos condicionales sin documentar.
 - **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-RES-01` solicitud por estrategia (con disponibilidad consultada sin garantía y edición en solicitada), `SCR-RES-02` gestión del Técnico por tipo y estado, `SCR-RES-03` lista de espera separada, `SCR-RES-04` consulta, calendario y órdenes de solo lectura. Siete flujos de sistema sin superficie propia, documentados en vez de omitidos. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-19 — Implementación — reservations
+### FE-19 — Implementación — reservations · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `reservations` funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/reservas/**`.
 - **Dependencias:** FE-18, FE-15, FE-13, FE-06. Es la tarea de implementación más grande del plan; puede dividirse por tipo de reserva al abrirla, siguiendo el mismo criterio que dividió `API-13` a `API-16` en el backend.
 - **Aceptación:** igual criterio que FE-09. Ninguna pantalla permite confirmar una reserva sin pasar por la respuesta real del backend — la exclusión de solapamiento y de compromiso físico único la garantiza `DB-12` en el servidor, y el frontend no puede sustituirla con una validación propia.
+- **Resultado:** tres rutas (listado con filtros, creación con formularios por estrategia, detalle con gestión por tipo y estado), Client Components con `useState` + `apiRequest` como FE-07/09. Andamiaje: `src/lib/reservas-api.ts` (25 endpoints §2–§8) + `reservas-types.ts` sin `next/headers`. La disponibilidad se consulta sin garantizar asignación; el `409` del servidor manda y sus textos son literales. Verificado: `tsc --noEmit`, `build` (3 rutas), `lint` limpios; `npm test` — 41 en verde (4 dirigidas nuevas: crear por tipo, solapamiento, propuesta aceptada, finalizar sin devolución).
 
 ---
 

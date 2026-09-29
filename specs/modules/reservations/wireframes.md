@@ -2,7 +2,7 @@
 
 ## Alcance, fuentes y lectura
 
-Cuatro wireframes de baja fidelidad, uno por cada pantalla de [screens.md](screens.md). Fuentes revisadas: [user-flow.md](user-flow.md), [screen-flow.md](screen-flow.md), [business-rules.md](business-rules.md), [data-model.md](data-model.md) y el [contrato API de Reservations](../../contratos/reservations/api-contract.md). Las variantes son estados de la misma pantalla, no pantallas nuevas.
+Cuatro wireframes de baja fidelidad, uno por cada pantalla de [screens.md](screens.md). Fuentes revisadas: [user-flows.md](user-flows.md), [screen-flow.md](screen-flow.md), [business-rules.md](business-rules.md), [data-model.md](data-model.md) y el [contrato API de Reservations](../../contratos/reservations/api-contract.md). Las variantes son estados de la misma pantalla, no pantallas nuevas.
 
 Los bloques ASCII representan agrupación y orden de contenido, sin fijar dimensiones, estilos, tipografía, colores ni componentes. Para trasladarlos a Figma, conservar el identificador del wireframe y nombrar sus variantes por estado. Los nombres técnicos y referencias que aparecen fuera de los bloques son anotaciones de trazabilidad, no texto de interfaz.
 
