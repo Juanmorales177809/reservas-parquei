@@ -287,13 +287,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-09.
 - **Resultado:** dos rutas (catálogo con registro, detalle con edición/estado/asociados/campos), Server Components que deciden `puedeGestionar` por rol sin store. Andamiaje: `src/lib/espacios-api.ts` (endpoints §2–§4) + `espacios-types.ts` sin `next/headers`. Impacto previo con conteos antes de deshabilitar; reorden por intercambio de posiciones; `agregarOpciones` envuelto en el lib aunque ninguna pantalla lo usa todavía (la creación con opción inicial cubre el flujo). Verificado: `tsc --noEmit`, `build` (2 rutas), `lint` limpios; `npm test` — 33 en verde (5 dirigidas nuevas: crear, duplicado, impacto con confirmación, lista-sin-opciones).
 
-### FE-16 — Especificación de pantallas — researchs
+### FE-16 — Especificación de pantallas — researchs · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `researchs` (proyectos, semilleros, equipos de investigación).
 - **Afectados:** `specs/modules/researchs/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`researchs/user-flow.md`](../../modules/researchs/user-flow.md) y su contrato, cerrados.
 - **Aceptación:** igual criterio que FE-08. No introduce ninguna asociación de proyecto o semillero con un laboratorio: en este sistema se asocian a personas, no limitan dónde puede reservar el usuario.
+- **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-INV-01` catálogos (consulta y estado), `SCR-INV-02` actividades, `SCR-INV-03` perfiles, `SCR-INV-04` vinculaciones ajenas (crear/desactivar/reactivar con aviso de última activa). Vinculaciones propias e importación sin superficie propia (viven en usuarios y administration). Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
 ### FE-17 — Implementación — researchs
 

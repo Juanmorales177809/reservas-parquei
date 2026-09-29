@@ -50,3 +50,4 @@ El mecanismo de auditoría de cambios de vinculación y el contrato API de las o
 - [Flujos de usuario](user-flow.md).
 - [Modelo general](../../docs/data-model.md#schema-investigacion).
 - [Modelo de contexto de reservas](../reservations/data-model.md#reservasreserva_contexto).
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las cuatro superficies de investigación.
