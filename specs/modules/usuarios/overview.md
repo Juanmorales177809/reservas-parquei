@@ -47,3 +47,4 @@ El módulo cubre:
 - [Reglas de negocio](business-rules.md): `RN-USR` y `RN-DAT`.
 - [Modelo de datos](data-model.md): `usuarios.usuarios` y `personal.personal`.
 - [Flujos de usuario](user-flow.md): alta, actualización inicial y mantenimiento del perfil.
+- [Especificación de pantallas](screens.md), [wireframes](wireframes.md) y [navegación funcional](screen-flow.md): las cinco superficies de autoservicio del perfil.

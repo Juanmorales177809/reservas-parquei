@@ -212,13 +212,17 @@ La especificación de pantallas de auth ya está cerrada (`screens.md`, `wirefra
 
 Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md`, Fase 2–3): primero identidad y estructura, después inventario. Cada módulo repite el mismo par de tareas: **Especificación** de sus pantallas y **Implementación** contra esa especificación ya cerrada.
 
-### FE-08 — Especificación de pantallas — usuarios
+### FE-08 — Especificación de pantallas — usuarios · **cerrada**
 
 - **Tipo:** Especificación
 - **Objetivo:** `screens.md`, `wireframes.md` y `screen-flow.md` de `usuarios`, con la misma forma que los de auth.
 - **Afectados:** `specs/modules/usuarios/screens.md`, `wireframes.md`, `screen-flow.md`.
 - **Dependencias:** [`usuarios/user-flow.md`](../../modules/usuarios/user-flow.md) y [`usuarios/api-contract.md`](../../contratos/usuarios/api-contract.md), ambos cerrados.
 - **Aceptación:** `python tools/validar.py` en 0 fallas con los nuevos documentos enlazados desde `usuarios/overview.md`.
+- **Resultado:** cinco pantallas, no once — los once flujos `UF-USR-01` a `UF-USR-11` se agrupan por superficie compartida, no uno a uno: `SCR-USR-01` (completar actualización inicial) sirve por igual a `UF-USR-01` y `UF-USR-02`, que la propia fuente describe como «el mismo recorrido»; `SCR-USR-05` agrupa las cinco vinculaciones (`UF-USR-06` a `UF-USR-10`) porque comparten un único contexto (vinculaciones vigentes + catálogo); `UF-USR-11` (iniciar una reserva) queda sin pantalla propia, igual que auth dejó sin pantalla los flujos de continuidad — el efecto ocurre en `reservations`, que solo consulta la condición de perfil de este módulo.
+  **Frontera de módulo respetada:** la creación y administración de identidades (`POST /api/usuarios`, `POST /api/personal` del contrato) no tiene pantalla aquí a pesar de vivir bajo las rutas de este módulo — sus flujos de origen (`UF-ADM-02`, `UF-ADM-03`) pertenecen a `administration`, no a los once `UF-USR`. Documentado explícitamente en «Alcance y fuentes» para que no se lea como un olvido.
+  `wireframes.md` referencia los doce endpoints del contrato (§2 a §4) con sus tres códigos de error propios (`DOCUMENTO_DUPLICADO`, `TELEFONO_DUPLICADO`, `VINCULACION_DUPLICADA`) más el catálogo común; ninguna sección de ningún documento quedó marcada «Pendiente».
+  Verificado: `python tools/validar.py` en 0 fallas — sin referencias colgadas a los `RN-INV-*` de `investigacion` citados, y las tres tareas enlazadas correctamente desde `usuarios/overview.md`.
 
 ### FE-09 — Implementación — usuarios
 
