@@ -1,0 +1,100 @@
+/*
+ * Tokens de diseño — Reservas Parquei
+ * Fuente de verdad: specs/ui/design-tokens.md
+ * No declarar un color, radio o sombra fuera de estas variables.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Superficie — claro */
+  --color-bg: #F3F5F2;
+  --color-surface: #FFFFFF;
+  --color-text: #0F1A12;
+  --color-muted: #5B6660;
+  --color-border: #DCE2DC;
+  --color-primary-tint: #E3F5E8;
+  --color-disabled-bg: #E7EBE7;
+  --color-disabled-text: #A2AEA4;
+
+  /* Marca / primary */
+  --color-primary-1: #10A83F;
+  --color-primary-2: #00681F;
+  --color-primary-hover-1: #0E9737;
+  --color-primary-hover-2: #005A1A;
+  --color-primary-pressed: #00501A;
+
+  /* Acento de foco — exclusivo para el anillo de focus-visible */
+  --color-sky: #98BF13;
+
+  /* Success */
+  --color-success-1: #12B7CF;
+  --color-success-2: #007689;
+  --color-success-hover-2: #006373;
+  --color-success-pressed: #00505E;
+
+  /* Error */
+  --color-error-1: #F0473F;
+  --color-error-2: #C21B1B;
+  --color-error-hover-2: #A5160F;
+  --color-error-pressed: #8A1108;
+
+  /* Warning */
+  --color-warning-1: #F5A623;
+  --color-warning-2: #C1720A;
+  --color-warning-hover-2: #A46007;
+  --color-warning-pressed: #834E05;
+
+  /* Neutros de estado */
+  --color-gray: #6B7280;
+
+  /* Tipografía */
+  --font-display: Arial, Helvetica, sans-serif;
+  --font-body: var(--font-inter), Arial, sans-serif;
+  --fs-sm: 0.750rem;
+  --fs-base: 1rem;
+  --fs-xl: 1.333rem;
+  --fs-2xl: 1.777rem;
+  --fs-3xl: 2.369rem;
+  --fs-4xl: 3.158rem;
+  --fs-5xl: 4.210rem;
+  --fw-normal: 400;
+  --fw-bold: 700;
+
+  /* Radio — exclusivo de botones y controles interactivos */
+  --radius: 12px;
+
+  /* Sombras — mismo tinte verde en las siete variantes de botón */
+  --shadow-default: 0 6px 16px -4px rgba(0, 60, 20, .35);
+  --shadow-hover: 0 10px 24px -4px rgba(0, 60, 20, .45);
+  --shadow-pressed: 0 2px 6px -1px rgba(0, 60, 20, .30);
+
+  /* Anillo de foco, igual para las siete variantes de botón */
+  --shadow-focus: 0 0 0 4px color-mix(in srgb, var(--color-sky) 55%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: #0A100C;
+    --color-surface: #121A14;
+    --color-text: #E9F1EA;
+    --color-muted: #9DAA9F;
+    --color-border: #24322A;
+    --color-primary-tint: #16281C;
+    --color-disabled-bg: #1C261F;
+    --color-disabled-text: #63705E;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0A100C;
+  --color-surface: #121A14;
+  --color-text: #E9F1EA;
+  --color-muted: #9DAA9F;
+  --color-border: #24322A;
+  --color-primary-tint: #16281C;
+  --color-disabled-bg: #1C261F;
+  --color-disabled-text: #63705E;
+}

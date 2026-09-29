@@ -110,13 +110,17 @@ No depende de ninguna pantalla: es infraestructura y el primer componente compar
 - **Aceptación:** `npm run build` termina sin errores de TypeScript (`strict: true`); `npm run dev` sirve `/` en `200`. Sin conexión al backend todavía — es infraestructura, no una pantalla.
 - **Resultado:** scaffold `create-next-app@14` (Next 14.2.35, React 18.3.1, TS 5.9.3, Tailwind 3.4.19, todo pineado exacto) recortado a página en blanco con `lang="es"` y título propio; `Dockerfile` multietapa sin cablear en compose. Política global `allow-scripts` documentada en `frontend/.npmrc` (`unrs-resolver`, única excepción). Verificado: `npm run build` y `npx tsc --noEmit` limpios, `/` en `200`.
 
-### FE-02 — Tokens de diseño en Tailwind
+### FE-02 — Tokens de diseño en Tailwind · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** los tokens de [`design-tokens.md`](../../ui/design-tokens.md) están disponibles como variables CSS y consumibles desde Tailwind.
-- **Afectados:** `frontend/src/styles/tokens.css`, `frontend/app/globals.css`, `frontend/tailwind.config.ts`.
+- **Afectados:** `frontend/src/styles/tokens.css`, `frontend/app/globals.css`, `frontend/tailwind.config.ts`, y **`frontend/app/layout.tsx`** (ampliación de alcance, ver Resultado).
 - **Dependencias:** FE-01.
 - **Aceptación:** las variables `--color-*`, `--radius`, `--shadow-*`, `--fs-*` y `--fw-*` existen con los valores exactos del documento, en tema claro y oscuro (`prefers-color-scheme` + `data-theme`). Ningún componente posterior declara un color, radio o sombra fuera de estas variables.
+- **Resultado:** `tokens.css` con las tres familias del documento (superficie con par claro/oscuro, marca/semánticos con valor único, tipografía/radio/sombras), verificado valor por valor contra `design-tokens.md`. Se añadió `--shadow-focus` (la fórmula de foco que el documento ya fijaba en prosa, promovida a variable para no reescribirla en cada componente interactivo) — sigue siendo `--shadow-*`, cumple la aceptación tal cual está escrita.
+  Los tokens se registraron **por nombre en `theme.extend`** (`bg-primary-1`, `shadow-hover`, `rounded-control`, …), no por valor hex literal: la fuente de verdad queda en un solo archivo y una clase con un hex fuera de estos nombres ya incumple la aceptación, sea cual sea su sintaxis. `rounded-control` no sobreescribe el `rounded` por defecto de Tailwind —`--radius` es específico de controles, no un reemplazo global— y `fontSize.sm` sí redefine el `text-sm` de Tailwind (14px → 12px) a propósito, porque el token reemplaza la escala por defecto.
+  **Ampliación de alcance:** `--font-body` referenciaba `'Inter'`, pero ningún archivo de la lista original podía cargarlo — se añadió `next/font/google` en `layout.tsx` (pesos 400/700, variable `--font-inter`) para que el token no cayera en silencio a Arial.
+  Verificado: `npx tsc --noEmit` y `npm run build` limpios, sin más aviso que "no se detectaron clases de utilidad" (esperado: `page.tsx` sigue en blanco, es tarea de FE-04 en adelante). Los radios de 14/16/20px y el de píldora (999px) siguen sin tokenizar, tal como ya lo dejaba `design-tokens.md` ("candidatos a tokenizarse") — no es una omisión de esta tarea. La verificación mecánica de "ningún color fuera de los tokens" (p. ej. Stylelint) queda pendiente como mejora opcional, no como parte de esta tarea; el primer consumidor real de los tokens es `FE-04`.
 
 ### FE-03 — Cliente HTTP y sesión
 
