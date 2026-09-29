@@ -278,13 +278,14 @@ Un bloque por módulo, en el mismo orden en que el backend los cerró (`tasks.md
 - **Aceptación:** igual criterio que FE-08.
 - **Resultado:** cuatro superficies agrupadas por superficie compartida: `SCR-ESP-01` registro, edición y estado (con advertencia de cancelaciones y confirmación explícita), `SCR-ESP-02` recursos asociados (misma unidad, sin doble asociación, retiro que deshabilita), `SCR-ESP-03` campos adicionales (los cinco tipos cerrados, opciones, reorden, deshabilitación sin perder historia), `SCR-ESP-04` consulta con visibilidad por rol. `UF-ESP-14` queda explícitamente sin superficie por ocurrir en `reservations`; disponibilidad temporal y horario propio, fuera por §6 del contrato. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-15 — Implementación — espacios
+### FE-15 — Implementación — espacios · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** las pantallas de `espacios` funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/espacios/**`.
 - **Dependencias:** FE-14, FE-13 (reutiliza el selector de recursos), FE-06.
 - **Aceptación:** igual criterio que FE-09.
+- **Resultado:** dos rutas (catálogo con registro, detalle con edición/estado/asociados/campos), Server Components que deciden `puedeGestionar` por rol sin store. Andamiaje: `src/lib/espacios-api.ts` (endpoints §2–§4) + `espacios-types.ts` sin `next/headers`. Impacto previo con conteos antes de deshabilitar; reorden por intercambio de posiciones; `agregarOpciones` envuelto en el lib aunque ninguna pantalla lo usa todavía (la creación con opción inicial cubre el flujo). Verificado: `tsc --noEmit`, `build` (2 rutas), `lint` limpios; `npm test` — 33 en verde (5 dirigidas nuevas: crear, duplicado, impacto con confirmación, lista-sin-opciones).
 
 ### FE-16 — Especificación de pantallas — researchs
 
