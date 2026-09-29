@@ -342,13 +342,14 @@ El módulo central y el más complejo: cinco tipos de reserva con estrategias di
 - **Aceptación:** igual criterio que FE-08.
 - **Resultado:** dos superficies agrupadas por superficie compartida: `SCR-NOT-01` bandeja (propias, filtros, marcar sin efectos colaterales, ajena indistinguible) y `SCR-NOT-02` preferencias (general por defecto, reemplazo completo, solo canal correo). `UF-NOT-03` queda explícitamente sin superficie por ser tarea del sistema; el estado de envíos no se consulta por decisión del contrato. Verificado: `python tools/validar.py` en 0 fallas, documentos enlazados desde `overview.md`.
 
-### FE-21 — Implementación — notifications
+### FE-21 — Implementación — notifications · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** bandeja y preferencias de `notifications` funcionando contra el backend real.
 - **Afectados:** `frontend/app/(app)/notificaciones/**`.
 - **Dependencias:** FE-20, FE-06.
 - **Aceptación:** igual criterio que FE-09.
+- **Resultado:** dos rutas bajo `(app)/notificaciones` (bandeja WF-NOT-01 y `preferencias` WF-NOT-02) sin gate de rol, Client Components con `useState` + `apiRequest` como FE-09. Andamiaje: `src/lib/notificaciones-api.ts` (5 endpoints §2–§3) + `notificaciones-types.ts` sin `next/headers`. La bandeja filtra por estado y tipo, marca con `POST .../lectura` y trata ajena e inexistente igual (`404` → mismo mensaje); las preferencias envían reemplazo completo y lo no listado rige por la general; los tipos vienen de `GET tipos-evento` y `404`/`422` tienen mensaje de corrección propio. Sin estado de envíos, que el contrato no expone. Verificado: `tsc --noEmit`, `build` (2 rutas), `lint` limpios; `npm test` — 47 en verde (6 nuevas dirigidas: marcar conserva el texto, ajena/inexistente indistinguible, ya leída sin acción, reemplazo de preferencias, tipo inexistente, tipo repetido).
 
 ### FE-22 — Especificación de pantallas — reports
 
