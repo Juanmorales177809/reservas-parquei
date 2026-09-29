@@ -4,20 +4,19 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
+import { SelectorRecurso } from "@/src/components/selectores/selectores";
 import { Field } from "@/src/components/ui/Field";
-import { Select } from "@/src/components/ui/Select";
+import { CamposDelEspacio } from "@/src/components/espacios/CamposDelEspacio";
 import { ApiRequestError } from "@/src/lib/http";
 import {
   asociarRecursos,
-  cambiarEstadoCampo,
   cambiarEstadoEspacio,
-  crearCampo,
   detalleEspacio,
+  editarEspacio,
   impactoDeshabilitacionEspacio,
-  reordenarCampos,
   retirarRecurso,
 } from "@/src/lib/espacios-api";
-import type { EspacioDetalle, TipoCampo } from "@/src/lib/espacios-types";
+import type { EspacioDetalle } from "@/src/lib/espacios-types";
 
 /** Detalle, estado, asociados y campos (WF-ESP-02, WF-ESP-03). */
 export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boolean }) {
@@ -27,15 +26,44 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   const [detalle, setDetalle] = useState<EspacioDetalle | null>(null);
   const [impacto, setImpacto] = useState<number | null>(null);
   const [recursoId, setRecursoId] = useState("");
-  const [nombreCampo, setNombreCampo] = useState("");
-  const [tipoCampo, setTipoCampo] = useState<TipoCampo>("TEXTO");
-  const [opcion, setOpcion] = useState("");
+  const [datos, setDatos] = useState({ nombre: "", ubicacion: "", capacidad: "", descripcion: "" });
   const [ocupada, setOcupada] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tono, setTono] = useState<"muted" | "error" | "exito">("muted");
 
   async function recargar() {
-    setDetalle(await detalleEspacio(id));
+    const d = await detalleEspacio(id);
+    setDetalle(d);
+    setDatos({ nombre: d.nombre, ubicacion: d.ubicacion ?? "", capacidad: String(d.capacidad), descripcion: d.descripcion ?? "" });
+  }
+
+  /** Ejecuta una operación del detalle, recarga y avisa; los errores del servidor se muestran. */
+  async function actuar(accion: () => Promise<unknown>, exito: string) {
+    setOcupada(true);
+    try {
+      await accion();
+      await recargar();
+      informar(exito, "exito");
+    } catch (error) {
+      informar(mensajeError(error), "error");
+    } finally {
+      setOcupada(false);
+    }
+  }
+
+  function guardarDatos(evento: FormEvent) {
+    evento.preventDefault();
+    if (!detalle) return;
+    const cambios: { nombre?: string; ubicacion?: string; capacidad?: number; descripcion?: string } = {};
+    if (datos.nombre.trim() !== detalle.nombre) cambios.nombre = datos.nombre.trim();
+    if (datos.ubicacion.trim() !== (detalle.ubicacion ?? "")) cambios.ubicacion = datos.ubicacion.trim();
+    if (datos.descripcion.trim() !== (detalle.descripcion ?? "")) cambios.descripcion = datos.descripcion.trim();
+    if (Number(datos.capacidad) !== detalle.capacidad) cambios.capacidad = Number(datos.capacidad);
+    if (Object.keys(cambios).length === 0) {
+      informar("No hay cambios que guardar.", "exito");
+      return;
+    }
+    void actuar(() => editarEspacio(id, cambios), "Datos del espacio actualizados.");
   }
 
   useEffect(() => {
@@ -114,59 +142,6 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
     }
   }
 
-  async function agregarCampo(evento: FormEvent) {
-    evento.preventDefault();
-    setOcupada(true);
-    try {
-      await crearCampo(id, {
-        nombre: nombreCampo,
-        tipo: tipoCampo,
-        ...(tipoCampo === "SELECCION" && opcion ? { opciones: [{ valor: opcion }] } : {}),
-      });
-      setNombreCampo("");
-      setOpcion("");
-      await recargar();
-      informar("Campo creado.", "exito");
-    } catch (error) {
-      informar(mensajeError(error), "error");
-    } finally {
-      setOcupada(false);
-    }
-  }
-
-  async function subir(campoId: number, orden: number) {
-    if (orden === 0 || !detalle?.campos) return;
-    setOcupada(true);
-    try {
-      const ordenada = [...detalle.campos].sort((a, b) => a.orden - b.orden);
-      const anterior = ordenada[orden - 1];
-      const actual = ordenada[orden];
-      await reordenarCampos(id, [
-        { campo_id: actual.id, orden: anterior.orden },
-        { campo_id: anterior.id, orden: actual.orden },
-      ]);
-      await recargar();
-      informar("Orden actualizado.", "exito");
-    } catch {
-      informar("No se pudo reordenar.", "error");
-    } finally {
-      setOcupada(false);
-    }
-  }
-
-  async function alternarCampo(campoId: number, habilitado: boolean) {
-    setOcupada(true);
-    try {
-      await cambiarEstadoCampo(id, campoId, !habilitado);
-      await recargar();
-      informar("Campo actualizado.", "exito");
-    } catch (error) {
-      informar(mensajeError(error), "error");
-    } finally {
-      setOcupada(false);
-    }
-  }
-
   if (!detalle) {
     return (
       <div className="flex flex-col gap-4">
@@ -176,21 +151,33 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
     );
   }
 
-  const campos = [...(detalle.campos ?? [])].sort((a, b) => a.orden - b.orden);
-
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold text-text">{detalle.nombre}</h1>
         <p className="text-sm text-muted">
           Capacidad {detalle.capacidad} {!detalle.habilitado && "· deshabilitado"}
+          {detalle.ubicacion ? ` · ${detalle.ubicacion}` : ""}
         </p>
+        {detalle.descripcion && <p className="text-sm text-text">{detalle.descripcion}</p>}
         {detalle.horario_unidad && (
           <p className="text-sm text-muted">
-            Horario de la unidad: {detalle.horario_unidad.hora_apertura} – {detalle.horario_unidad.hora_cierre}
+            Horario de la unidad: {detalle.horario_unidad.hora_apertura.slice(0, 5)} – {detalle.horario_unidad.hora_cierre.slice(0, 5)}
           </p>
         )}
       </div>
+      {puedeGestionar && (
+        <form onSubmit={guardarDatos} aria-label="Datos del espacio" className="flex flex-col gap-3">
+          <h2 className="text-base font-bold text-text">Datos del espacio</h2>
+          <Field id="esp-ed-nombre" label="Nombre" value={datos.nombre} onChange={(e) => setDatos({ ...datos, nombre: e.target.value })} required />
+          <Field id="esp-ed-ubicacion" label="Ubicación" value={datos.ubicacion} onChange={(e) => setDatos({ ...datos, ubicacion: e.target.value })} />
+          <Field id="esp-ed-capacidad" label="Capacidad" type="number" value={datos.capacidad} onChange={(e) => setDatos({ ...datos, capacidad: e.target.value })} required />
+          <Field id="esp-ed-descripcion" label="Descripción" value={datos.descripcion} onChange={(e) => setDatos({ ...datos, descripcion: e.target.value })} />
+          <div>
+            <Button type="submit" variant="secondary" loading={ocupada}>Guardar datos</Button>
+          </div>
+        </form>
+      )}
       {puedeGestionar && (
         <section aria-label="Estado" className="flex flex-col gap-2">
           <div className="flex gap-2">
@@ -225,53 +212,13 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
         </ul>
         {puedeGestionar && (
           <form onSubmit={(e) => void asociar(e)} className="flex items-end gap-2">
-            <Field id="asoc-recurso" label="Recurso (id)" value={recursoId}
-              onChange={(e) => setRecursoId(e.target.value)} required />
+            <SelectorRecurso id="asoc-recurso" label="Recurso" idUnidad={String(detalle.id_unidad)}
+              reservable={false} value={recursoId} onChange={setRecursoId} requerido />
             <Button type="submit" variant="secondary" loading={ocupada}>Asociar</Button>
           </form>
         )}
       </section>
-      <section aria-label="Campos adicionales" className="flex flex-col gap-2">
-        <h2 className="text-base font-bold text-text">Campos adicionales</h2>
-        <ul className="flex flex-col gap-1 text-sm text-text">
-          {campos.map((c, i) => (
-            <li key={c.id} className="flex items-center gap-2">
-              <span>{c.nombre} ({c.tipo}){c.obligatorio ? " *" : ""} {!c.habilitado && "(deshabilitado)"}</span>
-              {puedeGestionar && (
-                <>
-                  <Button variant="ghost" size="sm" disabled={ocupada || i === 0}
-                    onClick={() => void subir(c.id, i)}>Subir</Button>
-                  <Button variant="ghost" size="sm" disabled={ocupada}
-                    onClick={() => void alternarCampo(c.id, c.habilitado)}>
-                    {c.habilitado ? "Deshabilitar" : "Habilitar"}
-                  </Button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-        {puedeGestionar && (
-          <form onSubmit={(e) => void agregarCampo(e)} className="flex flex-col gap-2">
-            <Field id="campo-nombre" label="Nombre" value={nombreCampo}
-              onChange={(e) => setNombreCampo(e.target.value)} required />
-            <Select id="campo-tipo" label="Tipo" value={tipoCampo}
-              onChange={(e) => setTipoCampo(e.target.value as TipoCampo)}>
-              <option value="TEXTO">Texto</option>
-              <option value="TEXTO_LARGO">Texto largo</option>
-              <option value="NUMERO">Número</option>
-              <option value="BOOLEANO">Sí / no</option>
-              <option value="SELECCION">Lista de opciones</option>
-            </Select>
-            {tipoCampo === "SELECCION" && (
-              <Field id="campo-opcion" label="Primera opción (obligatoria para listas)"
-                value={opcion} onChange={(e) => setOpcion(e.target.value)} />
-            )}
-            <div>
-              <Button type="submit" variant="secondary" loading={ocupada}>Agregar campo</Button>
-            </div>
-          </form>
-        )}
-      </section>
+      <CamposDelEspacio espacioId={id} campos={detalle.campos ?? []} puedeGestionar={puedeGestionar} ocupada={ocupada} actuar={actuar} />
       <RegionMensaje texto={mensaje} tono={mensaje ? tono : "muted"} />
     </div>
   );

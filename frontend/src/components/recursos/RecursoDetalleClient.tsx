@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
-import { Field } from "@/src/components/ui/Field";
+import { SelectorUnidad } from "@/src/components/selectores/selectores";
+import { CamposRecurso, especializacionDe, valoresIniciales, type ValoresRecurso } from "@/src/components/recursos/CamposRecurso";
 import { ApiRequestError } from "@/src/lib/http";
 import {
   actualizarRecurso,
@@ -15,6 +16,8 @@ import {
 } from "@/src/lib/recursos-api";
 import type { ImpactoDeshabilitacion, RecursoDetalle } from "@/src/lib/recursos-types";
 
+const NOMBRE_TIPO: Record<string, string> = { EQUIPO: "Equipo", MOBILIARIO: "Mobiliario", OTRO: "Otro" };
+
 /** Detalle, edición, estado y unidad (WF-REC-02). */
 export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boolean }) {
   const params = useParams();
@@ -22,7 +25,8 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   const id = Number(params.id);
   const [detalle, setDetalle] = useState<RecursoDetalle | null>(null);
   const [impacto, setImpacto] = useState<ImpactoDeshabilitacion | null>(null);
-  const [nombre, setNombre] = useState("");
+  const [valores, setValores] = useState<ValoresRecurso | null>(null);
+  const [previos, setPrevios] = useState<ValoresRecurso | null>(null);
   const [nuevaUnidad, setNuevaUnidad] = useState("");
   const [ocupada, setOcupada] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -31,8 +35,9 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   async function recargar() {
     const d = await detalleRecurso(id);
     setDetalle(d);
-    const actual = d.tipo === "EQUIPO" ? d.especializacion["nombre_equipo"] : d.especializacion["nombre"];
-    if (typeof actual === "string") setNombre(actual);
+    const inicial = valoresIniciales(d.tipo, d.especializacion);
+    setValores(inicial);
+    setPrevios(inicial);
   }
 
   useEffect(() => {
@@ -61,8 +66,13 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
     evento.preventDefault();
     setOcupada(true);
     try {
-      const campo = detalle?.tipo === "EQUIPO" ? { nombre_equipo: nombre } : { nombre };
-      await actualizarRecurso(id, campo);
+      if (!detalle || !valores || !previos) return;
+      const cambios = especializacionDe(detalle.tipo, valores, previos);
+      if (Object.keys(cambios).length === 0) {
+        informar("No hay cambios que guardar.", "exito");
+        return;
+      }
+      await actualizarRecurso(id, cambios);
       await recargar();
       informar("Recurso actualizado.", "exito");
     } catch (error) {
@@ -91,7 +101,7 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
       await recargar();
       informar(habilitado ? "Recurso habilitado." : "Recurso deshabilitado.", "exito");
     } catch (error) {
-      informar(mensajeError(error), "error");
+      informar(mensajeError(error, true), "error");
     } finally {
       setOcupada(false);
     }
@@ -122,14 +132,33 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">
-        {detalle.tipo} #{detalle.id} {!detalle.habilitado && "(deshabilitado)"}
-      </h1>
+      <div>
+        <h1 className="text-2xl font-bold text-text">
+          {valores?.nombre || "Recurso"} {!detalle.habilitado && "(deshabilitado)"}
+        </h1>
+        <p className="text-sm text-muted">
+          {NOMBRE_TIPO[detalle.tipo] ?? detalle.tipo}
+          {detalle.tipo === "EQUIPO" && detalle.especializacion.estado === false ? " · no operativo" : ""}
+        </p>
+      </div>
+      {detalle.tipo === "EQUIPO" && (
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-text">
+          {[
+            ["Código de bodega", detalle.especializacion.bodega],
+            ["Centro de costos", detalle.especializacion.centro_costo],
+            ["Fecha de compra", detalle.especializacion.fecha_compra],
+          ].filter(([, v]) => v).map(([k, v]) => (
+            <div key={String(k)} className="contents">
+              <dt className="font-bold">{String(k)}</dt>
+              <dd>{String(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {puedeGestionar && (
         <>
           <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-2">
-            <Field id="rec-nombre-editar" label="Nombre" value={nombre}
-              onChange={(e) => setNombre(e.target.value)} required />
+            {valores && <CamposRecurso tipo={detalle.tipo} valores={valores} onChange={setValores} prefijo="rec-editar" />}
             <div>
               <Button type="submit" variant="secondary" loading={ocupada}>Guardar datos</Button>
             </div>
@@ -155,8 +184,8 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
             )}
           </section>
           <form onSubmit={(e) => void reasignar(e)} className="flex items-end gap-2">
-            <Field id="rec-unidad" label="Nueva unidad (id)" value={nuevaUnidad}
-              onChange={(e) => setNuevaUnidad(e.target.value)} required />
+            <SelectorUnidad id="rec-unidad" label="Nueva unidad" value={nuevaUnidad}
+              onChange={setNuevaUnidad} requerido />
             <Button type="submit" variant="secondary" loading={ocupada}>Reasignar</Button>
           </form>
         </>
@@ -166,9 +195,12 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   );
 }
 
-function mensajeError(error: unknown): string {
+function mensajeError(error: unknown, enEstado = false): string {
   if (error instanceof ApiRequestError) {
-    if (error.error.codigo === "CONFLICTO") return "Hay reservas que exigen confirmación explícita.";
+    // Un 409 al deshabilitar es la confirmación pendiente; en cualquier otra operación (placa o serial repetidos...)
+    // el servidor explica el motivo.
+    if (error.error.codigo === "CONFLICTO")
+      return enEstado ? "Hay reservas que exigen confirmación explícita." : error.error.mensaje || "El servidor rechazó el cambio.";
     if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "La unidad no es válida para esta operación.";
     if (error.error.codigo === "VALIDACION") return "Revisa los datos ingresados.";
     if (error.status === 429) return "La operación está temporalmente limitada.";
