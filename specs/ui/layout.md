@@ -41,7 +41,15 @@ En viewport móvil y tablet la navegación no ocupa columna propia: se convierte
 
 Hasta ocho destinos, en este orden y con estos nombres: **Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Notificaciones, Reportes**. Auth no es un destino propio: su superficie autenticada (administración de cuentas e invitaciones) vive dentro de Administración.
 
-La visibilidad de cada destino se calcula en el cliente, en el momento de pintar la navegación, contra lo que devolvió `GET /api/auth/sesiones/actual` para esa sesión — nunca contra una tabla fija de rutas por rol construida de antemano (`FE-06` lo exige explícitamente). Un destino no autorizado **no aparece**; no se muestra deshabilitado, porque no es un estado de `Button` — sencillamente no es parte de la respuesta de esa sesión.
+La visibilidad de cada destino se calcula en el momento de pintar la navegación, contra la respuesta viva de `GET /api/auth/sesiones/actual` para esa sesión — nunca contra una tabla precalculada que ignore la sesión real (`FE-06` lo exige explícitamente). La señal disponible para eso es `rol` — `sesiones/actual` no expone la lista de permisos concretos que en verdad gobierna cada operación, esos solo se conocen al llamar cada endpoint. Cada destino declara para qué roles aparece:
+
+| Destino | `USUARIO` | `TECNICO` | `ADMINISTRADOR` |
+|---|---|---|---|
+| Reservas, Espacios, Recursos, Investigación, Notificaciones | ✓ | ✓ | ✓ |
+| Reportes | | ✓ | ✓ |
+| Usuarios, Administración | | | ✓ |
+
+Es una aproximación de grano grueso, no la autorización real: un destino visible puede seguir respondiendo `403` en una operación concreta si esa sesión no tiene el permiso puntual, y eso lo resuelve cada pantalla contra el backend, no este documento. Un destino no visible para el rol de la sesión **no aparece**; no se muestra deshabilitado, porque no es un estado de `Button` — sencillamente no es parte de la respuesta de esa sesión.
 
 Sin contador de notificaciones ni ningún otro indicador numérico en la navegación: requeriría un componente de badge que `components.md` todavía no especifica («Badge de estado/rol: Pendiente»). `Notificaciones` es, por ahora, un ítem de navegación como cualquier otro.
 
@@ -74,9 +82,9 @@ Tomados de precedentes ya cerrados, no inventados para este documento:
 | Elemento | Valor | Origen |
 |---|---|---|
 | Ancho máximo de la región de contenido | `1180px` | Página del artifact de diseño aprobado |
-| Padding de la región de contenido | `44px` arriba, `20px` lados, `90px` abajo | Misma página del artifact |
-| Gutter de contenido en móvil/tablet | `20px` | Catálogo de espaciado, [`design-tokens.md`](design-tokens.md#espaciado) |
-| Gutter de contenido en escritorio | `30px` | Catálogo de espaciado, [`design-tokens.md`](design-tokens.md#espaciado) |
+| Padding vertical de la región de contenido | `44px` arriba, `90px` abajo | Misma página del artifact |
+| Padding horizontal (gutter) en móvil/tablet | `20px` | Catálogo de espaciado, [`design-tokens.md`](design-tokens.md#espaciado) — coincide con el lateral que usaba el artifact, no es un valor nuevo |
+| Padding horizontal (gutter) en escritorio | `30px` | Catálogo de espaciado, [`design-tokens.md`](design-tokens.md#espaciado) |
 
 ### Tokens de sistema de diseño aplicados al chrome del shell
 

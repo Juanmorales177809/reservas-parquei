@@ -152,9 +152,9 @@ No depende de ninguna pantalla: es infraestructura y el primer componente compar
 
 ---
 
-## Fase 2 — Estructura general
+## Fase 2 — Estructura general · **cerrada**
 
-Bloqueada en parte por specs/ui, que todavía no fija la distribución general.
+`FE-05` y `FE-06` cerradas: `specs/ui/layout.md` completo y el shell autenticado real en `frontend/app/(app)/layout.tsx`, con navegación filtrada por rol y redirección a login sin sesión. **El siguiente paso es la Fase 3.**
 
 ### FE-05 — Completar `specs/ui/layout.md` · **cerrada**
 
@@ -169,13 +169,19 @@ Bloqueada en parte por specs/ui, que todavía no fija la distribución general.
   Tokens de chrome (fondo, borde, ítem activo, foco) reutilizan exactamente los que ya cierra `design-system.md`; ninguno nuevo salvo extender el anillo de foco —ya fijado solo para `Button`— a los ítems de navegación, un tipo de elemento interactivo que ese documento no cubría.
   Verificado: `python tools/validar.py` en 0 fallas.
 
-### FE-06 — Shell de navegación autenticado
+### FE-06 — Shell de navegación autenticado · **cerrada**
 
 - **Tipo:** Implementación
 - **Objetivo:** el layout que envuelve las pantallas autenticadas (`app/(app)/layout.tsx`): navegación, región de contenido, estado de sesión visible.
-- **Afectados:** `frontend/app/(app)/layout.tsx`.
+- **Afectados:** `frontend/app/(app)/layout.tsx`, y **`frontend/src/lib/auth.ts`, `frontend/src/components/shell/AppShell.tsx`, `frontend/src/components/shell/nav-items.ts`, `frontend/vitest.config.ts`** (ampliación de alcance: el layout necesitaba un helper de sesión server-only y un shell interactivo, que no caben en un único archivo de Server Component — ver Resultado).
 - **Dependencias:** FE-05, FE-03.
 - **Aceptación:** una ruta bajo `(app)/` sin sesión válida redirige a login sin pintar contenido protegido; la navegación refleja únicamente lo que `GET /api/auth/sesiones/actual` autorizó para esa sesión, no un mapa de rutas fijo por rol construido en el cliente.
+- **Resultado:** `app/(app)/layout.tsx` es un Server Component `async` que llama a `obtenerSesionActual()` (nuevo, en `src/lib/auth.ts`) y hace `redirect("/login")` antes de pintar nada si no hay sesión — Next.js no invoca `children` cuando el layout redirige, así que no hay parpadeo de contenido protegido. `obtenerSesionActual` lee `cookies()` de `next/headers` y llama a `apiRequest` de `FE-03` con `cookieHeader`; devuelve `null` en un `401`, propaga cualquier otro error. `apiRequest` en sí no cambió — sigue sin importar `next/headers`, tal como fijó `FE-03`.
+  **Primer uso real del alias `@/`** que ya declaraba `tsconfig.json` (`"@/*": ["./*"]`, relativo a `frontend/`, no a `frontend/src/`): las importaciones nuevas son `@/src/lib/auth`, `@/src/lib/http`, `@/src/components/ui/Button` — se documenta aquí porque ningún archivo anterior lo había usado y fija la convención para las tareas siguientes. `vitest.config.ts` ganó un `resolve.alias` equivalente; sin él, las pruebas no resolvían el mismo alias que usa Next.js.
+  **Navegación:** `sesiones/actual` (contrato §3.4) no expone la lista de permisos concretos, solo `rol`. Se decidió filtrar los ocho destinos por `rol` con una tabla de grano grueso declarada junto a cada ítem (`nav-items.ts`), documentada primero en `layout.md` antes de escribir el código — Reservas/Recursos/Espacios/Investigación/Notificaciones para los tres roles, Reportes para Técnico y Administrador, Usuarios/Administración solo para Administrador. Es una aproximación deliberada, no la autorización real: cada pantalla sigue revalidando contra el backend. Se corrigieron dos imprecisiones de `FE-05` encontradas al implementar —una redundancia entre "padding" y "gutter" de la región de contenido con números que se pisaban, y la falta de mecanismo concreto para "visibilidad calculada en runtime"— ambas ya reflejadas en `layout.md`.
+  **Estado de sesión:** `correo · rol` + «Cerrar sesión» (`Button` variant `ghost`) a la derecha de la cabecera en escritorio; en el panel superpuesto de móvil/tablet, al pie del panel, como ya fijaba `layout.md`. Cerrar sesión llama `DELETE /api/auth/sesiones/actual` y fuerza `window.location.href = "/login"` (navegación completa, no `router.push`, para descartar cualquier estado de cliente junto con la cookie que el servidor ya invalidó).
+  **Responsive:** navegación persistente `lg:block` (≥1024px) vs. panel superpuesto con velo bajo `lg`, mismo componente y mismo ancho (240px) en ambos casos, tal como pedía `layout.md`. Foco de los ítems de navegación con el mismo anillo que `Button` (`ring-4` + `color-mix(...)` de `--color-sky` al 55%).
+  Verificado: `npx tsc --noEmit`, `npm run build` y `npm run lint` limpios; `npm test` — 14 pruebas en verde (2 de `layout.tsx`: redirige sin sesión sin pintar contenido, pinta shell+contenido con sesión; 5 de `AppShell`: filtrado por rol para los tres roles, apertura del panel superpuesto, cierre de sesión llama al `DELETE` correcto; más las 7 de `Button` sin regresión). Sin página real bajo `(app)/` todavía —las pantallas llegan con `FE-07` en adelante—, así que la verificación de "una ruta bajo `(app)/`" se hizo probando el layout directamente, no navegando una URL real.
 
 ---
 
