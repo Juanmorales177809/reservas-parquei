@@ -31,6 +31,7 @@ class RecursoCrear(BaseModel):
 class RecursoResumen(BaseModel):
     id: int
     tipo: TipoRecurso
+    nombre: str | None = None
     id_unidad: int
     habilitado: bool
 
@@ -87,6 +88,7 @@ class ConfiguracionRespuesta(BaseModel):
     recordatorio_horas_antes: int
     mostrar_estado_reserva: bool
     mostrar_reservista: bool
+    notificar_por_correo: bool = False
     tipos_reserva: list[str]
 
 

@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import ContextoAutenticado, obtener_contexto
 from app.core.errors import SolicitudInvalida
-from app.core.pagination import envolver_listado, paginacion_para
+from app.core.pagination import envolver_catalogo, envolver_listado, paginacion_para
 from app.core.security import exigir_csrf
 from app.db.session import get_db
 from app.modules.resources import schemas, service
@@ -131,6 +131,15 @@ def cambiar_unidad(
 ) -> schemas.RecursoResumen:
     """§2.7. Requiere `recursos.reasignar_unidad`, siempre global."""
     return schemas.RecursoResumen(**service.cambiar_unidad(db, id_recurso, cuerpo, contexto))
+
+
+@router_laboratorios.get("", response_model=dict)
+def listar_laboratorios(
+    db: Session = Depends(get_db),
+    _contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> dict:
+    """§3.0. Catálogo cerrado, sin paginación: quien reserva necesita saber dónde puede hacerlo."""
+    return envolver_catalogo(service.listar_laboratorios(db))
 
 
 @router_laboratorios.get("/{id_unidad}/configuracion", response_model=schemas.ConfiguracionRespuesta)

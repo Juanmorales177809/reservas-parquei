@@ -136,7 +136,11 @@ def listar_recursos(db: Session, filtros: dict, pagina: int, tamano: int, orden:
         busqueda=filtros.get("busqueda"), reservable=filtros.get("reservable", False),
         orden=orden, offset=(pagina - 1) * tamano, tamano=tamano,
     )
-    datos = [{"id": r.id, "tipo": r.tipo, "id_unidad": r.id_unidad, "habilitado": r.habilitado} for r in items]
+    nombres = repo.nombres_de_recursos(db, [r.id for r in items])
+    datos = [
+        {"id": r.id, "tipo": r.tipo, "nombre": nombres.get(r.id), "id_unidad": r.id_unidad, "habilitado": r.habilitado}
+        for r in items
+    ]
     return datos, total
 
 
@@ -290,8 +294,17 @@ def _config_dict(db: Session, config) -> dict:
         "recordatorio_horas_antes": config.recordatorio_horas_antes,
         "mostrar_estado_reserva": config.mostrar_estado_reserva,
         "mostrar_reservista": config.mostrar_reservista,
+        "notificar_por_correo": config.notificar_por_correo,
         "tipos_reserva": repo.obtener_tipos_habilitados(db, config.id_unidad),
     }
+
+
+def listar_laboratorios(db: Session) -> list[dict]:
+    """§3.0. Catálogo de laboratorios, legible por cualquier cuenta autenticada."""
+    return [
+        {"id_unidad": id_unidad, "nombre": nombre, "habilitado_reservas": habilitado}
+        for id_unidad, nombre, habilitado in repo.listar_laboratorios(db)
+    ]
 
 
 def obtener_configuracion(db: Session, id_unidad: int) -> dict:

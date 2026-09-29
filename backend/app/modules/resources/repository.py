@@ -133,6 +133,21 @@ def listar_recursos(
     return items, total
 
 
+def nombres_de_recursos(db: Session, ids: list[int]) -> dict[int, str | None]:
+    """Nombre visible de cada recurso (vive en su especialización)."""
+    if not ids:
+        return {}
+    nombre = func.coalesce(Equipos.nombre_equipo, Mobiliarios.nombre, OtrosRecursos.nombre)
+    filas = db.execute(
+        select(Recursos.id, nombre)
+        .outerjoin(Equipos, Equipos.id == Recursos.id)
+        .outerjoin(Mobiliarios, Mobiliarios.id == Recursos.id)
+        .outerjoin(OtrosRecursos, OtrosRecursos.id == Recursos.id)
+        .where(Recursos.id.in_(ids))
+    ).all()
+    return {fila[0]: fila[1] for fila in filas}
+
+
 def cambiar_habilitado(db: Session, recurso: Recursos, habilitado: bool) -> None:
     recurso.habilitado = habilitado
     recurso.updated_at = datetime.now(timezone.utc)
@@ -216,6 +231,17 @@ def retirar_asignacion(db: Session, asignacion: ReservaRecursos) -> None:
 
 
 # --- Configuración del laboratorio ---------------------------------------------
+
+
+def listar_laboratorios(db: Session) -> list[tuple[int, str, bool]]:
+    """Unidades activas con configuración de reservas, por nombre."""
+    filas = db.execute(
+        select(UnidadOrganizacional.id_unidad, UnidadOrganizacional.nombre, LaboratoriosConfig.habilitado_reservas)
+        .join(LaboratoriosConfig, LaboratoriosConfig.id_unidad == UnidadOrganizacional.id_unidad)
+        .where(UnidadOrganizacional.estado.is_(True))
+        .order_by(UnidadOrganizacional.nombre)
+    ).all()
+    return [(f[0], f[1], f[2]) for f in filas]
 
 
 def obtener_config(db: Session, id_unidad: int) -> LaboratoriosConfig | None:

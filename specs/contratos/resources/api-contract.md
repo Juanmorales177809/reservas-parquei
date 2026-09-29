@@ -57,7 +57,7 @@ Para `tipo: "EQUIPO"`, la especialización corresponde a `recursos.equipos` y co
 
 ### 2.2 `GET /api/recursos`
 
-Listado paginado con la envolvente completa. Flujo `UF-REC-04`. Filtros: `id_unidad`, `tipo`, `habilitado`, `busqueda` sobre nombre y placa. Orden admitido: `nombre`, `tipo`.
+Listado paginado con la envolvente completa. Flujo `UF-REC-04`. Filtros: `id_unidad`, `tipo`, `habilitado`, `busqueda` sobre nombre y placa. Orden admitido: `nombre`, `tipo`. Cada elemento de `datos` incluye `nombre` (el de su especialización) para que las pantallas ofrezcan el recurso por nombre y no por su identificador: `{ "id": 41, "tipo": "MOBILIARIO", "nombre": "Mesa de trabajo", "id_unidad": 7, "habilitado": true }`.
 
 El listado ofrecido para **reservar** excluye los equipos con `acreditado = true`, que no son reservables aunque estén habilitados y operativos (`RN-REC-11`). El filtro `reservable=true` aplica esa exclusión; sin él, el listado administrativo los incluye.
 
@@ -115,6 +115,18 @@ La unidad del recurso y la de su especialización deben quedar coincidentes. Las
 
 Es la configuración por unidad en `reservas.laboratorios_config`. Incluye el horario de atención, que **es el horario aplicable a todos los espacios y recursos de esa unidad** (`RN-ESP-DIS-02` de espacios).
 
+### 3.0 `GET /api/laboratorios`
+
+Catálogo de laboratorios: las unidades organizacionales activas que tienen configuración de reservas. Lo puede leer **cualquier cuenta autenticada**, sin permiso administrativo: quien va a reservar, filtrar sus reservas o consultar reportes necesita elegir la unidad por su nombre, y `GET /api/unidades` exige `unidades.administrar`. Catálogo cerrado, sin paginación, ordenado por nombre.
+
+**`200 OK`**
+
+```json
+{ "datos": [{ "id_unidad": 7, "nombre": "Laboratorio de Metrología", "habilitado_reservas": true }] }
+```
+
+`habilitado_reservas` es el de `RN-LAB-03`: una unidad con reservas deshabilitadas sigue apareciendo (sus reservas históricas se consultan), pero no admite nuevas.
+
 ### 3.1 `GET /api/laboratorios/{id_unidad}/configuracion`
 
 Configuración vigente de la unidad. Paso 2 de `UF-REC-13`.
@@ -131,9 +143,12 @@ Configuración vigente de la unidad. Paso 2 de `UF-REC-13`.
   "recordatorio_horas_antes": 24,
   "mostrar_estado_reserva": false,
   "mostrar_reservista": false,
+  "notificar_por_correo": false,
   "tipos_reserva": ["ESPACIO", "RECURSO_INTERNO"]
 }
 ```
+
+`notificar_por_correo` es la única configuración general por unidad que habilita el correo saliente de las notificaciones de sus reservas y recursos (`RN-LAB-07`); se devuelve para poder mostrarla y modificarla. `dias_atencion` numera 0 = domingo a 6 = sábado.
 
 La lectura del horario es pública para cualquier cuenta autenticada: el Usuario siempre puede consultarlo y las opciones de visibilidad no pueden ocultarlo (`RN-DIS-07` de reservations).
 
