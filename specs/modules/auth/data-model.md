@@ -134,20 +134,22 @@ Asignación directa de un permiso a una cuenta, con su ámbito organizacional.
 
 ### Derivación del rol funcional
 
-Los roles de `RN-AUTH-ROL-01` no se almacenan: se derivan de las asignaciones vigentes al resolver el contexto autenticado.
+*(Redefinida el 2026-09-30: los roles son fijos y los permisos los define el rol; ver [la decisión](../../docs/decisions/origen-externo-estructura-institucional.md#los-permisos-los-define-el-rol-2026-09-30).)*
+
+Los roles de `RN-AUTH-ROL-01` no se almacenan: se derivan del tipo de cuenta y del cargo al resolver el contexto autenticado. No hay asignaciones de permisos por cuenta.
 
 | Rol | Condición |
 |---|---|
-| `ADMINISTRADOR` | cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, con al menos una asignación vigente donde `id_unidad IS NULL` |
-| `TECNICO` | cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal`, sin asignación global y con al menos un permiso vigente asignado a la unidad asociada a su cargo vigente |
-| `USUARIO` | cuenta de tipo `USUARIO`, o cuenta `PERSONAL` que no cumple las condiciones para un rol administrativo |
+| `ADMINISTRADOR` | cuenta activa de tipo `ADMINISTRADOR` (propia de Reservas; `id_usuario` e `id_persona` en `NULL`) |
+| `TECNICO` | cuenta activa de tipo `PERSONAL`, vinculada a un registro activo de `personal.personal` cuyo cargo vigente pertenece a un laboratorio |
+| `USUARIO` | cuenta de tipo `USUARIO`, o cualquier cuenta que no cumpla las condiciones anteriores (inactiva, ficha inactiva, cargo sin laboratorio) |
 
-La unidad autorizada de un Técnico se obtiene de la relación vigente `personal.personal -> cargos.cargo -> unidad organizacional`, y solo son efectivos los permisos asignados para esa misma unidad. El backend no deriva las unidades autorizadas de todas las filas `id_unidad` de `auth.cuenta_permisos`: una asignación que no coincida con la unidad vigente no otorga acceso. La identidad, el cargo, la unidad y los permisos se revalidan en cada operación, y el resultado nunca se copia al token (`RN-AUTH-ROL-05` a `RN-AUTH-ROL-07`, `SEC-JWT-04`).
+El laboratorio autorizado de un Técnico se obtiene de la relación vigente `personal.personal -> cargos.cargo -> unidad organizacional`; el Administrador es global. La identidad, el cargo, el laboratorio y el estado se revalidan en cada operación, y el resultado nunca se copia al token (`RN-AUTH-ROL-05` a `RN-AUTH-ROL-07`, `SEC-JWT-04`). Qué permisos admite cada rol está fijo en el servidor (`app/core/authz.py`). La tabla `auth.cuenta_permisos` queda sin uso y se retirará en una migración posterior.
 
 ## Relaciones y diferencias pendientes
 
 Las cuentas referencian las identidades definidas en [Usuarios](../usuarios/data-model.md). Las sesiones dependen de la cuenta; las reservas y sus actores utilizan `id_cuenta bigint`.
 
-El CHECK `ck_auth_cuentas_identidad` exige exactamente una identidad: una cuenta es de tipo `USUARIO` o `PERSONAL`, nunca ambas. El correo electrónico es único en `auth.cuentas` y representa la identificación funcional de la persona dentro del acceso autenticado.
+El CHECK `ck_auth_cuentas_identidad` exige la identidad que corresponde al tipo: `USUARIO` con `id_usuario`, `PERSONAL` con `id_persona`, y `ADMINISTRADOR` con ninguna (migración `014_cuenta_administrador.sql`). El correo electrónico es único en `auth.cuentas` y representa la identificación funcional de la persona dentro del acceso autenticado.
 
 Aunque el modelo principal no detalla invitaciones ni recuperación de contraseña, sus estructuras objetivo se definen en este documento como `auth.invitaciones` y `auth.tokens_recuperacion`. Los permisos y sus asignaciones también están definidos arriba como incorporaciones objetivo; no se deducen del nombre del cargo ni del tipo de cuenta.

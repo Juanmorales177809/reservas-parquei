@@ -38,3 +38,19 @@ Los scripts de [`backend/seeds/`](../../../backend/seeds/) cargan lo necesario p
 - `lia_laboratorios_y_cargos.sql`: los 5 laboratorios y los 3 cargos que pertenecen a un laboratorio. No carga «Parque i», «Gestión Laboratorios» ni los cargos administrativos.
 - `lia_equipos.sql`: los 2 equipos **activos**. Los otros 3 de LIA están inactivos y repiten serial o placa (únicos aquí); parecen datos de prueba.
 - Sin cargar: el personal (LIA no guarda documento, correo ni teléfono, que aquí son obligatorios).
+
+## Los permisos los define el rol (2026-09-30)
+
+Por indicación del equipo, los permisos **no se otorgan a mano**: los define el rol.
+
+| Rol | Qué puede hacer |
+|---|---|
+| Usuario | Solo reservar |
+| Técnico o gestor | Gestionar únicamente su propio laboratorio, el de su cargo |
+| Administrador | Todo |
+
+- **El administrador es una cuenta propia de Reservas**, sin ficha en LIA: tipo de cuenta `ADMINISTRADOR`, sin identidad asociada. No viene de LIA y no se crea desde la interfaz (para entrar ya hace falta uno): se crea con `python -m app.scripts.crear_administrador --correo ...`, que pide la contraseña por la terminal.
+- **El técnico es el personal de LIA** cuyo cargo pertenece a un laboratorio: gestiona solo ese laboratorio, sin asignación alguna. Sus permisos son los de ámbito de laboratorio (`reservas.administrar`, `reservas.exportar`, `espacios.administrar`, `recursos.administrar`, `recursos.editar_equipos`, `laboratorios.configurar`, `reportes.consultar`); lo demás es del administrador.
+- **En la interfaz:** se quitó la pantalla «Permisos» y su entrada en Administración.
+- **En el servidor (hecho):** `app/core/authz.py` deriva el rol del tipo de cuenta y del cargo; se eliminó `/api/permisos` y la asignación de permisos; la migración `014_cuenta_administrador.sql` admite el tipo `ADMINISTRADOR`. `auth.cuenta_permisos` queda sin uso y se retirará en otra migración.
+- **Lo que queda abierto:** retirar los identificadores `RN-PER-*` y `UF-AUTH-09` (hoy marcados sin efecto), retirar la tabla `auth.cuenta_permisos`, y **aplicar la migración 014 en la base viva y crear su primer administrador** (la viva no tiene ninguna cuenta).

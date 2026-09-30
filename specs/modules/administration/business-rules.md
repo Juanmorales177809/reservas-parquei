@@ -81,6 +81,8 @@ La autorización aplicable es la general de este módulo: gestionar el catálogo
 
 ## Permisos — RN-PER
 
+> **Sin efecto desde 2026-09-30.** Los permisos no se asignan: los define el rol (`RN-AUTH-ROL-02`, `RN-AUTH-ROL-03`, `RN-AUTH-ROL-07` de auth). Las reglas `RN-PER-*` describen un modelo de asignación manual que ya no existe; se conservan escritas hasta que se retiren sus identificadores, con su nota en [identificadores-retirados.md](../../docs/decisions/identificadores-retirados.md), en una pasada aparte.
+
 - **RN-PER-01:** Los permisos administrativos deben representarse explícitamente mediante el modelo de autorización definido por el sistema.
 
 - **RN-PER-02:** Los permisos no deben determinarse mediante comparaciones hardcodeadas de nombres de cargos, perfiles o usuarios.

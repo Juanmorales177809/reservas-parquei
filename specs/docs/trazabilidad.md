@@ -23,14 +23,14 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 |---|---:|---:|---:|---:|---:|
 | administration | 62 | 62 | 57 | 19 | — |
 | auth | 89 | 85 | 89 | 44 | — |
-| espacios | 22 | 22 | 19 | 11 | — |
+| espacios | 22 | 22 | 22 | 11 | — |
 | notifications | 60 | 49 | 50 | 15 | — |
-| reports | 58 | 58 | 19 | 20 | — |
+| reports | 58 | 58 | 27 | 20 | — |
 | researchs | 20 | 20 | 20 | 10 | — |
-| reservations | 182 | 175 | 144 | 79 | — |
+| reservations | 182 | 182 | 168 | 79 | — |
 | resources | 57 | 33 | 44 | 22 | — |
 | usuarios | 19 | 19 | 19 | 4 | — |
-| **total** | **569** | **523** | **461** | **224** | **—** |
+| **total** | **569** | **530** | **496** | **224** | **—** |
 
 ---
 
@@ -54,9 +54,9 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-AUTH-ID` | 12 | 5/12 | 5/12 | 7/12 |
+| `RN-AUTH-ID` | 12 | 6/12 | 5/12 | 7/12 |
 | `RN-AUTH-ROL` | 9 | 7/9 | 5/9 | 3/9 |
-| `RN-AUTH-SES` | 5 | 3/5 | 2/5 | — |
+| `RN-AUTH-SES` | 5 | 3/5 | 3/5 | — |
 | `SEC-ABU` | 3 | 3/3 | 3/3 | 3/3 |
 | `SEC-AUD` | 4 | 3/4 | 2/4 | 1/4 |
 | `SEC-AUTZ` | 6 | 5/6 | 5/6 | 4/6 |
@@ -74,7 +74,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-ESP` | 3 | 2/3 | — | — |
+| `RN-ESP` | 3 | 1/3 | 2/3 | — |
 | `RN-ESP-CAM` | 5 | 3/5 | 2/5 | 4/5 |
 | `RN-ESP-DIS` | 3 | 1/3 | 1/3 | 1/3 |
 | `RN-ESP-HAB` | 4 | 2/4 | 1/4 | 4/4 |
@@ -100,9 +100,9 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-AMB` | 5 | 5/5 | — | 2/5 |
+| `RN-AMB` | 5 | 3/5 | — | 2/5 |
 | `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 1/4 |
-| `RN-CTX` ⚠ | 4 | 2/4 | — | 2/4 |
+| `RN-CTX` ⚠ | 4 | 2/4 | 2/4 | 2/4 |
 | `RN-DIM` | 7 | 3/7 | — | — |
 | `RN-EST` ⚠ | 4 | 3/4 | 1/4 | 4/4 |
 | `RN-EXP` | 5 | 4/5 | familia | 2/5 |
@@ -111,7 +111,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-OCU` | 6 | 4/6 | 3/6 | 3/6 |
 | `RN-PRI` | 4 | 3/4 | — | 1/4 |
 | `RN-REP` ⚠ | 6 | 4/6 | — | 4/6 |
-| `RN-VIS` | 4 | 2/4 | — | — |
+| `RN-VIS` | 4 | 2/4 | 1/4 | — |
 
 ### researchs
 
@@ -124,25 +124,25 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-ACO` | 7 | — | — | 7/7 |
-| `RN-APR` | 8 | 2/8 | — | 4/8 |
+| `RN-ACO` | 7 | 3/7 | 4/7 | 7/7 |
+| `RN-APR` | 8 | 2/8 | 1/8 | 4/8 |
 | `RN-CAL` ⚠ | 5 | 2/5 | 2/5 | — |
-| `RN-CAN` | 8 | 5/8 | 3/8 | 6/8 |
-| `RN-CTX` ⚠ | 9 | 3/9 | — | 2/9 |
-| `RN-DIS` | 11 | 3/11 | 3/11 | 8/11 |
+| `RN-CAN` | 8 | 5/8 | 4/8 | 6/8 |
+| `RN-CTX` ⚠ | 9 | 5/9 | 4/9 | 2/9 |
+| `RN-DIS` | 11 | 4/11 | 4/11 | 8/11 |
 | `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 5/5 |
 | `RN-HOR` | 7 | 2/7 | — | 1/7 |
-| `RN-PRO` | 6 | 2/6 | 1/6 | 6/6 |
-| `RN-PROP` | 7 | 5/7 | 1/7 | 3/7 |
-| `RN-REC` ⚠ | 3 | 1/3 | familia | — |
+| `RN-PRO` | 6 | 2/6 | 2/6 | 6/6 |
+| `RN-PROP` | 7 | 5/7 | 3/7 | 3/7 |
+| `RN-REC` ⚠ | 3 | 1/3 | 1/3 | — |
 | `RN-REP` ⚠ | 3 | 2/3 | — | 1/3 |
-| `RN-RES` | 15 | 5/15 | 2/15 | 4/15 |
+| `RN-RES` | 15 | 5/15 | 4/15 | 4/15 |
 | `RN-SAL` | 4 | familia | — | 1/4 |
-| `RN-TIP` | 6 | 4/6 | 1/6 | — |
-| `RN-TIP-PE` | 28 | 8/28 | 4/28 | 10/28 |
+| `RN-TIP` | 6 | 4/6 | 4/6 | — |
+| `RN-TIP-PE` | 28 | 11/28 | 12/28 | 10/28 |
 | `RN-TIP-PLE` | 9 | 7/9 | 6/9 | 7/9 |
-| `RN-TIP-RC` | 14 | 2/14 | 2/14 | 3/14 |
-| `RN-TIP-RE` | 14 | 2/14 | 2/14 | 2/14 |
+| `RN-TIP-RC` | 14 | 2/14 | 4/14 | 3/14 |
+| `RN-TIP-RE` | 14 | 2/14 | 3/14 | 2/14 |
 | `RN-TIP-RI` | 13 | 4/13 | 4/13 | 9/13 |
 
 ### resources
@@ -150,12 +150,12 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
 | `RN-DES` ⚠ | 7 | 2/7 | 1/7 | 2/7 |
-| `RN-EQP` | 11 | — | 1/11 | 1/11 |
+| `RN-EQP` | 11 | — | 2/11 | 1/11 |
 | `RN-IMP` ⚠ | 7 | 5/7 | 1/7 | 3/7 |
-| `RN-LAB` | 8 | 2/8 | 1/8 | 3/8 |
+| `RN-LAB` | 8 | 3/8 | 4/8 | 3/8 |
 | `RN-MOB` | 5 | — | — | 5/5 |
 | `RN-OTR` | 5 | — | — | 5/5 |
-| `RN-REC` ⚠ | 11 | 2/11 | 1/11 | — |
+| `RN-REC` ⚠ | 11 | 2/11 | 3/11 | — |
 | `RN-ROL` | 3 | — | — | 3/3 |
 
 ### usuarios
@@ -164,7 +164,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 |---|---:|---|---|---|
 | `RN-DAT` | 3 | 2/3 | 2/3 | 2/3 |
 | `RN-PRS` | 5 | 4/5 | 2/5 | 1/5 |
-| `RN-USR` ⚠ | 11 | 8/11 | 5/11 | 1/11 |
+| `RN-USR` ⚠ | 11 | 8/11 | 6/11 | 1/11 |
 
 ---
 

@@ -541,6 +541,39 @@ Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `scr
 
 ---
 
+### FE-39 — Personas: listado en tarjetas, edición y registro en modal · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** dar a la administración de personas el mismo formato que los catálogos de recursos y espacios: un listado legible y los formularios fuera de la página.
+- **Afectados:** `frontend/app/(app)/administracion/personas/page.tsx`, `frontend/app/(app)/administracion/identidades/page.tsx`, `frontend/src/components/administracion/RegistrarUsuarioForm.tsx`.
+- **Dependencias:** FE-29, FE-32, FE-35. No toca el contrato.
+- **Aceptación:** cada persona se ve con su nombre, correo, documento, teléfono, afiliación o cargo con su laboratorio, y si tiene cuenta o está inactiva; editar y registrar se resuelven en modales; quien no tiene cuenta se puede invitar desde su tarjeta; el personal sigue siendo de solo consulta, con su acceso activable o desactivable ([decisión 2026-09-30](../decisions/origen-externo-estructura-institucional.md)).
+- **Resultado:** el listado pasó de filas de texto a tarjetas con inicial, insignias «Con cuenta» o «Sin cuenta» e «Inactivo», conteo y estado vacío; «Usuarios» y «Personal» y el estado son atajos, con búsqueda y «Quitar filtros». «Editar» abre un modal con los mismos campos (el correo sigue bloqueado si ya hay cuenta) y «Registrar usuario» abre otro que reutiliza `RegistrarUsuarioForm`, el mismo formulario de la pantalla de identidades, y ofrece invitar la cuenta al guardar. Verificado: Vitest 127/127 (3 pruebas nuevas), `tsc` y lint limpios, y `e2e/gestion.spec.ts` contra el backend real.
+
+---
+
+### FE-40 — Quitar la pantalla de permisos: los permisos los define el rol · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** aplicar la [decisión del 2026-09-30](../decisions/origen-externo-estructura-institucional.md#los-permisos-los-define-el-rol-2026-09-30): el usuario solo reserva, el técnico gestiona su laboratorio y el administrador todo; los permisos no se otorgan a mano.
+- **Afectados:** la portada de administración, `frontend/app/(app)/administracion/permisos/`, `frontend/src/lib/administracion-api.ts` y `administracion-types.ts`, `frontend/e2e/humo.spec.ts`.
+- **Dependencias:** FE-24, FE-35.
+- **Aceptación:** la portada de Administración no ofrece «Permisos»; la ruta `/administracion/permisos` ya no existe; no queda código del cliente para otorgar o retirar permisos.
+- **Resultado:** se eliminó la pantalla, su tarjeta y las cuatro funciones y dos tipos que solo ella usaba. La introducción de Administración y la descripción de «Identidades e invitaciones» se corrigieron (ya no hablan de permisos ni de personal). **No cubre, y queda abierto:** alinear el servidor. Hoy `/api/permisos` sigue siendo la única fuente de permisos por cuenta, así que sin asignaciones sembradas un técnico no puede gestionar; hay que abrir una tarea de backend y de spec que derive los permisos del rol y del laboratorio del cargo (`UF-AUTH-09`, `RN-PER-*`).
+
+---
+
+### FE-41 — Roles fijos en el servidor: el administrador es una cuenta propia · **cerrada**
+
+- **Tipo:** Implementación (servidor, base y spec; se lleva en este plan porque cierra el hueco que dejó FE-40)
+- **Objetivo:** que el rol defina los permisos de verdad ([decisión 2026-09-30](../decisions/origen-externo-estructura-institucional.md#los-permisos-los-define-el-rol-2026-09-30)): el usuario solo reserva, el técnico gestiona el laboratorio de su cargo y el administrador todo, y el administrador es una cuenta de Reservas que no viene de LIA.
+- **Afectados:** `backend/migrations/014_cuenta_administrador.sql`, `backend/app/core/{authz,deps}.py`, `backend/app/scripts/crear_administrador.py`, los módulos `auth`, `administration`, `usuarios`, `notifications` y `reservations`, las pruebas, `specs/modules/auth/{business-rules,data-model}.md`, los contratos de auth y administration y `frontend/src/lib/*types.ts`.
+- **Dependencias:** FE-35, FE-40.
+- **Aceptación:** una cuenta `ADMINISTRADOR` entra sin ficha y puede todo; un técnico con un cargo de laboratorio ejerce solo los permisos de ámbito de laboratorio y solo sobre ese laboratorio, y se le deniega lo global; un usuario no ejerce ninguno; no existe `/api/permisos`; el administrador se crea por script sin que la contraseña viaje por argumentos; el sistema no puede quedarse sin administrador.
+- **Resultado:** `authz.py` deriva el rol del tipo de cuenta y del cargo y fija en código el conjunto del técnico; la migración 014 amplía las restricciones de `auth.cuentas` (aplicada en la base de pruebas y en la copia, **no** en la viva); se eliminaron los endpoints, el servicio, el repositorio y los esquemas de asignación de permisos; las reglas `RN-AUTH-ROL-02`, `-03`, `-06`, `-07` y `-09` se redefinieron y el modelo de datos de auth se corrigió; las notificaciones a técnicos salen ahora del cargo y no de una asignación; una reserva de administrador muestra «Administrador» como solicitante. Verificado: backend 124/124 contra `reservas_test` (15 pruebas de roles, incluido el script), Vitest 127/127 y E2E 74/74 contra el backend real con la cuenta de prueba convertida a `ADMINISTRADOR`. **No cubre, y queda abierto:** aplicar la migración en la base viva y crear allí el primer administrador (con autorización expresa); retirar los identificadores `RN-PER-*` y `UF-AUTH-09`; retirar `auth.cuenta_permisos`.
+
+---
+
 ### FE-30 — Pruebas de extremo a extremo con Playwright · **cerrada**
 
 - **Tipo:** Implementación
@@ -561,7 +594,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38   (brechas frente a las reglas)
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).

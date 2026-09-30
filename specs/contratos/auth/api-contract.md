@@ -183,6 +183,8 @@ Antes de renovar, el servidor verifica que la sesión exista, no esté revocada,
 
 Identidad autenticada vigente. Sustenta el paso 2 de `UF-AUTH-10` en el cliente.
 
+`tipo_cuenta` puede ser `USUARIO`, `PERSONAL` o `ADMINISTRADOR` (la cuenta propia de Reservas, sin identidad asociada; decisión 2026-09-30). Para `ADMINISTRADOR`, `rol` es `ADMINISTRADOR`, `unidades_autorizadas` es `"GLOBAL"` y `actualizacion_inicial_pendiente` es `null`. El `rol` se deriva del tipo de cuenta y del cargo, no de asignaciones de permisos.
+
 **`200 OK`**
 
 ```json

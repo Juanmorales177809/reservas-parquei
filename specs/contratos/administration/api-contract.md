@@ -86,6 +86,8 @@ Cambiar la unidad de un cargo **cambia el ámbito del personal que lo ocupa**, y
 
 ## 3. Asignación de permisos
 
+**La interfaz ya no usa esta sección** ([decisión 2026-09-30](../../docs/decisions/origen-externo-estructura-institucional.md#los-permisos-los-define-el-rol-2026-09-30)): los permisos los define el rol y no se otorgan a mano. Los endpoints se conservan hasta que el servidor derive los permisos del rol y del laboratorio del cargo.
+
 Todas las rutas de esta sección exigen `permisos.asignar` con alcance global (`RN-PER-03`).
 
 Administration **administra** las asignaciones; [auth](../auth/api-contract.md) las **evalúa** en cada operación. El catálogo de códigos está en su [modelo](../../modules/auth/data-model.md#catálogo-inicial) y no se amplía desde aquí (`RN-PER-01`).
