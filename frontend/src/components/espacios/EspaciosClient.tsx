@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { Button } from "@/src/components/ui/Button";
+import { SelectorRecursosVarios } from "@/src/components/selectores/SelectorRecursosVarios";
 import { nombresDeUnidades, SelectorUnidad } from "@/src/components/selectores/selectores";
 import { Field } from "@/src/components/ui/Field";
 import { Insignia } from "@/src/components/ui/Insignia";
@@ -34,6 +35,7 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
   const [capacidad, setCapacidad] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [recursos, setRecursos] = useState<string[]>([]);
   const [filtroUnidad, setFiltroUnidad] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroCapacidad, setFiltroCapacidad] = useState("");
@@ -91,11 +93,13 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
         capacidad: Number(capacidad),
         ...(ubicacion.trim() ? { ubicacion: ubicacion.trim() } : {}),
         ...(descripcion.trim() ? { descripcion: descripcion.trim() } : {}),
+        ...(recursos.length > 0 ? { recursos: recursos.map(Number) } : {}),
       });
       setNombre("");
       setCapacidad("");
       setUbicacion("");
       setDescripcion("");
+      setRecursos([]);
       await recargar();
       setRegistrando(false);
       setMensaje("Espacio creado.");
@@ -217,11 +221,11 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
       {registrando && (
         <Modal
           titulo="Registrar espacio"
-          subtitulo="Elige el laboratorio y completa sus datos. Los campos adicionales se agregan después, desde el espacio."
+          subtitulo="Elige el laboratorio, completa sus datos y asocia sus equipos y recursos. Los campos adicionales se agregan después, desde el espacio."
           onClose={() => setRegistrando(false)}
         >
           <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-4">
-            <SelectorUnidad id="esp-unidad" label="Laboratorio" value={idUnidad} onChange={setIdUnidad} requerido />
+            <SelectorUnidad id="esp-unidad" label="Laboratorio" value={idUnidad} onChange={(v) => { setIdUnidad(v); setRecursos([]); }} requerido />
             <Field id="esp-nombre" label="Nombre" value={nombre}
               onChange={(e) => setNombre(e.target.value)} required />
             <Field id="esp-capacidad" label="Capacidad" type="number" value={capacidad}
@@ -230,6 +234,8 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
               onChange={(e) => setUbicacion(e.target.value)} />
             <Field id="esp-descripcion" label="Descripción (opcional)" value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)} />
+            <SelectorRecursosVarios label="Equipos y recursos del espacio (opcional)" idUnidad={idUnidad}
+              reservable={false} value={recursos} onChange={setRecursos} />
             <RegionMensaje texto={mensaje} tono={mensaje ? tono : "muted"} />
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
               <Button type="submit" variant="primary" loading={ocupada}>Guardar espacio</Button>
@@ -245,6 +251,9 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
 function mensajeError(error: unknown): string {
   if (error instanceof ApiRequestError) {
     if (error.error.codigo === "NOMBRE_DUPLICADO") return "Ese nombre ya existe en el laboratorio.";
+    // Un recurso solo puede estar asociado a un espacio a la vez (contrato §2.1).
+    if (error.error.codigo === "CONFLICTO") return "Alguno de los recursos elegidos ya está asociado a otro espacio. Quítalo de la selección o retíralo de ese espacio.";
+    if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "Un recurso elegido es de otro laboratorio.";
     if (error.error.codigo === "VALIDACION") return "Revisa los datos ingresados.";
     if (error.status === 429) return "La operación está temporalmente limitada.";
   }

@@ -89,3 +89,23 @@ test("las personas se consultan y se editan; el correo de quien tiene cuenta no 
   await formulario.getByRole("button", { name: "Guardar cambios" }).click();
   await expect(fila).toContainText("· Facultad ·");
 });
+
+test("un espacio se registra con sus equipos asociados en el mismo paso (FE-38)", async ({ page }) => {
+  const nombre = `Sala E2E ${sufijo()}`;
+  await page.goto("/espacios");
+  await page.getByRole("button", { name: "Registrar espacio" }).click();
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de sistemas de Control y Robotica" });
+  await page.getByLabel("Nombre", { exact: true }).fill(nombre);
+  await page.getByLabel("Capacidad", { exact: true }).fill("6");
+  // Los equipos de LIA ya cargados en ese laboratorio se ofrecen como fichas.
+  await page.getByRole("checkbox", { name: "Cámara Climática Constante · Equipo" }).check();
+  await page.getByRole("button", { name: "Guardar espacio" }).click();
+  await expect(page.getByText("Espacio creado.")).toBeVisible();
+
+  await page.getByRole("link", { name: new RegExp(nombre) }).click();
+  const fila = page.getByRole("listitem").filter({ hasText: "Cámara Climática Constante" });
+  await expect(fila).toBeVisible();
+  // Deja el equipo libre para repetir la prueba.
+  await fila.getByRole("button", { name: "Retirar" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Cámara Climática Constante" }).getByRole("button", { name: "Retirar" })).toHaveCount(0);
+});

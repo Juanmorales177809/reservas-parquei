@@ -74,7 +74,7 @@ export function SelectorEspacio({ idUnidad, ...base }: Base & { idUnidad: string
       {...base}
       clave={idUnidad}
       deshabilitado={!idUnidad}
-      textoVacio={idUnidad ? "Seleccionar espacio" : "Elige primero la unidad"}
+      textoVacio={idUnidad ? "Seleccionar espacio" : "Elige primero el laboratorio"}
       cargar={async () =>
         (await listarEspacios({ id_unidad: Number(idUnidad), habilitado: true })).datos.map((e) => ({
           valor: String(e.id),
@@ -91,7 +91,7 @@ export function SelectorRecurso({ idUnidad, reservable = true, ...base }: Base &
       {...base}
       clave={`${idUnidad}-${reservable}`}
       deshabilitado={!idUnidad}
-      textoVacio={idUnidad ? "Seleccionar recurso" : "Elige primero la unidad"}
+      textoVacio={idUnidad ? "Seleccionar recurso" : "Elige primero el laboratorio"}
       cargar={async () =>
         (await listarRecursos({ id_unidad: Number(idUnidad), ...(reservable ? { reservable: true } : {}) })).datos
           .filter((r) => r.habilitado)

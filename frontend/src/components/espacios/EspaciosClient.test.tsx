@@ -12,6 +12,11 @@ vi.mock("@/src/lib/administracion-api", () => ({
 
 const listarMock = vi.fn();
 const crearMock = vi.fn();
+const recursosMock = vi.fn();
+vi.mock("@/src/lib/recursos-api", () => ({
+  listarRecursos: (...args: unknown[]) => recursosMock(...args),
+  listarLaboratorios: vi.fn(),
+}));
 
 vi.mock("@/src/lib/espacios-api", () => ({
   listarEspacios: (...args: unknown[]) => listarMock(...args),
@@ -30,6 +35,8 @@ describe("EspaciosClient", () => {
     listarMock.mockReset();
     crearMock.mockReset();
     listarMock.mockResolvedValue({ datos: [] });
+    recursosMock.mockReset();
+    recursosMock.mockResolvedValue({ datos: [] });
   });
 
   it("crea un espacio con capacidad y muestra confirmación", async () => {
@@ -133,5 +140,51 @@ describe("EspaciosClient", () => {
     await waitFor(() => expect(listarMock).toHaveBeenLastCalledWith({ id_unidad: 7, habilitado: false }));
     await usuario.type(screen.getByLabelText("Capacidad mínima"), "20");
     await waitFor(() => expect(listarMock).toHaveBeenLastCalledWith({ id_unidad: 7, habilitado: false, capacidad_minima: 20 }));
+  });
+
+  // FE-38: los equipos y recursos se asocian al crear el espacio, sin un segundo paso.
+  it("asocia equipos y recursos del laboratorio elegido al crear el espacio", async () => {
+    const usuario = userEvent.setup();
+    crearMock.mockResolvedValue({ id: 9 });
+    recursosMock.mockResolvedValue({
+      datos: [
+        { id: 41, tipo: "EQUIPO", nombre: "Pie de Rey", id_unidad: 7, habilitado: true },
+        { id: 55, tipo: "MOBILIARIO", nombre: "Mesa", id_unidad: 7, habilitado: true },
+        { id: 60, tipo: "OTRO", nombre: "Retirado", id_unidad: 7, habilitado: false },
+      ],
+    });
+    render(<EspaciosClient puedeGestionar={true} />);
+    await usuario.click(screen.getByRole("button", { name: "Registrar espacio" }));
+    expect(screen.getByText("Elige primero el laboratorio.")).toBeInTheDocument();
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
+    await usuario.type(screen.getByLabelText("Nombre"), "Sala de calibración");
+    await usuario.type(screen.getByLabelText("Capacidad"), "8");
+    await usuario.click(await screen.findByRole("checkbox", { name: "Pie de Rey · Equipo" }));
+    await usuario.click(screen.getByRole("checkbox", { name: "Mesa · Mobiliario" }));
+    // Los deshabilitados no se ofrecen.
+    expect(screen.queryByRole("checkbox", { name: /Retirado/ })).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Guardar espacio" }));
+    await waitFor(() =>
+      expect(crearMock).toHaveBeenCalledWith({
+        id_unidad: 7, nombre: "Sala de calibración", capacidad: 8, recursos: [41, 55],
+      })
+    );
+    // Se piden todos los recursos del laboratorio (no solo los reservables), porque el espacio los agrupa.
+    expect(recursosMock).toHaveBeenCalledWith({ id_unidad: 7 });
+  });
+
+  it("un recurso ya asociado a otro espacio se explica y no cierra el modal", async () => {
+    const usuario = userEvent.setup();
+    crearMock.mockRejectedValue(new ApiRequestError(409, { codigo: "CONFLICTO", mensaje: "x", detalles: [] }));
+    recursosMock.mockResolvedValue({ datos: [{ id: 41, tipo: "EQUIPO", nombre: "Pie de Rey", id_unidad: 7, habilitado: true }] });
+    render(<EspaciosClient puedeGestionar={true} />);
+    await usuario.click(screen.getByRole("button", { name: "Registrar espacio" }));
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
+    await usuario.type(screen.getByLabelText("Nombre"), "Sala");
+    await usuario.type(screen.getByLabelText("Capacidad"), "4");
+    await usuario.click(await screen.findByRole("checkbox", { name: "Pie de Rey · Equipo" }));
+    await usuario.click(screen.getByRole("button", { name: "Guardar espacio" }));
+    expect(await screen.findByText(/ya está asociado a otro espacio/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
