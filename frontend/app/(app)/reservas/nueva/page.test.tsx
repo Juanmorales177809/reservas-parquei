@@ -61,7 +61,7 @@ const USUARIO_CON_UN_PROYECTO = {
 };
 
 async function llenarEspacio(usuario: ReturnType<typeof userEvent.setup>) {
-  await elegir(usuario, "Unidad", "Laboratorio de Redes");
+  await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
   await elegir(usuario, "Espacio", "Sala 3 (cap. 2)");
   await usuario.type(screen.getByLabelText("Fecha"), "2030-08-04");
   await usuario.type(screen.getByLabelText("Hora inicio"), "10:00");
@@ -103,8 +103,8 @@ describe("reservas/nueva/page.tsx", () => {
     const usuario = userEvent.setup();
     tiposMock.mockResolvedValue({ datos: [] });
     render(<PaginaNuevaReserva />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
-    expect(await screen.findByText("Esta unidad no admite reservas en este momento.")).toBeInTheDocument();
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
+    expect(await screen.findByText("Este laboratorio no admite reservas en este momento.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Guardar solicitud" })).not.toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("reservas/nueva/page.tsx", () => {
     const usuario = userEvent.setup();
     tiposMock.mockResolvedValue({ datos: [TIPO("ESPACIO", "Reserva por espacio"), TIPO("LISTA_ESPERA", "Lista de espera")] });
     render(<PaginaNuevaReserva />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await screen.findByRole("option", { name: "Lista de espera" });
     expect(screen.queryByRole("button", { name: "Guardar solicitud" })).not.toBeInTheDocument();
   });
@@ -206,7 +206,7 @@ describe("reservas/nueva/page.tsx", () => {
       Promise.resolve({ especializacion: id === 42 ? { requiere_apoyo: true } : {} })
     );
     render(<PaginaNuevaReserva />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await elegir(usuario, "Tipo", "Recurso interno");
     await usuario.type(screen.getByLabelText("Fecha"), "2030-08-04");
     await usuario.type(screen.getByLabelText("Hora inicio"), "10:00");
@@ -238,7 +238,7 @@ describe("reservas/nueva/page.tsx", () => {
     const usuario = userEvent.setup();
     tiposMock.mockResolvedValue({ datos: [TIPO("LISTA_ESPERA", "Lista de espera")] });
     render(<PaginaNuevaReserva />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await usuario.type(await screen.findByLabelText("Descripción de la necesidad"), "Pieza a medida");
     expect(screen.queryByRole("button", { name: "Consultar disponibilidad" })).not.toBeInTheDocument();
     const plano = new File(["dwg"], "soporte.dwg", { type: "application/octet-stream" });
@@ -254,7 +254,7 @@ describe("reservas/nueva/page.tsx", () => {
     const usuario = userEvent.setup({ applyAccept: false });
     tiposMock.mockResolvedValue({ datos: [TIPO("LISTA_ESPERA", "Lista de espera")] });
     render(<PaginaNuevaReserva />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await usuario.upload(await screen.findByLabelText("Archivos técnicos (opcional)"), new File(["x"], "virus.exe"));
     expect(await screen.findByText(/formato no admitido/)).toBeInTheDocument();
   });

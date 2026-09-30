@@ -131,8 +131,8 @@ export default function PaginaPermisos() {
                 <option key={p.codigo} value={p.codigo}>{p.codigo}</option>
               ))}
             </Select>
-            <SelectorUnidad id="perm-unidad" label="Unidad" value={unidad} onChange={setUnidad}
-              textoVacio="Global (todas las unidades)" />
+            <SelectorUnidad id="perm-unidad" label="Laboratorio" value={unidad} onChange={setUnidad}
+              textoVacio="Global (todos los laboratorios)" />
             <div>
               <Button type="submit" variant="primary" loading={ocupada}>Otorgar permiso</Button>
             </div>

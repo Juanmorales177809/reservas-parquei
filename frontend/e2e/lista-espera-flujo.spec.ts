@@ -6,7 +6,7 @@ test.use({ storageState: "e2e/.auth/admin.json" });
 
 test("lista de espera: viabilidad, formulario por partes, aprobación con recepción, ejecución y horas", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad").selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo").selectOption({ label: "Lista de espera" });
   await page.getByLabel("Descripción de la necesidad").fill("Soporte mecanizado para un sensor");
   await page.getByLabel("Proyecto").selectOption({ label: "Proyecto E2E (E2E-1)" });

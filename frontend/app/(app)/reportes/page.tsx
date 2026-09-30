@@ -9,7 +9,7 @@ export default function PaginaReportes() {
       enlaces={[
         { href: "/reportes/ocupacion", titulo: "Ocupación", descripcion: "Uso de laboratorios, espacios y recursos, u horas por proyecto o semillero." },
         { href: "/reportes/solicitudes", titulo: "Solicitudes", descripcion: "Reservas por estado en cada laboratorio." },
-        { href: "/reportes/lista-espera", titulo: "Lista de espera", descripcion: "Reservas y horas de lista de espera por unidad." },
+        { href: "/reportes/lista-espera", titulo: "Lista de espera", descripcion: "Reservas y horas de lista de espera por laboratorio." },
       ]}
     />
   );

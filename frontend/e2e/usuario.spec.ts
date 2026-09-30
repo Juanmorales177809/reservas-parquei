@@ -13,7 +13,7 @@ function diaLaboralFuturo(): string {
 
 test("un usuario elige el laboratorio por nombre, reserva un espacio y edita su solicitud", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo", { exact: true }).selectOption({ label: "Espacio" });
   await page.getByLabel("Espacio", { exact: true }).selectOption({ label: "Sala de Redes (cap. 20)" });
   await page.getByLabel("Fecha").fill(diaLaboralFuturo());

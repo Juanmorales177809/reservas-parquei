@@ -288,10 +288,10 @@ export function ReporteClient({ tipo, unidadesAutorizadas }: { tipo: TipoReporte
         <Field id="rep-hasta" label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
         <SelectorUnidad
           id="rep-unidad"
-          label="Unidad"
+          label="Laboratorio"
           value={unidad}
           soloIds={soloIds}
-          textoVacio="Todas"
+          textoVacio="Todos"
           onChange={(v) => {
             setUnidad(v);
             setEspacio("");

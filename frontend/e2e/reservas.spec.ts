@@ -35,7 +35,7 @@ test("el detalle muestra unidad, solicitante, espacio y recursos por su nombre",
 
 test("una solicitud pendiente se edita: descripción, observación y contexto (FE-31, RN-PRO-06)", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo", { exact: true }).selectOption({ label: "Lista de espera" });
   await page.getByLabel("Descripción de la necesidad").fill("Soporte para sensor");
   await page.getByLabel("Proyecto", { exact: true }).selectOption({ label: "Proyecto E2E (E2E-1)" });

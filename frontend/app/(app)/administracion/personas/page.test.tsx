@@ -1,7 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiRequestError } from "@/src/lib/http";
 import PaginaPersonas from "./page";
 
 const router = { push: vi.fn(), replace: vi.fn() };
@@ -70,21 +69,14 @@ describe("administracion/personas/page.tsx", () => {
     await waitFor(() => expect(estadoUsuarioMock).toHaveBeenCalledWith(1, false));
   });
 
-  it("en personal se cambia el cargo por su nombre y se muestra un rechazo del servidor", async () => {
+  // Decisión 2026-09-30: el personal y sus cargos llegan de la base institucional; aquí no se editan.
+  it("el personal se consulta, pero no se edita desde aquí; su acceso sí se activa o desactiva", async () => {
     const usuario = userEvent.setup();
-    editarPersonalMock.mockRejectedValue(
-      new ApiRequestError(409, { codigo: "CONFLICTO", mensaje: "El documento ya está registrado en otra ficha.", detalles: [] })
-    );
     render(<PaginaPersonas />);
     await usuario.selectOptions(await screen.findByLabelText("Ver"), "Personal");
     expect(await screen.findByText(/Técnico de laboratorio · Laboratorio de Redes · sin cuenta/)).toBeInTheDocument();
-    await usuario.click(screen.getByRole("button", { name: "Editar" }));
-    const formulario = within(screen.getByRole("form", { name: "Editar persona" }));
-    expect(formulario.getByLabelText("Correo")).toBeEnabled(); // sin cuenta todavía
-    await usuario.selectOptions(formulario.getByLabelText("Cargo"), "Coordinador · Laboratorio de Redes");
-    await usuario.click(formulario.getByRole("button", { name: "Guardar cambios" }));
-    await waitFor(() => expect(editarPersonalMock).toHaveBeenCalledWith(2, { id_cargo: 5 }));
-    expect(await screen.findByText("El documento ya está registrado en otra ficha.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desactivar" })).toBeInTheDocument();
   });
 
   it("busca y filtra por estado", async () => {

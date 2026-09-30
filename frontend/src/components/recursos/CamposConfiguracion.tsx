@@ -115,7 +115,7 @@ export function CamposConfiguracion({ valores, onChange }: { valores: ValoresCon
         <Field id="lab-recordatorio" label="Recordatorio (horas antes)" type="number" value={valores.recordatorio} onChange={poner("recordatorio")} />
       </div>
       {casilla("aprobacion", "Aprobación automática", "Las reservas de los usuarios nacen aprobadas si cumplen las validaciones (no aplica a lista de espera).")}
-      {casilla("correo", "Enviar avisos por correo", "Habilita el correo de las notificaciones de esta unidad; los avisos en pantalla se generan igual.")}
+      {casilla("correo", "Enviar avisos por correo", "Habilita el correo de las notificaciones de este laboratorio; los avisos en pantalla se generan igual.")}
     </>
   );
 }

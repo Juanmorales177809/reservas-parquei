@@ -229,7 +229,7 @@ function mensajeError(error: unknown): string {
     if (error.error.codigo === "CAMPO_SIN_OPCIONES")
       return "Una lista necesita al menos una opción habilitada.";
     if (error.error.codigo === "CONFLICTO") return "Ese nombre ya existe en este espacio.";
-    if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "El recurso es de otra unidad o ya está asociado.";
+    if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "El recurso es de otro laboratorio o ya está asociado.";
     if (error.error.codigo === "VALIDACION") return "Revisa los datos ingresados.";
     if (error.status === 429) return "La operación está temporalmente limitada.";
   }

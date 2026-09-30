@@ -72,7 +72,7 @@ describe("ListadoReservas", () => {
     await screen.findByText("Sala 3");
     await usuario.click(screen.getByRole("button", { name: "Aprobadas" }));
     await waitFor(() => expect(listarMock).toHaveBeenLastCalledWith(expect.objectContaining({ estado: "APROBADA", pagina: 1 })));
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await waitFor(() =>
       expect(listarMock).toHaveBeenLastCalledWith(expect.objectContaining({ estado: "APROBADA", id_unidad: 7 }))
     );

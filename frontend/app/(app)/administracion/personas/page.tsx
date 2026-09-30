@@ -178,11 +178,13 @@ export default function PaginaPersonas() {
                 <span className="text-muted">
                   {esUsuario(f)
                     ? `${f.institucion} · ${f.dependencia}`
-                    : `${f.cargo?.nombre_cargo ?? "Sin cargo"} · ${f.unidad?.nombre ?? "Sin unidad"}`}
+                    : `${f.cargo?.nombre_cargo ?? "Sin cargo"} · ${f.unidad?.nombre ?? "Sin laboratorio"}`}
                   {" · "}{f.id_cuenta === null ? "sin cuenta" : "con cuenta"}
                 </span>
               </div>
-              <Button variant="ghost" size="sm" disabled={ocupada} onClick={() => abrirEdicion(f)}>Editar</Button>
+              {esUsuario(f) && (
+                <Button variant="ghost" size="sm" disabled={ocupada} onClick={() => abrirEdicion(f)}>Editar</Button>
+              )}
               <Button variant={f.estado ? "danger" : "secondary"} size="sm" disabled={ocupada} onClick={() => void alternar(f)}>
                 {f.estado ? "Desactivar" : "Activar"}
               </Button>

@@ -64,7 +64,7 @@ describe("ReporteClient", () => {
     });
     render(<ReporteClient tipo="ocupacion" unidadesAutorizadas="GLOBAL" />);
     await elegir(usuario, "Dimensión", "Espacio");
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await usuario.click(screen.getByRole("button", { name: "Consultar" }));
 
     const [tipo, filtros, pagina] = consultarMock.mock.calls[0];
@@ -134,14 +134,14 @@ describe("ReporteClient", () => {
     render(<ReporteClient tipo="ocupacion" unidadesAutorizadas="GLOBAL" />);
     await usuario.click(screen.getByRole("button", { name: "Consultar" }));
     await screen.findByRole("table");
-    await elegir(usuario, "Unidad", "Laboratorio de Metrología"); // cambia el filtro sin volver a consultar
+    await elegir(usuario, "Laboratorio", "Laboratorio de Metrología"); // cambia el filtro sin volver a consultar
     await usuario.click(screen.getByRole("button", { name: "Excel" }));
     expect(exportarMock).toHaveBeenCalledWith("ocupacion", expect.not.objectContaining({ id_unidad: "8" }), "excel");
   });
 
   it("ofrece solo las unidades del alcance de la cuenta", async () => {
     render(<ReporteClient tipo="solicitudes" unidadesAutorizadas={[8]} />);
-    const unidad = await screen.findByLabelText("Unidad");
+    const unidad = await screen.findByLabelText("Laboratorio");
     await within(unidad).findByRole("option", { name: "Laboratorio de Metrología" });
     expect(within(unidad).queryByRole("option", { name: "Laboratorio de Redes" })).not.toBeInTheDocument();
   });

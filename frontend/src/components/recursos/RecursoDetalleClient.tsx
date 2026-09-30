@@ -113,7 +113,7 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
     try {
       await reasignarRecurso(id, Number(nuevaUnidad));
       await recargar();
-      informar("Unidad actualizada.", "exito");
+      informar("Laboratorio actualizado.", "exito");
     } catch (error) {
       informar(mensajeError(error), "error");
     } finally {
@@ -184,7 +184,7 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
             )}
           </section>
           <form onSubmit={(e) => void reasignar(e)} className="flex items-end gap-2">
-            <SelectorUnidad id="rec-unidad" label="Nueva unidad" value={nuevaUnidad}
+            <SelectorUnidad id="rec-unidad" label="Nuevo laboratorio" value={nuevaUnidad}
               onChange={setNuevaUnidad} requerido />
             <Button type="submit" variant="secondary" loading={ocupada}>Reasignar</Button>
           </form>
@@ -201,7 +201,7 @@ function mensajeError(error: unknown, enEstado = false): string {
     // el servidor explica el motivo.
     if (error.error.codigo === "CONFLICTO")
       return enEstado ? "Hay reservas que exigen confirmación explícita." : error.error.mensaje || "El servidor rechazó el cambio.";
-    if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "La unidad no es válida para esta operación.";
+    if (error.error.codigo === "UNIDAD_INCOMPATIBLE") return "El laboratorio no es válido para esta operación.";
     if (error.error.codigo === "VALIDACION") return "Revisa los datos ingresados.";
     if (error.status === 429) return "La operación está temporalmente limitada.";
   }

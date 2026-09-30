@@ -95,7 +95,7 @@ export default function PaginaImportaciones() {
           <option value="EQUIPOS">Equipos</option>
         </Select>
         {catalogo === "EQUIPOS" && (
-          <Select id="imp-unidad" label="Unidad destino" value={idUnidad}
+          <Select id="imp-unidad" label="Laboratorio destino" value={idUnidad}
             onFocus={() => void cargarUnidades()}
             onChange={(e) => setIdUnidad(e.target.value)} required>
             <option value="">Seleccionar</option>

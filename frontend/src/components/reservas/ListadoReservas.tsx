@@ -260,7 +260,7 @@ export function ListadoReservas({ sesion }: { sesion: ContextoSesion }) {
               <option key={codigo} value={codigo}>{nombre}</option>
             ))}
           </Select>
-          <SelectorUnidad id="res-unidad-filtro" label="Unidad" value={idUnidad} textoVacio="Todas"
+          <SelectorUnidad id="res-unidad-filtro" label="Laboratorio" value={idUnidad} textoVacio="Todos"
             onChange={(v) => {
               setPagina(1);
               setIdUnidad(v);

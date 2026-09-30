@@ -40,7 +40,7 @@ test.describe("administrador", () => {
   test.use({ storageState: "e2e/.auth/admin.json" });
   test("las portadas de módulo enlazan a sus pantallas", async ({ page }) => {
     for (const [ruta, enlace] of [
-      ["/administracion", "Unidades y cargos"],
+      ["/administracion", "Laboratorios y cargos"],
       ["/investigacion", "Actividades institucionales"],
       ["/usuarios", "Identidades e invitaciones"],
     ] as const) {

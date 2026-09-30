@@ -85,7 +85,7 @@ export default function PaginaNuevaReserva() {
       .catch(() => {
         if (cancelado) return;
         setTipos([]);
-        informar("No se pudieron cargar los tipos de reserva de esta unidad.");
+        informar("No se pudieron cargar los tipos de reserva de este laboratorio.");
       });
     return () => {
       cancelado = true;
@@ -172,10 +172,10 @@ export default function PaginaNuevaReserva() {
     if (faltan) {
       informar(
         tipo === "ESPACIO"
-          ? "Elige la unidad, el espacio y la fecha para consultar la disponibilidad."
+          ? "Elige el laboratorio, el espacio y la fecha para consultar la disponibilidad."
           : porFecha
-            ? "Elige la unidad, el recurso y la fecha para consultar la disponibilidad."
-            : "Elige la unidad, el recurso y las fechas de salida y devolución para consultar la disponibilidad."
+            ? "Elige el laboratorio, el recurso y la fecha para consultar la disponibilidad."
+            : "Elige el laboratorio, el recurso y las fechas de salida y devolución para consultar la disponibilidad."
       );
       return;
     }
@@ -271,10 +271,10 @@ export default function PaginaNuevaReserva() {
         </p>
       </div>
       <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-5">
-        <Seccion titulo="¿Qué quieres reservar?" descripcion="Elige la unidad y el tipo de reserva." destacada>
-        <SelectorUnidad id="res-unidad" label="Unidad" value={idUnidad} onChange={setIdUnidad} requerido />
+        <Seccion titulo="¿Qué quieres reservar?" descripcion="Elige el laboratorio y el tipo de reserva." destacada>
+        <SelectorUnidad id="res-unidad" label="Laboratorio" value={idUnidad} onChange={setIdUnidad} requerido />
         {idUnidad && sinTipos && (
-          <p className="text-sm text-error-2">Esta unidad no admite reservas en este momento.</p>
+          <p className="text-sm text-error-2">Este laboratorio no admite reservas en este momento.</p>
         )}
         {tipos !== null && tipos.length > 1 && (
           <Select id="res-tipo" label="Tipo" value={tipo} required

@@ -122,7 +122,7 @@ function FormularioInvitar() {
         {tipoCuenta === "PERSONAL" && (
           <Field
             id="id_unidad"
-            label="Unidad del cargo"
+            label="Laboratorio del cargo"
             type="number"
             required
             value={idUnidad}

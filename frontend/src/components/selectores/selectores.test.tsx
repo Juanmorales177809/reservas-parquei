@@ -27,8 +27,8 @@ describe("SelectorUnidad", () => {
       { id_unidad: 1, nombre: "Facultad", tipo: "FACULTAD", id_unidad_padre: null, estado: true },
       { id_unidad: 2, nombre: "Vieja", tipo: "LABORATORIO", id_unidad_padre: null, estado: false },
     ] });
-    render(<SelectorUnidad id="u" label="Unidad" value="" onChange={() => {}} />);
-    await elegir(usuario, "Unidad", "Facultad");
+    render(<SelectorUnidad id="u" label="Laboratorio" value="" onChange={() => {}} />);
+    await elegir(usuario, "Laboratorio", "Facultad");
     expect(screen.queryByRole("option", { name: "Vieja" })).not.toBeInTheDocument();
     expect(laboratoriosMock).not.toHaveBeenCalled();
   });
@@ -36,17 +36,17 @@ describe("SelectorUnidad", () => {
   it("sin ese permiso (403) usa el catálogo de laboratorios y no vuelve a intentar la lista administrativa", async () => {
     const usuario = userEvent.setup();
     unidadesMock.mockRejectedValue(SIN_PERMISO);
-    const { unmount } = render(<SelectorUnidad id="u" label="Unidad" value="" onChange={() => {}} />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    const { unmount } = render(<SelectorUnidad id="u" label="Laboratorio" value="" onChange={() => {}} />);
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     unmount();
-    render(<SelectorUnidad id="u2" label="Unidad" value="" onChange={() => {}} />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    render(<SelectorUnidad id="u2" label="Laboratorio" value="" onChange={() => {}} />);
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     expect(unidadesMock).toHaveBeenCalledTimes(1);
   });
 
   it("otro error no se disfraza: el selector avisa que no pudo cargar", async () => {
     unidadesMock.mockRejectedValue(new ApiRequestError(500, { codigo: "ERROR_INTERNO", mensaje: "x", detalles: [] }));
-    render(<SelectorUnidad id="u" label="Unidad" value="" onChange={() => {}} />);
+    render(<SelectorUnidad id="u" label="Laboratorio" value="" onChange={() => {}} />);
     expect(await screen.findByText("No se pudo cargar la lista.")).toBeInTheDocument();
     expect(laboratoriosMock).not.toHaveBeenCalled();
   });

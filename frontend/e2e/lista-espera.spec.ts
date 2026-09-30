@@ -12,7 +12,7 @@ const PNG_1X1 = Buffer.from(
 
 test("lista de espera: sin consulta de disponibilidad, con archivo adjunto que queda en la reserva", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad").selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo").selectOption({ label: "Lista de espera" });
   await expect(page.getByRole("button", { name: "Consultar disponibilidad" })).toHaveCount(0);
   await page.getByLabel("Descripción de la necesidad").fill("Soporte a medida para sensor");
@@ -31,7 +31,7 @@ test("lista de espera: sin consulta de disponibilidad, con archivo adjunto que q
 
 test("un formato no admitido se rechaza antes de enviar", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad").selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo").selectOption({ label: "Lista de espera" });
   await page.getByLabel("Archivos técnicos (opcional)").setInputFiles({
     name: "programa.exe",
@@ -51,7 +51,7 @@ function fechaLaboralFutura(): string {
 
 test("una reserva puede llevar varios recursos: uno principal y los demás adicionales", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad").selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo").selectOption({ label: "Recurso interno" });
   await page.getByLabel("Fecha").fill(fechaLaboralFutura());
   await page.getByLabel("Hora inicio").fill("09:00");
@@ -72,7 +72,7 @@ test("una reserva puede llevar varios recursos: uno principal y los demás adici
 
 test("un espacio pide su información obligatoria y ofrece sus recursos asociados (RN-TIP-PE-12, RN-TIP-PE-18)", async ({ page }) => {
   await page.goto("/reservas/nueva");
-  await page.getByLabel("Unidad").selectOption({ label: "Laboratorio de Redes" });
+  await page.getByLabel("Laboratorio", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
   await page.getByLabel("Tipo").selectOption({ label: "Espacio" });
   await page.getByLabel("Espacio").selectOption({ label: "Sala de Redes (cap. 20)" });
   await page.getByLabel("Fecha").fill(fechaLaboralFutura());
