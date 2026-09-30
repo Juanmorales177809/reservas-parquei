@@ -486,6 +486,50 @@ Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `scr
 
 ---
 
+### FE-34 — Catálogo de recursos: listado y registro en modal · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** separar el catálogo de recursos del formulario de registro y hacer el listado más legible.
+- **Afectados:** `frontend/src/components/recursos/RecursosClient.tsx`, `frontend/src/components/ui/Modal.tsx`, `frontend/src/components/selectores/selectores.tsx`.
+- **Dependencias:** FE-13, FE-32, FE-33. No toca el contrato.
+- **Aceptación:** el registro de un recurso no está en la página hasta pedirlo con «Registrar recurso» y se resuelve en un modal que se cierra al guardar y avisa «Recurso creado.»; el listado muestra por recurso su nombre, la unidad por su nombre (no su número), el tipo y si está deshabilitado; los filtros por tipo, texto y unidad siguen llamando al servidor con los mismos parámetros.
+- **Resultado:** el listado pasó de una lista de enlaces a tarjetas en dos columnas con icono por tipo, insignias de tipo y de «Deshabilitado», conteo, estado vacío con salida y atajos de tipo (Todos, Equipos, Mobiliario, Otros) más búsqueda y unidad en una tarjeta de filtros. El registro vive en un modal amplio con los mismos campos de `CamposRecurso`; los errores del servidor se muestran dentro del modal. `Modal` admite ancho `amplio` y `nombresDeUnidades` resuelve los nombres para el listado. Verificado: Vitest y E2E (`gestion.spec.ts` ajustada para abrir el modal) en verde contra el backend real.
+
+---
+
+### FE-35 — Laboratorios, personal y cargos de origen externo · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** ajustar la interfaz a la [decisión del 2026-09-30](../decisions/origen-externo-estructura-institucional.md): los laboratorios, el personal y los cargos vienen de otra base de datos y no se crean aquí, y «unidad» se dice «laboratorio».
+- **Afectados:** `frontend/app/(app)/administracion/{unidades,identidades,personas}/page.tsx`, la portada de administración y los textos y etiquetas que decían «unidad» en reservas, recursos, espacios, reportes y permisos.
+- **Dependencias:** FE-11, FE-32. Contratos: solo notas (los endpoints de alta se conservan).
+- **Aceptación:** «Laboratorios y cargos» lista y configura pero no crea ni renombra; «Identidades» solo registra usuarios; el personal se consulta y su acceso se activa o desactiva, sin editar sus datos; ningún formulario, filtro ni mensaje dice «unidad».
+- **Resultado:** ver la decisión. Se renombraron las etiquetas en 25 archivos (fuente, pruebas y E2E). Verificado: Vitest 121/121, `tsc` y lint limpios. **No cubre:** la integración con la base de origen, que queda por abrir; ni el bloqueo en el servidor de renombrar o cambiar el estado de un laboratorio (hoy solo en la interfaz).
+
+---
+
+### FE-36 — Los equipos vienen de LIA: no se registran desde reservas · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** aplicar a los equipos la [decisión del 2026-09-30](../decisions/origen-externo-estructura-institucional.md): vienen de LIA, no se crean aquí y de LIA solo se trae lo necesario para reservar.
+- **Afectados:** `frontend/src/components/recursos/RecursosClient.tsx`, `frontend/e2e/gestion.spec.ts`, `backend/seeds/lia_equipos.sql`.
+- **Dependencias:** FE-34, FE-35. Contrato: solo una nota en `resources` §2.1.
+- **Aceptación:** «Registrar recurso» ofrece únicamente mobiliario y otros, y lo dice; un equipo existente se sigue editando (apoyo técnico, operatividad, serial); el script carga los equipos activos de LIA con lo necesario para reservar.
+- **Resultado:** el registro de un equipo desapareció de la interfaz. La carga trae, por equipo, laboratorio, nombre, marca, modelo, placa, serial, estado y si requiere calibración, y deja `requiere_apoyo` y `acreditado` en falso porque no existen en LIA. Se cargaron los 2 equipos activos; los otros 3 de LIA (inactivos, con serial y placa repetidos) quedaron fuera. **No cubre:** la categoría (Patrón o Auxiliar), las frecuencias de calibración y mantenimiento, los archivos y los datos técnicos, que no hacen falta para reservar; ni la integración continua con LIA.
+
+---
+
+### FE-37 — Catálogo de espacios: listado y registro en modal · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** dar al catálogo de espacios el mismo formato que el de recursos ([FE-34](#fe-34--catálogo-de-recursos-listado-y-registro-en-modal--cerrada)): un listado legible y el registro fuera de la página.
+- **Afectados:** `frontend/src/components/espacios/EspaciosClient.tsx` y su prueba.
+- **Dependencias:** FE-15, FE-32, FE-34. No toca el contrato.
+- **Aceptación:** el registro de un espacio no está en la página hasta pedirlo con «Registrar espacio» y se resuelve en un modal que se cierra al guardar y avisa «Espacio creado.»; el listado muestra por espacio su nombre, el laboratorio por su nombre (no su número), su capacidad y si está deshabilitado; los filtros siguen llamando al servidor con los mismos parámetros.
+- **Resultado:** el listado pasó de una lista de enlaces a tarjetas en dos columnas con icono, insignia de capacidad y de «Deshabilitado», conteo y estado vacío con salida; atajos de estado (Todos, Habilitados, Deshabilitados), laboratorio y capacidad mínima en una tarjeta de filtros, con «Quitar filtros». El registro vive en un modal con los mismos campos. Verificado: Vitest 123/123 (3 pruebas nuevas), `tsc` y lint limpios, y `e2e/gestion.spec.ts` contra el backend real.
+
+---
+
 ### FE-30 — Pruebas de extremo a extremo con Playwright · **cerrada**
 
 - **Tipo:** Implementación
@@ -506,7 +550,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33   (brechas frente a las reglas)
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
