@@ -78,7 +78,7 @@ export default function PaginaEditarDatos() {
   if (cargando) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Editar mis datos</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Editar mis datos</h1>
         <RegionMensaje texto="Cargando tus datos…" tono="muted" />
       </div>
     );
@@ -86,7 +86,7 @@ export default function PaginaEditarDatos() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Editar mis datos</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Editar mis datos</h1>
       <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-4">
         <p className="text-sm text-muted">Correo (no editable): {correo}</p>
         <Field id="nombre" label="Nombre" value={nombre}

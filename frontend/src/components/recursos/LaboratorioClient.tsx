@@ -146,7 +146,7 @@ export function LaboratorioClient({
   if (!config && sinConfig) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">{titulo}</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">{titulo}</h1>
         <p className="text-sm text-text">Este laboratorio todavía no tiene configuración.</p>
         {puedeGestionar ? (
           <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-2">
@@ -166,7 +166,7 @@ export function LaboratorioClient({
   if (!config) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Laboratorio</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Laboratorio</h1>
         <RegionMensaje texto={mensaje ?? "Cargando configuración…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -174,7 +174,7 @@ export function LaboratorioClient({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">{titulo}</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">{titulo}</h1>
       <dl className="grid grid-cols-1 gap-1 text-sm text-text">
         <div className="flex gap-2"><dt className="font-bold">Acepta reservas:</dt><dd>{config.habilitado_reservas ? "sí" : "no"}</dd></div>
         <div className="flex gap-2"><dt className="font-bold">Horario:</dt><dd>{config.hora_apertura.slice(0, 5)} – {config.hora_cierre.slice(0, 5)} · {nombresDeDias(config.dias_atencion)}</dd></div>

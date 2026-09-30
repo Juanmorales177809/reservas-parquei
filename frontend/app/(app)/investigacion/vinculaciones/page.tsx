@@ -85,7 +85,7 @@ export default function PaginaVinculacionesAjenas() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Vinculaciones de terceros</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Vinculaciones de terceros</h1>
       <p className="text-sm text-muted">
         Las vinculaciones propias se gestionan en{" "}
         <Link href="/usuarios/perfil/vinculaciones" className="font-bold text-primary-2">

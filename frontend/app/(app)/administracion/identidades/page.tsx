@@ -77,7 +77,7 @@ export default function PaginaIdentidades() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Identidades</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Identidades</h1>
       <div className="flex gap-4 text-sm text-text" role="radiogroup" aria-label="Tipo de identidad">
         {(["USUARIO", "PERSONAL"] as const).map((t) => (
           <label key={t} className="flex items-center gap-1">

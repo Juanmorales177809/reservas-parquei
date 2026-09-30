@@ -125,7 +125,7 @@ export default function PaginaUnidades() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Unidades y cargos</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Unidades y cargos</h1>
       <section aria-label="Unidades" className="flex flex-col gap-3">
         <h2 className="text-base font-bold text-text">Unidades</h2>
         <ul className="flex flex-col gap-1 text-sm text-text">

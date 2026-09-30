@@ -37,7 +37,15 @@ Los tokens de color son variables CSS (`--color-*`), con un juego para tema clar
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-sky` | `#98BF13` | Exclusivo para el anillo de `focus-visible`; no se usa como relleno de botón |
+| `--color-sky` | `#98BF13` | Anillo de `focus-visible` y la marca de la sección activa del menú y de la primera tarjeta de un formulario; no se usa como relleno de botón |
+
+### Bosque (barra lateral)
+
+| Token | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `--color-ink` | `#0C2A19` | `#07130C` | Fondo de la barra lateral y de la portada de las pantallas públicas |
+| `--color-ink-hover` | `#123A22` | `#0E2115` | Elemento activo o bajo el puntero en la barra lateral |
+| `--color-ink-text` | `#B9D0BD` | — | Texto secundario sobre `--color-ink` |
 
 ### Success
 
@@ -80,8 +88,8 @@ Los tokens de color son variables CSS (`--color-*`), con un juego para tema clar
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--font-display` | `Arial, Helvetica, sans-serif` | Títulos, encabezados de sección, nombres propios destacados |
-| `--font-body` | `'Inter', Arial, sans-serif` | Texto de cuerpo, metadatos, contenido de botones |
+| `--font-display` | `'Bricolage Grotesque', Arial, sans-serif` | Títulos, encabezados de sección, menú, botones |
+| `--font-body` | `'Figtree', Arial, sans-serif` | Texto de cuerpo, campos, metadatos |
 | `--fs-sm` | `0.750rem` | Etiquetas, texto auxiliar, metadatos |
 | `--fs-base` | `1rem` | Texto de cuerpo estándar |
 | `--fs-xl` | `1.333rem` | Encabezados de sección (`h2`) |
@@ -92,7 +100,7 @@ Los tokens de color son variables CSS (`--color-*`), con un juego para tema clar
 | `--fw-normal` | `400` | Peso por defecto |
 | `--fw-bold` | `700` | Énfasis, etiquetas, botones, encabezados |
 
-Escala tipográfica de razón ~1.333 (fourth). Familia `Inter` se carga vía Google Fonts (pesos 400 y 700); `--font-display` usa fuentes del sistema, sin carga externa.
+Escala tipográfica de razón ~1.333 (fourth). Ambas familias se cargan con `next/font/google` (sin petición del navegador a Google en producción). Los botones y las etiquetas se escriben en minúsculas de frase, no en mayúsculas sostenidas. El título de página (`h1`) usa `1.85rem` en `--font-display`.
 
 ## Espaciado
 
@@ -104,7 +112,8 @@ Sin escala formal de tokens todavía. Valores observados en el artifact, a modo 
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--radius` | `12px` | Botones y controles interactivos |
+| `--radius` | `12px` | Botones, campos, selectores y fichas de casilla |
+| `--radius-card` | `18px` | Tarjetas de contenido: pasos de un formulario, portadas de módulo, filtros de un informe |
 | — | `14px` | Miniaturas de color (swatches) |
 | — | `16px` | Tarjetas de contenido (reserva, dispositivo de ejemplo) |
 | — | `20px` | Contenedores de sección, bloque de handoff |
@@ -120,7 +129,9 @@ Solo `--radius` está tokenizado como variable; el resto son valores fijos repet
 | `--shadow-hover` | `0 10px 24px -4px rgba(0,60,20,.45)` | Estado hover de variantes con relleno sólido |
 | `--shadow-pressed` | `0 2px 6px -1px rgba(0,60,20,.30)` | Estado pressed de variantes con relleno sólido |
 
-Las tres sombras usan el mismo tinte verde (`rgba(0,60,20,*)`) sin importar la variante del botón (success, danger, warning incluidos): la sombra identifica «elevación de acción», no el color semántico de la variante. Variantes con relleno tenue (`secondary`, `ghost`) no llevan sombra.
+`--shadow-card` (`0 1px 2px rgba(12,42,25,.05), 0 12px 28px -16px rgba(12,42,25,.18)`) es la única sombra de las tarjetas de contenido: insinuada, para que el borde siga siendo lo que las delimita.
+
+Las tres sombras de botón usan el mismo tinte verde (`rgba(0,60,20,*)`) sin importar la variante del botón (success, danger, warning incluidos): la sombra identifica «elevación de acción», no el color semántico de la variante. Variantes con relleno tenue (`secondary`, `ghost`) no llevan sombra.
 
 ## Otros valores reutilizables
 

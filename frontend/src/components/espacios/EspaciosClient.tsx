@@ -86,7 +86,7 @@ export function EspaciosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Espacios</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Espacios</h1>
       <div className="flex flex-wrap items-end gap-3">
         <SelectorUnidad id="esp-filtro-unidad" label="Ver espacios de la unidad" value={filtroUnidad}
           onChange={setFiltroUnidad} textoVacio="Todas" />

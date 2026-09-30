@@ -86,7 +86,7 @@ export default function PaginaImportaciones() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Importar catálogo</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Importar catálogo</h1>
       <form onSubmit={(e) => void validar(e)} className="flex flex-col gap-4">
         <Select id="imp-catalogo" label="Catálogo" value={catalogo}
           onChange={(e) => setCatalogo(e.target.value as Catalogo)}>

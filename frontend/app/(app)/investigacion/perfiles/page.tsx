@@ -84,7 +84,7 @@ export default function PaginaPerfiles() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Perfiles</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Perfiles</h1>
       {perfiles === null ? (
         <RegionMensaje texto={mensaje ?? "Cargando perfiles…"} tono={mensaje ? tono : "muted"} />
       ) : (

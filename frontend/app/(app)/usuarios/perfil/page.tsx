@@ -36,7 +36,7 @@ export default function PaginaPerfil() {
   if (error) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Mi perfil</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mi perfil</h1>
         <RegionMensaje texto={error} tono="error" />
       </div>
     );
@@ -45,7 +45,7 @@ export default function PaginaPerfil() {
   if (!perfil) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Mi perfil</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mi perfil</h1>
         <RegionMensaje texto="Cargando tu perfil…" tono="muted" />
       </div>
     );
@@ -53,7 +53,7 @@ export default function PaginaPerfil() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Mi perfil</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mi perfil</h1>
       <dl className="grid grid-cols-1 gap-2 text-sm text-text">
         <div className="flex gap-2"><dt className="font-bold">Nombre:</dt><dd>{perfil.nombre}</dd></div>
         <div className="flex gap-2"><dt className="font-bold">Documento:</dt><dd>{perfil.documento}</dd></div>

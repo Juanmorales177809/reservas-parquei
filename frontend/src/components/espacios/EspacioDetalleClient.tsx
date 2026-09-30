@@ -145,7 +145,7 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   if (!detalle) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Espacio</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Espacio</h1>
         <RegionMensaje texto={mensaje ?? "Cargando…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -154,7 +154,7 @@ export function EspacioDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">{detalle.nombre}</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">{detalle.nombre}</h1>
         <p className="text-sm text-muted">
           Capacidad {detalle.capacidad} {!detalle.habilitado && "· deshabilitado"}
           {detalle.ubicacion ? ` · ${detalle.ubicacion}` : ""}

@@ -64,7 +64,7 @@ export default function PaginaAuditoria() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Auditoría</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Auditoría</h1>
       <form onSubmit={(e) => void filtrar(e)} className="flex flex-wrap items-end gap-2">
         <Field id="aud-entidad" label="Entidad" value={entidad}
           onChange={(e) => setEntidad(e.target.value)} />

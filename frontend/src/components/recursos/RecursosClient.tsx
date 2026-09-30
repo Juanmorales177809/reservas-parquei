@@ -82,7 +82,7 @@ export function RecursosClient({ puedeGestionar }: { puedeGestionar: boolean }) 
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Recursos</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Recursos</h1>
       <div className="flex flex-wrap items-end gap-3">
         <SelectorUnidad id="rec-filtro-unidad" label="Ver recursos de la unidad" value={filtroUnidad} onChange={setFiltroUnidad} textoVacio="Todas" />
         <Select id="rec-filtro-tipo" label="Ver recursos de tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>

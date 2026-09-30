@@ -99,7 +99,7 @@ export default function PaginaActualizacionInicial() {
   if (!perfil) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Completa tu perfil</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Completa tu perfil</h1>
         <RegionMensaje texto={mensaje ?? "Cargando tu perfil…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -110,7 +110,7 @@ export default function PaginaActualizacionInicial() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">Completa tu perfil</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Completa tu perfil</h1>
         <p className="mt-1 text-sm text-muted">
           Revisa tus datos y agrega al menos una vinculación académica o investigativa para continuar.
         </p>

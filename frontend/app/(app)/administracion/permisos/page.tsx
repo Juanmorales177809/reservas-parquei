@@ -107,7 +107,7 @@ export default function PaginaPermisos() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Permisos de la cuenta</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Permisos de la cuenta</h1>
       <form onSubmit={(e) => void consultar(e)} className="flex items-end gap-2">
         <SelectorCuenta id="perm-cuenta" label="Cuenta" value={idCuenta} onChange={setIdCuenta} requerido />
         <Button type="submit" variant="secondary" loading={ocupada}>Consultar</Button>

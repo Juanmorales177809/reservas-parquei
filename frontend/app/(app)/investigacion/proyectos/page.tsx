@@ -58,7 +58,7 @@ export default function PaginaCatalogos() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Proyectos y semilleros</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Proyectos y semilleros</h1>
       {proyectos === null ? (
         <RegionMensaje texto={mensaje ?? "Cargando catálogos…"} tono={mensaje ? tono : "muted"} />
       ) : (

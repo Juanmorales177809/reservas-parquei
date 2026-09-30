@@ -16,6 +16,11 @@ const config: Config = {
         muted: "var(--color-muted)",
         border: "var(--color-border)",
         sky: "var(--color-sky)",
+        ink: {
+          DEFAULT: "var(--color-ink)",
+          hover: "var(--color-ink-hover)",
+          text: "var(--color-ink-text)",
+        },
         gray: "var(--color-gray)",
         disabled: {
           bg: "var(--color-disabled-bg)",
@@ -50,12 +55,23 @@ const config: Config = {
       },
       borderRadius: {
         control: "var(--radius)",
+        card: "var(--radius-card)",
       },
       boxShadow: {
         default: "var(--shadow-default)",
         hover: "var(--shadow-hover)",
         pressed: "var(--shadow-pressed)",
         focus: "var(--shadow-focus)",
+        card: "var(--shadow-card)",
+      },
+      keyframes: {
+        aparecer: {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        aparecer: "aparecer .24s ease-out both",
       },
       fontFamily: {
         display: ["var(--font-display)"],

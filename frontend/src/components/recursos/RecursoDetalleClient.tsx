@@ -124,7 +124,7 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   if (!detalle) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Recurso</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Recurso</h1>
         <RegionMensaje texto={mensaje ?? "Cargando…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -133,7 +133,7 @@ export function RecursoDetalleClient({ puedeGestionar }: { puedeGestionar: boole
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">
           {valores?.nombre || "Recurso"} {!detalle.habilitado && "(deshabilitado)"}
         </h1>
         <p className="text-sm text-muted">

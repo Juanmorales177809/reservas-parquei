@@ -102,7 +102,7 @@ export default function PaginaActividades() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-text">Actividades institucionales</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Actividades institucionales</h1>
       {actividades === null ? (
         <RegionMensaje texto={mensaje ?? "Cargando actividades…"} tono={mensaje ? tono : "muted"} />
       ) : (

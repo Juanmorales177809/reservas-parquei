@@ -17,6 +17,89 @@ const ANILLO_FOCO =
   "focus-visible:outline-none focus-visible:ring-4 " +
   "focus-visible:ring-[color-mix(in_srgb,var(--color-sky)_55%,transparent)]";
 
+// Iconos de trazo, uno por destino del menú (FE-32). Decorativos: el texto del enlace es el nombre accesible.
+const ICONOS: Record<string, ReactNode> = {
+  "/reservas": (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </>
+  ),
+  "/recursos": (
+    <>
+      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+      <path d="M3 8v8l9 5 9-5V8M12 13v8" />
+    </>
+  ),
+  "/espacios": (
+    <>
+      <path d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16" />
+      <path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4" />
+    </>
+  ),
+  "/investigacion": (
+    <>
+      <path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 001.3 2h12.4a1.5 1.5 0 001.3-2L14 9V3" />
+      <path d="M7.5 15h9" />
+    </>
+  ),
+  "/usuarios": (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0113 0M16 4.5a3.5 3.5 0 010 7M18 14.5a6.5 6.5 0 013.5 5.5" />
+    </>
+  ),
+  "/administracion": (
+    <>
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+      <circle cx="16" cy="6" r="2" />
+      <circle cx="10" cy="12" r="2" />
+      <circle cx="18" cy="18" r="2" />
+    </>
+  ),
+  "/notificaciones": (
+    <>
+      <path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" />
+      <path d="M10 21a2 2 0 004 0" />
+    </>
+  ),
+  "/reportes": <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
+};
+
+function Icono({ href }: { href: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px] flex-none"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ICONOS[href]}
+    </svg>
+  );
+}
+
+function Marca() {
+  return (
+    <div className="flex items-center gap-3 px-5 py-6">
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 items-center justify-center rounded-control bg-primary-1 font-display text-lg font-bold text-white"
+      >
+        R
+      </span>
+      <div className="flex flex-col leading-tight">
+        <span className="font-display text-[15px] font-bold text-white">Reservas Parquei</span>
+        <span className="text-xs text-ink-text">Parque i · ITM</span>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({ sesion, children }: AppShellProps) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
@@ -57,67 +140,64 @@ export function AppShell({ sesion, children }: AppShellProps) {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-bg text-text">
-      <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-5">
-        <button
-          type="button"
-          className={`text-sm font-display font-bold text-muted lg:hidden ${ANILLO_FOCO}`}
-          onClick={() => setMenuAbierto(true)}
-        >
-          Menú
-        </button>
-        <div className="hidden items-center gap-4 lg:flex">
-          <span className="text-sm text-muted">
-            {sesion.correo} · {ETIQUETA_ROL[sesion.rol]}
-          </span>
-          <CuentaEnlaces rol={sesion.rol} />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={cerrarSesion}
-            loading={cerrandoSesion}
-          >
-            Cerrar sesión
-          </Button>
-        </div>
-      </header>
+  const inicial = sesion.correo.charAt(0).toUpperCase();
 
-      <div className="flex">
-        <nav className="hidden w-60 shrink-0 border-r border-border bg-surface lg:block">
+  return (
+    <div className="flex min-h-screen bg-bg text-text">
+      <nav className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-ink lg:flex">
+        <Marca />
+        <div className="flex-1 overflow-y-auto">
           <NavList destinos={destinos} pathname={pathname} />
-        </nav>
+        </div>
+      </nav>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-5 lg:px-10">
+          <button
+            type="button"
+            className={`rounded-control px-2 py-1 font-display text-sm font-bold text-primary-2 lg:hidden ${ANILLO_FOCO}`}
+            onClick={() => setMenuAbierto(true)}
+          >
+            Menú
+          </button>
+          <div className="ml-auto hidden items-center gap-4 lg:flex">
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-tint font-display text-sm font-bold text-primary-2"
+            >
+              {inicial}
+            </span>
+            <span className="text-sm text-muted">
+              {sesion.correo} · {ETIQUETA_ROL[sesion.rol]}
+            </span>
+            <CuentaEnlaces rol={sesion.rol} />
+            <Button variant="ghost" size="sm" onClick={cerrarSesion} loading={cerrandoSesion}>
+              Cerrar sesión
+            </Button>
+          </div>
+        </header>
 
         {menuAbierto && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <button
               type="button"
               aria-label="Cerrar menú"
-              className="absolute inset-0 bg-black/40"
+              className="absolute inset-0 bg-black/50"
               onClick={() => setMenuAbierto(false)}
             />
-            <nav className="relative z-50 flex h-full w-60 flex-col bg-surface">
+            <nav className="relative z-50 flex h-full w-64 flex-col bg-ink">
+              <Marca />
               <div className="flex-1 overflow-y-auto">
-                <NavList
-                  destinos={destinos}
-                  pathname={pathname}
-                  onNavigate={() => setMenuAbierto(false)}
-                />
+                <NavList destinos={destinos} pathname={pathname} onNavigate={() => setMenuAbierto(false)} />
               </div>
-              <div className="border-t border-border p-4">
-                <p className="mb-2 text-sm text-muted">
+              <div className="border-t border-white/10 p-4">
+                <p className="mb-2 text-sm text-ink-text">
                   {sesion.correo} · {ETIQUETA_ROL[sesion.rol]}
                 </p>
                 <div className="mb-2 flex flex-col gap-1" onClick={() => setMenuAbierto(false)}>
-                  <CuentaEnlaces rol={sesion.rol} />
+                  <CuentaEnlaces rol={sesion.rol} enOscuro />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  fullWidth
-                  onClick={cerrarSesion}
-                  loading={cerrandoSesion}
-                >
+                <Button variant="secondary" size="sm" fullWidth onClick={cerrarSesion} loading={cerrandoSesion}>
                   Cerrar sesión
                 </Button>
               </div>
@@ -125,8 +205,8 @@ export function AppShell({ sesion, children }: AppShellProps) {
           </div>
         )}
 
-        <main className="w-full min-w-0 px-5 pb-[90px] pt-11 lg:px-[30px]">
-          <div className="mx-auto max-w-[1180px]">{children}</div>
+        <main className="w-full min-w-0 px-5 pb-[90px] pt-10 lg:px-10">
+          <div className="mx-auto max-w-[1080px]">{children}</div>
         </main>
       </div>
     </div>
@@ -134,8 +214,10 @@ export function AppShell({ sesion, children }: AppShellProps) {
 }
 
 /** Enlaces de la cuenta que no son un destino del menú: mi perfil (solo Usuario) y cambiar contraseña. */
-function CuentaEnlaces({ rol }: { rol: ContextoSesion["rol"] }) {
-  const clase = `text-sm font-bold text-primary-2 ${ANILLO_FOCO}`;
+function CuentaEnlaces({ rol, enOscuro = false }: { rol: ContextoSesion["rol"]; enOscuro?: boolean }) {
+  const clase = `rounded-control text-sm font-medium underline-offset-4 hover:underline ${ANILLO_FOCO} ${
+    enOscuro ? "text-white" : "text-primary-2"
+  }`;
   return (
     <>
       {rol === "USUARIO" && (
@@ -160,7 +242,7 @@ function NavList({
   onNavigate?: () => void;
 }) {
   return (
-    <ul className="flex flex-col py-3">
+    <ul className="flex flex-col gap-0.5 px-3 pb-4">
       {destinos.map((destino) => {
         const activo = pathname.startsWith(destino.href);
         return (
@@ -168,12 +250,14 @@ function NavList({
             <Link
               href={destino.href}
               onClick={onNavigate}
-              className={`block px-5 py-3 text-sm font-bold ${ANILLO_FOCO} ${
+              aria-current={activo ? "page" : undefined}
+              className={`relative flex items-center gap-3 rounded-control px-3 py-2.5 font-display text-[14.5px] font-medium transition-colors ${ANILLO_FOCO} ${
                 activo
-                  ? "bg-primary-tint text-primary-2"
-                  : "text-muted hover:bg-primary-tint hover:text-primary-2"
+                  ? "bg-ink-hover text-white before:absolute before:-left-3 before:top-2 before:h-6 before:w-1 before:rounded-r before:bg-sky"
+                  : "text-ink-text hover:bg-ink-hover hover:text-white"
               }`}
             >
+              <Icono href={destino.href} />
               {destino.etiqueta}
             </Link>
           </li>

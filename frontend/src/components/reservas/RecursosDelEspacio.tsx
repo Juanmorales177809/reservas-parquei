@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { consultarDisponibilidad } from "@/src/lib/reservas-api";
 import type { RecursoAsociado } from "@/src/lib/espacios-types";
+import { CasillaTarjeta, GrupoCasillas } from "@/src/components/ui/CasillaTarjeta";
 
 type Estado = "consultando" | "disponible" | "ocupado" | "desconocido";
 
@@ -80,16 +81,14 @@ export function RecursosDelEspacio({
   if (habilitados.length === 0) return null;
 
   return (
-    <fieldset className="flex flex-col gap-1">
-      <legend className="text-sm font-bold text-text">Recursos del espacio (opcional)</legend>
+    <GrupoCasillas leyenda="Recursos del espacio (opcional)">
       {!periodo && <p className="text-sm text-muted">Elige fecha y horario para ver cuáles están disponibles.</p>}
       {habilitados.map((r) => {
         const estado = estados[r.recurso_id];
         const ocupado = estado === "ocupado";
         return (
-          <label key={r.recurso_id} className={`flex items-center gap-2 text-sm ${ocupado ? "text-muted" : "text-text"}`}>
-            <input
-              type="checkbox"
+          <CasillaTarjeta
+              key={r.recurso_id}
               disabled={ocupado}
               checked={value.includes(String(r.recurso_id))}
               onChange={(e) =>
@@ -99,14 +98,14 @@ export function RecursosDelEspacio({
                     : value.filter((v) => v !== String(r.recurso_id))
                 )
               }
-            />
+            >
             {r.nombre ?? "Sin nombre"}
             {periodo && estado === "consultando" && <span className="text-muted">(consultando…)</span>}
             {estado === "ocupado" && <span className="text-error-2">(no disponible en ese horario)</span>}
             {estado === "disponible" && <span className="text-muted">(disponible)</span>}
-          </label>
+          </CasillaTarjeta>
         );
       })}
-    </fieldset>
+    </GrupoCasillas>
   );
 }

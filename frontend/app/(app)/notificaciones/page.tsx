@@ -99,7 +99,7 @@ export default function PaginaNotificaciones() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Notificaciones</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Notificaciones</h1>
       <div className="flex flex-wrap items-end gap-2">
         <Select id="not-leida" label="Estado" value={leida} onChange={(e) => setLeida(e.target.value)}>
           <option value="">Todas</option>

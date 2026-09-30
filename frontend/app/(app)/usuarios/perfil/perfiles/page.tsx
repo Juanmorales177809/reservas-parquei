@@ -69,7 +69,7 @@ export default function PaginaPerfiles() {
   if (!catalogo) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Mis perfiles académicos/investigativos</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mis perfiles académicos/investigativos</h1>
         <RegionMensaje texto={mensaje ?? "Cargando perfiles…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -77,7 +77,7 @@ export default function PaginaPerfiles() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Mis perfiles académicos/investigativos</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mis perfiles académicos/investigativos</h1>
       <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-3">
         {catalogo.map((p) => (
           <label key={p.id_perfil} className="flex items-center gap-2 text-sm text-text">

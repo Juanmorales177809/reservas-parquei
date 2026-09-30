@@ -35,7 +35,7 @@ export default function PaginaVinculaciones() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Mis vinculaciones</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Mis vinculaciones</h1>
       {error && <RegionMensaje texto={error} tono="error" />}
       {!vinculaciones && !error && (
         <RegionMensaje texto="Cargando tus vinculaciones…" tono="muted" />

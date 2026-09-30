@@ -70,9 +70,9 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
  */
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "uppercase tracking-wide text-white " +
+    "text-white " +
     "bg-gradient-to-br from-primary-1 to-primary-2 shadow-default " +
-    "hover:from-primary-hover1 hover:to-primary-hover2 hover:shadow-hover " +
+    "hover:from-primary-hover1 hover:to-primary-hover2 hover:-translate-y-px hover:shadow-hover " +
     "active:translate-y-px active:bg-none active:bg-primary-pressed active:shadow-pressed",
   secondary:
     "bg-primary-tint text-primary-2 " +
@@ -80,15 +80,15 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "active:translate-y-px active:bg-[color-mix(in_srgb,var(--color-primary-tint)_40%,var(--color-primary-1)_25%)]",
   success:
     "text-white bg-gradient-to-br from-success-1 to-success-2 shadow-default " +
-    "hover:to-success-hover2 hover:shadow-hover " +
+    "hover:to-success-hover2 hover:-translate-y-px hover:shadow-hover " +
     "active:translate-y-px active:bg-none active:bg-success-pressed active:shadow-pressed",
   danger:
     "text-white bg-gradient-to-br from-error-1 to-error-2 shadow-default " +
-    "hover:to-error-hover2 hover:shadow-hover " +
+    "hover:to-error-hover2 hover:-translate-y-px hover:shadow-hover " +
     "active:translate-y-px active:bg-none active:bg-error-pressed active:shadow-pressed",
   warning:
     "text-white bg-gradient-to-br from-warning-1 to-warning-2 shadow-default " +
-    "hover:to-warning-hover2 hover:shadow-hover " +
+    "hover:to-warning-hover2 hover:-translate-y-px hover:shadow-hover " +
     "active:translate-y-px active:bg-none active:bg-warning-pressed active:shadow-pressed",
   ghost:
     "font-bold text-muted bg-transparent " +
@@ -96,7 +96,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "active:translate-y-px active:bg-[color-mix(in_srgb,var(--color-primary-tint)_60%,var(--color-primary-1)_10%)] active:text-primary-2",
   destructiveConfirm:
     "text-white bg-gradient-to-br from-error-1 to-error-2 shadow-default " +
-    "hover:to-error-hover2 hover:shadow-hover " +
+    "hover:to-error-hover2 hover:-translate-y-px hover:shadow-hover " +
     "active:translate-y-px active:bg-none active:bg-error-pressed active:shadow-pressed " +
     // Armado: color sólido + anillo de foco siempre visible, no solo con :focus-visible.
     "data-[armed=true]:bg-none data-[armed=true]:bg-error-pressed " +

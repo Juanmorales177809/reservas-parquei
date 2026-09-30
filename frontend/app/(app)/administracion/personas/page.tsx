@@ -143,7 +143,7 @@ export default function PaginaPersonas() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Personas</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Personas</h1>
         <Link href="/administracion/identidades" className="text-sm font-bold text-primary-2">
           Registrar e invitar
         </Link>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { opcionesAcompanantes } from "@/src/lib/reservas-api";
 import type { AcompananteOpcion } from "@/src/lib/reservas-types";
+import { CasillaTarjeta, GrupoCasillas } from "@/src/components/ui/CasillaTarjeta";
 
 /**
  * Acompañantes de una reserva por espacio (RN-ACO): cuentas con vinculación activa al proyecto o
@@ -59,8 +60,7 @@ export function AcompanantesReserva({
   const excede = capacidad !== undefined && value.length > capacidad;
 
   return (
-    <fieldset className="flex flex-col gap-1">
-      <legend className="text-sm font-bold text-text">Acompañantes (opcional)</legend>
+    <GrupoCasillas leyenda="Acompañantes (opcional)">
       {error ? (
         <p className="text-sm text-error-2">No se pudo cargar la lista de acompañantes.</p>
       ) : opciones === null ? (
@@ -69,9 +69,8 @@ export function AcompanantesReserva({
         <p className="text-sm text-muted">Nadie más está vinculado a este proyecto o semillero.</p>
       ) : (
         opciones.map((a) => (
-          <label key={a.id_cuenta} className="flex items-center gap-2 text-sm text-text">
-            <input
-              type="checkbox"
+          <CasillaTarjeta
+              key={a.id_cuenta}
               checked={value.includes(String(a.id_cuenta))}
               onChange={(e) =>
                 onChange(
@@ -80,15 +79,15 @@ export function AcompanantesReserva({
                     : value.filter((v) => v !== String(a.id_cuenta))
                 )
               }
-            />
+            >
             {a.nombre}
-          </label>
+          </CasillaTarjeta>
         ))
       )}
       <p className={`text-sm ${excede ? "text-error-2" : "text-muted"}`}>
         Asistentes: {value.length}
         {capacidad !== undefined && ` de ${capacidad} (capacidad del espacio)`}
       </p>
-    </fieldset>
+    </GrupoCasillas>
   );
 }

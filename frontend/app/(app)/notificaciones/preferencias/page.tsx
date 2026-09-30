@@ -98,7 +98,7 @@ export default function PaginaPreferencias() {
   if (!cargada) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Preferencias de correo</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Preferencias de correo</h1>
         <RegionMensaje texto={mensaje ?? "Cargando…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -106,7 +106,7 @@ export default function PaginaPreferencias() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Preferencias de correo</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Preferencias de correo</h1>
       <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-4">
         <label className="flex items-center gap-2 text-sm text-text">
           <input

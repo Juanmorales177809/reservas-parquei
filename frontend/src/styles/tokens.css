@@ -24,8 +24,13 @@
   --color-primary-hover-2: #005A1A;
   --color-primary-pressed: #00501A;
 
-  /* Acento de foco — exclusivo para el anillo de focus-visible */
+  /* Acento lima — anillo de focus-visible y marca de la sección activa del menú */
   --color-sky: #98BF13;
+
+  /* Bosque — barra lateral */
+  --color-ink: #0C2A19;
+  --color-ink-hover: #123A22;
+  --color-ink-text: #B9D0BD;
 
   /* Success */
   --color-success-1: #12B7CF;
@@ -49,8 +54,8 @@
   --color-gray: #6B7280;
 
   /* Tipografía */
-  --font-display: Arial, Helvetica, sans-serif;
-  --font-body: var(--font-inter), Arial, sans-serif;
+  --font-display: var(--font-bricolage), Arial, sans-serif;
+  --font-body: var(--font-figtree), Arial, sans-serif;
   --fs-sm: 0.750rem;
   --fs-base: 1rem;
   --fs-xl: 1.333rem;
@@ -61,13 +66,17 @@
   --fw-normal: 400;
   --fw-bold: 700;
 
-  /* Radio — exclusivo de botones y controles interactivos */
+  /* Radios — controles interactivos y tarjetas de contenido */
   --radius: 12px;
+  --radius-card: 18px;
 
   /* Sombras — mismo tinte verde en las siete variantes de botón */
   --shadow-default: 0 6px 16px -4px rgba(0, 60, 20, .35);
   --shadow-hover: 0 10px 24px -4px rgba(0, 60, 20, .45);
   --shadow-pressed: 0 2px 6px -1px rgba(0, 60, 20, .30);
+
+  /* Tarjeta de contenido: un borde y una sombra apenas insinuada */
+  --shadow-card: 0 1px 2px rgba(12, 42, 25, .05), 0 12px 28px -16px rgba(12, 42, 25, .18);
 
   /* Anillo de foco, igual para las siete variantes de botón */
   --shadow-focus: 0 0 0 4px color-mix(in srgb, var(--color-sky) 55%, transparent);
@@ -84,6 +93,8 @@
     --color-primary-tint: #16281C;
     --color-disabled-bg: #1C261F;
     --color-disabled-text: #63705E;
+    --color-ink: #07130C;
+    --color-ink-hover: #0E2115;
   }
 }
 
@@ -97,4 +108,8 @@
   --color-primary-tint: #16281C;
   --color-disabled-bg: #1C261F;
   --color-disabled-text: #63705E;
+}
+:root[data-theme="dark"] {
+  --color-ink: #07130C;
+  --color-ink-hover: #0E2115;
 }

@@ -27,6 +27,8 @@ import { ApiRequestError } from "@/src/lib/http";
 import { detalleRecurso } from "@/src/lib/recursos-api";
 import { consultarDisponibilidad, crearReserva, subirAdjunto, tiposHabilitados } from "@/src/lib/reservas-api";
 import type { DisponibilidadRespuesta, TipoReservaCodigo, TipoReservaItem } from "@/src/lib/reservas-types";
+import { BarraAcciones, Seccion } from "@/src/components/ui/Seccion";
+import { CasillaTarjeta } from "@/src/components/ui/CasillaTarjeta";
 
 // WF-RES-01 — specs/modules/reservations/wireframes.md
 export default function PaginaNuevaReserva() {
@@ -261,9 +263,15 @@ export default function PaginaNuevaReserva() {
   const sinTipos = tipos !== null && tipos.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Nueva reserva</h1>
-      <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Nueva reserva</h1>
+        <p className="max-w-[60ch] text-[15px] text-muted">
+          Cuéntanos qué necesitas y cuándo. El formulario se ajusta a lo que elijas.
+        </p>
+      </div>
+      <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-5">
+        <Seccion titulo="¿Qué quieres reservar?" descripcion="Elige la unidad y el tipo de reserva." destacada>
         <SelectorUnidad id="res-unidad" label="Unidad" value={idUnidad} onChange={setIdUnidad} requerido />
         {idUnidad && sinTipos && (
           <p className="text-sm text-error-2">Esta unidad no admite reservas en este momento.</p>
@@ -289,6 +297,10 @@ export default function PaginaNuevaReserva() {
         {tipos !== null && tipos.length === 1 && (
           <p className="text-sm text-muted">Tipo de reserva: {tipos[0].nombre}</p>
         )}
+        </Seccion>
+
+        {tipo && (
+          <Seccion titulo="Detalles de la reserva" descripcion="Cuándo y qué necesitas.">
 
         {tipo === "ESPACIO" && (
           <>
@@ -296,7 +308,7 @@ export default function PaginaNuevaReserva() {
               onChange={setEspacioId} requerido />
             <Field id="res-fecha" label="Fecha" type="date" value={fecha}
               onChange={(e) => setFecha(e.target.value)} required />
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field id="res-hi" label="Hora inicio" type="time" value={horaInicio}
                 onChange={(e) => setHoraInicio(e.target.value)} required />
               <Field id="res-hf" label="Hora fin" type="time" value={horaFin}
@@ -313,7 +325,7 @@ export default function PaginaNuevaReserva() {
           <>
             <Field id="res-fecha" label="Fecha" type="date" value={fecha}
               onChange={(e) => setFecha(e.target.value)} required />
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field id="res-hi" label="Hora inicio" type="time" value={horaInicio}
                 onChange={(e) => setHoraInicio(e.target.value)} required />
               <Field id="res-hf" label="Hora fin" type="time" value={horaFin}
@@ -327,7 +339,7 @@ export default function PaginaNuevaReserva() {
         )}
         {(tipo === "RECURSO_CAMPUS" || tipo === "RECURSO_EXTERNO") && (
           <>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field id="res-salida" label="Fecha salida" type="date" value={fechaSalida}
                 onChange={(e) => setFechaSalida(e.target.value)} required />
               <Field id="res-devolucion" label="Devolución estimada" type="date" value={fechaDevolucion}
@@ -356,7 +368,7 @@ export default function PaginaNuevaReserva() {
                 Archivos técnicos (opcional)
               </label>
               <input id="res-adjuntos" type="file" multiple accept={ACEPTA_ADJUNTOS}
-                className="text-sm text-text"
+                className="text-sm text-text file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-primary-tint file:px-4 file:py-2.5 file:font-display file:text-sm file:font-bold file:text-primary-2 hover:file:bg-[color-mix(in_srgb,var(--color-primary-tint)_60%,var(--color-primary-1)_15%)]"
                 onChange={(e) => {
                   const lista = Array.from(e.target.files ?? []);
                   const problema = lista.map(problemaAdjunto).find((p) => p !== null);
@@ -377,24 +389,30 @@ export default function PaginaNuevaReserva() {
           </>
         )}
 
+          </Seccion>
+        )}
+
         {tipo && (
           <>
+            <Seccion titulo="¿Para quién es?" descripcion="Vincula la reserva a tu proyecto o semillero.">
             <ContextoReserva value={contexto} onChange={setContexto} />
             {tipo === "ESPACIO" && (
               <AcompanantesReserva proyectoId={contexto.proyecto} semilleroId={contexto.semillero}
                 capacidad={espacio?.capacidad} value={acompanantes} onChange={setAcompanantes} />
             )}
+            </Seccion>
+            <Seccion titulo="Últimos detalles">
             {tipo !== "LISTA_ESPERA" && (
-              <label className="flex items-center gap-2 text-sm text-text">
-                <input type="checkbox" checked={pideApoyo || apoyoObligatorio} disabled={apoyoObligatorio}
-                  onChange={(e) => setPideApoyo(e.target.checked)} />
+              <CasillaTarjeta checked={pideApoyo || apoyoObligatorio} disabled={apoyoObligatorio}
+                onChange={(e) => setPideApoyo(e.target.checked)}>
                 Necesito acompañamiento de un técnico
                 {apoyoObligatorio && <span className="text-muted">(obligatorio: un equipo elegido lo exige)</span>}
-              </label>
+              </CasillaTarjeta>
             )}
             <Field id="res-obs" label="Observación (opcional)" value={observacion}
               onChange={(e) => setObservacion(e.target.value)} />
-            <div className="flex gap-2">
+            </Seccion>
+            <BarraAcciones>
               {tipo !== "LISTA_ESPERA" && (
                 <Button type="button" variant="secondary" disabled={ocupada}
                   onClick={() => void consultar()}>
@@ -402,7 +420,7 @@ export default function PaginaNuevaReserva() {
                 </Button>
               )}
               <Button type="submit" variant="primary" loading={ocupada}>Guardar solicitud</Button>
-            </div>
+            </BarraAcciones>
           </>
         )}
       </form>

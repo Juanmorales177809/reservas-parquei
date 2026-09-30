@@ -10,6 +10,55 @@ body {
   font-family: var(--font-body);
 }
 
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary-1);
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: none;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary-1) 28%, transparent);
+  }
+
+  /* Tablas de los informes y listados: cabecera tenue, fila que responde al puntero. */
+  main table thead th {
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  main table tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  main table tbody tr:hover {
+    background: color-mix(in srgb, var(--color-primary-tint) 55%, transparent);
+  }
+
+  input[type="date"],
+  input[type="time"] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

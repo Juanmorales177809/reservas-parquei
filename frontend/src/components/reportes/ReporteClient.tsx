@@ -261,9 +261,9 @@ export function ReporteClient({ tipo, unidadesAutorizadas }: { tipo: TipoReporte
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-text">Reportes · {titulo}</h1>
+      <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Reportes · {titulo}</h1>
 
-      <form onSubmit={consultar} aria-label={`Consultar ${titulo.toLowerCase()}`} className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <form onSubmit={consultar} aria-label={`Consultar ${titulo.toLowerCase()}`} className="grid grid-cols-1 gap-4 rounded-card border border-border bg-surface p-5 shadow-card md:grid-cols-3">
         {tipo === "ocupacion" && (
           <Select
             id="rep-dimension"
