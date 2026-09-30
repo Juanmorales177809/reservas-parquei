@@ -12,6 +12,7 @@ const editarUsuarioMock = vi.fn();
 const editarPersonalMock = vi.fn();
 const estadoUsuarioMock = vi.fn();
 const estadoPersonalMock = vi.fn();
+const crearUsuarioMock = vi.fn();
 
 vi.mock("@/src/lib/administracion-api", () => ({
   buscarUsuarios: (...a: unknown[]) => usuariosMock(...a),
@@ -20,6 +21,7 @@ vi.mock("@/src/lib/administracion-api", () => ({
   editarPersonal: (...a: unknown[]) => editarPersonalMock(...a),
   cambiarEstadoUsuario: (...a: unknown[]) => estadoUsuarioMock(...a),
   cambiarEstadoPersonal: (...a: unknown[]) => estadoPersonalMock(...a),
+  crearUsuarioIdentidad: (...a: unknown[]) => crearUsuarioMock(...a),
   listarCargos: () => Promise.resolve({ datos: [{ id_cargo: 4, nombre_cargo: "Técnico de laboratorio", id_unidad: 7 }, { id_cargo: 5, nombre_cargo: "Coordinador", id_unidad: 7 }] }),
   listarUnidades: () => Promise.resolve({ datos: [{ id_unidad: 7, nombre: "Laboratorio de Redes", tipo: "LABORATORIO", id_unidad_padre: null, estado: true }] }),
 }));
@@ -37,7 +39,7 @@ const PAG = { pagina: 1, paginas: 1, total: 1 };
 // FE-29: consultar, editar y activar o desactivar identidades (usuarios §5 y §6).
 describe("administracion/personas/page.tsx", () => {
   beforeEach(() => {
-    for (const m of [usuariosMock, personalMock, editarUsuarioMock, editarPersonalMock, estadoUsuarioMock, estadoPersonalMock]) m.mockReset();
+    for (const m of [usuariosMock, personalMock, editarUsuarioMock, editarPersonalMock, estadoUsuarioMock, estadoPersonalMock, crearUsuarioMock]) m.mockReset();
     usuariosMock.mockResolvedValue({ datos: [USUARIO], paginacion: PAG });
     personalMock.mockResolvedValue({ datos: [PERSONA], paginacion: PAG });
   });
@@ -45,7 +47,8 @@ describe("administracion/personas/page.tsx", () => {
   it("lista usuarios con su afiliación y si ya tienen cuenta", async () => {
     render(<PaginaPersonas />);
     expect(await screen.findByText("Ana Pérez")).toBeInTheDocument();
-    expect(screen.getByText(/ITM · Facultad · con cuenta/)).toBeInTheDocument();
+    expect(screen.getByText(/ITM · Facultad/)).toBeInTheDocument();
+    expect(screen.getByText("Con cuenta")).toBeInTheDocument();
   });
 
   it("edita solo lo que cambió y no permite cambiar el correo de quien ya tiene cuenta", async () => {
@@ -73,19 +76,63 @@ describe("administracion/personas/page.tsx", () => {
   it("el personal se consulta, pero no se edita desde aquí; su acceso sí se activa o desactiva", async () => {
     const usuario = userEvent.setup();
     render(<PaginaPersonas />);
-    await usuario.selectOptions(await screen.findByLabelText("Ver"), "Personal");
-    expect(await screen.findByText(/Técnico de laboratorio · Laboratorio de Redes · sin cuenta/)).toBeInTheDocument();
+    await screen.findByText("Ana Pérez");
+    await usuario.click(screen.getByRole("button", { name: "Personal" }));
+    expect(await screen.findByText(/Técnico de laboratorio · Laboratorio de Redes/)).toBeInTheDocument();
+    expect(screen.getByText("Sin cuenta")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desactivar" })).toBeInTheDocument();
+    // Quien aún no tiene cuenta se puede invitar desde su tarjeta.
+    expect(screen.getByRole("link", { name: "Invitar cuenta" })).toHaveAttribute(
+      "href", "/administracion/cuentas/invitar?correo=luis%40itm.edu.co&tipo=PERSONAL"
+    );
   });
 
   it("busca y filtra por estado", async () => {
     const usuario = userEvent.setup();
     render(<PaginaPersonas />);
     await screen.findByText("Ana Pérez");
-    await usuario.selectOptions(screen.getByLabelText("Estado"), "Inactivos");
+    await usuario.click(screen.getByRole("button", { name: "Inactivos" }));
     await waitFor(() => expect(usuariosMock).toHaveBeenLastCalledWith({ estado: false }));
     await usuario.type(screen.getByLabelText("Buscar por nombre, documento o correo"), "ana");
     await waitFor(() => expect(usuariosMock).toHaveBeenLastCalledWith({ estado: false, busqueda: "ana" }));
+  });
+
+  // FE-39: editar y registrar son modales; el listado son tarjetas.
+  it("editar abre un modal y se cierra con Cancelar sin enviar nada", async () => {
+    const usuario = userEvent.setup();
+    render(<PaginaPersonas />);
+    await usuario.click(await screen.findByRole("button", { name: "Editar" }));
+    expect(screen.getByRole("dialog", { name: "Editar a Ana Pérez" })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(editarUsuarioMock).not.toHaveBeenCalled();
+  });
+
+  it("registra un usuario en un modal, actualiza el listado y ofrece invitar su cuenta", async () => {
+    const usuario = userEvent.setup();
+    crearUsuarioMock.mockResolvedValue({ id_usuario: 5 });
+    render(<PaginaPersonas />);
+    await screen.findByText("Ana Pérez");
+    await usuario.click(screen.getByRole("button", { name: "Registrar usuario" }));
+    const dialogo = within(screen.getByRole("dialog", { name: "Registrar usuario" }));
+    await usuario.type(dialogo.getByLabelText("Nombre"), "Marta Ríos");
+    await usuario.type(dialogo.getByLabelText("Documento"), "500");
+    await usuario.type(dialogo.getByLabelText("Teléfono"), "312");
+    await usuario.type(dialogo.getByLabelText("Correo"), "marta@itm.edu.co");
+    await usuario.type(dialogo.getByLabelText("Institución"), "ITM");
+    await usuario.type(dialogo.getByLabelText("Dependencia"), "Facultad");
+    usuariosMock.mockClear();
+    await usuario.click(dialogo.getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(crearUsuarioMock).toHaveBeenCalledWith({
+        nombre: "Marta Ríos", documento: "500", correo: "marta@itm.edu.co", telefono: "312", institucion: "ITM", dependencia: "Facultad",
+      })
+    );
+    expect(await dialogo.findByText("Identidad guardada.")).toBeInTheDocument();
+    expect(dialogo.getByRole("link", { name: "Invitar una cuenta" })).toHaveAttribute(
+      "href", "/administracion/cuentas/invitar?correo=marta%40itm.edu.co"
+    );
+    await waitFor(() => expect(usuariosMock).toHaveBeenCalled()); // el listado se actualizó
   });
 });

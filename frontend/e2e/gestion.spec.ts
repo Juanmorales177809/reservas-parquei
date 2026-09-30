@@ -75,7 +75,7 @@ test("las personas se consultan y se editan; el correo de quien tiene cuenta no 
   await page.goto("/administracion/personas");
   await page.getByLabel("Buscar por nombre, documento o correo").fill("usuario-e2e");
   const fila = page.getByRole("listitem").filter({ hasText: "usuario-e2e@itm.edu.co" });
-  await expect(fila).toContainText("con cuenta");
+  await expect(fila).toContainText("Con cuenta");
   await fila.getByRole("button", { name: "Editar" }).click();
   const formulario = page.getByRole("form", { name: "Editar persona" });
   await expect(formulario.getByLabel("Correo")).toBeDisabled();
@@ -87,7 +87,8 @@ test("las personas se consultan y se editan; el correo de quien tiene cuenta no 
   await fila.getByRole("button", { name: "Editar" }).click();
   await formulario.getByLabel("Dependencia").fill("Facultad");
   await formulario.getByRole("button", { name: "Guardar cambios" }).click();
-  await expect(fila).toContainText("· Facultad ·");
+  await expect(fila).toContainText("ITM · Facultad");
+  await expect(fila).not.toContainText("Facultad E2E");
 });
 
 test("un espacio se registra con sus equipos asociados en el mismo paso (FE-38)", async ({ page }) => {
