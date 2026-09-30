@@ -10,7 +10,7 @@ import type { ContextoSesion } from "./auth-types";
 
 export interface RespuestaSesion {
   id_cuenta: number;
-  tipo_cuenta: "USUARIO" | "PERSONAL";
+  tipo_cuenta: "USUARIO" | "PERSONAL" | "ADMINISTRADOR";
   rol: ContextoSesion["rol"];
   actualizacion_inicial_pendiente: boolean | null;
   correo: string;
@@ -76,7 +76,7 @@ export function reautenticar(contrasena: string) {
 /** §4.1 */
 export function invitar(datos: {
   correo: string;
-  tipo_cuenta: "USUARIO" | "PERSONAL";
+  tipo_cuenta: "USUARIO" | "PERSONAL" | "ADMINISTRADOR";
   id_unidad?: number;
 }) {
   return apiRequest<{

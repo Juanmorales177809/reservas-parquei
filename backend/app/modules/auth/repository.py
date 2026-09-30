@@ -26,6 +26,8 @@ def obtener_cuenta(db: Session, id_cuenta: int) -> Cuentas | None:
 
 def identidad_activa(db: Session, cuenta: Cuentas) -> bool:
     """`RN-AUTH-ID-01`/`RN-AUTH-ID-05`: la identidad vinculada también debe estar activa."""
+    if cuenta.tipo_cuenta == "ADMINISTRADOR":
+        return True  # no tiene identidad asociada: basta con que la cuenta esté activa
     if cuenta.tipo_cuenta == "PERSONAL":
         persona = db.get(Personal, cuenta.id_persona)
         return persona is not None and bool(persona.estado)

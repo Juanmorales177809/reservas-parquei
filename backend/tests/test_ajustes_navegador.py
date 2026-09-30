@@ -11,6 +11,7 @@ from sqlalchemy import text
 
 from .conftest import (
     crear_admin,
+    crear_tecnico,
     crear_usuario_cuenta,
     headers_autenticados,
     iniciar_sesion,
@@ -65,7 +66,7 @@ def test_listado_de_recursos_incluye_nombre(client, db, tag):
 
 def test_usuarios_y_personal_traen_id_cuenta(client, db, tag):
     admin = crear_admin(db, f"p{tag}")
-    otorgar_permiso_global(db, admin, "usuarios.administrar")
+    tecnico, _ = crear_tecnico(db, f"q{tag}")
     usuario, cuenta_usuario = crear_usuario_cuenta(db, f"u{tag}")
     _, jar, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
     h = headers_autenticados(jar)
@@ -74,9 +75,9 @@ def test_usuarios_y_personal_traen_id_cuenta(client, db, tag):
     assert r.status_code == 200, r.text
     assert [x["id_cuenta"] for x in r.json()["datos"]] == [cuenta_usuario.id_cuenta]
 
-    r = client.get(f"/api/personal?busqueda={admin.correo}", headers=h)
+    r = client.get(f"/api/personal?busqueda={tecnico.correo}", headers=h)
     assert r.status_code == 200, r.text
-    assert [x["id_cuenta"] for x in r.json()["datos"]] == [admin.id_cuenta]
+    assert [x["id_cuenta"] for x in r.json()["datos"]] == [tecnico.id_cuenta]
 
 
 def test_configuracion_devuelve_notificar_por_correo(client, db, tag):

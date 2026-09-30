@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
+from app.db.models.auth import Cuentas
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional, Usuarios
 
 
@@ -209,37 +209,3 @@ def cuenta_de_persona(db: Session, id_persona: int) -> Cuentas | None:
     return db.scalar(select(Cuentas).where(Cuentas.id_persona == id_persona))
 
 
-def es_administrador_activo(db: Session, id_cuenta: int) -> bool:
-    """¿La cuenta tiene al menos una asignación global vigente? (RN-AUTH-ROL-09 de auth)."""
-    return (
-        db.scalar(
-            select(CuentaPermisos.id_cuenta_permiso)
-            .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-            .join(Cuentas, Cuentas.id_cuenta == CuentaPermisos.id_cuenta)
-            .where(
-                CuentaPermisos.id_cuenta == id_cuenta,
-                CuentaPermisos.id_unidad.is_(None),
-                Permisos.habilitado.is_(True),
-                Cuentas.tipo_cuenta == "PERSONAL",
-                Cuentas.estado.is_(True),
-            )
-        )
-        is not None
-    )
-
-
-def otros_administradores_activos(db: Session, excluir_id_cuenta: int) -> int:
-    consulta = (
-        select(Cuentas.id_cuenta)
-        .distinct()
-        .join(CuentaPermisos, CuentaPermisos.id_cuenta == Cuentas.id_cuenta)
-        .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-        .where(
-            Cuentas.tipo_cuenta == "PERSONAL",
-            Cuentas.estado.is_(True),
-            CuentaPermisos.id_unidad.is_(None),
-            Permisos.habilitado.is_(True),
-            Cuentas.id_cuenta != excluir_id_cuenta,
-        )
-    )
-    return len(db.scalars(consulta).all())

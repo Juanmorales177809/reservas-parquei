@@ -13,7 +13,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models.administration import Auditoria, ImportacionResultados, Importaciones
-from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
+from app.db.models.auth import Cuentas
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
 
 
@@ -132,55 +132,6 @@ def listar_cargos(
     return list(db.scalars(consulta.limit(limite).offset(desplazamiento)).all()), total
 
 
-# --- Permisos --------------------------------------------------------------------------
-
-
-def listar_permisos(db: Session) -> list[Permisos]:
-    return list(db.scalars(select(Permisos).order_by(Permisos.codigo)).all())
-
-
-def obtener_permiso_por_codigo(db: Session, codigo: str) -> Permisos | None:
-    return db.scalar(select(Permisos).where(Permisos.codigo == codigo))
-
-
-def asignaciones_de_cuenta(db: Session, id_cuenta: int) -> list[CuentaPermisos]:
-    return list(
-        db.scalars(
-            select(CuentaPermisos)
-            .where(CuentaPermisos.id_cuenta == id_cuenta)
-            .order_by(CuentaPermisos.id_cuenta_permiso)
-        ).all()
-    )
-
-
-def otorgar_permiso(
-    db: Session, *, id_cuenta: int, permiso_id: int, id_unidad: int | None, otorgado_por: int,
-) -> CuentaPermisos:
-    fila = CuentaPermisos(
-        id_cuenta=id_cuenta,
-        permiso_id=permiso_id,
-        id_unidad=id_unidad,
-        otorgado_por=otorgado_por,
-        created_at=_ahora(),
-    )
-    db.add(fila)
-    db.flush()
-    return fila
-
-
-def retirar_permisos_por_codigo(db: Session, id_cuenta: int, permiso_id: int) -> list[CuentaPermisos]:
-    filas = list(
-        db.scalars(
-            select(CuentaPermisos).where(
-                CuentaPermisos.id_cuenta == id_cuenta, CuentaPermisos.permiso_id == permiso_id
-            )
-        ).all()
-    )
-    for fila in filas:
-        db.delete(fila)
-    return filas
-
-
 # --- Integridad con cuentas y personal (lectura) -------------------------------------------
 
 
@@ -197,41 +148,6 @@ def persona_de_cuenta(db: Session, cuenta: Cuentas) -> Personal | None:
 def unidad_del_cargo(db: Session, id_cargo: int) -> int | None:
     cargo = db.get(Cargo, id_cargo)
     return cargo.id_unidad if cargo else None
-
-
-def es_administrador_activo(db: Session, id_cuenta: int) -> bool:
-    return (
-        db.scalar(
-            select(CuentaPermisos.id_cuenta_permiso)
-            .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-            .join(Cuentas, Cuentas.id_cuenta == CuentaPermisos.id_cuenta)
-            .where(
-                CuentaPermisos.id_cuenta == id_cuenta,
-                CuentaPermisos.id_unidad.is_(None),
-                Permisos.habilitado.is_(True),
-                Cuentas.tipo_cuenta == "PERSONAL",
-                Cuentas.estado.is_(True),
-            )
-        )
-        is not None
-    )
-
-
-def otros_administradores_activos(db: Session, excluir_id_cuenta: int) -> int:
-    consulta = (
-        select(Cuentas.id_cuenta)
-        .distinct()
-        .join(CuentaPermisos, CuentaPermisos.id_cuenta == Cuentas.id_cuenta)
-        .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-        .where(
-            Cuentas.tipo_cuenta == "PERSONAL",
-            Cuentas.estado.is_(True),
-            CuentaPermisos.id_unidad.is_(None),
-            Permisos.habilitado.is_(True),
-            Cuentas.id_cuenta != excluir_id_cuenta,
-        )
-    )
-    return len(db.scalars(consulta).all())
 
 
 # --- Auditoría (§5, API-08; solo lectura) -------------------------------------------------

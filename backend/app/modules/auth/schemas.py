@@ -13,6 +13,8 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 TipoCuenta = Literal["USUARIO", "PERSONAL"]
+# La sesión también puede ser de una cuenta de administrador (propia de Reservas); las invitaciones no.
+TipoCuentaSesion = Literal["USUARIO", "PERSONAL", "ADMINISTRADOR"]
 Rol = Literal["USUARIO", "TECNICO", "ADMINISTRADOR"]
 
 # Rango de contraseña de SEC-PWD-07 / contrato §3.1: 8 a 64 caracteres,
@@ -83,7 +85,7 @@ class LoginSolicitud(BaseModel):
 
 class SesionIniciada(BaseModel):
     id_cuenta: int
-    tipo_cuenta: TipoCuenta
+    tipo_cuenta: TipoCuentaSesion
     rol: Rol
     actualizacion_inicial_pendiente: bool | None
     correo: str
@@ -105,7 +107,7 @@ class RenovacionRespuesta(BaseModel):
 
 class SesionActual(BaseModel):
     id_cuenta: int
-    tipo_cuenta: TipoCuenta
+    tipo_cuenta: TipoCuentaSesion
     rol: Rol
     correo: str
     actualizacion_inicial_pendiente: bool | None

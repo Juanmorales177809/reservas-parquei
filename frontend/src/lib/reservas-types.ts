@@ -164,7 +164,7 @@ export interface AdjuntoItem {
 
 /** Contextos elegibles según el tipo de cuenta (contrato reservations §2.9). */
 export interface OpcionesContexto {
-  tipo_cuenta: "USUARIO" | "PERSONAL";
+  tipo_cuenta: "USUARIO" | "PERSONAL" | "ADMINISTRADOR";
   proyectos: { id: number; codigo: string; nombre: string }[];
   semilleros: { id: number; codigo: string; nombre: string }[];
   pasantias: { id: number; universidad: string; docente_nombre: string }[];

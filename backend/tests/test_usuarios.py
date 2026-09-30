@@ -25,6 +25,7 @@ from app.modules.usuarios import service as servicio_usuarios
 from tests.conftest import (
     correo_para,
     crear_admin,
+    crear_tecnico,
     crear_usuario_cuenta,
     headers_autenticados,
     iniciar_sesion,
@@ -234,15 +235,6 @@ def test_desactivar_ficha_conserva_historial(db, tag):
     assert conservada is not None and conservada.estado is False
 
 
-def test_ultima_ficha_admin_no_se_desactiva(db, tag):
-    """RN-AUTH-ROL-09 (auth) vía §6.4: sin administradores no hay sistema."""
-    admin = crear_admin(db, tag)
-    persona_id = admin.id_persona
-    assert persona_id is not None
-    with pytest.raises(Conflicto):
-        servicio_usuarios.cambiar_estado_ficha(db, persona_id, False)
-    db.rollback()
-
 
 def test_patch_perfil_rechaza_correo(client, db, tag):
     """UF-USR-04: el correo es solo lectura; el resto se edita."""
@@ -329,30 +321,10 @@ def test_ficha_sin_estado_nace_activa(db, tag):
 
 
 def test_rol_cae_a_usuario_con_ficha_inactiva(db, tag):
-    """T-USR-07 (rol): la cuenta asociada deja de resolver rol administrativo."""
-    admin = crear_admin(db, tag)
-    assert resolver_rol(db, admin.id_cuenta).rol == "ADMINISTRADOR"
+    """T-USR-07 (rol): la cuenta asociada a una ficha inactiva deja de resolver rol de técnico."""
+    tecnico, _ = crear_tecnico(db, tag)
+    assert resolver_rol(db, tecnico.id_cuenta).rol == "TECNICO"
 
-    # Segunda cuenta administradora para que desactivar la primera no sea 409.
-    _, cargo = _unidad_cargo(db, tag, "Z")
-    correo2 = correo_para(tag, "admin2")
-    persona2 = Personal(
-        nombre=f"Admin2 {tag}", id_cargo=cargo.id_cargo, documento=f"77{tag[:8]}",
-        correo=correo2, telefono=f"315{tag[:7]}", estado=True,
-    )
-    db.add(persona2)
-    db.flush()
-    cuenta2 = repo_cuentas.crear_cuenta(
-        db, correo=correo2, password_hash=hash_contrasena("otra frase larga de paso"),
-        tipo_cuenta="PERSONAL", id_persona=persona2.id_persona,
-    )
-    db.flush()
-    permiso = db.scalar(select(Permisos).where(Permisos.codigo == "cuentas.administrar"))
-    db.add(CuentaPermisos(id_cuenta=cuenta2.id_cuenta, permiso_id=permiso.id, id_unidad=None,
-                          otorgado_por=cuenta2.id_cuenta,
-                          created_at=datetime.now(timezone.utc)))
-    db.commit()
-
-    servicio_usuarios.cambiar_estado_ficha(db, admin.id_persona, False)
+    servicio_usuarios.cambiar_estado_ficha(db, tecnico.id_persona, False)
     db.expire_all()
-    assert resolver_rol(db, admin.id_cuenta).rol == "USUARIO"
+    assert resolver_rol(db, tecnico.id_cuenta).rol == "USUARIO"

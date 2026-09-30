@@ -10,7 +10,7 @@ test("el listado muestra cuándo, qué, dónde y quién, y filtra por estado y t
   const filas = lista.getByRole("listitem");
   expect(await filas.count()).toBeGreaterThan(0);
   await expect(filas.first()).toContainText("Laboratorio de Redes");
-  await expect(filas.first()).toContainText(/Admin E2E|Usuario E2E/);
+  await expect(filas.first()).toContainText(/Administrador|Usuario E2E/);
   await expect(filas.first()).not.toContainText(/#\d+/);
 
   // Filtro por tipo: todas las filas visibles son de ese tipo.
@@ -28,7 +28,7 @@ test("el detalle muestra unidad, solicitante, espacio y recursos por su nombre",
   await page.getByRole("link", { name: "Ver reserva" }).first().click();
   await expect(page).toHaveURL(/\/reservas\/\d+$/);
   await expect(page.getByText("Laboratorio de Redes").first()).toBeVisible();
-  await expect(page.getByText(/Admin E2E|Usuario E2E/).first()).toBeVisible(); // quien haya creado la primera
+  await expect(page.getByText(/Administrador|Usuario E2E/).first()).toBeVisible(); // quien haya creado la primera
   await expect(page.getByText("Sala de Redes")).toBeVisible();
   await expect(page.getByText(/Recurso \d+/)).toHaveCount(0);
 });

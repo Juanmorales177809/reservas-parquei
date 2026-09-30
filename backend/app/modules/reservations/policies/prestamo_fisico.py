@@ -103,6 +103,11 @@ def generar_fgl(db: Session, *, reserva, contexto_actor) -> object:
         dependencia = usuario.dependencia
         responsable_nombre, responsable_cedula = usuario.nombre, usuario.documento
         responsable_correo, responsable_telefono = usuario.correo, usuario.telefono
+    elif contexto_actor.tipo_cuenta == "ADMINISTRADOR":
+        # Cuenta propia de Reservas: sin ficha; el responsable se identifica por su cuenta.
+        dependencia = "Administración de Reservas"
+        responsable_nombre, responsable_cedula = "Administrador", ""
+        responsable_correo, responsable_telefono = contexto_actor.correo, ""
     else:
         persona = usr_repo.obtener_personal(db, contexto_actor.id_persona)
         id_unidad_cargo = repo.unidad_del_cargo_de_persona(db, contexto_actor.id_persona)

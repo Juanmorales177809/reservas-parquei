@@ -30,7 +30,7 @@ from app.db.session import get_db
 class ContextoAutenticado:
     id_cuenta: int
     id_sesion: str
-    tipo_cuenta: Literal["USUARIO", "PERSONAL"]
+    tipo_cuenta: Literal["USUARIO", "PERSONAL", "ADMINISTRADOR"]
     id_usuario: int | None
     id_persona: int | None
     rol: Literal["USUARIO", "TECNICO", "ADMINISTRADOR"]
@@ -72,7 +72,10 @@ def obtener_contexto(request: Request, db: Session = Depends(get_db)) -> Context
     if cuenta is None or not cuenta.estado:
         raise NoAutenticado()
 
-    if cuenta.tipo_cuenta == "PERSONAL":
+    if cuenta.tipo_cuenta == "ADMINISTRADOR":
+        # Cuenta propia de Reservas: no tiene ficha en LIA ni perfil que completar.
+        actualizacion_inicial_pendiente = None
+    elif cuenta.tipo_cuenta == "PERSONAL":
         persona = db.get(Personal, cuenta.id_persona)
         if persona is None or not persona.estado:
             raise NoAutenticado()

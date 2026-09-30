@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models.auth import CuentaPermisos, Cuentas, Invitaciones, Permisos, Sesiones, TokensRecuperacion
+from app.db.models.auth import Cuentas, Invitaciones, Sesiones, TokensRecuperacion
 from app.db.models.identidad import Cargo, Personal, Usuarios
 
 VIGENCIA_INVITACION_SEGUNDOS = 7 * 24 * 60 * 60
@@ -91,20 +91,8 @@ def actualizar_password(db: Session, cuenta: Cuentas, nuevo_hash: str) -> None:
 
 
 def contar_administradores_activos(db: Session, excluir_id_cuenta: int | None = None) -> int:
-    """Cuentas `PERSONAL` activas con al menos una asignación global vigente
-    (`RN-AUTH-ROL-03`), sin importar el código del permiso."""
-    consulta = (
-        select(Cuentas.id_cuenta)
-        .distinct()
-        .join(CuentaPermisos, CuentaPermisos.id_cuenta == Cuentas.id_cuenta)
-        .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-        .where(
-            Cuentas.tipo_cuenta == "PERSONAL",
-            Cuentas.estado.is_(True),
-            CuentaPermisos.id_unidad.is_(None),
-            Permisos.habilitado.is_(True),
-        )
-    )
+    """Cuentas `ADMINISTRADOR` activas (`RN-AUTH-ROL-03`): el sistema no puede quedarse sin ninguna."""
+    consulta = select(Cuentas.id_cuenta).where(Cuentas.tipo_cuenta == "ADMINISTRADOR", Cuentas.estado.is_(True))
     if excluir_id_cuenta is not None:
         consulta = consulta.where(Cuentas.id_cuenta != excluir_id_cuenta)
     return len(db.scalars(consulta).all())
@@ -194,19 +182,11 @@ def renovar_token_invitacion(db: Session, invitacion: Invitaciones, token_hash: 
 
 
 def es_administrador_activo(db: Session, id_cuenta: int) -> bool:
-    """Si retirar esta cuenta del conteo global la afecta: tiene al menos
-    una asignación global vigente (RN-AUTH-ROL-03)."""
+    """Si retirar esta cuenta del conteo de administradores la afecta (RN-AUTH-ROL-03)."""
     return (
         db.scalar(
-            select(CuentaPermisos.id_cuenta_permiso)
-            .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
-            .join(Cuentas, Cuentas.id_cuenta == CuentaPermisos.id_cuenta)
-            .where(
-                CuentaPermisos.id_cuenta == id_cuenta,
-                CuentaPermisos.id_unidad.is_(None),
-                Permisos.habilitado.is_(True),
-                Cuentas.tipo_cuenta == "PERSONAL",
-                Cuentas.estado.is_(True),
+            select(Cuentas.id_cuenta).where(
+                Cuentas.id_cuenta == id_cuenta, Cuentas.tipo_cuenta == "ADMINISTRADOR", Cuentas.estado.is_(True)
             )
         )
         is not None

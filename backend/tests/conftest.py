@@ -257,58 +257,26 @@ def crear_usuario_cuenta(db, tag: str, contrasena: str = "una frase larga de pas
 
 
 def crear_admin(db, tag: str, contrasena: str = "una frase larga de paso admin"):
-    """Crea PERSONAL con `cuentas.administrar` global. Devuelve la cuenta."""
-    from app.db.models.auth import CuentaPermisos, Permisos
-    from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
-    from app.modules.auth import repository_cuentas as repo_cuentas
-    from sqlalchemy import select
+    """Crea una cuenta ADMINISTRADOR (propia de Reservas, sin ficha ni laboratorio). Devuelve la cuenta.
 
-    correo = correo_para(tag, "admin")
-    unidad = UnidadOrganizacional(nombre=f"Unidad {tag}", tipo="FACULTAD", estado=True)
-    db.add(unidad)
-    db.flush()
-    cargo = Cargo(nombre_cargo=f"Cargo {tag}", id_unidad=unidad.id_unidad)
-    db.add(cargo)
-    db.flush()
-    persona = Personal(
-        nombre=f"Admin {tag}",
-        id_cargo=cargo.id_cargo,
-        documento=f"20{tag[:8]}",
-        correo=correo,
-        telefono=f"301{tag[:7]}",
-        estado=True,
-    )
-    db.add(persona)
-    db.flush()
+    Decisión 2026-09-30: el rol define los permisos; el administrador puede todo.
+    """
+    from app.modules.auth import repository_cuentas as repo_cuentas
+
     cuenta = repo_cuentas.crear_cuenta(
         db,
-        correo=correo,
+        correo=correo_para(tag, "admin"),
         password_hash=hash_contrasena(contrasena),
-        tipo_cuenta="PERSONAL",
-        id_persona=persona.id_persona,
-    )
-    db.flush()
-    permiso = db.scalar(select(Permisos).where(Permisos.codigo == "cuentas.administrar"))
-    assert permiso is not None
-    db.add(
-        CuentaPermisos(
-            id_cuenta=cuenta.id_cuenta,
-            permiso_id=permiso.id,
-            id_unidad=None,
-            otorgado_por=cuenta.id_cuenta,
-            created_at=datetime.now(timezone.utc),
-        )
+        tipo_cuenta="ADMINISTRADOR",
     )
     db.commit()
     return cuenta
 
 
 def crear_tecnico(db, tag: str, contrasena: str = "una frase larga de paso tec"):
-    """Crea PERSONAL con un permiso en su unidad vigente. Devuelve (cuenta, id_unidad)."""
-    from app.db.models.auth import CuentaPermisos, Permisos
+    """Crea PERSONAL activa con un cargo de su laboratorio: es técnico por su rol. Devuelve (cuenta, id_unidad)."""
     from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
     from app.modules.auth import repository_cuentas as repo_cuentas
-    from sqlalchemy import select
 
     correo = correo_para(tag, "tec")
     unidad = UnidadOrganizacional(nombre=f"Unidad {tag}", tipo="LABORATORIO", estado=True)
@@ -335,17 +303,6 @@ def crear_tecnico(db, tag: str, contrasena: str = "una frase larga de paso tec")
         id_persona=persona.id_persona,
     )
     db.flush()
-    permiso = db.scalar(select(Permisos).where(Permisos.codigo == "reservas.administrar"))
-    assert permiso is not None
-    db.add(
-        CuentaPermisos(
-            id_cuenta=cuenta.id_cuenta,
-            permiso_id=permiso.id,
-            id_unidad=unidad.id_unidad,
-            otorgado_por=cuenta.id_cuenta,
-            created_at=datetime.now(timezone.utc),
-        )
-    )
     db.commit()
     return cuenta, unidad.id_unidad
 
@@ -377,23 +334,13 @@ def headers_autenticados(jar: dict[str, str]) -> dict[str, str]:
 
 
 def otorgar_permiso_global(db, cuenta, codigo: str):
-    """Otorga un permiso global vigente a la cuenta. Devuelve la cuenta."""
-    from datetime import datetime, timezone
+    """Hace administrador a la cuenta (los permisos los define el rol, no se otorgan por código).
 
-    from sqlalchemy import select
-
-    from app.db.models.auth import CuentaPermisos, Permisos
-
-    permiso = db.scalar(select(Permisos).where(Permisos.codigo == codigo))
-    assert permiso is not None, f"permiso inexistente: {codigo}"
-    db.add(
-        CuentaPermisos(
-            id_cuenta=cuenta.id_cuenta,
-            permiso_id=permiso.id,
-            id_unidad=None,
-            otorgado_por=cuenta.id_cuenta,
-            created_at=datetime.now(timezone.utc),
-        )
-    )
+    Se conserva el nombre para no reescribir cada prueba que necesita «alguien con permiso global»: el
+    argumento `codigo` ya no restringe nada, el administrador puede todo. Devuelve la cuenta.
+    """
+    cuenta.tipo_cuenta = "ADMINISTRADOR"
+    cuenta.id_persona = None
+    cuenta.id_usuario = None
     db.commit()
     return cuenta

@@ -1,16 +1,24 @@
-"""Resolución de rol y autorización por permiso y ámbito (BK-07, API-04).
+"""Resolución de rol y autorización por rol y ámbito (BK-07, API-04).
 
-Implementa la derivación de `auth/data-model.md` §"Derivación del rol
-funcional" y `exigir_permiso` del contrato interno de auth (§7): evalúa
-permiso y unidad con información vigente en cada operación, nunca desde el
-token (`SEC-JWT-04`, `RN-AUTH-ROL-05`).
+Decisión 2026-09-30 (specs/docs/decisions/origen-externo-estructura-institucional.md):
+los permisos **los define el rol**, no se otorgan a mano.
 
-Lo que este módulo NO hace: no resuelve la cuenta desde la sesión ni el JWT.
-Recibe `id_cuenta` ya determinado; conectarlo con `obtener_contexto()` sobre
-la cookie de sesión es `AUTH-A6` (`BK-09`), que construye sobre esto.
+| Rol | Quién | Qué puede hacer |
+|---|---|---|
+| `USUARIO` | cuenta `USUARIO`, o cualquier cuenta que no cumpla lo de abajo | solo reservar |
+| `TECNICO` | cuenta `PERSONAL` activa con ficha activa y un cargo con laboratorio | gestionar únicamente el laboratorio de su cargo |
+| `ADMINISTRADOR` | cuenta `ADMINISTRADOR` activa (propia de Reservas, sin ficha en LIA) | todo |
 
-La comprobación de que un recurso concreto pertenece al actor no es de este
-módulo (`SEC-AUTZ-06`): `auth` no conoce la propiedad de entidades ajenas.
+Los permisos se siguen nombrando con códigos (`reservas.administrar`, ...) porque los endpoints los exigen
+por nombre, pero el conjunto de cada rol está fijo en este módulo: `PERMISOS_DEL_TECNICO` para el técnico y
+todos los habilitados del catálogo para el administrador. Se evalúan con información vigente en cada
+operación, nunca desde el token (`SEC-JWT-04`, `RN-AUTH-ROL-05`).
+
+Lo que este módulo NO hace: no resuelve la cuenta desde la sesión ni el JWT. Recibe `id_cuenta` ya
+determinado; conectarlo con `obtener_contexto()` es `AUTH-A6` (`BK-09`).
+
+La comprobación de que un recurso concreto pertenece al actor no es de este módulo (`SEC-AUTZ-06`):
+`auth` no conoce la propiedad de entidades ajenas.
 """
 
 from __future__ import annotations
@@ -28,62 +36,38 @@ logger = logging.getLogger("reservas.authz")
 
 Rol = Literal["USUARIO", "TECNICO", "ADMINISTRADOR"]
 
-_CUENTA_PERSONAL_ACTIVA = """
-    SELECT per.id_cargo
-    FROM auth.cuentas c
-    JOIN personal.personal per ON per.id_persona = c.id_persona
-    WHERE c.id_cuenta = :id_cuenta
-      AND c.estado IS TRUE
-      AND c.tipo_cuenta = 'PERSONAL'
+# Lo que el técnico puede hacer dentro del laboratorio de su cargo. Es el conjunto de ámbito «unidad» del
+# catálogo: lo demás (unidades, cuentas, usuarios, importaciones, equipos y reasignaciones entre
+# laboratorios) es solo del administrador.
+PERMISOS_DEL_TECNICO = frozenset(
+    {
+        "reservas.administrar",
+        "reservas.exportar",
+        "espacios.administrar",
+        "recursos.administrar",
+        "recursos.editar_equipos",
+        "laboratorios.configurar",
+        "reportes.consultar",
+    }
+)
+
+_CUENTA = """
+    SELECT tipo_cuenta, estado, id_persona
+    FROM auth.cuentas
+    WHERE id_cuenta = :id_cuenta
+"""
+
+_LABORATORIO_DEL_CARGO_DE_LA_PERSONA = """
+    SELECT car.id_unidad
+    FROM personal.personal per
+    JOIN cargos.cargo car ON car.id_cargo = per.id_cargo
+    WHERE per.id_persona = :id_persona
       AND per.estado IS TRUE
 """
 
-_ES_ADMINISTRADOR_GLOBAL = """
+_PERMISO_HABILITADO = """
     SELECT EXISTS (
-        SELECT 1
-        FROM auth.cuenta_permisos cp
-        JOIN auth.permisos p ON p.id = cp.permiso_id
-        WHERE cp.id_cuenta = :id_cuenta
-          AND cp.id_unidad IS NULL
-          AND p.habilitado IS TRUE
-    )
-"""
-
-_UNIDAD_VIGENTE_DEL_CARGO = """
-    SELECT id_unidad FROM cargos.cargo WHERE id_cargo = :id_cargo
-"""
-
-_TIENE_PERMISO_GLOBAL = """
-    SELECT EXISTS (
-        SELECT 1
-        FROM auth.cuenta_permisos cp
-        JOIN auth.permisos p ON p.id = cp.permiso_id
-        WHERE cp.id_cuenta = :id_cuenta
-          AND cp.id_unidad IS NULL
-          AND p.codigo = :codigo
-          AND p.habilitado IS TRUE
-    )
-"""
-
-_TIENE_PERMISO_EN_UNIDAD = """
-    SELECT EXISTS (
-        SELECT 1
-        FROM auth.cuenta_permisos cp
-        JOIN auth.permisos p ON p.id = cp.permiso_id
-        WHERE cp.id_cuenta = :id_cuenta
-          AND cp.id_unidad = :id_unidad
-          AND p.codigo = :codigo
-          AND p.habilitado IS TRUE
-    )
-"""
-
-_TIENE_ALGUN_PERMISO_EN_UNIDAD = """
-    SELECT EXISTS (
-        SELECT 1 FROM auth.cuenta_permisos cp
-        JOIN auth.permisos p ON p.id = cp.permiso_id
-        WHERE cp.id_cuenta = :id_cuenta
-          AND cp.id_unidad = :id_unidad
-          AND p.habilitado IS TRUE
+        SELECT 1 FROM auth.permisos p WHERE p.codigo = :codigo AND p.habilitado IS TRUE
     )
 """
 
@@ -97,33 +81,24 @@ class ContextoAutorizacion:
 def resolver_rol(sesion: Session, id_cuenta: int) -> ContextoAutorizacion:
     """Deriva el rol y las unidades autorizadas con datos vigentes.
 
-    Una cuenta `USUARIO`, una `PERSONAL` inactiva o sin ficha activa, o
-    cualquier condición que no pueda comprobarse resuelve `USUARIO` sin
-    unidades: es el rol sin privilegios, nunca una excepción no controlada.
+    Una cuenta `USUARIO`, una inactiva, una `PERSONAL` sin ficha activa o sin laboratorio en su cargo, o
+    cualquier condición que no pueda comprobarse resuelve `USUARIO` sin unidades: es el rol sin
+    privilegios, nunca una excepción no controlada.
     """
     try:
-        fila = sesion.execute(text(_CUENTA_PERSONAL_ACTIVA), {"id_cuenta": id_cuenta}).first()
-        if fila is None:
-            # Cuenta USUARIO, inactiva, o PERSONAL sin ficha activa vinculada.
+        cuenta = sesion.execute(text(_CUENTA), {"id_cuenta": id_cuenta}).first()
+        if cuenta is None or not cuenta.estado:
             return ContextoAutorizacion(rol="USUARIO", unidades_autorizadas=[])
 
-        es_admin = sesion.execute(text(_ES_ADMINISTRADOR_GLOBAL), {"id_cuenta": id_cuenta}).scalar()
-        if es_admin:
+        if cuenta.tipo_cuenta == "ADMINISTRADOR":
             return ContextoAutorizacion(rol="ADMINISTRADOR", unidades_autorizadas="GLOBAL")
 
-        id_cargo = fila.id_cargo
-        unidad_vigente = sesion.execute(
-            text(_UNIDAD_VIGENTE_DEL_CARGO), {"id_cargo": id_cargo}
-        ).scalar()
-        if unidad_vigente is None:
-            return ContextoAutorizacion(rol="USUARIO", unidades_autorizadas=[])
-
-        tiene_algun_permiso = sesion.execute(
-            text(_TIENE_ALGUN_PERMISO_EN_UNIDAD),
-            {"id_cuenta": id_cuenta, "id_unidad": unidad_vigente},
-        ).scalar()
-        if tiene_algun_permiso:
-            return ContextoAutorizacion(rol="TECNICO", unidades_autorizadas=[unidad_vigente])
+        if cuenta.tipo_cuenta == "PERSONAL" and cuenta.id_persona is not None:
+            laboratorio = sesion.execute(
+                text(_LABORATORIO_DEL_CARGO_DE_LA_PERSONA), {"id_persona": cuenta.id_persona}
+            ).scalar()
+            if laboratorio is not None:
+                return ContextoAutorizacion(rol="TECNICO", unidades_autorizadas=[laboratorio])
 
         return ContextoAutorizacion(rol="USUARIO", unidades_autorizadas=[])
     except Exception:
@@ -134,37 +109,30 @@ def resolver_rol(sesion: Session, id_cuenta: int) -> ContextoAutorizacion:
 
 
 def exigir_permiso(sesion: Session, id_cuenta: int, codigo: str, id_unidad: int | None = None) -> None:
-    """Evalúa `codigo` sobre `id_unidad` con información vigente (RN-AUTH-ROL-05).
+    """Evalúa `codigo` sobre `id_unidad` según el rol, con información vigente (RN-AUTH-ROL-05).
 
-    Deniega con `403 NO_AUTORIZADO` si el permiso no aplica, si el ámbito no
-    coincide o si no puede comprobarse. Nunca amplía el ámbito de un Técnico
-    a partir de asignaciones que no correspondan a su unidad vigente.
+    Deniega con `403 NO_AUTORIZADO` si el rol no admite el permiso, si el ámbito no coincide o si no puede
+    comprobarse. Un técnico nunca sale del laboratorio de su cargo vigente.
     """
     try:
         contexto = resolver_rol(sesion, id_cuenta)
 
-        if contexto.rol == "ADMINISTRADOR":
-            tiene = sesion.execute(
-                text(_TIENE_PERMISO_GLOBAL), {"id_cuenta": id_cuenta, "codigo": codigo}
-            ).scalar()
-            if tiene:
-                return
+        if contexto.rol == "USUARIO":
             raise NoAutorizado(f"La cuenta no tiene el permiso '{codigo}'.")
 
-        if contexto.rol == "TECNICO":
-            unidad_vigente = contexto.unidades_autorizadas[0]
-            if id_unidad is not None and id_unidad != unidad_vigente:
-                # Fuera de ámbito: ni se comprueba el permiso en la unidad ajena.
-                raise NoAutorizado("La operación está fuera de la unidad autorizada.")
-            tiene = sesion.execute(
-                text(_TIENE_PERMISO_EN_UNIDAD),
-                {"id_cuenta": id_cuenta, "id_unidad": unidad_vigente, "codigo": codigo},
-            ).scalar()
-            if tiene:
-                return
-            raise NoAutorizado(f"La cuenta no tiene el permiso '{codigo}' en su unidad.")
+        habilitado = sesion.execute(text(_PERMISO_HABILITADO), {"codigo": codigo}).scalar()
+        if not habilitado:
+            raise NoAutorizado(f"La cuenta no tiene el permiso '{codigo}'.")
 
-        raise NoAutorizado(f"La cuenta no tiene el permiso '{codigo}'.")
+        if contexto.rol == "ADMINISTRADOR":
+            return
+
+        # TECNICO
+        laboratorio_vigente = contexto.unidades_autorizadas[0]
+        if id_unidad is not None and id_unidad != laboratorio_vigente:
+            raise NoAutorizado("La operación está fuera de la unidad autorizada.")
+        if codigo not in PERMISOS_DEL_TECNICO:
+            raise NoAutorizado(f"La cuenta no tiene el permiso '{codigo}' en su unidad.")
     except NoAutorizado:
         raise
     except Exception:

@@ -11,7 +11,7 @@ export type Rol = "USUARIO" | "TECNICO" | "ADMINISTRADOR";
 /** Forma exacta de la respuesta de `GET /api/auth/sesiones/actual` (§3.4). */
 export interface ContextoSesion {
   id_cuenta: number;
-  tipo_cuenta: "USUARIO" | "PERSONAL";
+  tipo_cuenta: "USUARIO" | "PERSONAL" | "ADMINISTRADOR";
   rol: Rol;
   correo: string;
   actualizacion_inicial_pendiente: boolean | null;

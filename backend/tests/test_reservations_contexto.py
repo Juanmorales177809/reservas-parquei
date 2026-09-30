@@ -100,11 +100,9 @@ def test_listado_y_detalle_traen_nombres_ademas_de_ids(client, db, tag):
     """FE-28: las pantallas muestran nombres; el contrato los entrega junto a los identificadores."""
     from datetime import date, timedelta
 
-    from .conftest import otorgar_permiso_global
     from .test_reservations_api13 import _setup, _teardown
 
     tecnico, id_unidad = crear_tecnico(db, f"n{tag}")
-    otorgar_permiso_global(db, tecnico, "reservas.administrar")
     s = _setup(db, tag, id_unidad)
     rids: list[int] = []
     try:

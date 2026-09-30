@@ -100,31 +100,6 @@ class CargoRespuesta(BaseModel):
 # --- §3 Permisos ------------------------------------------------------------------
 
 
-class PermisoResumen(BaseModel):
-    codigo: str
-    nombre: str
-    descripcion: str | None
-    habilitado: bool
-    ambito: str
-
-
-class AsignacionRespuesta(BaseModel):
-    id_cuenta_permiso: int
-    id_cuenta: int
-    codigo: str
-    id_unidad: int | None
-    otorgado_por: int
-    created_at: datetime
-
-
-class PermisoOtorgar(BaseModel):
-    codigo: str
-    id_unidad: int | None = None
-
-
-# --- §4 Importaciones masivas ------------------------------------------------------
-
-
 class ImportacionResultadoFila(BaseModel):
     numero_fila: int
     codigo: str | None

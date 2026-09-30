@@ -1,4 +1,4 @@
-"""API-07 — Unidades, cargos y permisos (contrato administration §2 y §3).
+"""API-07 — Unidades y cargos (contrato administration §2). Los permisos ya no se asignan (decisión 2026-09-30).
 
 Reglas citadas por identificador completo (testing.md). T-ADM-07/08/09 son
 API-08 y T-ADM-10..13 son API-12.
@@ -15,7 +15,6 @@ from app.core.security import generar_token, hash_contrasena, hashear_token
 from app.db.models.auth import Permisos
 from app.db.models.identidad import Cargo, Personal, UnidadOrganizacional
 from app.modules.administration import service as servicio_admin
-from app.modules.administration.schemas import PermisoOtorgar
 from app.modules.auth import repository_cuentas as repo_cuentas
 from app.modules.auth import service_cuentas
 from sqlalchemy import select, text
@@ -25,7 +24,6 @@ from tests.conftest import (
     crear_usuario_cuenta,
     headers_autenticados,
     iniciar_sesion,
-    otorgar_permiso_global,
 )
 
 
@@ -57,10 +55,7 @@ def _personal_cuenta(db, tag: str, prefijo: str, cargo, contrasena: str = "una f
 
 
 def _admin_estructura(db, tag: str):
-    admin = crear_admin(db, tag)
-    otorgar_permiso_global(db, admin, "unidades.administrar")
-    otorgar_permiso_global(db, admin, "permisos.asignar")
-    return admin
+    return crear_admin(db, tag)
 
 
 def _contexto_de(cuenta) -> ContextoAutenticado:
@@ -78,111 +73,9 @@ def _contexto_de(cuenta) -> ContextoAutenticado:
     )
 
 
-def test_permiso_unidad_exige_cargo_coincidente(client, db, tag):
-    """T-ADM-01 · RN-PER-08, RN-PER-09 (administration): 422 y no se guarda."""
-    admin = _admin_estructura(db, tag)
-    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
-    auth = headers_autenticados(jar_admin)
-    unidad_a, cargo_a = _unidad_cargo(db, tag, "A")
-    unidad_b, _ = _unidad_cargo(db, tag, "B")
-    _, cuenta = _personal_cuenta(db, tag, "tec", cargo_a)
-
-    ajena = client.post(
-        f"/api/permisos/cuentas/{cuenta.id_cuenta}",
-        json={"codigo": "reservas.administrar", "id_unidad": unidad_b.id_unidad},
-        headers=auth,
-    )
-    assert ajena.status_code == 422
-
-    propia = client.post(
-        f"/api/permisos/cuentas/{cuenta.id_cuenta}",
-        json={"codigo": "reservas.administrar", "id_unidad": unidad_a.id_unidad},
-        headers=auth,
-    )
-    assert propia.status_code == 201, propia.text
-    assert propia.json()["id_unidad"] == unidad_a.id_unidad
 
 
-def test_usuario_no_recibe_permisos(client, db, tag):
-    """T-ADM-02 · RN-PER-08 (administration): 422 a cuenta USUARIO."""
-    admin = _admin_estructura(db, tag)
-    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
-    auth = headers_autenticados(jar_admin)
-    _, cuenta = crear_usuario_cuenta(db, tag)
 
-    respuesta = client.post(
-        f"/api/permisos/cuentas/{cuenta.id_cuenta}",
-        json={"codigo": "reservas.administrar", "id_unidad": None},
-        headers=auth,
-    )
-    assert respuesta.status_code == 422
-
-
-def test_permiso_no_se_extiende_a_otra_unidad(db, tag):
-    """T-ADM-03 · RN-PER-06 (administration), servicio: el ámbito no se amplía."""
-    admin = _admin_estructura(db, tag)
-    unidad_a, cargo_a = _unidad_cargo(db, tag, "A")
-    unidad_b, _ = _unidad_cargo(db, tag, "B")
-    _, cuenta = _personal_cuenta(db, tag, "tec", cargo_a)
-
-    servicio_admin.otorgar_permiso(
-        db, cuenta.id_cuenta,
-        PermisoOtorgar(codigo="reservas.administrar", id_unidad=unidad_a.id_unidad),
-        _contexto_de(admin),
-    )
-    exigir_permiso(db, cuenta.id_cuenta, "reservas.administrar", id_unidad=unidad_a.id_unidad)
-    with pytest.raises(NoAutorizado):
-        exigir_permiso(db, cuenta.id_cuenta, "reservas.administrar", id_unidad=unidad_b.id_unidad)
-
-
-def test_retirar_solo_afecta_lo_posterior(db, tag):
-    """T-ADM-04 · RN-PER-04, RN-PER-05 (administration), servicio."""
-    from sqlalchemy import text
-
-    admin = _admin_estructura(db, tag)
-    unidad_a, cargo_a = _unidad_cargo(db, tag, "A")
-    _, cuenta = _personal_cuenta(db, tag, "tec", cargo_a)
-
-    servicio_admin.otorgar_permiso(
-        db, cuenta.id_cuenta,
-        PermisoOtorgar(codigo="reservas.administrar", id_unidad=unidad_a.id_unidad),
-        _contexto_de(admin),
-    )
-    exigir_permiso(db, cuenta.id_cuenta, "reservas.administrar", id_unidad=unidad_a.id_unidad)
-
-    retiradas = servicio_admin.retirar_permiso(db, cuenta.id_cuenta, "reservas.administrar", _contexto_de(admin))
-    assert retiradas == 1
-    with pytest.raises(NoAutorizado):
-        exigir_permiso(db, cuenta.id_cuenta, "reservas.administrar", id_unidad=unidad_a.id_unidad)
-
-    # La historia queda: fila de auditoría con el antes, sin reescribir nada.
-    filas = db.execute(
-        text(
-            "SELECT accion, datos_anteriores FROM administration.auditoria "
-            "WHERE actor_cuenta_id = :actor AND accion = 'RETIRAR_PERMISO'"
-        ),
-        {"actor": admin.id_cuenta},
-    ).all()
-    assert len(filas) == 1
-    assert "reservas.administrar" in str(filas[0][1])
-
-
-def test_ultimo_global_no_se_retira(client, db, tag):
-    """T-ADM-05 · RN-AUTH-ROL-09 (auth): 409; con dos, 204."""
-    admin = _admin_estructura(db, tag)
-    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
-    auth = headers_autenticados(jar_admin)
-
-    ultimo = client.delete(f"/api/permisos/cuentas/{admin.id_cuenta}/cuentas.administrar", headers=auth)
-    assert ultimo.status_code == 409
-
-    unidad, cargo = _unidad_cargo(db, tag, "Z")
-    _, cuenta2 = _personal_cuenta(db, tag, "adm2", cargo)
-    otorgar_permiso_global(db, cuenta2, "cuentas.administrar")
-    # La unidad del segundo admin es irrelevante para un permiso global.
-    _ = (unidad, cargo)
-    segundo = client.delete(f"/api/permisos/cuentas/{admin.id_cuenta}/cuentas.administrar", headers=auth)
-    assert segundo.status_code == 204, segundo.text
 
 
 def test_deshabilitar_unidad_no_borra_nada(db, tag):
@@ -239,34 +132,6 @@ def test_jerarquia_sin_ciclos_ni_duplicados(client, db, tag):
     assert ciclo.status_code == 409
 
 
-def test_catalogo_cerrado_y_codigo_deshabilitado(client, db, tag):
-    """Contrato §3.1: 14 códigos sin paginación; deshabilitado no se asigna."""
-    admin = _admin_estructura(db, tag)
-    _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
-    auth = headers_autenticados(jar_admin)
-
-    catalogo = client.get("/api/permisos", headers=auth)
-    assert catalogo.status_code == 200
-    assert set(catalogo.json()) == {"datos"}
-    assert len(catalogo.json()["datos"]) == 14
-    assert all("ambito" in p for p in catalogo.json()["datos"])
-
-    unidad, cargo = _unidad_cargo(db, tag, "A")
-    _, cuenta = _personal_cuenta(db, tag, "tec", cargo)
-    permiso = db.scalar(select(Permisos).where(Permisos.codigo == "reservas.administrar"))
-    permiso.habilitado = False
-    db.commit()
-    try:
-        respuesta = client.post(
-            f"/api/permisos/cuentas/{cuenta.id_cuenta}",
-            json={"codigo": "reservas.administrar", "id_unidad": unidad.id_unidad},
-            headers=auth,
-        )
-        assert respuesta.status_code == 422
-    finally:
-        permiso.habilitado = True
-        db.commit()
-
 
 def test_cargo_exige_unidad_activa(client, db, tag):
     """RN-UNI-05: ni crear ni mover cargos a unidades deshabilitadas."""
@@ -309,10 +174,6 @@ def test_operaciones_dejan_registro_consultable(client, db, tag):
     _, cuenta_tec = _personal_cuenta(db, tag, "tec", cargo)
     _, cuenta_usr = crear_usuario_cuenta(db, tag)
 
-    servicio_admin.otorgar_permiso(
-        db, cuenta_tec.id_cuenta,
-        PermisoOtorgar(codigo="reservas.administrar", id_unidad=unidad.id_unidad), actor,
-    )
     servicio_admin.cambiar_estado_unidad(db, unidad.id_unidad, False, actor)
     service_cuentas.cambiar_estado(db, cuenta_usr.id_cuenta, False, actor)
 
@@ -326,7 +187,6 @@ def test_operaciones_dejan_registro_consultable(client, db, tag):
         {"actor": admin.id_cuenta},
     ).all()
     acciones = {(f[0], f[1]) for f in filas}
-    assert ("ASIGNAR_PERMISO", "auth.cuenta_permisos") in acciones
     assert ("CAMBIAR_ESTADO_UNIDAD", "unidadOrganizacional.unidad_organizacional") in acciones
     assert ("CAMBIO_ESTADO_CUENTA", "auth.cuentas") in acciones
     for _, _, entidad_id, momento, correo in filas:
@@ -336,7 +196,7 @@ def test_operaciones_dejan_registro_consultable(client, db, tag):
     _, jar_admin, _ = iniciar_sesion(client, admin.correo, "una frase larga de paso admin")
     auth = headers_autenticados(jar_admin)
     consulta = client.get(
-        f"/api/auditoria?actor_cuenta_id={admin.id_cuenta}&accion=ASIGNAR_PERMISO",
+        f"/api/auditoria?actor_cuenta_id={admin.id_cuenta}&accion=CAMBIAR_ESTADO_UNIDAD",
         headers=auth,
     )
     assert consulta.status_code == 200, consulta.text
@@ -344,7 +204,7 @@ def test_operaciones_dejan_registro_consultable(client, db, tag):
     assert cuerpo["paginacion"]["total"] >= 1
     primera = cuerpo["datos"][0]
     assert primera["actor_cuenta_id"] == admin.id_cuenta
-    assert primera["accion"] == "ASIGNAR_PERMISO"
+    assert primera["accion"] == "CAMBIAR_ESTADO_UNIDAD"
     assert set(primera) == {
         "id", "actor_cuenta_id", "entidad", "entidad_id", "accion",
         "datos_anteriores", "datos_nuevos", "motivo", "created_at",

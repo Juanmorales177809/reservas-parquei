@@ -177,17 +177,17 @@ def reemplazar_preferencias(db: Session, id_cuenta: int, general: bool, por_even
 
 
 def tecnicos_de_unidad(db: Session, id_unidad: int) -> list[int]:
-    """Cuentas PERSONAL activas con `reservas.administrar` en la unidad:
-    contraparte técnica de una contrapropuesta de Usuario (RN-EVT-08)."""
-    from app.db.models.auth import CuentaPermisos, Cuentas, Permisos
+    """Cuentas PERSONAL activas cuyo cargo es del laboratorio: el técnico que lo gestiona, contraparte
+    de una contrapropuesta de Usuario (RN-EVT-08). Los permisos los define el rol, no una asignación."""
+    from app.db.models.auth import Cuentas
+    from app.db.models.identidad import Cargo, Personal
 
     return list(db.scalars(
         select(Cuentas.id_cuenta)
-        .join(CuentaPermisos, CuentaPermisos.id_cuenta == Cuentas.id_cuenta)
-        .join(Permisos, Permisos.id == CuentaPermisos.permiso_id)
+        .join(Personal, Personal.id_persona == Cuentas.id_persona)
+        .join(Cargo, Cargo.id_cargo == Personal.id_cargo)
         .where(
             Cuentas.tipo_cuenta == "PERSONAL", Cuentas.estado.is_(True),
-            Permisos.codigo == "reservas.administrar",
-            CuentaPermisos.id_unidad == id_unidad,
+            Personal.estado.is_(True), Cargo.id_unidad == id_unidad,
         )
     ).all())

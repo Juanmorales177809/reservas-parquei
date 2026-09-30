@@ -78,13 +78,15 @@ def nombre_de_cuenta(db: Session, id_cuenta: int | None) -> str | None:
         return None
     from app.db.models.identidad import Usuarios
 
-    fila = db.execute(select(Cuentas.id_usuario, Cuentas.id_persona).where(Cuentas.id_cuenta == id_cuenta)).first()
+    fila = db.execute(select(Cuentas.id_usuario, Cuentas.id_persona, Cuentas.tipo_cuenta).where(Cuentas.id_cuenta == id_cuenta)).first()
     if fila is None:
         return None
     if fila[0] is not None:
         return db.scalar(select(Usuarios.nombre).where(Usuarios.id_usuario == fila[0]))
     if fila[1] is not None:
         return db.scalar(select(Personal.nombre).where(Personal.id_persona == fila[1]))
+    if fila[2] == "ADMINISTRADOR":
+        return "Administrador"  # cuenta propia de Reservas: no tiene ficha con nombre
     return None
 
 

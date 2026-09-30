@@ -256,12 +256,6 @@ def cambiar_estado_ficha(db: Session, id_persona: int, estado: bool) -> dict:
     persona = repo.obtener_personal(db, id_persona)
     if persona is None:
         raise NoEncontrado()
-    if persona.estado and not estado:
-        cuenta = repo.cuenta_de_persona(db, id_persona)
-        if cuenta is not None and repo.es_administrador_activo(db, cuenta.id_cuenta):
-            if repo.otros_administradores_activos(db, cuenta.id_cuenta) == 0:
-                # RN-AUTH-ROL-09 de auth: el sistema no se queda sin administradores.
-                raise Conflicto("La operación dejaría al sistema sin ninguna cuenta con permisos de administrador.")
     # RN-PRS-04 (usuarios): la ficha se desactiva, su historial permanece.
     persona.estado = estado
     db.commit()

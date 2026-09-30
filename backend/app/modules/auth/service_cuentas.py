@@ -318,6 +318,9 @@ def cambiar_identidad(
     cuenta = repo_cuentas.obtener_cuenta(db, id_cuenta)
     if cuenta is None:
         raise NoEncontrado()
+    if cuenta.tipo_cuenta == "ADMINISTRADOR":
+        # Cuenta propia de Reservas (decisión 2026-09-30): no tiene identidad que cambiar.
+        raise Validacion("Una cuenta de administrador no tiene identidad asociada y no puede cambiarla.")
 
     if tipo_cuenta == "PERSONAL":
         if id_persona is None or id_usuario is not None:
