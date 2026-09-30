@@ -18,18 +18,6 @@ export interface Cargo {
   id_unidad: number;
 }
 
-export interface PermisoCatalogo {
-  codigo: string;
-  descripcion: string;
-  ambito: string;
-}
-
-export interface Asignacion {
-  id_cuenta: number;
-  codigo: string;
-  id_unidad: number | null;
-}
-
 export interface FilaImportacion {
   numero_fila: number;
   codigo: string | null;

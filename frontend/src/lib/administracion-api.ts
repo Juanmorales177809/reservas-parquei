@@ -1,11 +1,9 @@
 import { apiRequest } from "./http";
 import type {
-  Asignacion,
   AuditoriaFila,
   Cargo,
   FichaPersonal,
   IdentidadConCuenta,
-  PermisoCatalogo,
   UsuarioIdentidad,
   Unidad,
   ValidacionImportacion,
@@ -54,31 +52,6 @@ export function listarCargos(id_unidad?: number) {
 /** §2.6 */
 export function editarCargo(id: number, datos: { nombre_cargo?: string; id_unidad?: number }) {
   return apiRequest<Cargo>(`/api/cargos/${id}`, { method: "PATCH", body: datos });
-}
-
-/** §3.1 */
-export function catalogoPermisos() {
-  return apiRequest<{ datos: PermisoCatalogo[] }>("/api/permisos");
-}
-
-/** §3.2 */
-export function asignacionesDe(idCuenta: number) {
-  return apiRequest<Asignacion[]>(`/api/permisos/cuentas/${idCuenta}`);
-}
-
-/** §3.3 */
-export function otorgarPermiso(idCuenta: number, codigo: string, id_unidad: number | null) {
-  return apiRequest<Asignacion>(`/api/permisos/cuentas/${idCuenta}`, {
-    method: "POST",
-    body: { codigo, id_unidad },
-  });
-}
-
-/** §3.4 */
-export function retirarPermiso(idCuenta: number, codigo: string) {
-  return apiRequest<void>(`/api/permisos/cuentas/${idCuenta}/${encodeURIComponent(codigo)}`, {
-    method: "DELETE",
-  });
 }
 
 /** §4.1 */

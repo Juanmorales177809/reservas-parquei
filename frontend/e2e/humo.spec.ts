@@ -10,7 +10,7 @@ const PUBLICAS_AUTENTICADO = [
 ];
 const SOLO_ADMIN = [
   "/administracion/auditoria", "/administracion/cuentas/invitar", "/administracion/identidades",
-  "/administracion/importaciones", "/administracion/permisos", "/administracion/unidades",
+  "/administracion/importaciones", "/administracion/unidades",
 ];
 
 async function visitar(page: import("@playwright/test").Page, ruta: string, problemas: string[]) {
