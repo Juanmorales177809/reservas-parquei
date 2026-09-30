@@ -463,6 +463,29 @@ Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `scr
 - **Resultado:** `EditarReservaPanel` cubre `RN-PRO-06`: además del periodo, los datos de salida, la descripción y la observación, el reservista cambia el **contexto**, los **recursos** (principal y adicionales, o solo complementarios en espacio), los **acompañantes**, los **campos adicionales** del espacio (con otro espacio se piden de nuevo) y el **apoyo técnico**, con los mismos selectores de `FE-25` y los valores actuales precargados. Cada bloque viaja completo y solo si cambió; el contexto nunca queda vacío; un equipo que exige apoyo lo vuelve obligatorio; en lista de espera se avisa antes de guardar que cambiar la descripción invalida la viabilidad. **Fechas del listado:** `desde` y `hasta` ahora acotan por la **fecha de uso** —la del espacio o interno, o de la salida a la devolución en campus y externo (`RN-DIS-02`)— y no por la de creación; la lista de espera queda fuera al filtrar; un rango invertido o una fecha mal escrita responden `422`. El contrato (§3.1) lo dice y el listado ofrece «Desde» y «Hasta». **Error de backend corregido:** editar una lista de espera respondía siempre `422`, porque el servicio fusiona los valores actuales (listas vacías) y la estrategia las rechazaba; ahora solo se rechaza lo que el cliente envía y no aplica al tipo (`recursos`, `acompanantes`, `campos_adicionales`, `requiere_apoyo`). Verificado: 3 pruebas de backend nuevas (lista de espera, espacio por bloques, fechas de uso), 5 del panel y `e2e/reservas.spec.ts` contra el backend real.
 - **No cubre:** el orden `fecha` del listado (`orden=fecha`) sigue ordenando por creación; el contrato lo admite y el servidor lo aproxima.
 
+### FE-32 — Rediseño visual y formularios interactivos · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que la interfaz deje de verse plana y que los formularios sean más amables de completar, sin cambiar reglas, contratos ni nombres accesibles. Se abre por pedido directo del equipo tras usar la aplicación en un navegador.
+- **Afectados:** `specs/ui/design-tokens.md`; `frontend/src/styles/tokens.css`, `frontend/tailwind.config.ts`, `frontend/app/{layout,globals}`; `frontend/src/components/ui/**`, `shell/**`, `auth/AuthCard.tsx`, `app/(auth)/layout.tsx`; el formulario de `frontend/app/(app)/reservas/nueva/page.tsx` y los selectores de casilla que usa.
+- **Dependencias:** FE-02, FE-07, FE-24.
+- **Aceptación:** los tokens nuevos (bosque, radio y sombra de tarjeta, tipografías) están en `design-tokens.md` antes que en el código; ninguna prueba cambia su consulta por nombre accesible (Vitest 112/112 y E2E 73/73 siguen en verde); los campos responden al puntero, al foco y al error; el formulario de nueva reserva se divide en pasos que aparecen según lo elegido; las casillas son fichas seleccionables; el menú marca la sección activa; el contraste de texto sigue siendo AA.
+- **Resultado:** tipografías nuevas (Bricolage Grotesque para títulos, menú y botones; Figtree para el cuerpo) y tokens de bosque, radio y sombra de tarjeta, documentados en `design-tokens.md`. Barra lateral en bosque con iconos, marca lima en la sección activa y avatar en la cabecera; portada de marca en las pantallas públicas. `Field` y `Select` responden al puntero (borde verde), al foco (etiqueta y anillo) y al error (icono y fondo tenue), con flecha propia en el selector. Nuevos `Seccion`, `BarraAcciones`, `CasillaTarjeta` e `Insignia`: el formulario de nueva reserva se divide en pasos que aparecen al elegir el tipo, con barra de acciones fija, fichas seleccionables para recursos, acompañantes y apoyo técnico, y estados de reserva como insignias en el listado. Botones y etiquetas en minúsculas de frase. Se respeta `prefers-reduced-motion`. Los nombres accesibles no cambiaron: Vitest 112/112, `tsc` y lint limpios, `validar.py` en 0 fallas y E2E 73/73 contra el backend real. **No cubre:** el resto de formularios (recursos, espacios, personas, perfil) ganan el aspecto de `Field` y `Select` pero aún no se dividen en pasos con tarjetas.
+
+---
+
+### FE-33 — Acciones de cada reserva en el listado · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que quien gestiona reservas no tenga que abrir cada una para actuar: el listado muestra, en cada reserva, los botones de las acciones que ese actor puede hacer, y cada botón las resuelve en un modal.
+- **Afectados:** `frontend/src/components/reservas/{ListadoReservas,GestionReservaClient}.tsx`, `frontend/src/components/ui/Modal.tsx`, `frontend/src/lib/reservas-acciones.ts`, `frontend/app/(app)/reservas/page.tsx`.
+- **Dependencias:** FE-28, FE-31, FE-32. No toca el contrato: usa las mismas operaciones de `reservations` que el detalle.
+- **Aceptación:** cada reserva ofrece solo lo que el rol y el estado permiten (el servidor sigue autorizando); un botón abre un modal con esa parte de la gestión, no con toda la página; al completarse una acción el listado se actualiza sin vaciarse; el modal se cierra con Escape o con el fondo, devuelve el foco al botón y enlaza a la página completa; los flujos y los errores del servidor se ven igual que en el detalle.
+- **Resultado:** `GestionReservaContenido` extrae el contenido de gestión y lo reutilizan la página de detalle (`vista="todo"`) y el modal (una vista por acción: revisión, propuestas, ejecución, finalización, cancelación, edición, recursos y lista de espera). `accionesDe` decide qué botones corresponden con el mismo criterio del detalle: el técnico de la unidad ve Aprobar, Rechazar, Proponer otro periodo, Registrar entrega o Iniciar, Finalizar y Recursos según tipo y estado; quien solicitó ve Editar y Cancelar; los demás solo «Ver detalle». El listado pasó de tabla a tarjetas con ficha de calendario, insignia de estado, atajos de estado y una fila de acciones. Verificado: Vitest 117/117 (5 pruebas nuevas del modal y de los permisos), `tsc` y lint limpios, y `e2e/listado-acciones.spec.ts` contra el backend real (rechazar desde el modal y ver el listado actualizado).
+- **No cubre:** que el listado sepa si hay una propuesta de periodo pendiente para el reservista (el resumen del listado no lo trae: responde desde «Ver detalle»).
+
+---
+
 ### FE-30 — Pruebas de extremo a extremo con Playwright · **cerrada**
 
 - **Tipo:** Implementación
@@ -483,7 +506,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30   (brechas frente a las reglas)
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
