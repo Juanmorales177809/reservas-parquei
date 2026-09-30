@@ -29,6 +29,28 @@ export function fechaCorta(iso: string | null | undefined): string {
 
 const hora = (t: string | null | undefined) => (t ? t.slice(0, 5) : "");
 
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/** El periodo partido para una ficha de calendario: día, mes y año grandes, y el resto como detalle. */
+export function partesPeriodo(
+  periodo: ReservaResumen["periodo"]
+): { dia: number; mes: string; anio: number; detalle: string } | null {
+  if (!periodo) return null;
+  const partir = (iso: string) => {
+    const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return a && m && d ? { dia: d, mes: MESES[m - 1], anio: a } : null;
+  };
+  if ("fecha" in periodo && periodo.fecha) {
+    const f = partir(periodo.fecha);
+    return f && { ...f, detalle: `${hora(periodo.hora_inicio)}–${hora(periodo.hora_fin)}` };
+  }
+  if ("fecha_salida" in periodo && periodo.fecha_salida) {
+    const f = partir(periodo.fecha_salida);
+    return f && { ...f, detalle: `Devuelve ${fechaCorta(periodo.fecha_devolucion_estimada)}` };
+  }
+  return null;
+}
+
 /** Cuándo es una reserva, según la forma de su periodo (contrato reservations §3.1). */
 export function periodoLegible(periodo: ReservaResumen["periodo"]): string {
   if (!periodo) return "Sin fecha";

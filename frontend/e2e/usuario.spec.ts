@@ -43,5 +43,5 @@ test("un usuario elige el laboratorio por nombre, reserva un espacio y edita su 
 
   // Aparece en su propio listado, con nombres.
   await page.goto("/reservas");
-  await expect(page.getByRole("table").locator("tbody tr").first()).toContainText("Sala de Redes");
+  await expect(page.getByRole("list", { name: "Reservas" }).getByRole("listitem").first()).toContainText("Sala de Redes");
 });

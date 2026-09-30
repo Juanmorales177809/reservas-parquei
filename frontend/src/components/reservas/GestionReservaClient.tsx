@@ -28,6 +28,7 @@ import {
   retirarRecurso,
   urlCalendario,
 } from "@/src/lib/reservas-api";
+import type { VistaGestion } from "@/src/lib/reservas-acciones";
 import { NOMBRE_ESTADO_RESERVA, NOMBRE_ROL_RECURSO, NOMBRE_TIPO_RESERVA } from "@/src/lib/reservas-nombres";
 import type { ReservaDetalleRespuesta } from "@/src/lib/reservas-types";
 
@@ -38,8 +39,29 @@ import type { ReservaDetalleRespuesta } from "@/src/lib/reservas-types";
  */
 export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
   const params = useParams();
+  return <GestionReservaContenido id={Number(params.id)} sesion={sesion} />;
+}
+
+/**
+ * El mismo contenido de gestión, reutilizable: en la página de detalle muestra todo (`vista="todo"`); en el
+ * modal del listado (FE-33) muestra solo la parte de la acción elegida. `onCambio` avisa al listado para que
+ * se actualice cuando una acción se completó.
+ */
+export function GestionReservaContenido({
+  id,
+  sesion,
+  vista = "todo",
+  enModal = false,
+  onCambio,
+}: {
+  id: number;
+  sesion: ContextoSesion;
+  vista?: VistaGestion;
+  enModal?: boolean;
+  onCambio?: () => void;
+}) {
   const router = useRouter();
-  const id = Number(params.id);
+  const ver = (v: VistaGestion) => vista === "todo" || vista === v;
   const [detalle, setDetalle] = useState<ReservaDetalleRespuesta | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [motivoPropuesta, setMotivoPropuesta] = useState("");
@@ -88,6 +110,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
     try {
       await accion();
       await recargar();
+      onCambio?.();
       informar(exito, "exito");
     } catch (error) {
       informar(mensajeError(error), "error");
@@ -99,7 +122,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
   if (!detalle) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-text">Reserva</h1>
+        <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Reserva</h1>
         <RegionMensaje texto={mensaje ?? "Cargando…"} tono={mensaje ? tono : "muted"} />
       </div>
     );
@@ -123,30 +146,32 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Reserva #{detalle.id}</h1>
-        <p className="text-sm text-muted">
-          {NOMBRE_TIPO_RESERVA[tipo] ?? tipo} · {NOMBRE_ESTADO_RESERVA[estado] ?? estado}
-        </p>
-      </div>
+      {!enModal && (
+        <div>
+          <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Reserva #{detalle.id}</h1>
+          <p className="text-sm text-muted">
+            {NOMBRE_TIPO_RESERVA[tipo] ?? tipo} · {NOMBRE_ESTADO_RESERVA[estado] ?? estado}
+          </p>
+        </div>
+      )}
 
       <ResumenReserva detalle={detalle} />
 
-      {esPropietario && estado === "SOLICITADA" && (
+      {esPropietario && estado === "SOLICITADA" && ver("editar") && (
         <EditarReservaPanel detalle={detalle} ocupada={ocupada} actuar={actuar} />
       )}
 
       {/* RN-CAL-01: el calendario solo existe para espacio e interno aprobados. */}
-      {esEspacioInterno && estado === "APROBADA" && (
+      {vista === "todo" && esEspacioInterno && estado === "APROBADA" && (
         <a href={urlCalendario(id)} className="text-sm font-bold text-primary-2">
           Agregar al calendario (.ics)
         </a>
       )}
 
-      {(tipo === "RECURSO_CAMPUS" || tipo === "RECURSO_EXTERNO") &&
+      {vista === "todo" && (tipo === "RECURSO_CAMPUS" || tipo === "RECURSO_EXTERNO") &&
         ["APROBADA", "EN_EJECUCION", "FINALIZADA"].includes(estado) && <OrdenSalidaPanel idReserva={id} />}
 
-      {puedeGestionar && estado === "SOLICITADA" && (
+      {puedeGestionar && estado === "SOLICITADA" && ver("revision") && (
         <section aria-label="Revisión" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Revisión</h2>
           {!esLista && (
@@ -162,7 +187,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
               e.preventDefault();
               void actuar(() => rechazarReserva(id, motivoRechazo), "Reserva rechazada.");
             }}
-            className="flex items-end gap-2"
+            className="grid grid-cols-[1fr_auto] items-end gap-3"
           >
             <Field id="rechazo-motivo" label="Motivo del rechazo" value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)} required />
@@ -171,13 +196,13 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {esLista && (
+      {esLista && ver("lista") && (
         <ListaEsperaPanel detalle={detalle} esPropietario={esPropietario} puedeGestionar={puedeGestionar}
           ocupada={ocupada} actuar={actuar} />
       )}
-      {esLista && <AdjuntosListaEspera idReserva={id} puedeSubir={esPropietario && estado === "SOLICITADA"} />}
+      {esLista && ver("lista") && <AdjuntosListaEspera idReserva={id} puedeSubir={esPropietario && estado === "SOLICITADA"} />}
 
-      {(estado === "SOLICITADA" || estado === "APROBADA") && puedeProponer &&
+      {ver("propuestas") && (estado === "SOLICITADA" || estado === "APROBADA") && puedeProponer &&
         (propuesta !== null || puedeGestionar || esPropietario) && (
         <section aria-label="Propuestas" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Propuestas de periodo</h2>
@@ -244,7 +269,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {puedeGestionar && estado === "APROBADA" && !esEspacioInterno && !esLista && (
+      {ver("ejecucion") && puedeGestionar && estado === "APROBADA" && !esEspacioInterno && !esLista && (
         <section aria-label="Ejecución" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Ejecución</h2>
           <div>
@@ -259,7 +284,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {puedeGestionar && esLista && estado === "APROBADA" && (
+      {ver("ejecucion") && puedeGestionar && esLista && estado === "APROBADA" && (
         <section aria-label="Ejecución" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Ejecución</h2>
           <div>
@@ -271,7 +296,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {puedeGestionar && estado === "EN_EJECUCION" && !esEspacioInterno && (
+      {ver("finalizacion") && puedeGestionar && estado === "EN_EJECUCION" && !esEspacioInterno && (
         <section aria-label="Finalización" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Finalización</h2>
           {esLista ? (
@@ -280,7 +305,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
                 e.preventDefault();
                 void actuar(() => finalizarReserva(id, { horas_ejecucion: Number(horasEjec) }), "Reserva finalizada.");
               }}
-              className="flex items-end gap-2"
+              className="grid grid-cols-[1fr_auto] items-end gap-3"
             >
               <Field id="fin-horas" label="Horas de ejecución" type="number" value={horasEjec}
                 onChange={(e) => setHorasEjec(e.target.value)} required />
@@ -300,7 +325,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {puedeCancelar && (
+      {ver("cancelacion") && puedeCancelar && (
         <section aria-label="Cancelación" className="flex flex-col gap-2">
           <Field id="cancel-motivo" label="Motivo de la cancelación (opcional)" value={motivoCancelacion}
             onChange={(e) => setMotivoCancelacion(e.target.value)} />
@@ -315,7 +340,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {detalle.recursos.length > 0 && (
+      {ver("recursos") && detalle.recursos.length > 0 && (
         <section aria-label="Recursos" className="flex flex-col gap-2">
           <h2 className="text-base font-bold text-text">Recursos</h2>
           <ul className="flex flex-col gap-1 text-sm text-text">
@@ -339,7 +364,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
-      {puedeGestionar && esEspacioInterno && ["SOLICITADA", "APROBADA", "EN_EJECUCION"].includes(estado) && (
+      {ver("recursos") && puedeGestionar && esEspacioInterno && ["SOLICITADA", "APROBADA", "EN_EJECUCION"].includes(estado) && (
         <section aria-label="Agregar recursos" className="flex flex-col gap-2">
           <SelectorRecursosVarios
             label="Agregar recursos a la reserva"
@@ -360,6 +385,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
         </section>
       )}
 
+      {vista === "todo" && (
       <section aria-label="Historial" className="flex flex-col gap-1">
         <h2 className="text-base font-bold text-text">Historial</h2>
         <ul className="text-sm text-muted">
@@ -372,6 +398,7 @@ export function GestionReservaClient({ sesion }: { sesion: ContextoSesion }) {
           ))}
         </ul>
       </section>
+      )}
 
       <RegionMensaje texto={mensaje} tono={mensaje ? tono : "muted"} />
     </div>

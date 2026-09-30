@@ -5,21 +5,20 @@ test.use({ storageState: "e2e/.auth/admin.json" });
 
 test("el listado muestra cuándo, qué, dónde y quién, y filtra por estado y tipo", async ({ page }) => {
   await page.goto("/reservas");
-  const tabla = page.getByRole("table");
-  await expect(tabla).toBeVisible();
-  await expect(tabla.getByRole("columnheader", { name: "Solicitante" })).toBeVisible();
-  const filas = tabla.locator("tbody tr");
+  const lista = page.getByRole("list", { name: "Reservas" });
+  await expect(lista).toBeVisible();
+  const filas = lista.getByRole("listitem");
   expect(await filas.count()).toBeGreaterThan(0);
   await expect(filas.first()).toContainText("Laboratorio de Redes");
-  await expect(filas.first()).toContainText("Admin E2E");
+  await expect(filas.first()).toContainText(/Admin E2E|Usuario E2E/);
   await expect(filas.first()).not.toContainText(/#\d+/);
 
   // Filtro por tipo: todas las filas visibles son de ese tipo.
   await page.getByLabel("Tipo").selectOption({ label: "Lista de espera" });
   await expect(async () => {
-    const tipos = await tabla.locator("tbody tr td:nth-child(3)").allTextContents();
-    expect(tipos.length).toBeGreaterThan(0);
-    expect(new Set(tipos)).toEqual(new Set(["Lista de espera"]));
+    const textos = await filas.allTextContents();
+    expect(textos.length).toBeGreaterThan(0);
+    for (const t of textos) expect(t).toContain("Lista de espera");
   }).toPass();
 });
 
@@ -29,7 +28,7 @@ test("el detalle muestra unidad, solicitante, espacio y recursos por su nombre",
   await page.getByRole("link", { name: "Ver reserva" }).first().click();
   await expect(page).toHaveURL(/\/reservas\/\d+$/);
   await expect(page.getByText("Laboratorio de Redes").first()).toBeVisible();
-  await expect(page.getByText("Admin E2E").first()).toBeVisible();
+  await expect(page.getByText(/Admin E2E|Usuario E2E/).first()).toBeVisible(); // quien haya creado la primera
   await expect(page.getByText("Sala de Redes")).toBeVisible();
   await expect(page.getByText(/Recurso \d+/)).toHaveCount(0);
 });
