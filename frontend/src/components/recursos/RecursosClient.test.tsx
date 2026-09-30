@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/src/lib/http";
@@ -37,7 +37,8 @@ describe("RecursosClient", () => {
     crearMock.mockResolvedValue({ id: 41, tipo: "MOBILIARIO", id_unidad: 7, habilitado: true });
 
     render(<RecursosClient puedeGestionar={true} />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
+    await usuario.click(screen.getByRole("button", { name: "Registrar recurso" }));
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
     await usuario.type(screen.getByLabelText("Nombre"), "Mesa de trabajo");
     await usuario.click(screen.getByRole("button", { name: "Guardar recurso" }));
     await waitFor(() => {
@@ -48,14 +49,43 @@ describe("RecursosClient", () => {
       });
     });
     expect(await screen.findByText("Recurso creado.")).toBeInTheDocument();
+    // El modal se cierra al guardar y el catálogo se vuelve a pedir.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(listarMock).toHaveBeenCalledTimes(2);
   });
 
-  it("sin permiso de gestión no muestra el formulario", async () => {
+  it("el registro vive en un modal: no está en la página hasta pedirlo, y se puede cancelar", async () => {
+    const usuario = userEvent.setup();
+    render(<RecursosClient puedeGestionar={true} />);
+    await waitFor(() => expect(listarMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Registrar recurso" }));
+    expect(screen.getByRole("dialog", { name: "Registrar recurso" })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("muestra cada recurso con el nombre de su unidad, su tipo y si está deshabilitado", async () => {
+    listarMock.mockResolvedValue({
+      datos: [
+        { id: 1, tipo: "EQUIPO", nombre: "Osciloscopio", id_unidad: 7, habilitado: true },
+        { id: 2, tipo: "MOBILIARIO", nombre: "Silla", id_unidad: 7, habilitado: false },
+      ],
+    });
+    render(<RecursosClient puedeGestionar={false} />);
+    const lista = within(await screen.findByRole("list", { name: "Recursos" }));
+    await waitFor(() => expect(lista.getAllByText("Laboratorio de Redes")).toHaveLength(2));
+    expect(lista.getByText("Deshabilitado")).toBeInTheDocument();
+    expect(lista.getByRole("link", { name: /Osciloscopio/ })).toHaveAttribute("href", "/recursos/1");
+    expect(screen.getByText("2 recursos")).toBeInTheDocument();
+  });
+
+  it("sin permiso de gestión no ofrece registrar", async () => {
     render(<RecursosClient puedeGestionar={false} />);
     await waitFor(() => {
       expect(listarMock).toHaveBeenCalledTimes(1);
     });
-    expect(screen.queryByRole("button", { name: "Guardar recurso" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Registrar recurso" })).not.toBeInTheDocument();
   });
 
   it("403 al crear muestra denegación sin detalles internos", async () => {
@@ -65,45 +95,32 @@ describe("RecursosClient", () => {
     );
 
     render(<RecursosClient puedeGestionar={true} />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
-    await usuario.selectOptions(screen.getByLabelText("Tipo"), "EQUIPO");
-    await usuario.type(screen.getByLabelText("Nombre del equipo"), "Analizador");
+    await usuario.click(screen.getByRole("button", { name: "Registrar recurso" }));
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
+    await usuario.type(screen.getByLabelText("Nombre"), "Mesa");
     await usuario.click(screen.getByRole("button", { name: "Guardar recurso" }));
     expect(
       await screen.findByText("No tienes permiso para crear este recurso.")
     ).toBeInTheDocument();
   });
 
-  it("un equipo se registra con sus datos, apoyo y operatividad (RN-EQP-08, RN-REC-10)", async () => {
+  // Decisión 2026-09-30: los equipos vienen de LIA y no se registran desde reservas.
+  it("no ofrece registrar un equipo: solo mobiliario y otros recursos", async () => {
     const usuario = userEvent.setup();
-    crearMock.mockResolvedValue({ id: 50, tipo: "EQUIPO", id_unidad: 7, habilitado: true });
     render(<RecursosClient puedeGestionar={true} />);
-    await elegir(usuario, "Unidad", "Laboratorio de Redes");
-    await usuario.selectOptions(screen.getByLabelText("Tipo"), "EQUIPO");
-    await usuario.type(screen.getByLabelText("Nombre del equipo"), "Osciloscopio");
-    await usuario.type(screen.getByLabelText("Placa"), "PL-9");
-    await usuario.type(screen.getByLabelText("Marca"), "Tek");
-    await usuario.click(screen.getByRole("checkbox", { name: /Exige acompañamiento técnico/ }));
-    await usuario.click(screen.getByRole("button", { name: "Guardar recurso" }));
-    await waitFor(() => {
-      expect(crearMock).toHaveBeenCalledWith({
-        id_unidad: 7,
-        tipo: "EQUIPO",
-        especializacion: {
-          nombre_equipo: "Osciloscopio", placa: "PL-9", marca: "Tek",
-          requiere_apoyo: true, acreditado: false, estado: true, requiere_calibracion: false,
-        },
-      });
-    });
+    await usuario.click(screen.getByRole("button", { name: "Registrar recurso" }));
+    const tipo = screen.getByLabelText("Tipo");
+    expect(within(tipo).getAllByRole("option").map((o) => o.textContent)).toEqual(["Mobiliario", "Otro"]);
+    expect(screen.getByText(/Los equipos llegan de LIA/)).toBeInTheDocument();
   });
 
   it("filtra el catálogo por unidad y por tipo", async () => {
     const usuario = userEvent.setup();
     render(<RecursosClient puedeGestionar={false} />);
     await waitFor(() => expect(listarMock).toHaveBeenCalledTimes(1));
-    await elegir(usuario, "Ver recursos de la unidad", "Laboratorio de Redes");
+    await elegir(usuario, "Ver recursos del laboratorio", "Laboratorio de Redes");
     await waitFor(() => expect(listarMock).toHaveBeenLastCalledWith({ id_unidad: 7 }));
-    await usuario.selectOptions(screen.getByLabelText("Ver recursos de tipo"), "Equipo");
+    await usuario.click(screen.getByRole("button", { name: "Equipos" }));
     await waitFor(() => expect(listarMock).toHaveBeenLastCalledWith({ id_unidad: 7, tipo: "EQUIPO" }));
   });
 });

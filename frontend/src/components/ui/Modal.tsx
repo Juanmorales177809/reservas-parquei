@@ -13,11 +13,14 @@ export function Modal({
   titulo,
   subtitulo,
   onClose,
+  ancho = "normal",
   children,
 }: {
   titulo: string;
   subtitulo?: ReactNode;
   onClose: () => void;
+  /** `amplio` para formularios con muchos campos. */
+  ancho?: "normal" | "amplio";
   children: ReactNode;
 }) {
   const idTitulo = useId();
@@ -74,7 +77,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="relative flex max-h-[92vh] w-full max-w-[640px] animate-aparecer flex-col overflow-hidden rounded-t-card border border-border bg-surface shadow-[0_24px_60px_-20px_rgba(7,19,12,0.5)] focus:outline-none sm:rounded-card"
+        className={`relative flex max-h-[92vh] w-full ${ancho === "amplio" ? "max-w-[760px]" : "max-w-[640px]"} animate-aparecer flex-col overflow-hidden rounded-t-card border border-border bg-surface shadow-[0_24px_60px_-20px_rgba(7,19,12,0.5)] focus:outline-none sm:rounded-card`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
           <div className="flex min-w-0 flex-col gap-1">

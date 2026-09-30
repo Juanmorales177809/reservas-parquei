@@ -40,6 +40,12 @@ async function todasLasUnidades(tipo?: string): Promise<OpcionSelector[]> {
   return (await listarLaboratorios()).datos.map((l) => ({ valor: String(l.id_unidad), etiqueta: l.nombre }));
 }
 
+/** Nombre de cada unidad por su id, para mostrar «Laboratorio de Redes» y no «7» en un listado. */
+export async function nombresDeUnidades(): Promise<Record<string, string>> {
+  const opciones = await todasLasUnidades();
+  return Object.fromEntries(opciones.map((o) => [o.valor, o.etiqueta]));
+}
+
 /** Solo para las pruebas: vuelve a intentar primero la lista administrativa. */
 export function reiniciarCatalogoDeUnidades() {
   usarCatalogoDeLaboratorios = false;
@@ -49,7 +55,7 @@ export function reiniciarCatalogoDeUnidades() {
 export function SelectorUnidad({
   tipo,
   soloIds,
-  textoVacio = "Seleccionar unidad",
+  textoVacio = "Seleccionar laboratorio",
   ...base
 }: Base & { tipo?: string; soloIds?: number[]; textoVacio?: string }) {
   return (

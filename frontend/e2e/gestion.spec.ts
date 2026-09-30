@@ -5,27 +5,23 @@ import { expect, test } from "@playwright/test";
 test.use({ storageState: "e2e/.auth/admin.json" });
 const sufijo = () => String(Date.now()).slice(-7);
 
-test("un equipo se registra con sus datos y se edita: apoyo, operatividad y serial (RN-EQP-08, RN-EQP-09)", async ({ page }) => {
-  const nombre = `Osciloscopio E2E ${sufijo()}`;
+test("un equipo existente se edita: apoyo, operatividad y serial (RN-EQP-08, RN-EQP-09); no se registra desde aquí", async ({ page }) => {
   await page.goto("/recursos");
-  await page.getByLabel("Unidad", { exact: true }).selectOption({ label: "Laboratorio de Redes" });
-  await page.getByLabel("Tipo", { exact: true }).selectOption({ label: "Equipo (solo Administrador global)" });
-  await page.getByLabel("Nombre del equipo").fill(nombre);
-  await page.getByLabel("Placa", { exact: true }).fill(`PL-${sufijo()}`);
-  await page.getByLabel("Marca").fill("Tektronix");
-  await page.getByRole("checkbox", { name: /Exige acompañamiento técnico/ }).check();
-  await page.getByRole("button", { name: "Guardar recurso" }).click();
-  await expect(page.getByText("Recurso creado.")).toBeVisible();
+  // Los equipos vienen de LIA: el registro solo ofrece mobiliario y otros.
+  await page.getByRole("button", { name: "Registrar recurso" }).click();
+  await expect(page.getByLabel("Tipo", { exact: true }).locator("option")).toHaveText(["Mobiliario", "Otro"]);
+  await page.keyboard.press("Escape");
 
-  await page.getByLabel("Buscar por nombre o placa").fill(nombre);
-  await page.getByRole("link", { name: new RegExp(nombre) }).click();
-  await expect(page.getByRole("heading", { name: new RegExp(nombre) })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /Exige acompañamiento técnico/ })).toBeChecked();
+  await page.getByRole("button", { name: "Equipos" }).click();
+  await page.getByLabel("Buscar por nombre o placa").fill("Osciloscopio");
+  await page.getByRole("list", { name: "Recursos" }).getByRole("link").first().click();
+  await expect(page.getByRole("heading", { name: /Osciloscopio/ })).toBeVisible();
+  await page.getByRole("checkbox", { name: /Exige acompañamiento técnico/ }).check();
   await page.getByLabel("Serial").fill(`SN-${sufijo()}`);
-  await page.getByRole("checkbox", { name: /^Operativo/ }).uncheck();
+  await page.getByRole("checkbox", { name: /^Operativo/ }).check();
   await page.getByRole("button", { name: "Guardar datos" }).click();
   await expect(page.getByText("Recurso actualizado.")).toBeVisible();
-  await expect(page.getByText("Equipo · no operativo", { exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /Exige acompañamiento técnico/ })).toBeChecked();
 });
 
 test("la configuración del laboratorio se ve y se guarda completa (RN-LAB-03, RN-LAB-04, RN-LAB-07)", async ({ page }) => {
