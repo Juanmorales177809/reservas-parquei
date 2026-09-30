@@ -34,6 +34,8 @@ El catálogo raíz es `recursos.recursos`, con una especialización 1:1 por tipo
 
 Registra un recurso con su especialización. Flujos `UF-REC-01` (mobiliario), `UF-REC-02` (otro) y `UF-REC-03` (equipo).
 
+**Origen externo ([decisión 2026-09-30](../../docs/decisions/origen-externo-estructura-institucional.md)).** Los **equipos** vienen de LIA: la interfaz no los registra, solo mobiliario y otros recursos. Con `tipo` `EQUIPO` este endpoint se conserva como vía de carga hasta que se diseñe la integración.
+
 ```json
 {
   "id_unidad": 7,

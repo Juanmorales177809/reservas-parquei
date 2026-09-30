@@ -28,6 +28,8 @@ Todas las rutas de esta sección exigen `unidades.administrar` con alcance globa
 
 Registra una unidad organizacional.
 
+**Origen externo ([decisión 2026-09-30](../../docs/decisions/origen-externo-estructura-institucional.md)).** Los laboratorios (las unidades) vienen de otra base de datos: la interfaz no los da de alta. Este endpoint se conserva como vía de carga hasta que se diseñe la integración.
+
 ```json
 { "nombre": "Laboratorio de Metrología", "tipo": "LABORATORIO", "id_unidad_padre": 3 }
 ```
@@ -63,6 +65,8 @@ Que una unidad exista no implica que pueda recibir reservas: eso lo determina la
 ### 2.5 `POST /api/cargos`
 
 Registra un cargo dentro de una unidad.
+
+**Origen externo ([decisión 2026-09-30](../../docs/decisions/origen-externo-estructura-institucional.md)).** Los cargos vienen de otra base de datos: la interfaz no los da de alta. Este endpoint se conserva como vía de carga hasta que se diseñe la integración.
 
 ```json
 { "nombre_cargo": "Técnico de laboratorio", "id_unidad": 7 }

@@ -207,6 +207,8 @@ Habilita o deshabilita. Deshabilitar impide nuevas operaciones que requieran ide
 
 ### 6.1 `POST /api/personal`
 
+**Origen externo ([decisión 2026-09-30](../../docs/decisions/origen-externo-estructura-institucional.md)).** El personal viene de otra base de datos: la interfaz no lo da de alta. Este endpoint se conserva como vía de carga hasta que se diseñe la integración.
+
 Registra la ficha de una persona.
 
 ```json
