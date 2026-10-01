@@ -278,3 +278,13 @@ Bloquean todo lo demás. Están definidas en [contratos/README.md](../../contrat
 - **Contrato:** [reports §3.4](../../contratos/reports/api-contract.md).
 - **RN:** `RN-AMB-01`, `RN-AMB-02`, `RN-OCU-04`, `RN-OCU-05`, `RN-OCU-06`, `RN-REP-02`.
 - **Resultado:** `service.resumen()` (demanda por franja que cruza el periodo, uso solo `APROBADA`/`EN_EJECUCION`/`FINALIZADA`, previo de igual duración, ocupación sobre horas de atención con `null` sin horario, top 5 por asignación, mapa por cantidad en grid 7–19 dentro del horario) + `GET /resumen` antes de `/{tipo}/exportacion` + esquemas `ResumenRespuesta` + `backend/tests/test_reports_api20.py` (5 pruebas T-REP-11..15). Verificado: suite completa 129/129 en verde contra `reservas_test`.
+
+### API-21 — Horas de lista de espera en el resumen · **cerrada**
+
+- **Objetivo:** las `horas_ejecucion` de lista de espera `FINALIZADA` suman en las horas del resumen, sin entrar en la ocupación.
+- **Afectados:** módulo de reports del backend (`service.py`, `repository.py`) y su prueba.
+- **Dependencias:** API-20. No toca la base: solo lee.
+- **Aceptación:** una lista `FINALIZADA` con `horas_ejecucion` suma sus horas cuando su creación cae en el periodo y no cuando cae fuera; en otro estado no suma; la ocupación sigue en 0 sin franjas (las horas de lista no usan el horario); `por_fecha`, `recursos_mas_reservados` y `ocupacion_dia_hora` no cambian.
+- **Contrato:** [reports §3.4](../../contratos/reports/api-contract.md).
+- **RN:** `RN-OCU-04`, `RN-OCU-05`, `RN-OCU-06`, `RN-REP-02`.
+- **Resultado:** `repository.detalles_lista_espera()` + rama `LISTA_ESPERA` en `service._horas` (solo `FINALIZADA` con horas, atribuida por fecha de creación en Bogotá, `ZoneInfo` como el resto del backend) + `_horas_sin_lista` para la ocupación + `backend/tests/test_reports_api20.py::test_lista_finalizada_suma_horas_por_creacion` (T-REP-16). Verificado: suite completa 130/130 en verde contra `reservas_test`, y 70 h / 0 % en septiembre real por HTTP.

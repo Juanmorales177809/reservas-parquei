@@ -7,7 +7,8 @@ definido no hay porcentaje, nunca un cero (RN-OCU-06).
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from app.core.authz import exigir_permiso, resolver_rol
 from app.core.deps import ContextoAutenticado
@@ -310,12 +311,18 @@ def _periodo_previo(d0: date, d1: date) -> tuple[date, date]:
     return hasta_prev - timedelta(days=duracion - 1), hasta_prev
 
 
+_ZONA_BOGOTA = ZoneInfo("America/Bogota")
+
+
 def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: ContextoAutenticado) -> dict:
     """API-20 §3.4: indicadores y distribuciones del periodo en una sola consulta.
 
     No introduce cálculos propios: reutiliza demanda (`solicitudes`, RN-OCU-05),
     uso (`ocupacion`, RN-OCU-04), horario histórico (RN-LAB-08) y `null` sin
-    horario (RN-OCU-06). Solo lectura (RN-REP-02).
+    horario (RN-OCU-06). API-21: las `horas_ejecucion` de lista de espera
+    `FINALIZADA` suman en las horas, atribuidas por fecha de creación
+    (RN-OCU-05, como en §3.3), pero no en la ocupación, que solo mide
+    franjas sobre el horario. Solo lectura (RN-REP-02).
     """
     from math import ceil as _ceil
 
@@ -329,7 +336,9 @@ def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: C
     det_int = repo.detalles_internos(db, ids)
     det_cam = repo.detalles_campus(db, ids)
     det_ext = repo.detalles_externos(db, ids)
+    det_le = repo.detalles_lista_espera(db, ids)
     asign = repo.asignaciones_activas(db, ids)
+    por_reserva = {r.id: r for r, _, _ in filas}
 
     def _franja(rid: int, tipo: str):
         if tipo == "ESPACIO":
@@ -354,13 +363,38 @@ def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: C
             return a <= f[1] <= b
         return f[1] <= b and f[2] >= a
 
-    def _horas(tipo: str, rid: int, a: date, b: date) -> float:
+    def _horas_lista_espera(rid: int, estado: str, a: date, b: date) -> float:
+        """API-21: `horas_ejecucion` de lista `FINALIZADA`, por fecha de creación."""
+        if estado != "FINALIZADA":
+            return 0.0
+        d = det_le.get(rid)
+        if d is None or d.horas_ejecucion is None:
+            return 0.0
+        r = por_reserva.get(rid)
+        if r is None or r.created_at is None:
+            return 0.0
+        creada = r.created_at
+        if creada.tzinfo is None:
+            creada = creada.replace(tzinfo=timezone.utc)
+        if not (a <= creada.astimezone(_ZONA_BOGOTA).date() <= b):
+            return 0.0
+        return float(d.horas_ejecucion)
+
+    def _horas(tipo: str, rid: int, estado: str, a: date, b: date) -> float:
+        if tipo == "LISTA_ESPERA":
+            return _horas_lista_espera(rid, estado, a, b)
         f = _franja(rid, tipo)
         if f is None:
             return 0.0
         if f[0] == "fecha":
             return _horas_franja(f[1], f[2], f[3], a, b)
         return _dias_solapados(f[1], f[2], a, b) * 24.0
+
+    def _horas_sin_lista(tipo: str, rid: int, estado: str, a: date, b: date) -> float:
+        """Franjas con horario para la ocupación: la lista no usa el horario."""
+        if tipo == "LISTA_ESPERA":
+            return 0.0
+        return _horas(tipo, rid, estado, a, b)
 
     def _es_uso(estado: str) -> bool:
         return estado in _ESTADOS_OCUPACION
@@ -370,8 +404,8 @@ def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: C
     dem_previa = [(r, t, e) for r, t, e in filas if _cruza(t, r.id, d0p, d1p)]
     uso_actual = [(r, t, e) for r, t, e in dem_actual if _es_uso(e)]
     uso_previo = [(r, t, e) for r, t, e in dem_previa if _es_uso(e)]
-    horas_actual = round(sum(_horas(t, r.id, d0, d1) for r, t, _ in uso_actual), 2)
-    horas_previa = round(sum(_horas(t, r.id, d0p, d1p) for r, t, _ in uso_previo), 2)
+    horas_actual = round(sum(_horas(t, r.id, e, d0, d1) for r, t, e in uso_actual), 2)
+    horas_previa = round(sum(_horas(t, r.id, e, d0p, d1p) for r, t, e in uso_previo), 2)
     solicitadas = sum(1 for _, _, e in dem_actual if e == "SOLICITADA")
 
     unidades_filas = repo.unidades(db, unidades)
@@ -380,7 +414,7 @@ def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: C
         versiones_por_unidad[u.id_unidad] = repo.historico_horario(db, u.id_unidad)
 
     def _ocupacion_total(pares, a: date, b: date) -> float | None:
-        total_uso = sum(_horas(t, r.id, a, b) for r, t, _ in pares)
+        total_uso = sum(_horas_sin_lista(t, r.id, e, a, b) for r, t, e in pares)
         disps = [_horas_atencion(db, u.id_unidad, a, b) for u in unidades_filas]
         validas = [d for d in disps if d is not None]
         if not validas:
@@ -408,11 +442,12 @@ def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: C
     for u in unidades_filas:
         dem_u = [(r, t, e) for r, t, e in dem_actual if r.id_unidad == u.id_unidad]
         uso_u = [(r, t, e) for r, t, e in uso_actual if r.id_unidad == u.id_unidad]
-        h_u = round(sum(_horas(t, r.id, d0, d1) for r, t, _ in uso_u), 2)
+        h_u = round(sum(_horas(t, r.id, e, d0, d1) for r, t, e in uso_u), 2)
+        h_franja = round(sum(_horas_sin_lista(t, r.id, e, d0, d1) for r, t, e in uso_u), 2)
         por_lab.append({
             "id_unidad": u.id_unidad, "nombre": u.nombre,
             "reservas": len(dem_u), "horas_reservadas": h_u,
-            "porcentaje_ocupacion": _porcentaje(h_u, _horas_atencion(db, u.id_unidad, d0, d1)),
+            "porcentaje_ocupacion": _porcentaje(h_franja, _horas_atencion(db, u.id_unidad, d0, d1)),
         })
     por_lab.sort(key=lambda d: d["id_unidad"])
 

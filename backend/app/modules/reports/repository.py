@@ -129,6 +129,16 @@ def detalles_externos(db: Session, reserva_ids: list[int]) -> dict[int, ReservaR
     return {f.reserva_id: f for f in filas}
 
 
+def detalles_lista_espera(db: Session, reserva_ids: list[int]) -> dict[int, ReservaListaEspera]:
+    """Detalles de lista de espera por reserva (API-21: sus horas_ejecucion)."""
+    if not reserva_ids:
+        return {}
+    filas = db.scalars(
+        select(ReservaListaEspera).where(ReservaListaEspera.reserva_id.in_(reserva_ids))
+    ).all()
+    return {f.reserva_id: f for f in filas}
+
+
 def contextos_de(db: Session, reserva_ids: list[int]) -> dict[int, ReservaContexto]:
     if not reserva_ids:
         return {}

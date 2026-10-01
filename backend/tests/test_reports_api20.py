@@ -70,9 +70,25 @@ def _reserva(db, s: dict, cuenta_id: int, estado: str, dia: str, tag: str) -> in
     return r.id
 
 
+def _reserva_lista(db, s: dict, cuenta_id: int, estado: str, horas: float | None, tag: str) -> int:
+    tipo_id = db.scalar(text("SELECT id FROM reservas.tipos_reserva WHERE codigo = 'LISTA_ESPERA'"))
+    estado_id = db.scalar(
+        text("SELECT id FROM reservas.estados_reserva WHERE codigo = :e"), {"e": estado})
+    r = repo.crear_reserva(
+        db, id_unidad=s["id_unidad"], tipo_reserva_id=tipo_id, id_cuenta=cuenta_id,
+        estado_id=estado_id, observacion=f"api20-le-{tag}", requiere_apoyo=False,
+        created_by=cuenta_id,
+    )
+    detalle = repo.crear_detalle_lista_espera(db, r.id, descripcion_necesidad="api20-le")
+    detalle.horas_ejecucion = horas
+    db.commit()
+    return r.id
+
+
 def _teardown(db, s: dict, rids: list[int]) -> None:
     for rid in rids:
-        for tabla in ("reserva_historial_estado", "reserva_contexto", "reserva_espacio"):
+        for tabla in ("reserva_historial_estado", "reserva_contexto", "reserva_espacio",
+                      "reserva_lista_espera_formulario", "reserva_lista_espera"):
             db.execute(text(f"DELETE FROM reservas.{tabla} WHERE reserva_id = :i"), {"i": rid})
         db.execute(text("DELETE FROM reservas.reservas WHERE id = :i"), {"i": rid})
     db.execute(text("DELETE FROM reservas.espacios WHERE id_unidad = :u"), {"u": s["id_unidad"]})
@@ -179,6 +195,36 @@ def test_sin_permiso_403(client, db, tag):
         assert r.json()["error"]["codigo"] == "NO_AUTORIZADO"
     finally:
         _teardown(db, s, [])
+
+
+def test_lista_finalizada_suma_horas_por_creacion(client, db, tag):
+    """T-REP-16: horas_ejecucion de lista FINALIZADA suman por fecha de creación."""
+    from datetime import timedelta
+
+    h, cta, s = _login_tec(client, db, f"a{tag}")
+    hoy = date.today()
+    desde = (hoy - timedelta(days=60)).isoformat()
+    hasta = (hoy + timedelta(days=1)).isoformat()
+    rids: list[int] = []
+    try:
+        rids.append(_reserva_lista(db, s, cta.id_cuenta, "FINALIZADA", 4.5, tag))
+        rids.append(_reserva_lista(db, s, cta.id_cuenta, "SOLICITADA", 9.0, tag))
+        r = client.get(f"/api/reportes/resumen?desde={desde}&hasta={hasta}", headers=h)
+        assert r.status_code == 200, r.text
+        cuerpo = r.json()
+        assert cuerpo["indicadores"]["horas_reservadas"]["actual"] == 4.5
+        assert cuerpo["indicadores"]["horas_reservadas"]["previo"] == 0
+        fila = cuerpo["por_laboratorio"][0]
+        assert fila["horas_reservadas"] == 4.5
+        # Las horas de lista no usan el horario: no entran en la ocupación.
+        assert cuerpo["indicadores"]["porcentaje_ocupacion"]["actual"] == 0
+        assert fila["porcentaje_ocupacion"] == 0
+        # Sin fecha, recursos ni reloj: esas secciones no cambian.
+        assert cuerpo["por_fecha"] == []
+        assert cuerpo["recursos_mas_reservados"] == []
+        assert cuerpo["ocupacion_dia_hora"] == []
+    finally:
+        _teardown(db, s, rids)
 
 
 def test_porcentaje_null_sin_horario(client, db, tag):

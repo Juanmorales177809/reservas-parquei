@@ -123,6 +123,8 @@ Los archivos compartidos del servicio, estrategias y repositorio se entregan del
 
 `API-20` resumen para el panel de inicio. Cerrada: `GET /api/reportes/resumen` con indicadores, periodo previo y distribuciones en una sola consulta, verificado con 5 pruebas nuevas (suite 129/129).
 
+`API-21` horas de lista de espera en el resumen. Las `horas_ejecucion` de lista `FINALIZADA` suman en horas y ocupación, atribuidas por fecha de creación.
+
 **Con las fases 0 a 5 cerradas, el backend está completo.** El siguiente paso es la Fase 6.
 
 ---
@@ -162,7 +164,7 @@ El corte es limpio: **A es la base de datos, B es el proyecto.** Ningún archivo
 | Carril | Fases 0–1 | Fases 2–3 | Fases 4–5 |
 |---|---|---|---|
 | **A** | `DB-14`, `DB-01` a `DB-10`, `DB-15`, `DB-13` | `BK-09` carril A, `API-09`, `API-10` | `DB-11` (cerrada), `DB-12`, `API-13`, `API-14` |
-| **B** | `BK-01` a `BK-07`, `BK-08` | `BK-09` carril B, `API-06`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-20` |
+| **B** | `BK-01` a `BK-07`, `BK-08` | `BK-09` carril B, `API-06`, `API-07`, `API-08`, `API-11`, `API-12` | `API-15` a `API-21` |
 
 `BK-00` está cerrada y no entra en el reparto. `BK-09` aparece en los dos carriles porque auth se construye a dos manos: el [plan de auth](specs/modules/auth/tasks.md) reparte sus doce tareas por archivo.
 

@@ -145,6 +145,8 @@ Panel de inicio: los indicadores y distribuciones principales del periodo en una
 
 Cuentan como **demanda** todas las reservas cuya franja cruza el periodo, en cualquier estado (como `solicitudes`, `RN-OCU-05`). Cuentan como **uso** —horas, ocupación, mapa de calor y recursos más reservados— únicamente `APROBADA`, `EN_EJECUCION` y `FINALIZADA` (`RN-OCU-04`).
 
+Las **horas de lista de espera** también suman en las horas, pero no en la ocupación: las `horas_ejecucion` de las reservas `LISTA_ESPERA` en `FINALIZADA` cuentan como horas de uso (`RN-OCU-05`, como en §3.3) y se atribuyen al periodo donde cae su fecha de creación, que es la única fecha que tienen. La ocupación sigue midiéndose solo con franjas sobre el horario de atención —las horas de lista no usan el horario y darían más del 100 %—. La lista de espera sigue sin franja con fecha (no aparece en `por_fecha`), sin recursos atribuidos (`recursos_mas_reservados`) y sin horas de reloj (`ocupacion_dia_hora`).
+
 El **periodo previo** es el de igual duración que termina el día anterior a `desde`; sirve para comparar y se calcula con los mismos criterios.
 
 **`200 OK`**
@@ -175,6 +177,7 @@ El **periodo previo** es el de igual duración que termina el día anterior a `d
 | Campo | Qué es |
 |---|---|
 | `indicadores.solicitadas` | Reservas del periodo todavía en `SOLICITADA`: lo que espera una decisión |
+| `indicadores.horas_reservadas` | Horas de uso del periodo: franjas de espacio e interno, días de campus y externo, más `horas_ejecucion` de lista de espera `FINALIZADA` creada en el periodo |
 | `indicadores.porcentaje_ocupacion` | Horas de uso sobre las horas de atención de las unidades del ámbito que tienen horario en el periodo. **`null` si ninguna lo tiene**, nunca un cero (`RN-OCU-06`) |
 | `por_estado` | Los seis estados del catálogo de reservations, siempre presentes, con cero cuando no hay (`RN-EST-01`) |
 | `por_fecha` | Reservas por día de su franja (la salida, en las de campus y externas), ordenadas por fecha; los días sin reservas se omiten. La lista de espera no tiene fecha y no aparece aquí |

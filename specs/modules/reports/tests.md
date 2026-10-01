@@ -128,3 +128,10 @@ El riesgo propio de este módulo es **el número que miente**: un cero donde deb
 - **Cubre:** `RN-OCU-06`, `RN-CON-04`
 - **Caso:** se pide el resumen de una unidad sin horario de atención definido y con una reserva de uso.
 - **Esperado:** sus horas aparecen y `porcentaje_ocupacion` es `null`, nunca cero, también en los indicadores.
+
+### T-REP-16 — Las horas de lista de espera finalizada suman en el resumen
+
+- **Nivel:** servicio
+- **Cubre:** `RN-OCU-05`
+- **Caso:** se pide el resumen de un periodo que contiene la creación de una lista de espera `FINALIZADA` con `horas_ejecucion`, y de otro que no.
+- **Esperado:** las horas aparecen en `indicadores.horas_reservadas` y en su laboratorio solo en el primer periodo, con la ocupación en 0 (las horas de lista no usan el horario); en otro estado no suman; `por_fecha`, `recursos_mas_reservados` y el mapa no cambian.
