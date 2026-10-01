@@ -9,7 +9,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | un
   if (!valor) return null;
   return (
     <div className="contents">
-      <dt className="font-bold text-text">{etiqueta}</dt>
+      <dt className="font-medium text-muted">{etiqueta}</dt>
       <dd className="text-text">{valor}</dd>
     </div>
   );
@@ -31,7 +31,7 @@ export function ResumenReserva({ detalle }: { detalle: ReservaDetalleRespuesta }
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
         <Dato etiqueta="Unidad" valor={detalle.unidad_nombre} />
         <Dato etiqueta="Solicitante" valor={detalle.solicitante_nombre} />
         <Dato etiqueta="Solicitada" valor={fechaHora(detalle.created_at)} />
@@ -65,8 +65,8 @@ export function ResumenReserva({ detalle }: { detalle: ReservaDetalleRespuesta }
 
       {contexto.some(([, v]) => v) && (
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-bold text-text">Contexto</h2>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+          <h2 className="font-display text-lg font-bold text-text">Contexto</h2>
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
             {contexto.map(([etiqueta, valor]) => (
               <Dato key={etiqueta} etiqueta={etiqueta} valor={valor} />
             ))}
@@ -76,7 +76,7 @@ export function ResumenReserva({ detalle }: { detalle: ReservaDetalleRespuesta }
 
       {(detalle.acompanantes_detalle?.length ?? 0) > 0 && (
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-bold text-text">Acompañantes</h2>
+          <h2 className="font-display text-lg font-bold text-text">Acompañantes</h2>
           <ul className="text-sm text-text">
             {detalle.acompanantes_detalle!.map((a) => (
               <li key={a.id_cuenta}>{a.nombre ?? "Cuenta sin nombre"}</li>
@@ -87,8 +87,8 @@ export function ResumenReserva({ detalle }: { detalle: ReservaDetalleRespuesta }
 
       {detalle.campos_adicionales.length > 0 && (
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-bold text-text">Información del espacio</h2>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+          <h2 className="font-display text-lg font-bold text-text">Información del espacio</h2>
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
             {detalle.campos_adicionales.map((campo, i) => (
               <Dato
                 key={i}

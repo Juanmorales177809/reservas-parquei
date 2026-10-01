@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
@@ -10,6 +11,7 @@ import { OrdenSalidaPanel } from "@/src/components/reservas/OrdenSalidaPanel";
 import { ResumenReserva } from "@/src/components/reservas/ResumenReserva";
 import { SelectorRecursosVarios } from "@/src/components/selectores/SelectorRecursosVarios";
 import { Button } from "@/src/components/ui/Button";
+import { InsigniaEstado } from "@/src/components/ui/Insignia";
 import { Field } from "@/src/components/ui/Field";
 import type { ContextoSesion } from "@/src/lib/auth-types";
 import { fechaHora } from "@/src/lib/formato";
@@ -147,33 +149,113 @@ export function GestionReservaContenido({
   return (
     <div className="flex flex-col gap-6">
       {!enModal && (
-        <div>
-          <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Reserva #{detalle.id}</h1>
-          <p className="text-sm text-muted">
+        <div className="flex flex-col gap-2">
+          <Link href="/reservas" className="w-fit rounded-control text-sm font-medium text-primary-2 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-sky)_55%,transparent)]">
+            ← Volver a las reservas
+          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Reserva #{detalle.id}</h1>
+            <InsigniaEstado estado={estado} texto={NOMBRE_ESTADO_RESERVA[estado] ?? estado} />
+          </div>
+          <p className="text-[15px] text-muted">
             {NOMBRE_TIPO_RESERVA[tipo] ?? tipo} · {NOMBRE_ESTADO_RESERVA[estado] ?? estado}
           </p>
         </div>
       )}
 
+      <div className={enModal ? "flex flex-col gap-5" : "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"}>
+        <div className="flex min-w-0 flex-col gap-5">
+      <Tarjeta plano={enModal}>
       <ResumenReserva detalle={detalle} />
+      </Tarjeta>
 
       {esPropietario && estado === "SOLICITADA" && ver("editar") && (
+<Tarjeta plano={enModal}>
         <EditarReservaPanel detalle={detalle} ocupada={ocupada} actuar={actuar} />
+</Tarjeta>
       )}
 
+      {esLista && ver("lista") && (
+<Tarjeta plano={enModal}>
+        <ListaEsperaPanel detalle={detalle} esPropietario={esPropietario} puedeGestionar={puedeGestionar}
+          ocupada={ocupada} actuar={actuar} />
+</Tarjeta>
+      )}
+      {esLista && ver("lista") && (
+        <Tarjeta plano={enModal}>
+          <AdjuntosListaEspera idReserva={id} puedeSubir={esPropietario && estado === "SOLICITADA"} />
+        </Tarjeta>
+      )}
+
+      {ver("recursos") && detalle.recursos.length > 0 && (
+        <Tarjeta plano={enModal}>
+<section aria-label="Recursos" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Recursos</h2>
+          <ul className="flex flex-col gap-2 text-sm text-text">
+            {detalle.recursos.map((r) => (
+              <li key={r.reserva_recurso_id} className="flex items-center justify-between gap-2 rounded-control border border-border px-3 py-2">
+                <span>
+                  {r.nombre ?? "Recurso sin nombre"} · {NOMBRE_ROL_RECURSO[r.rol] ?? r.rol}
+                  {r.estado_asignacion !== "ASIGNADO" && ` · ${ESTADO_ASIGNACION[r.estado_asignacion] ?? r.estado_asignacion}`}
+                </span>
+                {puedeGestionar && esEspacioInterno && r.estado_asignacion !== "RETIRADO" &&
+                  /* RN-TIP-RI-10: el principal de un recurso interno no se retira. */
+                  !(tipo === "RECURSO_INTERNO" && r.rol === "PRINCIPAL") && (
+                  <Button variant="ghost" size="sm" disabled={ocupada}
+                    onClick={() => void actuar(() => retirarRecurso(id, r.reserva_recurso_id), "Recurso retirado.")}>
+                    Retirar
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+</Tarjeta>
+      )}
+
+      {ver("recursos") && puedeGestionar && esEspacioInterno && ["SOLICITADA", "APROBADA", "EN_EJECUCION"].includes(estado) && (
+        <Tarjeta plano={enModal}>
+<section aria-label="Agregar recursos" className="flex flex-col gap-3">
+          <div className="max-h-72 overflow-y-auto pr-1">
+          <SelectorRecursosVarios
+            label="Agregar recursos a la reserva"
+            idUnidad={String(detalle.id_unidad)}
+            excluir={detalle.recursos.filter((r) => r.estado_asignacion !== "RETIRADO").map((r) => String(r.recurso_id))}
+            value={nuevosRecursos}
+            onChange={setNuevosRecursos}
+          />
+          </div>
+          <div>
+            <Button variant="secondary" size="sm" disabled={ocupada || nuevosRecursos.length === 0}
+              onClick={() => void actuar(
+                () => agregarRecursos(id, nuevosRecursos.map((n) => ({ recurso_id: Number(n), rol: "ADICIONAL" as const }))),
+                "Recursos agregados."
+              ).then(() => setNuevosRecursos([]))}>
+              Agregar
+            </Button>
+          </div>
+        </section>
+</Tarjeta>
+      )}
+
+        </div>
+        <div className="flex min-w-0 flex-col gap-5">
       {/* RN-CAL-01: el calendario solo existe para espacio e interno aprobados. */}
       {vista === "todo" && esEspacioInterno && estado === "APROBADA" && (
-        <a href={urlCalendario(id)} className="text-sm font-bold text-primary-2">
-          Agregar al calendario (.ics)
-        </a>
+        <Tarjeta plano={enModal}>
+          <a href={urlCalendario(id)} className="font-display text-sm font-bold text-primary-2 underline-offset-4 hover:underline">
+            Agregar al calendario (.ics)
+          </a>
+        </Tarjeta>
       )}
 
       {vista === "todo" && (tipo === "RECURSO_CAMPUS" || tipo === "RECURSO_EXTERNO") &&
-        ["APROBADA", "EN_EJECUCION", "FINALIZADA"].includes(estado) && <OrdenSalidaPanel idReserva={id} />}
+        ["APROBADA", "EN_EJECUCION", "FINALIZADA"].includes(estado) && <Tarjeta plano={enModal}><OrdenSalidaPanel idReserva={id} /></Tarjeta>}
 
       {puedeGestionar && estado === "SOLICITADA" && ver("revision") && (
-        <section aria-label="Revisión" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Revisión</h2>
+        <Tarjeta plano={enModal}>
+<section aria-label="Revisión" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Revisión</h2>
           {!esLista && (
             <div className="flex gap-2">
               <Button variant="success" size="sm" disabled={ocupada}
@@ -194,18 +276,14 @@ export function GestionReservaContenido({
             <Button type="submit" variant="danger" size="sm" loading={ocupada}>Rechazar</Button>
           </form>
         </section>
+</Tarjeta>
       )}
-
-      {esLista && ver("lista") && (
-        <ListaEsperaPanel detalle={detalle} esPropietario={esPropietario} puedeGestionar={puedeGestionar}
-          ocupada={ocupada} actuar={actuar} />
-      )}
-      {esLista && ver("lista") && <AdjuntosListaEspera idReserva={id} puedeSubir={esPropietario && estado === "SOLICITADA"} />}
 
       {ver("propuestas") && (estado === "SOLICITADA" || estado === "APROBADA") && puedeProponer &&
         (propuesta !== null || puedeGestionar || esPropietario) && (
-        <section aria-label="Propuestas" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Propuestas de periodo</h2>
+        <Tarjeta plano={enModal}>
+<section aria-label="Propuestas" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Propuestas de periodo</h2>
           {propuesta ? (
             <div className="flex flex-col gap-2 text-sm text-text">
               <p>
@@ -267,11 +345,13 @@ export function GestionReservaContenido({
             </form>
           ) : null}
         </section>
+</Tarjeta>
       )}
 
       {ver("ejecucion") && puedeGestionar && estado === "APROBADA" && !esEspacioInterno && !esLista && (
-        <section aria-label="Ejecución" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Ejecución</h2>
+        <Tarjeta plano={enModal}>
+<section aria-label="Ejecución" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Ejecución</h2>
           <div>
             <Button variant="primary" size="sm" disabled={ocupada}
               onClick={() => void actuar(
@@ -282,11 +362,13 @@ export function GestionReservaContenido({
             </Button>
           </div>
         </section>
+</Tarjeta>
       )}
 
       {ver("ejecucion") && puedeGestionar && esLista && estado === "APROBADA" && (
-        <section aria-label="Ejecución" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Ejecución</h2>
+        <Tarjeta plano={enModal}>
+<section aria-label="Ejecución" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Ejecución</h2>
           <div>
             <Button variant="primary" size="sm" disabled={ocupada}
               onClick={() => void actuar(() => ejecutarReserva(id), "Reserva en ejecución.")}>
@@ -294,11 +376,13 @@ export function GestionReservaContenido({
             </Button>
           </div>
         </section>
+</Tarjeta>
       )}
 
       {ver("finalizacion") && puedeGestionar && estado === "EN_EJECUCION" && !esEspacioInterno && (
-        <section aria-label="Finalización" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Finalización</h2>
+        <Tarjeta plano={enModal}>
+<section aria-label="Finalización" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Finalización</h2>
           {esLista ? (
             <form
               onSubmit={(e: FormEvent) => {
@@ -323,10 +407,13 @@ export function GestionReservaContenido({
             </Button>
           )}
         </section>
+</Tarjeta>
       )}
 
       {ver("cancelacion") && puedeCancelar && (
-        <section aria-label="Cancelación" className="flex flex-col gap-2">
+        <Tarjeta plano={enModal}>
+<section aria-label="Cancelación" className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-bold text-text">Cancelar</h2>
           <Field id="cancel-motivo" label="Motivo de la cancelación (opcional)" value={motivoCancelacion}
             onChange={(e) => setMotivoCancelacion(e.target.value)} />
           <div>
@@ -338,59 +425,16 @@ export function GestionReservaContenido({
             </Button>
           </div>
         </section>
-      )}
-
-      {ver("recursos") && detalle.recursos.length > 0 && (
-        <section aria-label="Recursos" className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-text">Recursos</h2>
-          <ul className="flex flex-col gap-1 text-sm text-text">
-            {detalle.recursos.map((r) => (
-              <li key={r.reserva_recurso_id} className="flex items-center gap-2">
-                <span>
-                  {r.nombre ?? "Recurso sin nombre"} · {NOMBRE_ROL_RECURSO[r.rol] ?? r.rol}
-                  {r.estado_asignacion !== "ASIGNADO" && ` · ${ESTADO_ASIGNACION[r.estado_asignacion] ?? r.estado_asignacion}`}
-                </span>
-                {puedeGestionar && esEspacioInterno && r.estado_asignacion !== "RETIRADO" &&
-                  /* RN-TIP-RI-10: el principal de un recurso interno no se retira. */
-                  !(tipo === "RECURSO_INTERNO" && r.rol === "PRINCIPAL") && (
-                  <Button variant="ghost" size="sm" disabled={ocupada}
-                    onClick={() => void actuar(() => retirarRecurso(id, r.reserva_recurso_id), "Recurso retirado.")}>
-                    Retirar
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {ver("recursos") && puedeGestionar && esEspacioInterno && ["SOLICITADA", "APROBADA", "EN_EJECUCION"].includes(estado) && (
-        <section aria-label="Agregar recursos" className="flex flex-col gap-2">
-          <SelectorRecursosVarios
-            label="Agregar recursos a la reserva"
-            idUnidad={String(detalle.id_unidad)}
-            excluir={detalle.recursos.filter((r) => r.estado_asignacion !== "RETIRADO").map((r) => String(r.recurso_id))}
-            value={nuevosRecursos}
-            onChange={setNuevosRecursos}
-          />
-          <div>
-            <Button variant="secondary" size="sm" disabled={ocupada || nuevosRecursos.length === 0}
-              onClick={() => void actuar(
-                () => agregarRecursos(id, nuevosRecursos.map((n) => ({ recurso_id: Number(n), rol: "ADICIONAL" as const }))),
-                "Recursos agregados."
-              ).then(() => setNuevosRecursos([]))}>
-              Agregar
-            </Button>
-          </div>
-        </section>
+</Tarjeta>
       )}
 
       {vista === "todo" && (
-      <section aria-label="Historial" className="flex flex-col gap-1">
-        <h2 className="text-base font-bold text-text">Historial</h2>
-        <ul className="text-sm text-muted">
+      <Tarjeta plano={enModal}>
+      <section aria-label="Historial" className="flex flex-col gap-3">
+        <h2 className="font-display text-lg font-bold text-text">Historial</h2>
+        <ul className="flex flex-col text-sm text-text">
           {detalle.historial.map((h, i) => (
-            <li key={i}>
+            <li key={i} className="relative border-l-2 border-border pb-4 pl-5 last:border-transparent last:pb-0 before:absolute before:-left-[7px] before:top-1 before:h-3 before:w-3 before:rounded-full before:border-2 before:border-primary-1 before:bg-surface">
               {fechaHora(h.created_at)} · {h.estado_anterior ? `${NOMBRE_ESTADO_RESERVA[h.estado_anterior] ?? h.estado_anterior} → ` : ""}
               {NOMBRE_ESTADO_RESERVA[h.estado_nuevo] ?? h.estado_nuevo}
               {h.actor_nombre ? ` · ${h.actor_nombre}` : ""}{h.motivo ? ` (${h.motivo})` : ""}
@@ -398,11 +442,21 @@ export function GestionReservaContenido({
           ))}
         </ul>
       </section>
+      </Tarjeta>
       )}
+
+        </div>
+      </div>
 
       <RegionMensaje texto={mensaje} tono={mensaje ? tono : "muted"} />
     </div>
   );
+}
+
+/** Tarjeta de un bloque del detalle; dentro del modal no hay tarjeta, el modal ya es el contenedor. */
+function Tarjeta({ plano, children }: { plano: boolean; children: React.ReactNode }) {
+  if (plano) return <>{children}</>;
+  return <div className="rounded-card border border-border bg-surface p-5 shadow-card">{children}</div>;
 }
 
 const ESTADO_ASIGNACION: Record<string, string> = { NO_DISPONIBLE: "no disponible", RETIRADO: "retirado" };
