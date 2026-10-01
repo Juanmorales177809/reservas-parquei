@@ -574,6 +574,28 @@ Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `scr
 
 ---
 
+### FE-42 — Detalle de la reserva en dos columnas, con tarjetas y línea de tiempo · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que el detalle de una reserva se entienda de un vistazo: qué es y cuál es su estado, qué se puede hacer con ella y qué le ha pasado.
+- **Afectados:** `frontend/src/components/reservas/{GestionReservaClient,ResumenReserva}.tsx`.
+- **Dependencias:** FE-28, FE-31, FE-33, FE-32. No toca el contrato.
+- **Aceptación:** la página separa los datos de la reserva (izquierda) de lo que se puede hacer con ella (derecha); el estado se ve junto al título; el historial se lee como una línea de tiempo; dentro del modal del listado, cada vista sigue mostrando solo su parte, sin tarjetas anidadas; los nombres accesibles y los textos que las pruebas consultan no cambian.
+- **Resultado:** cada bloque es una tarjeta: a la izquierda el resumen, la edición, la lista de espera y sus adjuntos y los recursos; a la derecha el calendario, la orden de salida, la revisión, las propuestas, la ejecución, la finalización, la cancelación (ahora con título «Cancelar») y el historial. En una pantalla angosta todo se apila. El estado es una insignia junto a «Reserva #N»; el enlace «← Volver a las reservas» sustituye a buscar el menú. Los recursos son filas con su botón «Retirar»; la lista de recursos por agregar se acota con desplazamiento para que no ocupe la pantalla. En el modal no hay tarjetas (`Tarjeta` es plana). Verificado: Vitest 127/127, `tsc` y lint limpios y E2E 74/74.
+
+---
+
+### FE-43 — Despliegue completo con Docker Compose · **cerrada**
+
+- **Tipo:** Implementación (infraestructura)
+- **Objetivo:** que toda la aplicación se levante con `docker compose up -d --build` en un servidor, sin instalar nada más en él.
+- **Afectados:** `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, `backend/migrations/aplicar.sh`, `backend/app/core/{config,security}.py`, `.env.example`, `.gitattributes`, `.dockerignore`, `frontend/public/`, `DESPLIEGUE.md`.
+- **Dependencias:** FE-41 (el administrador se crea por script).
+- **Aceptación:** desde una base vacía, un solo `up` deja base, backend y frontend sanos, con el esquema construido y los datos de LIA cargados; el administrador se crea con el script y puede iniciar sesión por el frontend; repetir `up` no cambia nada; en `ENTORNO=produccion` no arranca con la clave o el secreto de ejemplo; la base nunca se publica.
+- **Resultado:** el compose pasó de dos servicios (base y backend) a la pila completa: `db`, `migrar` (construye el esquema en una base vacía en el orden documentado y aplica migraciones pendientes en una que ya lo tiene; nunca borra), `ajustar_volumenes`, `backend` y `frontend`, con `depends_on` por salud; pgAdmin pasó a un perfil opcional. Se corrigieron cuatro bloqueos que habrían roto un servidor: las cookies de sesión siempre eran `Secure` y no funcionan por HTTP (ahora `COOKIE_SECURE`, por defecto `true`); faltaba la carpeta `public` que copia el Dockerfile del frontend; el servidor standalone de Next no escuchaba fuera del contenedor (`HOSTNAME=0.0.0.0`); y el backend corría como root (ahora usuario 10001, con `ajustar_volumenes` para volúmenes anteriores). El backend expone su salud, y faltaban en el compose las variables de correo y `APP_URL`. Verificado en una pila aparte con volúmenes y puertos propios: base vacía con 66 tablas, 5 laboratorios, 3 cargos y 2 equipos; administrador creado y `201` al iniciar sesión por el frontend; segunda corrida sin cambios; y las tres protecciones de producción rechazan los valores de ejemplo. **No cubre:** TLS (se documenta un proxy inverso) ni el respaldo automático (se documentan los comandos).
+
+---
+
 ### FE-30 — Pruebas de extremo a extremo con Playwright · **cerrada**
 
 - **Tipo:** Implementación
@@ -594,7 +616,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41   (brechas frente a las reglas)
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
