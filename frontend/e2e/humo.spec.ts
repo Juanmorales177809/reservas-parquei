@@ -32,15 +32,20 @@ test.describe("administrador", () => {
   }
 });
 
+// Decisión 2026-10-01: el usuario solo reserva; recursos, espacios e investigación no son suyos.
+const SOLO_QUIEN_GESTIONA = ["/recursos", "/espacios", "/investigacion/actividades", "/investigacion/proyectos"];
+
 test.describe("usuario sin permisos", () => {
   test.use({ storageState: "e2e/.auth/usuario.json" });
-  for (const ruta of PUBLICAS_AUTENTICADO.filter((r) => !r.startsWith("/reservas/nueva"))) {
+  for (const ruta of PUBLICAS_AUTENTICADO.filter(
+    (r) => !r.startsWith("/reservas/nueva") && !r.startsWith("/investigacion") && r !== "/recursos" && r !== "/espacios"
+  )) {
     test(`carga ${ruta}`, async ({ page }) => {
       const problemas = vigilar(page);
       await visitar(page, ruta, problemas);
     });
   }
-  for (const ruta of SOLO_ADMIN) {
+  for (const ruta of [...SOLO_ADMIN, ...SOLO_QUIEN_GESTIONA]) {
     test(`no entra a ${ruta}`, async ({ page }) => {
       await page.goto(ruta);
       await page.waitForTimeout(1500);
