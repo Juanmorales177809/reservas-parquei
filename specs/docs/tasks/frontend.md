@@ -592,7 +592,40 @@ Las tareas `FE-09` a `FE-21` se cerraron con un alcance menor que el de los `scr
 - **Afectados:** `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, `backend/migrations/aplicar.sh`, `backend/app/core/{config,security}.py`, `.env.example`, `.gitattributes`, `.dockerignore`, `frontend/public/`, `DESPLIEGUE.md`.
 - **Dependencias:** FE-41 (el administrador se crea por script).
 - **Aceptación:** desde una base vacía, un solo `up` deja base, backend y frontend sanos, con el esquema construido y los datos de LIA cargados; el administrador se crea con el script y puede iniciar sesión por el frontend; repetir `up` no cambia nada; en `ENTORNO=produccion` no arranca con la clave o el secreto de ejemplo; la base nunca se publica.
-- **Resultado:** el compose pasó de dos servicios (base y backend) a la pila completa: `db`, `migrar` (construye el esquema en una base vacía en el orden documentado y aplica migraciones pendientes en una que ya lo tiene; nunca borra), `ajustar_volumenes`, `backend` y `frontend`, con `depends_on` por salud; pgAdmin pasó a un perfil opcional. Se corrigieron cuatro bloqueos que habrían roto un servidor: las cookies de sesión siempre eran `Secure` y no funcionan por HTTP (ahora `COOKIE_SECURE`, por defecto `true`); faltaba la carpeta `public` que copia el Dockerfile del frontend; el servidor standalone de Next no escuchaba fuera del contenedor (`HOSTNAME=0.0.0.0`); y el backend corría como root (ahora usuario 10001, con `ajustar_volumenes` para volúmenes anteriores). El backend expone su salud, y faltaban en el compose las variables de correo y `APP_URL`. Verificado en una pila aparte con volúmenes y puertos propios: base vacía con 66 tablas, 5 laboratorios, 3 cargos y 2 equipos; administrador creado y `201` al iniciar sesión por el frontend; segunda corrida sin cambios; y las tres protecciones de producción rechazan los valores de ejemplo. **No cubre:** TLS (se documenta un proxy inverso) ni el respaldo automático (se documentan los comandos).
+- **Resultado:** el compose pasó de dos servicios (base y backend) a la pila completa: `db`, `migrar` (construye el esquema en una base vacía en el orden documentado y aplica migraciones pendientes en una que ya lo tiene; nunca borra), `ajustar_volumenes`, `backend` y `frontend`, con `depends_on` por salud; pgAdmin pasó a un perfil opcional. Se corrigieron cuatro bloqueos que habrían roto un servidor: las cookies de sesión siempre eran `Secure` y no funcionan por HTTP (ahora `COOKIE_SECURE`, por defecto `true`); faltaba la carpeta `public` que copia el Dockerfile del frontend; el servidor standalone de Next no escuchaba fuera del contenedor (`HOSTNAME=0.0.0.0`); y el backend corría como root (ahora usuario 10001, con `ajustar_volumenes` para volúmenes anteriores). El backend expone su salud, y faltaban en el compose las variables de correo y `APP_URL`. Verificado en una pila aparte con volúmenes y puertos propios: base vacía con 66 tablas, 5 laboratorios, 3 cargos y 2 equipos; administrador creado y `201` al iniciar sesión por el frontend; segunda corrida sin cambios; y las tres protecciones de producción rechazan los valores de ejemplo. El flujo completo (administrador configura el laboratorio y registra un espacio con un equipo, una usuaria pide la reserva, el técnico la aprueba desde el listado y la usuaria la ve aprobada) se verificó sobre esa misma pila con `e2e/flujo-despliegue.spec.ts` (4/4), que queda como prueba de humo de despliegue. **No cubre:** TLS (se documenta un proxy inverso) ni el respaldo automático (se documentan los comandos).
+
+---
+
+### FE-44 — El usuario solo reserva: menú por rol y rutas protegidas · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** que cada rol vea solo lo suyo, según la regla de roles fijos: el usuario solo reserva, el técnico gestiona su laboratorio y el administrador todo.
+- **Afectados:** `frontend/src/components/shell/nav-items.ts`, `frontend/app/(app)/{recursos,espacios,laboratorios}/layout.tsx`, `specs/ui/layout.md`, las pruebas de menú y de humo.
+- **Dependencias:** FE-24, FE-41. No toca el contrato: el servidor ya abre los catálogos que el formulario de reserva lee.
+- **Aceptación:** el menú del usuario es solo «Reservas»; el del técnico, Reservas, Recursos, Espacios y Reportes; el del administrador, todos menos Notificaciones; un usuario que llega a `/recursos`, `/espacios` o `/laboratorios` por la dirección vuelve a `/reservas`.
+- **Resultado:** `layout.md` ofrecía casi todo a todos los roles y mostraba «Investigación» a quien el servidor la deniega; se redefinió su tabla de visibilidad. Verificado: Vitest, y E2E contra el backend real con un usuario cuyo menú es exactamente «Reservas».
+
+---
+
+### FE-45 — Campanita de notificaciones con avisos emergentes · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** sacar las notificaciones del menú: una campanita en la cabecera, junto al perfil, que muestre lo pendiente y avise al entrar abajo a la derecha.
+- **Afectados:** `frontend/src/components/shell/{CentroDeAlertas,AppShell}.tsx`, `specs/ui/layout.md`.
+- **Dependencias:** FE-21, FE-32, FE-44. No toca el contrato: usa la bandeja y la marca de lectura de `notifications` §2.
+- **Aceptación:** la campanita cuenta lo no leído; su panel lista lo último y permite leer una (que lleva a su reserva), marcar todas y ver el historial; al entrar aparecen hasta tres avisos abajo a la derecha, una vez por sesión del navegador, que se cierran solos; una bandeja que falla no rompe la pantalla.
+- **Resultado:** un componente que consulta cada minuto con la pestaña visible, guarda en `sessionStorage` lo ya avisado (y funciona sin él), y deja `/notificaciones` como historial. El destino «Notificaciones» se quitó del menú. Verificado: 8 pruebas del componente, la del shell por rol y E2E en el navegador real.
+
+---
+
+### FE-46 — Formulario de reserva en un modal · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** pedir una reserva sin salir del listado, con un formulario más amable.
+- **Afectados:** `frontend/src/components/reservas/{NuevaReservaForm,ListadoReservas}.tsx`, `frontend/app/(app)/reservas/nueva/page.tsx`, `frontend/src/components/ui/Seccion.tsx`.
+- **Dependencias:** FE-25, FE-32, FE-33. No toca el contrato.
+- **Aceptación:** «Nueva reserva» abre el formulario en un modal sin cambiar de página; los pasos van numerados; la barra de acciones queda pegada al pie y siempre ofrece «Cancelar»; al guardar se abre el detalle de la reserva; `/reservas/nueva` sigue funcionando para enlaces directos.
+- **Resultado:** el formulario salió de la página a `NuevaReservaForm`, que usan la página y el modal. Los cuatro pasos («¿Qué quieres reservar?», «Detalles», «¿Para quién es?», «Últimos detalles») son una secuencia real, así que llevan número; dentro del modal no son tarjetas sino bloques separados por una línea, y la barra de acciones es el pie del modal. La disponibilidad consultada se muestra en una tarjeta. **No cubre:** cambiar los controles (el tipo sigue siendo una lista desplegable) para no romper el uso por teclado ni las pruebas.
 
 ---
 
@@ -616,7 +649,7 @@ Fase 3   FE-07                                    (referencia de estilo del rest
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
 Fase 6   FE-20/21 → FE-22/23
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43   (brechas frente a las reglas)
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46   (brechas frente a las reglas)
 ```
 
 Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).

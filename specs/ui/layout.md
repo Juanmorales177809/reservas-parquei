@@ -34,24 +34,32 @@ En viewport móvil y tablet la navegación no ocupa columna propia: se convierte
 ### Cabecera
 
 - **Contexto de pantalla** (título de la vista actual) a la izquierda.
-- **Estado de sesión** a la derecha, solo en escritorio: `correo · rol` seguido de «Cerrar sesión», como texto/enlace — no como un componente de badge, que `components.md` todavía no especifica. Se usa `correo`, no el nombre de la persona: `GET /api/auth/sesiones/actual` no devuelve nombre, solo lo hace `GET /api/perfil` del módulo usuarios, una dependencia que el shell no tiene hoy. Si el equipo decide mostrar el nombre real más adelante, es un cambio de texto que implica sumar esa llamada — no estructural, pero tampoco gratuito, y queda anotado en [`decisiones_pendientes_para_revision.md`](../../decisiones_pendientes_para_revision.md).
+- **Campanita de notificaciones** y **estado de sesión** a la derecha; la campanita también en móvil y el estado de sesión solo en escritorio: `correo · rol` seguido de «Cerrar sesión», como texto/enlace — no como un componente de badge, que `components.md` todavía no especifica. Se usa `correo`, no el nombre de la persona: `GET /api/auth/sesiones/actual` no devuelve nombre, solo lo hace `GET /api/perfil` del módulo usuarios, una dependencia que el shell no tiene hoy. Si el equipo decide mostrar el nombre real más adelante, es un cambio de texto que implica sumar esa llamada — no estructural, pero tampoco gratuito, y queda anotado en [`decisiones_pendientes_para_revision.md`](../../decisiones_pendientes_para_revision.md).
 - En móvil y tablet, la cabecera colapsada solo lleva el título de la pantalla y un botón de texto «Menú» que abre la navegación; el estado de sesión se muda dentro de ese panel, no compite por espacio con el título.
 
 ### Navegación
 
-Hasta ocho destinos, en este orden y con estos nombres: **Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Notificaciones, Reportes**. Auth no es un destino propio: su superficie autenticada (administración de cuentas e invitaciones) vive dentro de Administración.
+Siete destinos como máximo, en este orden y con estos nombres: **Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Reportes**. Auth no es un destino propio: su superficie autenticada (administración de cuentas e invitaciones) vive dentro de Administración. **Notificaciones ya no es un destino**: vive en la campanita de la cabecera (ver abajo).
 
-La visibilidad de cada destino se calcula en el momento de pintar la navegación, contra la respuesta viva de `GET /api/auth/sesiones/actual` para esa sesión — nunca contra una tabla precalculada que ignore la sesión real (`FE-06` lo exige explícitamente). La señal disponible para eso es `rol` — `sesiones/actual` no expone la lista de permisos concretos que en verdad gobierna cada operación, esos solo se conocen al llamar cada endpoint. Cada destino declara para qué roles aparece:
+*(Redefinido el 2026-10-01. Hasta entonces la tabla ofrecía casi todo a todos los roles y `Investigación` redirigía al usuario y al técnico porque su API es del administrador.)*
+
+La visibilidad de cada destino se calcula en el momento de pintar la navegación, contra la respuesta viva de `GET /api/auth/sesiones/actual` para esa sesión — nunca contra una tabla precalculada que ignore la sesión real (`FE-06` lo exige explícitamente). La señal disponible para eso es `rol` — `sesiones/actual` no expone la lista de permisos concretos que en verdad gobierna cada operación, esos solo se conocen al llamar cada endpoint. Cada destino declara para qué roles aparece, siguiendo la regla de roles fijos: **el usuario solo reserva, el técnico gestiona su laboratorio y el administrador todo**:
 
 | Destino | `USUARIO` | `TECNICO` | `ADMINISTRADOR` |
 |---|---|---|---|
-| Reservas, Espacios, Recursos, Investigación, Notificaciones | ✓ | ✓ | ✓ |
-| Reportes | | ✓ | ✓ |
-| Usuarios, Administración | | | ✓ |
+| Reservas | ✓ | ✓ | ✓ |
+| Recursos, Espacios, Reportes | | ✓ | ✓ |
+| Investigación, Usuarios, Administración | | | ✓ |
 
-Es una aproximación de grano grueso, no la autorización real: un destino visible puede seguir respondiendo `403` en una operación concreta si esa sesión no tiene el permiso puntual, y eso lo resuelve cada pantalla contra el backend, no este documento. Un destino no visible para el rol de la sesión **no aparece**; no se muestra deshabilitado, porque no es un estado de `Button` — sencillamente no es parte de la respuesta de esa sesión.
+Es una aproximación de grano grueso, no la autorización real: un destino visible puede seguir respondiendo `403` en una operación concreta, y eso lo resuelve cada pantalla contra el backend, no este documento. Un destino no visible para el rol de la sesión **no aparece**; no se muestra deshabilitado. Y no basta con ocultarlo: las rutas `/recursos`, `/espacios` y `/laboratorios` redirigen al usuario a `/reservas` si llega por la dirección. El formulario de reserva sigue leyendo esos catálogos por la API (el contrato los abre a cualquier cuenta autenticada), no por esas pantallas.
 
-Sin contador de notificaciones ni ningún otro indicador numérico en la navegación: requeriría un componente de badge que `components.md` todavía no especifica («Badge de estado/rol: Pendiente»). `Notificaciones` es, por ahora, un ítem de navegación como cualquier otro.
+### Campanita de notificaciones
+
+En la cabecera, a la izquierda del avatar y del estado de sesión, visible en escritorio y en móvil. Sustituye al destino «Notificaciones» del menú.
+
+- **Contador:** un indicador numérico sobre la campanita con lo que falta por leer (`9+` desde diez). Es la excepción documentada a la regla anterior de no tener contadores: el contador vive en la cabecera, no en la navegación.
+- **Panel:** al pulsarla se abre un panel bajo ella con lo último (hasta ocho), cada una con su título, texto y hora, y un punto en las no leídas. Pulsar una la marca como leída y lleva a su reserva. Ofrece «Marcar todas como leídas» y «Ver todas las notificaciones», que lleva al historial completo en `/notificaciones`. Se cierra con Escape o al pulsar fuera.
+- **Avisos emergentes:** al entrar, y cada vez que llega algo nuevo (se consulta cada minuto con la pestaña visible), aparecen abajo a la derecha hasta tres avisos con las notificaciones sin leer más recientes. Cada una avisa **una sola vez por sesión del navegador**, se cierra sola a los nueve segundos o con su botón, y al pulsarla lleva a su reserva. No tapan el contenido principal ni roban el foco (región `aria-live="polite"`).
 
 ### Región de contenido y acciones
 
