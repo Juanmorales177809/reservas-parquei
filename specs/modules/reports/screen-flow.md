@@ -2,17 +2,20 @@
 
 ## Alcance y referencias
 
-Conecta las tres superficies definidas en [screens.md](screens.md), a partir de [user-flow.md](user-flow.md), [business-rules.md](business-rules.md) y [data-model.md](data-model.md). No define URLs, pantallas externas ni nuevas operaciones.
+Conecta las cuatro superficies definidas en [screens.md](screens.md), a partir de [user-flow.md](user-flow.md), [business-rules.md](business-rules.md) y [data-model.md](data-model.md). No define URLs, pantallas externas ni nuevas operaciones.
 
 ## Entradas e inicio
 
-- **Acceso por rol:** el destino «Reportes» aparece a Técnico y Administrador ([layout.md](../../ui/layout.md)); un Usuario no lo ve. Es una aproximación de grano grueso: el permiso `reportes.consultar` y su ámbito los decide el servidor en cada consulta (`RN-AMB-03`).
+- **Acceso por rol:** el destino «Inicio» aparece a los tres roles y el destino «Reportes» a Técnico y Administrador ([layout.md](../../ui/layout.md)); un Usuario no ve «Reportes». Es una aproximación de grano grueso: el permiso `reportes.consultar` y su ámbito los decide el servidor en cada consulta (`RN-AMB-03`). El Usuario en «Inicio» solo ve accesos y nunca llama al resumen.
 - **Sin generación:** Reports no crea datos; toda actividad es una consulta iniciada por una persona (`RN-REP-02`).
 
 ## Consulta y exportación
 
 | Origen | Acción o decisión | Destino / resultado | Trazabilidad |
 |---|---|---|---|
+| Navegación | Abrir inicio | SCR-REP-04, con enlaces a los tres reportes | UF-REP-01 |
+| SCR-REP-04 | Consultar con filtros válidos | Misma pantalla, agregado con su previo | RN-VIS-01, RN-VIS-03 |
+| SCR-REP-04 | Consultar sin permiso (Usuario) | Accesos a reservas, sin sección de reportes | RN-AMB-03 |
 | Navegación | Abrir reportes | Portada de reportes, con acceso a SCR-REP-01, SCR-REP-02 y SCR-REP-03 | UF-REP-01 |
 | Portada | Elegir «Ocupación» | SCR-REP-01 | UF-REP-01 |
 | Portada | Elegir «Solicitudes» | SCR-REP-02 | UF-REP-01 |
@@ -27,13 +30,16 @@ Conecta las tres superficies definidas en [screens.md](screens.md), a partir de 
 
 ```mermaid
 flowchart TD
-    nav["Navegación · reportes"] --> portada["Portada de reportes"]
+    nav["Navegación · inicio"] --> SCR-REP-04["SCR-REP-04 · Inicio"]
+    SCR-REP-04 -->|"Ver detalle"| portada["Portada de reportes"]
+    nav2["Navegación · reportes"] --> portada
     portada --> SCR-REP-01["SCR-REP-01 · Ocupación"]
     portada --> SCR-REP-02["SCR-REP-02 · Solicitudes"]
     portada --> SCR-REP-03["SCR-REP-03 · Lista de espera"]
     SCR-REP-01 -->|"Consultar / paginar / exportar"| SCR-REP-01
     SCR-REP-02 -->|"Consultar / paginar / exportar"| SCR-REP-02
     SCR-REP-03 -->|"Consultar / paginar / exportar"| SCR-REP-03
+    SCR-REP-04 -->|"Consultar"| SCR-REP-04
 ```
 
 ## Cruces con otros módulos

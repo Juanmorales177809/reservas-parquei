@@ -66,12 +66,30 @@ No se amplían reglas, datos, contratos ni flujos. Reports no escribe nada: toda
 - **RN/SEC relacionadas:** `RN-REP`, `RN-AMB`, `RN-FIL`, `RN-OCU-05`, `RN-VIS`, `RN-EXP`, `RN-PRI`.
 - **Dependencias:** `reservations` (`horas_ejecucion`), `auth` (ámbito).
 
+## SCR-REP-04 — Panel de inicio
+
+- **User Flows de origen:** `UF-REP-01` (la consulta agregada; sin `UF-REP-02`: el inicio no se exporta).
+- **Actores:** los tres roles. Técnico y Administrador ven el resumen del periodo (`GET /api/reportes/resumen`, contrato §3.4); el Usuario ve accesos a sus reservas y nunca llama a ese endpoint (no ejerce ningún permiso, `FE-41`).
+- **Objetivo:** ver de un vistazo la demanda y el uso del periodo, con su comparación contra el periodo previo, y llegar a los reportes de detalle.
+- **Precondiciones:** cuenta autenticada y activa. La sección de reportes exige `reportes.consultar` con ámbito vigente; sin él solo se muestran los accesos.
+- **Información visible:** periodo consultado con su previo; tarjetas de indicadores (reservas actual/previo, solicitadas, horas actual/previo, ocupación actual/previo con `null` sin horario); tabla de estados (seis columnas); serie por fecha; barras por laboratorio y recursos más reservados; mapa de calor día×hora (cantidad, grid 7–19); enlaces a las tres pantallas de detalle.
+- **Entradas:** periodo (`desde`, `hasta`, ambos obligatorios) y unidad (quien tiene alcance por unidad ve ofrecida solo la suya). El periodo propone el mes en curso; la consulta es explícita.
+- **Acciones:** consultar. Sin paginación (el resumen no pagina) y sin exportar.
+- **Validaciones visibles:** periodo completo y `desde` no posterior a `hasta` (`RN-FIL-01`, `RN-FIL-02`); `porcentaje_ocupacion` ausente sin horario (`RN-OCU-06`); el mapa cuenta por asignación y solo dibuja celdas con valor.
+- **Estados:** sin consultar, consultando, resultado, vacío, denegado, periodo inválido, error.
+- **Errores y respuestas:** `422` por periodo ausente o invertido → corrección en el formulario; `403` → «no tienes acceso» sin revelar datos.
+- **Resultado/navegación:** permanece; conserva los filtros de la consulta. Es el aterrizaje tras el login (los tres roles).
+- **Backend:** una sola consulta agregada del ámbito del actor (`RN-AMB-01`, `RN-AMB-02`); sin cálculos propios.
+- **RN/SEC relacionadas:** `RN-REP`, `RN-AMB`, `RN-FIL`, `RN-EST-01`, `RN-OCU-04`, `RN-OCU-05`, `RN-OCU-06`, `RN-VIS`, `RN-PRI`.
+- **Dependencias:** `reservations`, `resources`, `espacios`, `researchs` (fuentes); `auth` (ámbito).
+- **Gráficos:** los de barras/serie usan una sola medida y un solo color (`--color-primary-1`); el mapa de calor usa una sola tinta con intensidad; `por_estado` es tabla, no torta de seis colores (la paleta de tokens no da seis series distinguibles, ver «Decisiones aplicadas»).
+
 ## Cobertura de todos los User Flows
 
 | User Flow revisado | Superficie |
 |---|---|
-| UF-REP-01 | SCR-REP-01, SCR-REP-02, SCR-REP-03 (un reporte por superficie: cambian los parámetros y las columnas) |
-| UF-REP-02 | Acción «exportar» de cada una de las tres superficies (no tiene pantalla propia: parte del reporte que se tiene a la vista) |
+| UF-REP-01 | SCR-REP-01, SCR-REP-02, SCR-REP-03 (un reporte por superficie: cambian los parámetros y las columnas), SCR-REP-04 (agregado del periodo) |
+| UF-REP-02 | Acción «exportar» de cada una de las tres superficies (no tiene pantalla propia: parte del reporte que se tiene a la vista; el inicio no se exporta) |
 
 ## Ambigüedades y límites de las fuentes
 

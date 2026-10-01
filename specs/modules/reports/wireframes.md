@@ -183,6 +183,68 @@ Origen:
 - **Salida correcta:** permanece.
 - **Errores:** en esta misma pantalla.
 
+## WF-REP-04 — Panel de inicio
+
+Origen:
+
+- SCR-REP-04.
+- UF-REP-01 (sin UF-REP-02: el inicio no se exporta).
+
+**Objetivo:** ver el agregado del periodo y llegar a los reportes. **Actor:** los tres roles (el Usuario solo ve accesos, sin sección de reportes).
+
+**Información visible:** periodo con su previo, tarjetas de indicadores, tabla de estados, serie por fecha, barras por laboratorio y recursos, mapa de calor, enlaces a las tres pantallas. **Entradas:** periodo y unidad. **Principal:** consultar. **Secundaria:** ninguna (sin exportar).
+
+### Estado principal
+
+```text
++----------------------------------------------------------------+
+| Inicio                                                         |
+|                                                                |
+| Desde [2026-09-01]  Hasta [2026-09-30]  Unidad [Todas v]        |
+| [Consultar]                                                    |
+|                                                                |
+| 1 sep 2026 – 30 sep 2026 · previo 2 ago – 31 ago 2026           |
+|                                                                |
+| (Reservas 96, antes 80) (Solicitadas 12)                       |
+| (Horas 412.5, antes 350.0) (Ocupación 38.4 %, antes —)          |
+|                                                                |
+| Por estado                                                     |
+| Solic. Aprob. Rechaz. En ejec. Finaliz. Cancel.                 |
+|   12     40      3       1       35       5                     |
+|                                                                |
+| Reservas por día                                               |
+| 1 sep ▇▇▇▇ 4 ···                                               |
+|                                                                |
+| Por laboratorio          Recursos más reservados               |
+| Metrología 96 · 38.4 %   Osciloscopio 14 ···                   |
+|                                                                |
+| Mapa de calor (cantidad, 7–19)                                  |
+| lun 9h ▇▇▇ 6 ···                                               |
+|                                                                |
+| Ver: [Ocupación] [Solicitudes] [Lista de espera]                |
+|                                                                |
+| {Resultado}                                                     |
++----------------------------------------------------------------+
+```
+
+### Estados alternos
+
+| Estado | Variación visual | Compatibilidad API |
+|---|---|---|
+| Sin consultar | Solo el formulario y los enlaces a los reportes | — |
+| Consultando | «Consultando…» | `GET /api/reportes/resumen`, §3.4 |
+| Resultado | Indicadores, tablas, gráficos y enlaces | `200 OK` |
+| Usuario sin permiso | Accesos a «Mis reservas» y «Nueva reserva», sin sección de reportes ni llamada al endpoint | — (`FE-41`) |
+| Sin información | «Sin información para los criterios seleccionados.» sin gráficos | `200 OK` con secciones vacías |
+| Periodo inválido | Mensaje junto a las fechas | `422 VALIDACION` |
+| Denegado | «No tienes acceso a los reportes.» | `403 NO_AUTORIZADO` |
+
+### Navegación
+
+- **Entrada:** primer destino del menú tras el login (los tres roles).
+- **Salida correcta:** permanece; los enlaces llevan a cada reporte.
+- **Errores:** en esta misma pantalla, sin revelar datos fuera del ámbito.
+
 ## Dependencias y límites del cierre visual
 
 | Pantallas | Información pendiente o límite | Tratamiento en los wireframes |
@@ -200,3 +262,4 @@ Origen:
 | WF-REP-01 | SCR-REP-01 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado por dimensión, sin información, periodo inválido, denegado, exportando |
 | WF-REP-02 | SCR-REP-02 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado, sin periodo, periodo inválido, sin información, denegado |
 | WF-REP-03 | SCR-REP-03 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado, periodo inválido, sin información, denegado |
+| WF-REP-04 | SCR-REP-04 | UF-REP-01 | Sin consultar, consultando, resultado, usuario sin permiso, sin información, periodo inválido, denegado |

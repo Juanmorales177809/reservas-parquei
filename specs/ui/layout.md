@@ -39,7 +39,7 @@ En viewport móvil y tablet la navegación no ocupa columna propia: se convierte
 
 ### Navegación
 
-Siete destinos como máximo, en este orden y con estos nombres: **Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Reportes**. Auth no es un destino propio: su superficie autenticada (administración de cuentas e invitaciones) vive dentro de Administración. **Notificaciones ya no es un destino**: vive en la campanita de la cabecera (ver abajo).
+Ocho destinos como máximo, en este orden y con estos nombres: **Inicio, Reservas, Recursos, Espacios, Investigación, Usuarios, Administración, Reportes**. Auth no es un destino propio: su superficie autenticada (administración de cuentas e invitaciones) vive dentro de Administración. **Notificaciones ya no es un destino**: vive en la campanita de la cabecera (ver abajo). «Inicio» es el aterrizaje tras el login para los tres roles: quien gestiona ve el resumen del periodo (SCR-REP-04) y el Usuario solo accesos a sus reservas.
 
 *(Redefinido el 2026-10-01. Hasta entonces la tabla ofrecía casi todo a todos los roles y `Investigación` redirigía al usuario y al técnico porque su API es del administrador.)*
 
@@ -47,6 +47,7 @@ La visibilidad de cada destino se calcula en el momento de pintar la navegación
 
 | Destino | `USUARIO` | `TECNICO` | `ADMINISTRADOR` |
 |---|---|---|---|
+| Inicio | ✓ | ✓ | ✓ |
 | Reservas | ✓ | ✓ | ✓ |
 | Recursos, Espacios, Reportes | | ✓ | ✓ |
 | Investigación, Usuarios, Administración | | | ✓ |

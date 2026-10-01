@@ -369,6 +369,24 @@ El módulo central y el más complejo: cinco tipos de reserva con estrategias di
 - **Aceptación:** igual criterio que FE-09. Ningún gráfico usa un color fuera de la paleta de [`design-tokens.md`](../../ui/design-tokens.md).
 - **Resultado:** portada `/reportes` y tres pantallas (`/reportes/ocupacion`, `/solicitudes`, `/lista-espera`) sobre un solo `ReporteClient` guiado por el tipo de informe. Ocupación lleva tabla y gráfico Recharts de barras horizontales de una sola medida y un solo color (`--color-primary-1`); una fila sin porcentaje no dibuja barra y se enumera bajo el gráfico; solicitudes y lista de espera son solo tabla. Unidad, espacio, recurso, proyecto y semillero se eligen por nombre; el periodo propone el mes en curso y la consulta es explícita; exportar CSV/Excel usa los filtros de la **última consulta**, no los del formulario; el vacío, el `422` y el `403` se muestran en la misma pantalla. **Hallazgo cerrado de paso:** `GET /api/unidades` exige `unidades.administrar`, así que un Usuario o Técnico no podía ni elegir la unidad al reservar. Se añadió `GET /api/laboratorios` (contrato de resources §3.0, legible por cualquier cuenta) y `SelectorUnidad` recurre a él ante un `403`; el selector de proyecto y semillero de reportes usa las opciones de la propia cuenta cuando la lista administrativa le está vedada. Quien tiene alcance por unidad ve ofrecidas solo las suyas. Verificado: Vitest 112/112, `tsc` y lint limpios, backend 116/116 contra `reservas_test`, y `e2e/reportes.spec.ts` (8/8) con tabla, gráfico y descarga reales.
 
+### FE-47 — Especificación de pantalla — inicio · **cerrada**
+
+- **Tipo:** Especificación
+- **Objetivo:** `SCR-REP-04`, `WF-REP-04` y su `screen-flow.md`: el panel de inicio con el agregado del periodo (`GET /api/reportes/resumen`, contrato §3.4) para quien gestiona y accesos para el Usuario.
+- **Afectados:** `specs/modules/reports/screens.md`, `wireframes.md`, `screen-flow.md`, `specs/ui/layout.md` (destino «Inicio» primero, para los tres roles).
+- **Dependencias:** FE-22, contrato §3.4 (corregido antes: mapa por cantidad en grid 7–19, top por asignación, Inicio para los tres roles).
+- **Aceptación:** `python tools/validar.py` en 0 fallas; ningún gráfico usa más de una tinta de datos fuera de `--color-primary-1`; `por_estado` es tabla.
+- **Resultado:** `SCR-REP-04` (indicadores con previo, seis estados, serie por fecha, barras por laboratorio y recursos, mapa de calor por cantidad, enlaces a los tres reportes; sin paginación ni exportación) y `WF-REP-04` con sus estados (incluido Usuario sin permiso, sin llamada al endpoint). `layout.md` suma «Inicio» como primer destino de los tres roles y aterrizaje tras el login. Verificado: `python tools/validar.py` en 0 fallas.
+
+### FE-48 — Implementación — inicio · **cerrada**
+
+- **Tipo:** Implementación
+- **Objetivo:** la pantalla `/inicio` funcionando contra el backend real, y el login aterriza en ella para los tres roles.
+- **Afectados:** `frontend/app/(app)/inicio/**`, `frontend/src/lib/reportes-api.ts` (`consultarResumen`), `frontend/src/components/shell/nav-items.ts`, `AppShell.tsx` (icono), `frontend/app/(auth)/login/page.tsx` (destino), `frontend/e2e/inicio.spec.ts`.
+- **Dependencias:** FE-47, API-20. No toca el contrato.
+- **Aceptación:** tras el login se llega a `/inicio`; quien gestiona ve indicadores, tablas y gráficos del periodo con su previo; el Usuario ve accesos sin llamar al resumen; `tsc --noEmit` limpio y pruebas en verde. Ningún gráfico usa un color fuera de [`design-tokens.md`](../../ui/design-tokens.md).
+- **Resultado:** `app/(app)/inicio/page.tsx` (Server Component que pasa `rol` y `unidades_autorizadas`) + `InicioClient` (formulario con mes en curso, tarjetas de indicadores con previo, tabla de seis estados, serie por fecha y barras con Recharts en `--color-primary-1`, mapa de calor por cantidad en rejilla de una sola tinta, enlaces a los tres reportes; el Usuario ve accesos sin llamada al endpoint) y `GraficosInicio` aparte. «Inicio» primero en `nav-items.ts` para los tres roles, con icono en `AppShell`; login redirige a `/inicio` (salvo actualización inicial pendiente). Verificado: `tsc` y `lint` limpios, Vitest 155/155 (6 pruebas nuevas: 4 de `InicioClient`, 2 de `GraficosInicio`), backend 129/129, y `e2e/inicio.spec.ts` 3/3 más suite completa 80 passed / 4 skipped (flujo-despliegue, solo pila limpia) contra la pila reconstruida con `reservas_e2e`. **Hallazgo de paso:** un `beforeEach(() => mock.mockReset())` sin llaves devuelve el mock y Vitest lo ejecuta como limpieza, con promesa rechazada sin manejar — documentado en la prueba.
+
 ---
 
 ## Fase 7 — Brechas frente a las especificaciones
@@ -648,7 +666,7 @@ Fase 2   FE-05 → FE-06
 Fase 3   FE-07                                    (referencia de estilo del resto)
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
-Fase 6   FE-20/21 → FE-22/23
+Fase 6   FE-20/21 → FE-22/23 → FE-47/48
 Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46   (brechas frente a las reglas)
 ```
 
