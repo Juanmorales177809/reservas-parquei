@@ -89,3 +89,42 @@ El riesgo propio de este módulo es **el número que miente**: un cero donde deb
 - **Cubre:** `RN-EXP-01`, `RN-EXP-05`
 - **Caso:** se consulta un reporte con filtros y se exporta con los mismos.
 - **Esperado:** el archivo contiene exactamente las filas de la consulta, con el mismo ámbito aplicado.
+
+---
+
+## Resumen para el inicio
+
+### T-REP-11 — El resumen trae las seis secciones y los seis estados
+
+- **Nivel:** contrato
+- **Cubre:** `RN-EST-01`, `RN-OCU-05`
+- **Caso:** se pide `GET /api/reportes/resumen` con un periodo válido y reservas en dos estados.
+- **Esperado:** `200` con `resumen` (con su periodo previo), `indicadores`, `por_estado` con las seis claves siempre, `por_fecha`, `por_laboratorio`, `recursos_mas_reservados` y `ocupacion_dia_hora`.
+
+### T-REP-12 — El Técnico solo ve su unidad en el resumen
+
+- **Nivel:** contrato
+- **Cubre:** `RN-AMB-01`, `RN-AMB-05`
+- **Caso:** un Técnico pide el resumen sin filtro y con el `id_unidad` de otra unidad.
+- **Esperado:** el primero llega acotado a su unidad; el segundo se deniega con `403 NO_AUTORIZADO`.
+
+### T-REP-13 — El resumen exige un periodo válido
+
+- **Nivel:** contrato
+- **Cubre:** `RN-FIL-01`, `RN-FIL-02`
+- **Caso:** se pide el resumen sin periodo y con `desde` posterior a `hasta`.
+- **Esperado:** `422 VALIDACION` en ambos casos.
+
+### T-REP-14 — Sin permiso no hay resumen
+
+- **Nivel:** contrato
+- **Cubre:** `RN-AMB-03`
+- **Caso:** una cuenta sin `reportes.consultar` pide el resumen.
+- **Esperado:** `403 NO_AUTORIZADO`, sin revelar datos.
+
+### T-REP-15 — El resumen no inventa porcentajes
+
+- **Nivel:** servicio
+- **Cubre:** `RN-OCU-06`, `RN-CON-04`
+- **Caso:** se pide el resumen de una unidad sin horario de atención definido y con una reserva de uso.
+- **Esperado:** sus horas aparecen y `porcentaje_ocupacion` es `null`, nunca cero, también en los indicadores.

@@ -1,4 +1,4 @@
-"""Servicio de reports (API-19): agregados de solo lectura.
+"""Servicio de reports (API-19, API-20): agregados de solo lectura.
 
 No modifica nada (RN-REP-02/06, RN-EST-04): calcula sobre filas existentes.
 Horas coherentes con fechas y horarios registrados (RN-OCU-02); sin horario
@@ -301,3 +301,185 @@ def exportar(db, tipo: str, dimension: str | None, desde: str | None, hasta: str
     buffer = _io.BytesIO()
     libro.save(buffer)
     return buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", f"reporte-{tipo}.xlsx"
+
+
+def _periodo_previo(d0: date, d1: date) -> tuple[date, date]:
+    """Igual duración que termina el día anterior a `desde` (§3.4)."""
+    duracion = (d1 - d0).days + 1
+    hasta_prev = d0 - timedelta(days=1)
+    return hasta_prev - timedelta(days=duracion - 1), hasta_prev
+
+
+def resumen(db, desde: str | None, hasta: str | None, filtros: dict, contexto: ContextoAutenticado) -> dict:
+    """API-20 §3.4: indicadores y distribuciones del periodo en una sola consulta.
+
+    No introduce cálculos propios: reutiliza demanda (`solicitudes`, RN-OCU-05),
+    uso (`ocupacion`, RN-OCU-04), horario histórico (RN-LAB-08) y `null` sin
+    horario (RN-OCU-06). Solo lectura (RN-REP-02).
+    """
+    from math import ceil as _ceil
+
+    d0, d1 = _parse_periodo(desde, hasta, obligatorio=True)
+    assert d0 is not None and d1 is not None
+    d0p, d1p = _periodo_previo(d0, d1)
+    unidades = _unidades_en_ambito(db, contexto, filtros.get("id_unidad"))
+    filas = repo.reservas_base(db, unidades, None)
+    ids = [r.id for r, _, _ in filas]
+    det_esp = repo.detalles_espacio(db, ids)
+    det_int = repo.detalles_internos(db, ids)
+    det_cam = repo.detalles_campus(db, ids)
+    det_ext = repo.detalles_externos(db, ids)
+    asign = repo.asignaciones_activas(db, ids)
+
+    def _franja(rid: int, tipo: str):
+        if tipo == "ESPACIO":
+            d = det_esp.get(rid)
+            return ("fecha", d.fecha, d.hora_inicio, d.hora_fin) if d else None
+        if tipo == "RECURSO_INTERNO":
+            d = det_int.get(rid)
+            return ("fecha", d.fecha, d.hora_inicio, d.hora_fin) if d else None
+        if tipo == "RECURSO_CAMPUS":
+            d = det_cam.get(rid)
+            return ("rango", d.fecha_salida, d.fecha_devolucion_estimada) if d else None
+        if tipo == "RECURSO_EXTERNO":
+            d = det_ext.get(rid)
+            return ("rango", d.fecha_salida, d.fecha_devolucion_estimada) if d else None
+        return None
+
+    def _cruza(tipo: str, rid: int, a: date, b: date) -> bool:
+        f = _franja(rid, tipo)
+        if f is None:
+            return True  # lista de espera: sin fecha, siempre suma
+        if f[0] == "fecha":
+            return a <= f[1] <= b
+        return f[1] <= b and f[2] >= a
+
+    def _horas(tipo: str, rid: int, a: date, b: date) -> float:
+        f = _franja(rid, tipo)
+        if f is None:
+            return 0.0
+        if f[0] == "fecha":
+            return _horas_franja(f[1], f[2], f[3], a, b)
+        return _dias_solapados(f[1], f[2], a, b) * 24.0
+
+    def _es_uso(estado: str) -> bool:
+        return estado in _ESTADOS_OCUPACION
+
+    # --- demanda y uso por periodo ---
+    dem_actual = [(r, t, e) for r, t, e in filas if _cruza(t, r.id, d0, d1)]
+    dem_previa = [(r, t, e) for r, t, e in filas if _cruza(t, r.id, d0p, d1p)]
+    uso_actual = [(r, t, e) for r, t, e in dem_actual if _es_uso(e)]
+    uso_previo = [(r, t, e) for r, t, e in dem_previa if _es_uso(e)]
+    horas_actual = round(sum(_horas(t, r.id, d0, d1) for r, t, _ in uso_actual), 2)
+    horas_previa = round(sum(_horas(t, r.id, d0p, d1p) for r, t, _ in uso_previo), 2)
+    solicitadas = sum(1 for _, _, e in dem_actual if e == "SOLICITADA")
+
+    unidades_filas = repo.unidades(db, unidades)
+    versiones_por_unidad: dict[int, list] = {}
+    for u in unidades_filas:
+        versiones_por_unidad[u.id_unidad] = repo.historico_horario(db, u.id_unidad)
+
+    def _ocupacion_total(pares, a: date, b: date) -> float | None:
+        total_uso = sum(_horas(t, r.id, a, b) for r, t, _ in pares)
+        disps = [_horas_atencion(db, u.id_unidad, a, b) for u in unidades_filas]
+        validas = [d for d in disps if d is not None]
+        if not validas:
+            return None
+        return _porcentaje(total_uso, sum(validas))
+
+    # --- por_estado (seis claves siempre) ---
+    por_estado = {k: 0 for k in _ESTADOS_SOLICITUD}
+    for _, _, e in dem_actual:
+        por_estado[e.lower()] = por_estado.get(e.lower(), 0) + 1
+
+    # --- por_fecha (franja; la salida en campus/externo) ---
+    por_dia: dict[date, int] = {}
+    for r, t, _ in dem_actual:
+        f = _franja(r.id, t)
+        if f is None:
+            continue
+        fecha = f[1]
+        if d0 <= fecha <= d1:
+            por_dia[fecha] = por_dia.get(fecha, 0) + 1
+    por_fecha = [{"fecha": f.isoformat(), "reservas": por_dia[f]} for f in sorted(por_dia)]
+
+    # --- por_laboratorio ---
+    por_lab = []
+    for u in unidades_filas:
+        dem_u = [(r, t, e) for r, t, e in dem_actual if r.id_unidad == u.id_unidad]
+        uso_u = [(r, t, e) for r, t, e in uso_actual if r.id_unidad == u.id_unidad]
+        h_u = round(sum(_horas(t, r.id, d0, d1) for r, t, _ in uso_u), 2)
+        por_lab.append({
+            "id_unidad": u.id_unidad, "nombre": u.nombre,
+            "reservas": len(dem_u), "horas_reservadas": h_u,
+            "porcentaje_ocupacion": _porcentaje(h_u, _horas_atencion(db, u.id_unidad, d0, d1)),
+        })
+    por_lab.sort(key=lambda d: d["id_unidad"])
+
+    # --- recursos más reservados: por asignación (una reserva con N suma N) ---
+    from collections import Counter as _Counter
+    conteo: _Counter[int] = _Counter()
+    for r, t, _ in uso_actual:
+        for a in asign.get(r.id, []):
+            conteo[a.recurso_id] += 1
+    top = sorted(conteo.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+    mas_reservados = [
+        {"recurso_id": rid, "nombre": repo.nombre_recurso(db, rid), "reservas": n}
+        for rid, n in top
+    ]
+
+    # --- mapa de calor: cantidad por día×hora, grid 7–19, dentro del horario ---
+    calor: _Counter[tuple[int, int]] = _Counter()
+    for r, t, _ in uso_actual:
+        if t not in ("ESPACIO", "RECURSO_INTERNO"):
+            continue
+        f = _franja(r.id, t)
+        if f is None or f[0] != "fecha":
+            continue
+        _, fecha, h0, h1 = f
+        if not (d0 <= fecha <= d1):
+            continue
+        versiones = versiones_por_unidad.get(r.id_unidad, [])
+        version = next(
+            (v for v in versiones
+             if v.vigente_desde.date() <= fecha and (v.vigente_hasta is None or fecha < v.vigente_hasta.date())),
+            None,
+        )
+        if version is None:
+            continue
+        if (fecha.weekday() + 1) % 7 not in (version.dias_atencion or []):
+            continue
+        ap = version.hora_apertura.hour * 60 + version.hora_apertura.minute
+        ci = version.hora_cierre.hour * 60 + version.hora_cierre.minute
+        dia = (fecha.weekday() + 1) % 7
+        inicio = max(7, h0.hour)
+        fin = min(20, _ceil(h1.hour + h1.minute / 60))
+        for h in range(inicio, fin):
+            if ap <= h * 60 < ci:
+                calor[(dia, h)] += 1
+    dia_hora = [
+        {"dia": dia, "hora": hora, "cantidad": calor[(dia, hora)]}
+        for dia in range(7) for hora in range(7, 20) if calor[(dia, hora)]
+    ]
+
+    return {
+        "resumen": {
+            "desde": d0.isoformat(), "hasta": d1.isoformat(),
+            "desde_previo": d0p.isoformat(), "hasta_previo": d1p.isoformat(),
+            "filtros": {k: v for k, v in filtros.items() if v is not None},
+        },
+        "indicadores": {
+            "reservas": {"actual": len(dem_actual), "previo": len(dem_previa)},
+            "solicitadas": solicitadas,
+            "horas_reservadas": {"actual": horas_actual, "previo": horas_previa},
+            "porcentaje_ocupacion": {
+                "actual": _ocupacion_total(uso_actual, d0, d1),
+                "previo": _ocupacion_total(uso_previo, d0p, d1p),
+            },
+        },
+        "por_estado": por_estado,
+        "por_fecha": por_fecha,
+        "por_laboratorio": por_lab,
+        "recursos_mas_reservados": mas_reservados,
+        "ocupacion_dia_hora": dia_hora,
+    }

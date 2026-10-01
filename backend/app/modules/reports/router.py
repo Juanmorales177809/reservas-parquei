@@ -86,6 +86,17 @@ def lista_espera(
     return schemas.ReporteRespuesta(resumen=resumen, **pagina)
 
 
+@router.get("/resumen", response_model=schemas.ResumenRespuesta)
+def resumen(
+    request: Request,
+    db: Session = Depends(get_db),
+    contexto: ContextoAutenticado = Depends(obtener_contexto),
+) -> schemas.ResumenRespuesta:
+    """§3.4. Panel de inicio en una sola consulta; solo periodo e id_unidad."""
+    desde, hasta = _periodo(request)
+    return schemas.ResumenRespuesta(**service.resumen(db, desde, hasta, _filtros(request), contexto))
+
+
 @router.get("/{tipo}/exportacion")
 def exportar(
     tipo: str,

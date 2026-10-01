@@ -22,7 +22,7 @@ Aplica las [convenciones transversales](../README.md). Aquí solo se documenta l
 
 ## 2. Parámetros comunes de un reporte
 
-Los tres endpoints de la sección 3 comparten esta solicitud.
+Los endpoints de la sección 3 comparten esta solicitud (§3.4 solo usa el periodo y `id_unidad`).
 
 | Parámetro | Valor |
 |---|---|
@@ -138,6 +138,49 @@ Las horas proceden de `horas_ejecucion`, que el Técnico registra al finalizar c
 ```
 
 Este endpoint no admite `dimension`: la agregación es siempre por unidad.
+
+### 3.4 `GET /api/reportes/resumen`
+
+Panel de inicio: los indicadores y distribuciones principales del periodo en una sola consulta (pantalla «Inicio», `FE-47`/`FE-48`, visible para los tres roles; la sección de reportes solo la consulta quien tiene el permiso). **No introduce reglas ni cálculos propios**: cada cifra es la que ya dan los reportes anteriores, agregada para el conjunto del ámbito del actor (`RN-AMB-01`, `RN-AMB-02`). Solo lectura. Permiso: `reportes.consultar`. Parámetros: `desde` y `hasta`, obligatorios (`RN-FIL-01`), e `id_unidad`, opcional (`RN-FIL-05`). Un periodo inválido responde igual que en §2. La pantalla «Inicio» del `USUARIO` no llama a este endpoint (no ejerce ningún permiso, `FE-41`): muestra accesos a sus reservas.
+
+Cuentan como **demanda** todas las reservas cuya franja cruza el periodo, en cualquier estado (como `solicitudes`, `RN-OCU-05`). Cuentan como **uso** —horas, ocupación, mapa de calor y recursos más reservados— únicamente `APROBADA`, `EN_EJECUCION` y `FINALIZADA` (`RN-OCU-04`).
+
+El **periodo previo** es el de igual duración que termina el día anterior a `desde`; sirve para comparar y se calcula con los mismos criterios.
+
+**`200 OK`**
+
+```json
+{
+  "resumen": {
+    "desde": "2026-09-01", "hasta": "2026-09-30",
+    "desde_previo": "2026-08-02", "hasta_previo": "2026-08-31",
+    "filtros": { "id_unidad": 7 }
+  },
+  "indicadores": {
+    "reservas": { "actual": 96, "previo": 80 },
+    "solicitadas": 12,
+    "horas_reservadas": { "actual": 412.5, "previo": 350.0 },
+    "porcentaje_ocupacion": { "actual": 38.4, "previo": null }
+  },
+  "por_estado": { "solicitada": 12, "aprobada": 40, "rechazada": 3, "en_ejecucion": 1, "finalizada": 35, "cancelada": 5 },
+  "por_fecha": [{ "fecha": "2026-09-01", "reservas": 4 }],
+  "por_laboratorio": [
+    { "id_unidad": 7, "nombre": "Laboratorio de Metrología", "reservas": 96, "horas_reservadas": 412.5, "porcentaje_ocupacion": 38.4 }
+  ],
+  "recursos_mas_reservados": [{ "recurso_id": 42, "nombre": "Osciloscopio", "reservas": 14 }],
+  "ocupacion_dia_hora": [{ "dia": 1, "hora": 9, "cantidad": 6 }]
+}
+```
+
+| Campo | Qué es |
+|---|---|
+| `indicadores.solicitadas` | Reservas del periodo todavía en `SOLICITADA`: lo que espera una decisión |
+| `indicadores.porcentaje_ocupacion` | Horas de uso sobre las horas de atención de las unidades del ámbito que tienen horario en el periodo. **`null` si ninguna lo tiene**, nunca un cero (`RN-OCU-06`) |
+| `por_estado` | Los seis estados del catálogo de reservations, siempre presentes, con cero cuando no hay (`RN-EST-01`) |
+| `por_fecha` | Reservas por día de su franja (la salida, en las de campus y externas), ordenadas por fecha; los días sin reservas se omiten. La lista de espera no tiene fecha y no aparece aquí |
+| `por_laboratorio` | Una fila por unidad del ámbito, con su demanda, sus horas de uso y su ocupación (`null` sin horario) |
+| `recursos_mas_reservados` | Hasta cinco recursos con más reservas de uso, de mayor a menor; en empate, por `recurso_id`. Cuenta por asignación (`reserva_recursos`): una reserva con N recursos suma N, como el panel anterior |
+| `ocupacion_dia_hora` | Reservas de uso por día de la semana (`0` domingo a `6` sábado, el mismo criterio que `dias_atencion`) y hora del día (`7` a `19`, el grid del panel anterior); solo las horas dentro del horario de atención de cada laboratorio. Se omiten las celdas en cero; las horas fuera del grid cuentan en la ocupación global pero no se dibujan |
 
 ---
 
