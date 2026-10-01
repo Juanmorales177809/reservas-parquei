@@ -1,3 +1,16 @@
+# Reservas Parquei — pila completa: base de datos, preparación de la base, backend y frontend.
+#
+#   cp .env.example .env        # y completar los valores marcados como OBLIGATORIOS
+#   docker compose up -d --build
+#   docker compose exec backend python -m app.scripts.crear_administrador --correo admin@su-dominio
+#
+# Orden de arranque (lo garantiza depends_on):
+#   db (sana) -> migrar y ajustar_volumenes (terminan bien) -> backend (sano) -> frontend
+#
+# Solo el frontend se publica al exterior (puerto FRONTEND_HOST_PORT): el navegador habla con él y él reenvía
+# /api al backend por la red interna. La base de datos nunca se publica. Para TLS, ponga un proxy inverso
+# (Caddy, nginx, Traefik) delante del frontend; vea DESPLIEGUE.md.
+
 services:
   db:
     image: postgres:13
@@ -18,13 +31,112 @@ services:
       retries: 10
       start_period: 10s
 
+  # Deja la base lista antes del backend: en una base vacía construye el esquema y carga los catálogos; en una
+  # que ya lo tiene, solo aplica migraciones pendientes. Nunca borra. Termina y sale (no es un servicio vivo).
+  migrar:
+    image: postgres:13
+    container_name: reservas_migrar
+    restart: "no"
+    entrypoint: ["sh", "/migraciones/aplicar.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-reservas_db}
+      CARGAR_DATOS_LIA: ${CARGAR_DATOS_LIA:-true}
+      ENTORNO: ${ENTORNO:-desarrollo}
+      JWT_SECRET: ${JWT_SECRET:-}
+    volumes:
+      - ./backend/migrations:/migraciones:ro
+      - ./backend/seeds:/semillas:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - database_network
+
+  # El backend corre sin privilegios (usuario 10001). Un volumen de adjuntos creado por una versión anterior
+  # (que corría como root) quedaría sin poder escribirse: este servicio de un solo uso le devuelve el dueño.
+  # En un volumen nuevo no cambia nada.
+  ajustar_volumenes:
+    image: alpine:3.20
+    container_name: reservas_ajustar_volumenes
+    restart: "no"
+    user: root
+    command: ["chown", "-R", "10001:10001", "/adjuntos"]
+    volumes:
+      - reserva_adjuntos_data:/adjuntos
+
+  backend:
+    build:
+      context: ./backend
+    container_name: reservas_backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      # Sin valor por defecto real: security.py aborta al firmar si llega vacío, y en ENTORNO=produccion el
+      # servicio `migrar` se niega a continuar con un valor vacío o de ejemplo.
+      JWT_SECRET: ${JWT_SECRET}
+      # Las cookies de sesión son `Secure` y el navegador solo las envía por HTTPS (o localhost). Si sirve la
+      # aplicación por HTTP plano, ponga COOKIE_SECURE=false en .env; no se recomienda fuera de una red interna.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # Adjuntos de lista de espera: disco local bajo un volumen con nombre (un solo backend por ahora).
+      ADJUNTOS_STORAGE_DIR: /code/storage/reserva_adjuntos
+      # Correo saliente (API-18) y base de los enlaces de un solo uso (invitación, recuperación).
+      EMAIL_ENABLED: ${EMAIL_ENABLED:-true}
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-log}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    volumes:
+      - reserva_adjuntos_data:/code/storage/reserva_adjuntos
+    depends_on:
+      db:
+        condition: service_healthy
+      migrar:
+        condition: service_completed_successfully
+      ajustar_volumenes:
+        condition: service_completed_successfully
+    networks:
+      - application_network
+      - database_network
+    # Solo hacia el propio servidor por defecto: el tráfico público entra por el frontend.
+    ports:
+      - "${BACKEND_BIND:-127.0.0.1}:${BACKEND_HOST_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Fijado al compilar: el frontend reenvía /api a este nombre dentro de la red de compose.
+        BACKEND_URL: http://backend:8000
+    container_name: reservas_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - application_network
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+
+  # Herramienta opcional para inspeccionar la base. No arranca con `up`; se pide con el perfil:
+  #   docker compose --profile herramientas up -d pgadmin
   pgadmin:
     image: dpage/pgadmin4:8.14
     container_name: reservas_pgadmin
     restart: unless-stopped
+    profiles: ["herramientas"]
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@itm.edu.co}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-cambiar_esta_clave}
       PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT:-5050}
     depends_on:
       db:
@@ -35,48 +147,7 @@ services:
       - application_network
       - database_network
     ports:
-      - "${PGADMIN_HOST_PORT:-8085}:${PGADMIN_LISTEN_PORT:-5050}"
-
-  backend:
-    build:
-      context: ./backend
-    container_name: reservas_backend
-    restart: unless-stopped
-    environment:
-      # Solo lo que el backend usa hoy. Nada del arranque anterior
-      # (INITIAL_ADMIN_*, ALGORITHM): pertenecía a un modelo retirado, y cada
-      # BK-XX declara lo que necesite cuando lo necesite.
-      POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: "5432"
-      # BK-06: sin valor por defecto real. `${JWT_SECRET}` en blanco no rompe
-      # `docker compose up -d db` (Compose interpola todo el archivo aunque
-      # solo se pida ese servicio); es `security.py` quien aborta al firmar
-      # si llega vacío, no Compose al arrancar.
-      JWT_SECRET: ${JWT_SECRET}
-      # API-13 §2.5-2.7: sin proveedor de almacenamiento externo en el
-      # proyecto, los adjuntos de lista de espera se guardan en disco local
-      # bajo un volumen con nombre, no en el filesystem efímero del
-      # contenedor. Limitación documentada, igual que la de rate_limit en
-      # BK-07: un solo proceso/host: no hay más de un backend en producción
-      # todavía, así que no hace falta un almacenamiento compartido hoy.
-      ADJUNTOS_STORAGE_DIR: /code/storage/reserva_adjuntos
-    volumes:
-      - reserva_adjuntos_data:/code/storage/reserva_adjuntos
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - application_network
-      - database_network
-    ports:
-      - "${BACKEND_HOST_PORT:-8000}:8000"
-
-# El servicio frontend se reintroduce al construirlo de nuevo. Se retiro al
-# eliminar el codigo anterior, porque apuntaba a una carpeta que ya no existe
-# y rompia `docker compose up`.
+      - "127.0.0.1:${PGADMIN_HOST_PORT:-8085}:${PGADMIN_LISTEN_PORT:-5050}"
 
 volumes:
   postgres_data:

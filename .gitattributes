@@ -1,1 +1,2 @@
+# Los scripts de shell se ejecutan en contenedores Linux: siempre con saltos de línea LF.
 *.sh text eol=lf

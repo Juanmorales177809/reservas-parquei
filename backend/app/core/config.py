@@ -18,6 +18,10 @@ class Settings:
         # security.py aborta al arrancar en vez de firmar con un secreto
         # predecible. Para desarrollo local, docker-compose.yml lo declara.
         self.jwt_secret = os.environ.get("JWT_SECRET", "")
+        # Las cookies de sesión llevan `Secure` (SEC-SES-*): el navegador solo las envía por HTTPS (o por
+        # localhost). Un servidor que se sirva por HTTP plano, sin TLS delante, necesita COOKIE_SECURE=false
+        # o nadie podrá iniciar sesión; no se recomienda fuera de una red interna. Por defecto, seguras.
+        self.cookie_secure = os.environ.get("COOKIE_SECURE", "true").lower() != "false"
         # Vigencia del JWT de acceso en sí (vida corta; el cliente renueva
         # antes de que expire). No confundir con la vigencia máxima de la
         # sesión, que se comprueba contra auth.sesiones, no contra el token.

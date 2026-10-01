@@ -16,7 +16,8 @@ Sistema de reservas de espacios, equipos y recursos de laboratorio para el ITM.
 | [`tasks.md`](tasks.md) | El plan de implementación, que une los planes de base de datos, contratos y backend |
 | [`AGENTS.md`](AGENTS.md) | Cómo trabajar en este repositorio: qué documento manda, qué no se toca y cómo se valida un cambio |
 | [`tools/`](tools/) | Los scripts que comprueban que la especificación sea coherente y generan la matriz de trazabilidad |
-| `docker-compose.yml` | Levanta PostgreSQL y pgAdmin |
+| `docker-compose.yml` | Levanta la pila completa: PostgreSQL, preparación de la base, backend y frontend (pgAdmin opcional) |
+| [`DESPLIEGUE.md`](DESPLIEGUE.md) | Cómo desplegar en un servidor: variables, primer administrador, HTTPS, actualizaciones y copias de seguridad |
 
 La cadena es **`spec.md` → `architecture.md` → `plan.md` → `tasks.md`**: qué hace el producto, cómo está diseñado, cómo se construye y en qué orden.
 
@@ -53,10 +54,12 @@ Fijadas en [`specs/docs/architecture.md`](specs/docs/architecture.md) §3.
 ## Cómo empezar
 
 ```bash
-docker compose up -d db          # levanta PostgreSQL con el esquema ya aplicado
+cp .env.example .env             # y completar los valores (ver DESPLIEGUE.md)
+docker compose up -d --build     # base, backend y frontend; la base vacía se construye sola
+docker compose exec backend python -m app.scripts.crear_administrador --correo admin@su-dominio
 ```
 
-A partir de ahí, el orden está en [`tasks.md`](tasks.md). La primera tarea de código es `BK-01`: crear el proyecto del backend.
+La aplicación queda en `http://localhost:3000`. Para un servidor (variables obligatorias, HTTPS, actualizaciones, copias de seguridad), lea [`DESPLIEGUE.md`](DESPLIEGUE.md). El orden de las tareas está en [`tasks.md`](tasks.md).
 
 ## Cómo leer la especificación
 

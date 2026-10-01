@@ -137,7 +137,7 @@ def verificar_token_acceso(token: str) -> dict[str, Any]:
 def emitir_cookie_acceso(response: Response, token: str, vigencia_segundos: int) -> None:
     response.set_cookie(
         COOKIE_ACCESO, token,
-        max_age=vigencia_segundos, httponly=True, secure=True,
+        max_age=vigencia_segundos, httponly=True, secure=get_settings().cookie_secure,
         samesite="lax", path=RUTA_COOKIE_ACCESO,
     )
 
@@ -145,7 +145,7 @@ def emitir_cookie_acceso(response: Response, token: str, vigencia_segundos: int)
 def emitir_cookie_refresh(response: Response, secreto: str, vigencia_segundos: int) -> None:
     response.set_cookie(
         COOKIE_REFRESH, secreto,
-        max_age=vigencia_segundos, httponly=True, secure=True,
+        max_age=vigencia_segundos, httponly=True, secure=get_settings().cookie_secure,
         samesite="lax", path=RUTA_COOKIE_REFRESH,
     )
 
@@ -172,7 +172,7 @@ def asegurar_cookie_csrf(request: Request, response: Response) -> None:
         COOKIE_CSRF, token,
         max_age=get_settings().csrf_vigencia_segundos,
         httponly=False,  # rp_csrf es el único valor que el cliente debe leer
-        secure=True, samesite="lax", path="/",
+        secure=get_settings().cookie_secure, samesite="lax", path="/",
     )
 
 
