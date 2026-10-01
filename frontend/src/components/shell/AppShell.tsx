@@ -20,6 +20,12 @@ const ANILLO_FOCO =
 
 // Iconos de trazo, uno por destino del menú (FE-32). Decorativos: el texto del enlace es el nombre accesible.
 const ICONOS: Record<string, ReactNode> = {
+  "/inicio": (
+    <>
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10h5v-6h4v6h5V10" />
+    </>
+  ),
   "/reservas": (
     <>
       <rect x="3" y="4" width="18" height="18" rx="2" />

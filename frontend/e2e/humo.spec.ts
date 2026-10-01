@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { vigilar } from "./ayudas";
 
 const PUBLICAS_AUTENTICADO = [
-  "/reservas", "/reservas/nueva", "/recursos", "/espacios",
+  "/inicio", "/reservas", "/reservas/nueva", "/recursos", "/espacios",
   "/investigacion/actividades", "/investigacion/perfiles", "/investigacion/proyectos", "/investigacion/vinculaciones",
   "/notificaciones", "/notificaciones/preferencias",
   "/usuarios/perfil", "/usuarios/perfil/editar", "/usuarios/perfil/perfiles", "/usuarios/perfil/vinculaciones",

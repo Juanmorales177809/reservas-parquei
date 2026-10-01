@@ -11,8 +11,8 @@ for (const [rol, sesion] of [["administrador", "admin"], ["usuario", "usuario"]]
         as.map((a) => ({ href: (a as HTMLAnchorElement).getAttribute("href")!, texto: a.textContent!.trim() }))
       );
       if (rol === "usuario") {
-        // Decisión 2026-10-01: el usuario solo reserva.
-        expect(destinos.map((d) => d.texto)).toEqual(["Reservas"]);
+        // Inicio para los tres roles (FE-47); el usuario solo reserva.
+        expect(destinos.map((d) => d.texto)).toEqual(["Inicio", "Reservas"]);
       } else {
         expect(destinos.length).toBeGreaterThanOrEqual(5);
         expect(destinos.map((d) => d.texto)).not.toContain("Notificaciones"); // es la campanita

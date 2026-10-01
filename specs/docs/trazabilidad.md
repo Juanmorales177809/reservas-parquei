@@ -24,13 +24,13 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | administration | 62 | 62 | 57 | 19 | — |
 | auth | 89 | 85 | 89 | 44 | — |
 | espacios | 22 | 22 | 22 | 11 | — |
-| notifications | 60 | 49 | 50 | 15 | — |
-| reports | 58 | 58 | 27 | 20 | — |
+| notifications | 60 | 49 | 50 | 16 | — |
+| reports | 58 | 58 | 38 | 24 | — |
 | researchs | 20 | 20 | 20 | 10 | — |
-| reservations | 182 | 182 | 168 | 79 | — |
+| reservations | 182 | 182 | 171 | 79 | — |
 | resources | 57 | 33 | 44 | 22 | — |
 | usuarios | 19 | 19 | 19 | 4 | — |
-| **total** | **569** | **530** | **496** | **224** | **—** |
+| **total** | **569** | **530** | **510** | **229** | **—** |
 
 ---
 
@@ -86,7 +86,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 |---|---:|---|---|---|
 | `RN-CAL` ⚠ | 3 | 2/3 | 2/3 | — |
 | `RN-CNT` | 6 | 1/6 | — | — |
-| `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 1/4 |
+| `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 2/4 |
 | `RN-COR` | 7 | 1/7 | 2/7 | 2/7 |
 | `RN-DES` ⚠ | 6 | 1/6 | 1/6 | 1/6 |
 | `RN-EST` ⚠ | 5 | 3/5 | 1/5 | 5/5 |
@@ -100,17 +100,17 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 
 | Familia | Reglas | Contrato | Tarea | Prueba |
 |---|---:|---|---|---|
-| `RN-AMB` | 5 | 3/5 | — | 2/5 |
-| `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 1/4 |
+| `RN-AMB` | 5 | 5/5 | 2/5 | 4/5 |
+| `RN-CON` ⚠ | 4 | 4/4 | 1/4 | 2/4 |
 | `RN-CTX` ⚠ | 4 | 2/4 | 2/4 | 2/4 |
 | `RN-DIM` | 7 | 3/7 | — | — |
 | `RN-EST` ⚠ | 4 | 3/4 | 1/4 | 4/4 |
 | `RN-EXP` | 5 | 4/5 | familia | 2/5 |
-| `RN-FIL` | 5 | 4/5 | — | 1/5 |
+| `RN-FIL` | 5 | 4/5 | — | 2/5 |
 | `RN-HIS` ⚠ | 4 | 4/4 | — | — |
 | `RN-OCU` | 6 | 4/6 | 3/6 | 3/6 |
 | `RN-PRI` | 4 | 3/4 | — | 1/4 |
-| `RN-REP` ⚠ | 6 | 4/6 | — | 4/6 |
+| `RN-REP` ⚠ | 6 | 4/6 | 1/6 | 4/6 |
 | `RN-VIS` | 4 | 2/4 | 1/4 | — |
 
 ### researchs
@@ -135,7 +135,7 @@ Distingue dos fuerzas de evidencia, porque no son lo mismo:
 | `RN-PRO` | 6 | 2/6 | 2/6 | 6/6 |
 | `RN-PROP` | 7 | 5/7 | 3/7 | 3/7 |
 | `RN-REC` ⚠ | 3 | 1/3 | 1/3 | — |
-| `RN-REP` ⚠ | 3 | 2/3 | — | 1/3 |
+| `RN-REP` ⚠ | 3 | 2/3 | 1/3 | 1/3 |
 | `RN-RES` | 15 | 5/15 | 4/15 | 4/15 |
 | `RN-SAL` | 4 | familia | — | 1/4 |
 | `RN-TIP` | 6 | 4/6 | 4/6 | — |

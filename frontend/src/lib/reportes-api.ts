@@ -55,6 +55,40 @@ export function consultarReporte(tipo: TipoReporte, filtros: FiltrosReporte, pag
   );
 }
 
+// Contrato §3.4 (API-20): agregado del periodo para la pantalla «Inicio».
+export interface ResumenPeriodo {
+  desde: string;
+  hasta: string;
+  desde_previo: string;
+  hasta_previo: string;
+  filtros: Record<string, number>;
+}
+
+export interface ResumenRespuesta {
+  resumen: ResumenPeriodo;
+  indicadores: {
+    reservas: { actual: number; previo: number };
+    solicitadas: number;
+    horas_reservadas: { actual: number; previo: number };
+    porcentaje_ocupacion: { actual: number | null; previo: number | null };
+  };
+  por_estado: Record<string, number>;
+  por_fecha: { fecha: string; reservas: number }[];
+  por_laboratorio: {
+    id_unidad: number;
+    nombre: string;
+    reservas: number;
+    horas_reservadas: number;
+    porcentaje_ocupacion: number | null;
+  }[];
+  recursos_mas_reservados: { recurso_id: number; nombre: string; reservas: number }[];
+  ocupacion_dia_hora: { dia: number; hora: number; cantidad: number }[];
+}
+
+export function consultarResumen(filtros: Pick<FiltrosReporte, "desde" | "hasta" | "id_unidad">) {
+  return apiRequest<ResumenRespuesta>(`/api/reportes/resumen?${parametros(filtros)}`);
+}
+
 /**
  * §4.1. Descarga el archivo con los filtros de la última consulta. Va por `fetch` y no por un enlace para
  * poder mostrar el error del servidor en la pantalla en lugar de una página de JSON.

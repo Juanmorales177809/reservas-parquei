@@ -36,13 +36,12 @@ function FormularioLogin() {
     try {
       const sesion = await iniciarSesion({ correo, contrasena });
       setMensaje("Inicio de sesión correcto.");
-      // "La fuente no fija una pantalla de inicio de la aplicación"
-      // (screens.md, SCR-AUTH-01): Reservas es el primer destino de la
-      // navegación (specs/ui/layout.md) y sirve de destino por defecto
-      // hasta que exista una pantalla de inicio propia.
+      // SCR-REP-04 (FE-47): «Inicio» es el aterrizaje tras el login para los
+      // tres roles — quien gestiona ve el resumen del periodo y el Usuario
+      // solo accesos a sus reservas.
       const destino = sesion.actualizacion_inicial_pendiente
         ? "/usuarios/perfil"
-        : "/reservas";
+        : "/inicio";
       router.push(destino);
     } catch (error) {
       setMensaje(mensajeError(error));

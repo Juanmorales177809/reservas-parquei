@@ -17,9 +17,9 @@ test("contraseña incorrecta muestra error y no entra", async ({ page }) => {
 });
 
 // Un solo inicio de sesión para las dos comprobaciones: el backend limita a 5 intentos por cuenta cada 15 min.
-test("credenciales correctas entran a /reservas y la sesión viaja en cookie HttpOnly, no en localStorage", async ({ page, context }) => {
+test("credenciales correctas entran a /inicio y la sesión viaja en cookie HttpOnly, no en localStorage", async ({ page, context }) => {
   await entrar(page, ADMIN);
-  await expect(page).toHaveURL(/\/reservas/);
+  await expect(page).toHaveURL(/\/inicio/);
   const acceso = (await context.cookies()).find((c) => c.name === "rp_access");
   expect(acceso?.httpOnly).toBe(true);
   const guardado = await page.evaluate(() => JSON.stringify({ ...localStorage }));

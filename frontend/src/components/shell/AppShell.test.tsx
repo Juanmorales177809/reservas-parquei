@@ -31,27 +31,30 @@ function sesionDeEjemplo(rol: ContextoSesion["rol"]): ContextoSesion {
 
 describe("AppShell", () => {
   // Decisión 2026-10-01: el usuario solo reserva, el técnico gestiona su laboratorio y el administrador todo.
-  it("USUARIO solo ve Reservas", () => {
+  // «Inicio» es el aterrizaje tras el login para los tres roles (FE-47).
+  it("USUARIO solo ve Inicio y Reservas", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("USUARIO")}>
         <p>Pantalla</p>
       </AppShell>
     );
 
-    expect(screen.getByRole("link", { name: "Reservas" })).toBeInTheDocument();
+    for (const visible of ["Inicio", "Reservas"]) {
+      expect(screen.getByRole("link", { name: visible })).toBeInTheDocument();
+    }
     for (const oculto of ["Recursos", "Espacios", "Investigación", "Usuarios", "Administración", "Reportes", "Notificaciones"]) {
       expect(screen.queryByRole("link", { name: oculto })).toBeNull();
     }
   });
 
-  it("TECNICO ve Reservas, Recursos, Espacios y Reportes, y nada global", () => {
+  it("TECNICO ve Inicio, Reservas, Recursos, Espacios y Reportes, y nada global", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("TECNICO")}>
         <p>Pantalla</p>
       </AppShell>
     );
 
-    for (const visible of ["Reservas", "Recursos", "Espacios", "Reportes"]) {
+    for (const visible of ["Inicio", "Reservas", "Recursos", "Espacios", "Reportes"]) {
       expect(screen.getByRole("link", { name: visible })).toBeInTheDocument();
     }
     for (const oculto of ["Investigación", "Usuarios", "Administración"]) {
@@ -59,14 +62,14 @@ describe("AppShell", () => {
     }
   });
 
-  it("ADMINISTRADOR ve los siete destinos; las notificaciones son la campanita, no un destino", () => {
+  it("ADMINISTRADOR ve los ocho destinos; las notificaciones son la campanita, no un destino", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("ADMINISTRADOR")}>
         <p>Pantalla</p>
       </AppShell>
     );
 
-    for (const etiqueta of ["Reservas", "Recursos", "Espacios", "Investigación", "Usuarios", "Administración", "Reportes"]) {
+    for (const etiqueta of ["Inicio", "Reservas", "Recursos", "Espacios", "Investigación", "Usuarios", "Administración", "Reportes"]) {
       expect(screen.getByRole("link", { name: etiqueta })).toBeInTheDocument();
     }
     expect(screen.queryByRole("link", { name: "Notificaciones" })).toBeNull();

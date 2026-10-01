@@ -5,7 +5,7 @@ export async function entrar(page: Page, cuenta: { correo: string; contrasena: s
   await page.getByLabel("Correo electrónico").fill(cuenta.correo);
   await page.getByLabel("Contraseña").fill(cuenta.contrasena);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/(reservas|usuarios\/perfil)/);
+  await expect(page).toHaveURL(/\/(inicio|usuarios\/perfil)/);
 }
 
 /** Recoge lo que una pantalla sana no debe producir. */
