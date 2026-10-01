@@ -70,7 +70,7 @@ function FichaFecha({ periodo }: { periodo: ReservaResumen["periodo"] }) {
   );
 }
 
-function TarjetaReserva({
+export function TarjetaReserva({
   r,
   sesion,
   onAbrir,

@@ -6,5 +6,5 @@ import { obtenerSesionActual } from "@/src/lib/auth";
 export default async function PaginaInicio() {
   const sesion = await obtenerSesionActual();
   if (!sesion) redirect("/login?motivo=sesion_vencida");
-  return <InicioClient rol={sesion.rol} unidadesAutorizadas={sesion.unidades_autorizadas} />;
+  return <InicioClient sesion={sesion} />;
 }

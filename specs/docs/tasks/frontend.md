@@ -666,7 +666,7 @@ Fase 2   FE-05 → FE-06
 Fase 3   FE-07                                    (referencia de estilo del resto)
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
-Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49 → FE-50
+Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49 → FE-50 → FE-51
 
 Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46 → FE-47 → FE-48 → FE-49 → FE-50   (brechas frente a las reglas)
 ```
@@ -694,6 +694,17 @@ Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre ci
 - **Dependencias:** FE-49. No toca el contrato.
 - **Aceptación:** al entrar se consulta el mes en curso sin pulsar nada; pulsar un periodo rápido cambia las fechas y consulta al instante, conservando el laboratorio; editar una fecha pasa a «Personalizado» sin consultar; `tsc --noEmit` limpio y pruebas en verde.
 - **Resultado:** `periodoRapido()` calcula los tres periodos; la fila de periodos es un grupo de botones con `aria-pressed`.
+
+---
+
+### FE-51 — Reservas pendientes en el inicio, con sus acciones · **cerrada**
+
+- **Tipo:** Implementación (con enmienda de spec: `SCR-REP-04` y `WF-REP-04` ganan la sección «Pendientes de decisión», enmendadas primero en esta misma tarea).
+- **Objetivo:** que quien gestiona vea, apenas entra, las reservas esperando decisión y pueda aprobarlas, rechazarlas o proponer otro periodo sin ir al listado.
+- **Afectados:** `frontend/src/components/inicio/{ReservasPendientes,InicioClient}.tsx` y sus pruebas, `frontend/src/components/reservas/ListadoReservas.tsx` (exporta `TarjetaReserva`), `frontend/app/(app)/inicio/page.tsx`, `specs/modules/reports/screens.md`, `wireframes.md`.
+- **Dependencias:** FE-33, FE-50. No toca el contrato: usa el listado de reservas con `estado=SOLICITADA`.
+- **Aceptación:** al entrar, el técnico y el administrador ven las reservas `SOLICITADA` de su ámbito (hasta cinco y el total) con las acciones de `accionesDe`; pulsar una acción abre el modal de gestión y, al resolver, la lista se actualiza; sin pendientes dice «No hay reservas pendientes.»; el Usuario no la ve ni llama al listado desde Inicio; una sesión caducada lleva al login; `tsc` limpio y pruebas en verde.
+- **Resultado:** `ReservasPendientes` reutiliza `TarjetaReserva` y `GestionReservaContenido`, así que la autorización y las acciones son exactamente las del listado.
 
 ---
 ## Lo que no está en este plan

@@ -1,8 +1,19 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ContextoSesion } from "@/src/lib/auth-types";
 import { ApiRequestError } from "@/src/lib/http";
 import { InicioClient, periodoRapido } from "./InicioClient";
+
+const sesion = (rol: "USUARIO" | "TECNICO" | "ADMINISTRADOR", unidades: number[] | "GLOBAL"): ContextoSesion => ({
+  id_cuenta: 5, tipo_cuenta: "PERSONAL", rol, correo: "t@itm.edu.co", actualizacion_inicial_pendiente: false,
+  id_sesion: "s", unidades_autorizadas: unidades, autenticacion_reciente: true,
+});
+
+const pendientesMock = vi.fn();
+vi.mock("@/src/lib/reservas-api", () => ({ listarReservas: (...a: unknown[]) => pendientesMock(...a) }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
+const router = { push: vi.fn(), replace: vi.fn() };
 
 const resumenMock = vi.fn();
 vi.mock("@/src/lib/reportes-api", () => ({
@@ -43,10 +54,12 @@ describe("InicioClient", () => {
   // limpieza del beforeEach, con una promesa rechazada sin manejar.
   beforeEach(() => {
     resumenMock.mockReset();
+    pendientesMock.mockReset();
+    pendientesMock.mockResolvedValue({ datos: [], paginacion: { pagina: 1, tamano: 5, total: 0, paginas: 1 } });
   });
 
   it("el Usuario ve accesos y nunca llama al resumen", () => {
-    render(<InicioClient rol="USUARIO" unidadesAutorizadas={[]} />);
+    render(<InicioClient sesion={sesion("USUARIO", [])} />);
     expect(screen.getByRole("link", { name: /Mis reservas/ })).toHaveAttribute("href", "/reservas");
     expect(screen.getByRole("link", { name: /Nueva reserva/ })).toHaveAttribute("href", "/reservas/nueva");
     expect(resumenMock).not.toHaveBeenCalled();
@@ -55,7 +68,7 @@ describe("InicioClient", () => {
 
   it("el mes en curso ya viene consultado al entrar, sin pulsar nada (FE-50)", async () => {
     resumenMock.mockResolvedValue(RESUMEN);
-    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
     expect(screen.getByText("Consultando…")).toBeInTheDocument();
 
     // La consulta inicial viaja sola con el mes en curso.
@@ -84,7 +97,7 @@ describe("InicioClient", () => {
       recursos_mas_reservados: [],
       ocupacion_dia_hora: [],
     });
-    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
     expect(await screen.findByText(/Sin serie por fecha/)).toBeInTheDocument();
     expect(screen.getByText(/Sin recursos destacados/)).toBeInTheDocument();
     expect(screen.getByText(/Sin mapa por día y hora/)).toBeInTheDocument();
@@ -93,7 +106,7 @@ describe("InicioClient", () => {
   it("volver a consultar con otros filtros viaja con lo elegido", async () => {
     const usuario = userEvent.setup();
     resumenMock.mockResolvedValue(RESUMEN);
-    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
     await screen.findByText("serie-por-fecha");
     expect(resumenMock).toHaveBeenCalledTimes(1);
 
@@ -108,7 +121,7 @@ describe("InicioClient", () => {
     resumenMock.mockRejectedValue(
       new ApiRequestError(403, { codigo: "NO_AUTORIZADO", mensaje: "x", detalles: [] })
     );
-    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("No tienes acceso a los reportes.");
   });
 
@@ -116,7 +129,7 @@ describe("InicioClient", () => {
     resumenMock.mockRejectedValue(
       new ApiRequestError(422, { codigo: "VALIDACION", mensaje: "desde no puede ser posterior a hasta.", detalles: [] })
     );
-    render(<InicioClient rol="ADMINISTRADOR" unidadesAutorizadas="GLOBAL" />);
+    render(<InicioClient sesion={sesion("ADMINISTRADOR", "GLOBAL")} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("desde no puede ser posterior a hasta.");
   });
   it("calcula los periodos rápidos (FE-50)", () => {
@@ -129,7 +142,7 @@ describe("InicioClient", () => {
   it("un periodo rápido consulta al instante y conserva el laboratorio; editar una fecha pasa a Personalizado", async () => {
     const usuario = userEvent.setup();
     resumenMock.mockResolvedValue(RESUMEN);
-    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
     await screen.findByText("serie-por-fecha");
     expect(screen.getByRole("button", { name: "Este mes" })).toHaveAttribute("aria-pressed", "true");
 
@@ -145,5 +158,41 @@ describe("InicioClient", () => {
     await usuario.type(screen.getByLabelText("Desde"), "2026-01-01");
     expect(screen.getByRole("button", { name: "Personalizado" })).toHaveAttribute("aria-pressed", "true");
     expect(resumenMock).not.toHaveBeenCalled();
+  });
+
+  it("muestra las reservas pendientes con sus acciones al entrar (FE-51)", async () => {
+    resumenMock.mockResolvedValue(RESUMEN);
+    pendientesMock.mockResolvedValue({
+      datos: [{
+        id: 31, id_cuenta: 9, id_unidad: 7, estado: "SOLICITADA", tipo_reserva: "ESPACIO", objeto: "Práctica de redes",
+        unidad_nombre: "Redes", solicitante_nombre: "Ana", periodo: { fecha: "2026-10-20", hora_inicio: "08:00:00", hora_fin: "10:00:00" },
+      }],
+      paginacion: { pagina: 1, tamano: 5, total: 7, paginas: 2 },
+    });
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
+    const region = await screen.findByRole("region", { name: "Pendientes de decisión" });
+    expect(pendientesMock).toHaveBeenCalledWith({ estado: "SOLICITADA", tamano: 5 });
+    expect(await within(region).findByText("Práctica de redes")).toBeInTheDocument();
+    expect(within(region).getByRole("button", { name: "Aprobar" })).toBeInTheDocument();
+    expect(within(region).getByRole("button", { name: "Rechazar" })).toBeInTheDocument();
+    expect(within(region).getByRole("link", { name: "Ver todas (7)" })).toHaveAttribute("href", "/reservas");
+  });
+
+  it("sin pendientes lo dice, y el Usuario no llama al listado (FE-51)", async () => {
+    resumenMock.mockResolvedValue(RESUMEN);
+    const primera = render(<InicioClient sesion={sesion("TECNICO", [7])} />);
+    expect(await screen.findByText("No hay reservas pendientes.")).toBeInTheDocument();
+    primera.unmount();
+    pendientesMock.mockClear();
+    render(<InicioClient sesion={sesion("USUARIO", [])} />);
+    expect(pendientesMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "Pendientes de decisión" })).toBeNull();
+  });
+
+  it("una sesión caducada al cargar los pendientes lleva al login (FE-51)", async () => {
+    resumenMock.mockResolvedValue(RESUMEN);
+    pendientesMock.mockRejectedValue(new ApiRequestError(401, { codigo: "SESION_INVALIDA", mensaje: "x", detalles: [] }));
+    render(<InicioClient sesion={sesion("TECNICO", [7])} />);
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login?motivo=sesion_vencida"));
   });
 });

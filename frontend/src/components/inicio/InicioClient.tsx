@@ -7,7 +7,8 @@ import { Field } from "@/src/components/ui/Field";
 import { SelectorUnidad } from "@/src/components/selectores/selectores";
 import { ApiRequestError } from "@/src/lib/http";
 import { consultarResumen, type ResumenRespuesta } from "@/src/lib/reportes-api";
-import type { Rol } from "@/src/lib/auth-types";
+import type { ContextoSesion } from "@/src/lib/auth-types";
+import { ReservasPendientes } from "./ReservasPendientes";
 import { BarrasHorizontales, SeriePorFecha } from "./GraficosInicio";
 
 // SCR-REP-04 — specs/modules/reports/screens.md
@@ -101,9 +102,9 @@ function TarjetaIndicador({ titulo, actual, previo, sufijo = "" }: { titulo: str
   );
 }
 
-export function InicioClient({ rol, unidadesAutorizadas }: { rol: Rol; unidadesAutorizadas: number[] | "GLOBAL" }) {
+export function InicioClient({ sesion }: { sesion: ContextoSesion }) {
   // El Usuario no ejerce ningún permiso (FE-41): ve accesos y nunca llama al resumen.
-  if (rol === "USUARIO") {
+  if (sesion.rol === "USUARIO") {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Inicio</h1>
@@ -124,10 +125,11 @@ export function InicioClient({ rol, unidadesAutorizadas }: { rol: Rol; unidadesA
     );
   }
 
-  return <PanelGestion unidadesAutorizadas={unidadesAutorizadas} />;
+  return <PanelGestion sesion={sesion} />;
 }
 
-function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] | "GLOBAL" }) {
+function PanelGestion({ sesion }: { sesion: ContextoSesion }) {
+  const unidadesAutorizadas = sesion.unidades_autorizadas;
   const [periodo] = useState(() => periodoRapido("este_mes"));
   const [desde, setDesde] = useState(periodo.desde);
   const [hasta, setHasta] = useState(periodo.hasta);
@@ -184,6 +186,8 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Inicio</h1>
+
+      <ReservasPendientes sesion={sesion} />
 
       <div role="group" aria-label="Periodo" className="flex flex-wrap gap-2">
         {PERIODOS_RAPIDOS.map((p) => (

@@ -234,6 +234,7 @@ Origen:
 | Al entrar | Consulta automática del mes en curso, con los periodos rápidos a la vista; «Consultando…» mientras tanto | `GET /api/reportes/resumen`, §3.4 |
 | Consultando | «Consultando…» | `GET /api/reportes/resumen`, §3.4 |
 | Resultado | Indicadores, tablas, gráficos y enlaces | `200 OK` |
+| Pendientes | Tarjetas de las reservas `SOLICITADA` con sus acciones; «No hay reservas pendientes.» si no hay; «Ver todas (N)» lleva a Reservas | `GET /api/reservas?estado=SOLICITADA`, reservations |
 | Usuario sin permiso | Accesos a «Mis reservas» y «Nueva reserva», sin sección de reportes ni llamada al endpoint | — (`FE-41`) |
 | Sin información | «Sin información para los criterios seleccionados.» sin gráficos | `200 OK` con secciones vacías |
 | Periodo inválido | Mensaje junto a las fechas | `422 VALIDACION` |
