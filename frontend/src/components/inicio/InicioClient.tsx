@@ -20,13 +20,21 @@ function dia(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Propuesta editable (SCR-REP-04, FE-49): el mes calendario anterior, ya consultado al entrar. */
-export function mesAnterior(): { desde: string; hasta: string } {
-  const hoy = new Date();
-  return {
-    desde: dia(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)),
-    hasta: dia(new Date(hoy.getFullYear(), hoy.getMonth(), 0)),
-  };
+export type PeriodoRapido = "mes_pasado" | "este_mes" | "proximos_30";
+
+export const PERIODOS_RAPIDOS: { clave: PeriodoRapido; etiqueta: string }[] = [
+  { clave: "mes_pasado", etiqueta: "Mes pasado" },
+  { clave: "este_mes", etiqueta: "Este mes" },
+  { clave: "proximos_30", etiqueta: "Próximos 30 días" },
+];
+
+/** SCR-REP-04, FE-50: los periodos rápidos. Por defecto se consulta el mes en curso al entrar. */
+export function periodoRapido(clave: PeriodoRapido, hoy: Date = new Date()): { desde: string; hasta: string } {
+  const a = hoy.getFullYear();
+  const m = hoy.getMonth();
+  if (clave === "mes_pasado") return { desde: dia(new Date(a, m - 1, 1)), hasta: dia(new Date(a, m, 0)) };
+  if (clave === "este_mes") return { desde: dia(new Date(a, m, 1)), hasta: dia(new Date(a, m + 1, 0)) };
+  return { desde: dia(hoy), hasta: dia(new Date(a, m, hoy.getDate() + 29)) };
 }
 
 const guion = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
@@ -120,9 +128,10 @@ export function InicioClient({ rol, unidadesAutorizadas }: { rol: Rol; unidadesA
 }
 
 function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] | "GLOBAL" }) {
-  const [periodo] = useState(mesAnterior);
+  const [periodo] = useState(() => periodoRapido("este_mes"));
   const [desde, setDesde] = useState(periodo.desde);
   const [hasta, setHasta] = useState(periodo.hasta);
+  const [rapido, setRapido] = useState<PeriodoRapido | null>("este_mes");
   const [unidad, setUnidad] = useState("");
 
   const [estado, setEstado] = useState<"inicial" | "consultando" | "listo" | "denegado">("inicial");
@@ -154,7 +163,15 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
     void pedir({ desde, hasta, id_unidad: unidad });
   }
 
-  // FE-49: el último mes ya viene consultado; cambiar un filtro exige volver a consultar.
+  function elegirPeriodo(clave: PeriodoRapido) {
+    const p = periodoRapido(clave);
+    setRapido(clave);
+    setDesde(p.desde);
+    setHasta(p.hasta);
+    void pedir({ ...p, id_unidad: unidad });
+  }
+
+  // FE-50: el mes en curso ya viene consultado; cambiar un filtro exige volver a consultar.
   const consultaInicial = useRef(false);
   useEffect(() => {
     if (consultaInicial.current) return;
@@ -168,9 +185,20 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-[1.85rem] font-bold leading-tight tracking-tight text-text">Inicio</h1>
 
+      <div role="group" aria-label="Periodo" className="flex flex-wrap gap-2">
+        {PERIODOS_RAPIDOS.map((p) => (
+          <Button key={p.clave} type="button" size="sm" variant={rapido === p.clave ? "primary" : "secondary"} aria-pressed={rapido === p.clave} onClick={() => elegirPeriodo(p.clave)}>
+            {p.etiqueta}
+          </Button>
+        ))}
+        <Button type="button" size="sm" variant={rapido === null ? "primary" : "secondary"} aria-pressed={rapido === null} onClick={() => setRapido(null)}>
+          Personalizado
+        </Button>
+      </div>
+
       <form onSubmit={consultar} aria-label="Consultar resumen" className="grid grid-cols-1 gap-4 rounded-card border border-border bg-surface p-5 shadow-card md:grid-cols-4">
-        <Field id="inicio-desde" label="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-        <Field id="inicio-hasta" label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+        <Field id="inicio-desde" label="Desde" type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setRapido(null); }} />
+        <Field id="inicio-hasta" label="Hasta" type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setRapido(null); }} />
         <SelectorUnidad id="inicio-unidad" label="Laboratorio" value={unidad} soloIds={soloIds} textoVacio="Todos" onChange={setUnidad} />
         <div className="flex items-end">
           <Button type="submit" variant="primary" loading={estado === "consultando"}>

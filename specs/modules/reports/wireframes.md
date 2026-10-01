@@ -231,7 +231,7 @@ Origen:
 
 | Estado | Variación visual | Compatibilidad API |
 |---|---|---|
-| Al entrar | Consulta automática del mes anterior; «Consultando…» mientras tanto | `GET /api/reportes/resumen`, §3.4 |
+| Al entrar | Consulta automática del mes en curso, con los periodos rápidos a la vista; «Consultando…» mientras tanto | `GET /api/reportes/resumen`, §3.4 |
 | Consultando | «Consultando…» | `GET /api/reportes/resumen`, §3.4 |
 | Resultado | Indicadores, tablas, gráficos y enlaces | `200 OK` |
 | Usuario sin permiso | Accesos a «Mis reservas» y «Nueva reserva», sin sección de reportes ni llamada al endpoint | — (`FE-41`) |

@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/src/lib/http";
-import { InicioClient, mesAnterior } from "./InicioClient";
+import { InicioClient, periodoRapido } from "./InicioClient";
 
 const resumenMock = vi.fn();
 vi.mock("@/src/lib/reportes-api", () => ({
@@ -53,13 +53,13 @@ describe("InicioClient", () => {
     expect(screen.queryByRole("button", { name: "Consultar" })).toBeNull();
   });
 
-  it("el último mes ya viene consultado al entrar, sin pulsar nada (FE-49)", async () => {
+  it("el mes en curso ya viene consultado al entrar, sin pulsar nada (FE-50)", async () => {
     resumenMock.mockResolvedValue(RESUMEN);
     render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
     expect(screen.getByText("Consultando…")).toBeInTheDocument();
 
-    // La consulta inicial viaja sola con el mes anterior.
-    const ultimo = mesAnterior();
+    // La consulta inicial viaja sola con el mes en curso.
+    const ultimo = periodoRapido("este_mes");
     expect(await screen.findByText("serie-por-fecha")).toBeInTheDocument();
     expect(resumenMock).toHaveBeenCalledTimes(1);
     expect(resumenMock).toHaveBeenCalledWith({ desde: ultimo.desde, hasta: ultimo.hasta, id_unidad: "" });
@@ -118,5 +118,32 @@ describe("InicioClient", () => {
     );
     render(<InicioClient rol="ADMINISTRADOR" unidadesAutorizadas="GLOBAL" />);
     expect(await screen.findByRole("alert")).toHaveTextContent("desde no puede ser posterior a hasta.");
+  });
+  it("calcula los periodos rápidos (FE-50)", () => {
+    const hoy = new Date(2026, 9, 15);
+    expect(periodoRapido("este_mes", hoy)).toEqual({ desde: "2026-10-01", hasta: "2026-10-31" });
+    expect(periodoRapido("mes_pasado", hoy)).toEqual({ desde: "2026-09-01", hasta: "2026-09-30" });
+    expect(periodoRapido("proximos_30", hoy)).toEqual({ desde: "2026-10-15", hasta: "2026-11-13" });
+  });
+
+  it("un periodo rápido consulta al instante y conserva el laboratorio; editar una fecha pasa a Personalizado", async () => {
+    const usuario = userEvent.setup();
+    resumenMock.mockResolvedValue(RESUMEN);
+    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    await screen.findByText("serie-por-fecha");
+    expect(screen.getByRole("button", { name: "Este mes" })).toHaveAttribute("aria-pressed", "true");
+
+    resumenMock.mockClear();
+    await usuario.click(screen.getByRole("button", { name: "Mes pasado" }));
+    const pasado = periodoRapido("mes_pasado");
+    expect(resumenMock).toHaveBeenCalledWith({ ...pasado, id_unidad: "" });
+    expect(screen.getByLabelText("Desde")).toHaveValue(pasado.desde);
+    expect(screen.getByRole("button", { name: "Mes pasado" })).toHaveAttribute("aria-pressed", "true");
+
+    resumenMock.mockClear();
+    await usuario.clear(screen.getByLabelText("Desde"));
+    await usuario.type(screen.getByLabelText("Desde"), "2026-01-01");
+    expect(screen.getByRole("button", { name: "Personalizado" })).toHaveAttribute("aria-pressed", "true");
+    expect(resumenMock).not.toHaveBeenCalled();
   });
 });

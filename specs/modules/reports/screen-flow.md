@@ -13,7 +13,7 @@ Conecta las cuatro superficies definidas en [screens.md](screens.md), a partir d
 
 | Origen | Acción o decisión | Destino / resultado | Trazabilidad |
 |---|---|---|---|
-| Navegación | Abrir inicio | SCR-REP-04: consulta automática del mes anterior, con enlaces a los tres reportes | UF-REP-01 |
+| Navegación | Abrir inicio | SCR-REP-04: consulta automática del mes en curso, con enlaces a los tres reportes | UF-REP-01 |
 | SCR-REP-04 | Consultar con filtros válidos | Misma pantalla, agregado con su previo | RN-VIS-01, RN-VIS-03 |
 | SCR-REP-04 | Consultar sin permiso (Usuario) | Accesos a reservas, sin sección de reportes | RN-AMB-03 |
 | Navegación | Abrir reportes | Portada de reportes, con acceso a SCR-REP-01, SCR-REP-02 y SCR-REP-03 | UF-REP-01 |

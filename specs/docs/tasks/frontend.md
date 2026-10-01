@@ -666,7 +666,14 @@ Fase 2   FE-05 → FE-06
 Fase 3   FE-07                                    (referencia de estilo del resto)
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
-Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49
+Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49 → FE-50
+
+Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46 → FE-47 → FE-48 → FE-49 → FE-50   (brechas frente a las reglas)
+```
+
+Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
+
+---
 
 ### FE-49 — Inicio con el último mes ya consultado · **cerrada**
 
@@ -676,13 +683,19 @@ Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49
 - **Dependencias:** FE-48. No toca el contrato.
 - **Aceptación:** al entrar se ve «Consultando…» y después el agregado del mes anterior sin ninguna acción; el Usuario sigue viendo accesos sin llamada; `tsc --noEmit` limpio y pruebas en verde.
 - **Resultado:** `PanelGestion` propone el mes anterior (`mesAnterior()`, exportado para la prueba) y lo pide una sola vez al montar (guardia con `useRef`); el formulario conserva «Consultar» para otros filtros. Verificado: `tsc` limpio, Vitest 156/156 y `e2e/inicio.spec.ts` 6/6 contra la pila con `reservas_e2e`.
-Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46   (brechas frente a las reglas)
-```
-
-Dentro de cada módulo de Fase 4 a 6, la tarea de **Especificación** siempre cierra antes que su **Implementación**. Entre módulos distintos, el orden sugerido no es una dependencia dura salvo donde se anota explícitamente (p. ej. FE-15 reutiliza el selector de recursos de FE-13).
 
 ---
 
+### FE-50 — Inicio con el mes en curso y periodos rápidos · **cerrada**
+
+- **Tipo:** Implementación (con enmienda de spec: `SCR-REP-04` cambia el periodo propuesto, enmendada primero en esta misma tarea).
+- **Objetivo:** que «Inicio» abra con datos útiles: el mes en curso, y un clic para cambiar a «Mes pasado», «Este mes» o «Próximos 30 días». El mes anterior solía estar vacío en un sistema que reserva hacia adelante.
+- **Afectados:** `frontend/src/components/inicio/InicioClient.tsx` y su prueba, `frontend/e2e/inicio.spec.ts`, `specs/modules/reports/screens.md`, `wireframes.md`, `screen-flow.md`.
+- **Dependencias:** FE-49. No toca el contrato.
+- **Aceptación:** al entrar se consulta el mes en curso sin pulsar nada; pulsar un periodo rápido cambia las fechas y consulta al instante, conservando el laboratorio; editar una fecha pasa a «Personalizado» sin consultar; `tsc --noEmit` limpio y pruebas en verde.
+- **Resultado:** `periodoRapido()` calcula los tres periodos; la fila de periodos es un grupo de botones con `aria-pressed`.
+
+---
 ## Lo que no está en este plan
 
 - **El despliegue del frontend en un entorno real.** `plan.md` §8 ya señala que no hay entorno desplegado; este plan construye contra un backend local.
