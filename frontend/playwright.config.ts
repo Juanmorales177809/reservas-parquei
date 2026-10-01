@@ -14,6 +14,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     channel: process.env.E2E_CHANNEL ?? "msedge",
+    // E2E_SLOWMO=400 con --headed para verlo paso a paso.
+    launchOptions: { slowMo: Number(process.env.E2E_SLOWMO ?? 0) },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

@@ -80,6 +80,19 @@ reservas.itm.edu.co {
 
 En ese caso deje `FRONTEND_HOST_PORT=3000` y no abra ese puerto al exterior (firewall): solo 80 y 443.
 
+## Probar el flujo completo en un despliegue nuevo
+
+`frontend/e2e/flujo-despliegue.spec.ts` recorre el flujo con tres personas distintas: el administrador configura un laboratorio y registra un espacio con un equipo; una usuaria pide la reserva; el técnico del laboratorio la aprueba desde el listado; y la usuaria la ve aprobada. No corre con la suite normal: se activa a propósito contra una base recién desplegada.
+
+Necesita tres cuentas: el administrador (`crear_administrador`), un técnico (personal cuyo cargo es del laboratorio «Laboratorio de sistemas de Control y Robotica») y una usuaria vinculada a un proyecto. Después:
+
+```bash
+cd frontend
+FLUJO_DESPLIEGUE=1 E2E_BASE_URL=http://localhost:3000 FLUJO_ADMIN="correo:clave" FLUJO_TECNICO="correo:clave" FLUJO_USUARIA="correo:clave" npx playwright test -c playwright.despliegue.config.ts            # añada --headed y E2E_SLOWMO=400 para verlo
+```
+
+Úsela sobre una base de **prueba**, no sobre la de producción: crea una reserva y un espacio.
+
 ## Actualizar a una versión nueva
 
 ```bash
