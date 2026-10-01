@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { RegionMensaje } from "@/src/components/auth/RegionMensaje";
 import { GestionReservaContenido } from "@/src/components/reservas/GestionReservaClient";
+import { NuevaReservaForm } from "@/src/components/reservas/NuevaReservaForm";
 import { SelectorEspacio, SelectorUnidad } from "@/src/components/selectores/selectores";
 import { Button } from "@/src/components/ui/Button";
 import { Field } from "@/src/components/ui/Field";
@@ -151,6 +152,7 @@ function EsqueletoTarjetas() {
 export function ListadoReservas({ sesion }: { sesion: ContextoSesion }) {
   const router = useRouter();
   const [abierta, setAbierta] = useState<{ r: ReservaResumen; vista: VistaGestion } | null>(null);
+  const [creando, setCreando] = useState(false);
   const [recarga, setRecarga] = useState(0);
   const silencioso = useRef(false);
   const [reservas, setReservas] = useState<ReservaResumen[] | null>(null);
@@ -227,9 +229,9 @@ export function ListadoReservas({ sesion }: { sesion: ContextoSesion }) {
             Sigue tus solicitudes y abre cualquiera para ver su detalle.
           </p>
         </div>
-        <Link href="/reservas/nueva">
-          <Button variant="primary">Nueva reserva</Button>
-        </Link>
+        <Button variant="primary" onClick={() => setCreando(true)}>
+          Nueva reserva
+        </Button>
       </div>
 
       <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 shadow-card md:p-5">
@@ -295,9 +297,9 @@ export function ListadoReservas({ sesion }: { sesion: ContextoSesion }) {
             {hayFiltros ? "Ninguna reserva coincide con esos filtros." : "Cuando pidas una, aparecerá aquí."}
           </p>
           {!hayFiltros && (
-            <Link href="/reservas/nueva">
-              <Button variant="secondary" size="sm">Crear una reserva</Button>
-            </Link>
+            <div>
+              <Button variant="secondary" size="sm" onClick={() => setCreando(true)}>Crear una reserva</Button>
+            </div>
           )}
         </div>
       ) : (
@@ -323,6 +325,24 @@ export function ListadoReservas({ sesion }: { sesion: ContextoSesion }) {
         </nav>
       )}
       <RegionMensaje texto={mensaje} tono={mensaje ? "error" : "muted"} />
+
+      {creando && (
+        <Modal
+          titulo="Nueva reserva"
+          subtitulo="Cuéntanos qué necesitas y cuándo. El formulario se ajusta a lo que elijas."
+          ancho="amplio"
+          onClose={() => setCreando(false)}
+        >
+          <NuevaReservaForm
+            enModal
+            onCancelar={() => setCreando(false)}
+            onCreada={(id) => {
+              setCreando(false);
+              router.push(`/reservas/${id}`);
+            }}
+          />
+        </Modal>
+      )}
 
       {abierta && (
         <Modal

@@ -14,6 +14,16 @@ const TECNICO_OTRA_UNIDAD = { ...SESION_BASE, id_cuenta: 98, rol: "TECNICO", uni
 const DUENO = { ...SESION_BASE, id_cuenta: 1, tipo_cuenta: "USUARIO", rol: "USUARIO", unidades_autorizadas: [] } as ContextoSesion;
 
 // El contenido del modal ya tiene sus propias pruebas (GestionReservaClient); aquí solo importa qué vista recibe.
+// El formulario tiene sus propias pruebas (nueva/page.test.tsx); aquí solo importa que se abra en un modal.
+vi.mock("@/src/components/reservas/NuevaReservaForm", () => ({
+  NuevaReservaForm: ({ enModal, onCancelar }: { enModal?: boolean; onCancelar?: () => void }) => (
+    <div>
+      formulario:{enModal ? "modal" : "pagina"}
+      <button type="button" onClick={onCancelar}>cerrar formulario</button>
+    </div>
+  ),
+}));
+
 vi.mock("@/src/components/reservas/GestionReservaClient", () => ({
   GestionReservaContenido: ({ vista, onCambio }: { vista: string; onCambio?: () => void }) => (
     <div>
@@ -163,5 +173,18 @@ describe("ListadoReservas", () => {
     await screen.findByText("Sala 3");
     const lista = within(screen.getByRole("list", { name: "Reservas" }));
     expect(lista.getAllByRole("button").map((b) => b.textContent)).toEqual(["Ver detalle"]);
+  });
+
+  // El formulario de reserva es un modal: se pide desde el listado, sin cambiar de página.
+  it("«Nueva reserva» abre el formulario en un modal, y se cierra sin salir del listado", async () => {
+    const usuario = userEvent.setup();
+    render(<ListadoReservas sesion={DUENO} />);
+    await screen.findByText("Sala 3");
+    await usuario.click(screen.getByRole("button", { name: "Nueva reserva" }));
+    const dialogo = within(screen.getByRole("dialog", { name: "Nueva reserva" }));
+    expect(dialogo.getByText("formulario:modal")).toBeInTheDocument();
+    await usuario.click(dialogo.getByRole("button", { name: "cerrar formulario" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
   });
 });

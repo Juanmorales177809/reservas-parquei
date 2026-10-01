@@ -108,6 +108,17 @@ describe("reservas/nueva/page.tsx", () => {
     expect(screen.queryByRole("button", { name: "Guardar solicitud" })).not.toBeInTheDocument();
   });
 
+  it("si la sesión caduca al cargar los tipos, vuelve al inicio de sesión sin mensajes falsos", async () => {
+    const usuario = userEvent.setup();
+    router.replace.mockClear();
+    tiposMock.mockRejectedValue(new ApiRequestError(401, { codigo: "SESION_INVALIDA", mensaje: "Sesión vencida", detalles: [] }));
+    render(<PaginaNuevaReserva />);
+    await elegir(usuario, "Laboratorio", "Laboratorio de Redes");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login?motivo=sesion_vencida"));
+    expect(screen.queryByText(/No se pudieron cargar los tipos/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no admite reservas/)).not.toBeInTheDocument();
+  });
+
   it("con varios tipos obliga a elegir uno (RN-TIP-03)", async () => {
     const usuario = userEvent.setup();
     tiposMock.mockResolvedValue({ datos: [TIPO("ESPACIO", "Reserva por espacio"), TIPO("LISTA_ESPERA", "Lista de espera")] });
