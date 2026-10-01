@@ -243,7 +243,11 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
                 </div>
               </section>
 
-              {r.por_fecha.length > 0 && <SeriePorFecha puntos={r.por_fecha} />}
+              {r.por_fecha.length > 0 ? (
+                <SeriePorFecha puntos={r.por_fecha} />
+              ) : (
+                <p className="text-sm text-muted">Sin serie por fecha: las reservas del periodo no tienen fecha asignada.</p>
+              )}
 
               <section aria-label="Por laboratorio" className="flex flex-col gap-2 rounded-control border border-border bg-surface p-4">
                 <h2 className="text-base font-bold text-text">Por laboratorio</h2>
@@ -278,15 +282,21 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
                 />
               )}
 
-              {r.recursos_mas_reservados.length > 0 && (
+              {r.recursos_mas_reservados.length > 0 ? (
                 <BarrasHorizontales
                   titulo="Recursos más reservados"
                   filas={r.recursos_mas_reservados.map((f) => ({ nombre: f.nombre, valor: f.reservas }))}
                   unidad=""
                 />
+              ) : (
+                <p className="text-sm text-muted">Sin recursos destacados: no hay reservas de uso con recursos en el periodo.</p>
               )}
 
-              {r.ocupacion_dia_hora.length > 0 && <MapaDeCalor celdas={r.ocupacion_dia_hora} />}
+              {r.ocupacion_dia_hora.length > 0 ? (
+                <MapaDeCalor celdas={r.ocupacion_dia_hora} />
+              ) : (
+                <p className="text-sm text-muted">Sin mapa por día y hora: no hay uso de espacio o recurso interno en horario.</p>
+              )}
             </>
           )}
 

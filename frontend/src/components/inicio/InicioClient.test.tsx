@@ -76,6 +76,20 @@ describe("InicioClient", () => {
     expect(screen.getByRole("link", { name: "Ocupación" })).toHaveAttribute("href", "/reportes/ocupacion");
   });
 
+  it("con reservas pero sin secciones explica por qué, en vez de dejar huecos", async () => {
+    resumenMock.mockResolvedValue({
+      ...RESUMEN,
+      indicadores: { ...RESUMEN.indicadores, reservas: { actual: 3, previo: 0 } },
+      por_fecha: [],
+      recursos_mas_reservados: [],
+      ocupacion_dia_hora: [],
+    });
+    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    expect(await screen.findByText(/Sin serie por fecha/)).toBeInTheDocument();
+    expect(screen.getByText(/Sin recursos destacados/)).toBeInTheDocument();
+    expect(screen.getByText(/Sin mapa por día y hora/)).toBeInTheDocument();
+  });
+
   it("volver a consultar con otros filtros viaja con lo elegido", async () => {
     const usuario = userEvent.setup();
     resumenMock.mockResolvedValue(RESUMEN);
