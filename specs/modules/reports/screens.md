@@ -73,7 +73,7 @@ No se amplían reglas, datos, contratos ni flujos. Reports no escribe nada: toda
 - **Objetivo:** ver de un vistazo la demanda y el uso del periodo, con su comparación contra el periodo previo, y llegar a los reportes de detalle.
 - **Precondiciones:** cuenta autenticada y activa. La sección de reportes exige `reportes.consultar` con ámbito vigente; sin él solo se muestran los accesos.
 - **Información visible:** periodo consultado con su previo; tarjetas de indicadores (reservas actual/previo, solicitadas, horas actual/previo, ocupación actual/previo con `null` sin horario); tabla de estados (seis columnas); serie por fecha; barras por laboratorio y recursos más reservados; mapa de calor día×hora (cantidad, grid 7–19); enlaces a las tres pantallas de detalle.
-- **Entradas:** periodo (`desde`, `hasta`, ambos obligatorios) y unidad (quien tiene alcance por unidad ve ofrecida solo la suya). El periodo propone el mes en curso; la consulta es explícita.
+- **Entradas:** periodo (`desde`, `hasta`, ambos obligatorios) y unidad (quien tiene alcance por unidad ve ofrecida solo la suya). El periodo propone el mes calendario anterior y **se consulta solo al entrar**; cambiar un filtro exige volver a consultar.
 - **Acciones:** consultar. Sin paginación (el resumen no pagina) y sin exportar.
 - **Validaciones visibles:** periodo completo y `desde` no posterior a `hasta` (`RN-FIL-01`, `RN-FIL-02`); `porcentaje_ocupacion` ausente sin horario (`RN-OCU-06`); el mapa cuenta por asignación y solo dibuja celdas con valor.
 - **Estados:** sin consultar, consultando, resultado, vacío, denegado, periodo inválido, error.

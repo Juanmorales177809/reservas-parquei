@@ -17,7 +17,7 @@ describe("GraficosInicio", () => {
       <SeriePorFecha puntos={[{ fecha: "2026-09-01", reservas: 4 }]} />
     );
     expect(screen.getByRole("heading", { name: "Reservas por día" })).toBeInTheDocument();
-    const barras = container.querySelectorAll(".recharts-bar-rectangle path");
+    const barras = Array.from(container.querySelectorAll(".recharts-bar-rectangle path"));
     for (const b of barras) {
       expect(b.getAttribute("fill")).toBe("var(--color-primary-1)");
     }

@@ -666,7 +666,16 @@ Fase 2   FE-05 → FE-06
 Fase 3   FE-07                                    (referencia de estilo del resto)
 Fase 4   FE-08/09 → FE-10/11 → FE-12/13 → FE-14/15 → FE-16/17
 Fase 5   FE-18/19
-Fase 6   FE-20/21 → FE-22/23 → FE-47/48
+Fase 6   FE-20/21 → FE-22/23 → FE-47/48 → FE-49
+
+### FE-49 — Inicio con el último mes ya consultado · **cerrada**
+
+- **Tipo:** Implementación (con enmienda de spec: `SCR-REP-04`/`WF-REP-04` pasan a mes anterior con consulta automática al entrar, enmendados primero en esta misma tarea).
+- **Objetivo:** al abrir `/inicio`, el resumen del mes calendario anterior ya está consultado, sin pulsar «Consultar»; cambiar filtros sigue exigiendo consultar.
+- **Afectados:** `frontend/src/components/inicio/InicioClient.tsx` y su prueba, `frontend/e2e/inicio.spec.ts`, `specs/modules/reports/screens.md`, `wireframes.md`, `screen-flow.md`.
+- **Dependencias:** FE-48. No toca el contrato.
+- **Aceptación:** al entrar se ve «Consultando…» y después el agregado del mes anterior sin ninguna acción; el Usuario sigue viendo accesos sin llamada; `tsc --noEmit` limpio y pruebas en verde.
+- **Resultado:** `PanelGestion` propone el mes anterior (`mesAnterior()`, exportado para la prueba) y lo pide una sola vez al montar (guardia con `useRef`); el formulario conserva «Consultar» para otros filtros. Verificado: `tsc` limpio, Vitest 156/156 y `e2e/inicio.spec.ts` 6/6 contra la pila con `reservas_e2e`.
 Fase 7   FE-24 → FE-25 → FE-26 → FE-27 → FE-28 → FE-31 → FE-29 → FE-30 → FE-32 → FE-33 → FE-34 → FE-35 → FE-36 → FE-37 → FE-38 → FE-39 → FE-40 → FE-41 → FE-42 → FE-43 → FE-44 → FE-45 → FE-46   (brechas frente a las reglas)
 ```
 

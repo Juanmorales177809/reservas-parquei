@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/src/lib/http";
-import { InicioClient } from "./InicioClient";
+import { InicioClient, mesAnterior } from "./InicioClient";
 
 const resumenMock = vi.fn();
 vi.mock("@/src/lib/reportes-api", () => ({
@@ -53,18 +53,16 @@ describe("InicioClient", () => {
     expect(screen.queryByRole("button", { name: "Consultar" })).toBeNull();
   });
 
-  it("quien gestiona consulta el periodo y ve indicadores, estados y mapa", async () => {
-    const usuario = userEvent.setup();
+  it("el último mes ya viene consultado al entrar, sin pulsar nada (FE-49)", async () => {
     resumenMock.mockResolvedValue(RESUMEN);
     render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    expect(screen.getByText("Consultando…")).toBeInTheDocument();
 
-    expect(resumenMock).not.toHaveBeenCalled();
-    await usuario.click(screen.getByRole("button", { name: "Consultar" }));
-
-    expect(resumenMock).toHaveBeenCalledWith(
-      expect.objectContaining({ desde: expect.any(String), hasta: expect.any(String) })
-    );
-    await screen.findByText("serie-por-fecha");
+    // La consulta inicial viaja sola con el mes anterior.
+    const ultimo = mesAnterior();
+    expect(await screen.findByText("serie-por-fecha")).toBeInTheDocument();
+    expect(resumenMock).toHaveBeenCalledTimes(1);
+    expect(resumenMock).toHaveBeenCalledWith({ desde: ultimo.desde, hasta: ultimo.hasta, id_unidad: "" });
     // Seis estados siempre presentes, en el orden del catálogo.
     const estados = screen.getByRole("region", { name: "Por estado" });
     expect(within(estados).getByText("12")).toBeInTheDocument();
@@ -78,23 +76,33 @@ describe("InicioClient", () => {
     expect(screen.getByRole("link", { name: "Ocupación" })).toHaveAttribute("href", "/reportes/ocupacion");
   });
 
-  it("sin permiso muestra la denegación en la misma pantalla", async () => {
+  it("volver a consultar con otros filtros viaja con lo elegido", async () => {
     const usuario = userEvent.setup();
+    resumenMock.mockResolvedValue(RESUMEN);
+    render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
+    await screen.findByText("serie-por-fecha");
+    expect(resumenMock).toHaveBeenCalledTimes(1);
+
+    await usuario.click(screen.getByRole("button", { name: "Consultar" }));
+    expect(resumenMock).toHaveBeenCalledTimes(2);
+    expect(resumenMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ desde: expect.any(String), hasta: expect.any(String) })
+    );
+  });
+
+  it("sin permiso muestra la denegación en la misma pantalla", async () => {
     resumenMock.mockRejectedValue(
       new ApiRequestError(403, { codigo: "NO_AUTORIZADO", mensaje: "x", detalles: [] })
     );
     render(<InicioClient rol="TECNICO" unidadesAutorizadas={[7]} />);
-    await usuario.click(screen.getByRole("button", { name: "Consultar" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("No tienes acceso a los reportes.");
   });
 
   it("periodo inválido muestra el mensaje del servidor", async () => {
-    const usuario = userEvent.setup();
     resumenMock.mockRejectedValue(
       new ApiRequestError(422, { codigo: "VALIDACION", mensaje: "desde no puede ser posterior a hasta.", detalles: [] })
     );
     render(<InicioClient rol="ADMINISTRADOR" unidadesAutorizadas="GLOBAL" />);
-    await usuario.click(screen.getByRole("button", { name: "Consultar" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("desde no puede ser posterior a hasta.");
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/src/components/ui/Button";
 import { Field } from "@/src/components/ui/Field";
 import { SelectorUnidad } from "@/src/components/selectores/selectores";
@@ -20,12 +20,12 @@ function dia(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Propuesta editable: el mes en curso. La consulta sigue siendo explícita. */
-function mesEnCurso(): { desde: string; hasta: string } {
+/** Propuesta editable (SCR-REP-04, FE-49): el mes calendario anterior, ya consultado al entrar. */
+export function mesAnterior(): { desde: string; hasta: string } {
   const hoy = new Date();
   return {
-    desde: dia(new Date(hoy.getFullYear(), hoy.getMonth(), 1)),
-    hasta: dia(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)),
+    desde: dia(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)),
+    hasta: dia(new Date(hoy.getFullYear(), hoy.getMonth(), 0)),
   };
 }
 
@@ -120,7 +120,7 @@ export function InicioClient({ rol, unidadesAutorizadas }: { rol: Rol; unidadesA
 }
 
 function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] | "GLOBAL" }) {
-  const [periodo] = useState(mesEnCurso);
+  const [periodo] = useState(mesAnterior);
   const [desde, setDesde] = useState(periodo.desde);
   const [hasta, setHasta] = useState(periodo.hasta);
   const [unidad, setUnidad] = useState("");
@@ -131,12 +131,11 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
 
   const soloIds = unidadesAutorizadas === "GLOBAL" ? undefined : unidadesAutorizadas;
 
-  async function consultar(evento: FormEvent) {
-    evento.preventDefault();
+  async function pedir(filtros: { desde: string; hasta: string; id_unidad: string }) {
     setEstado("consultando");
     setError(null);
     try {
-      const r = await consultarResumen({ desde, hasta, id_unidad: unidad });
+      const r = await consultarResumen(filtros);
       setResultado(r);
       setEstado("listo");
     } catch (e) {
@@ -149,6 +148,19 @@ function PanelGestion({ unidadesAutorizadas }: { unidadesAutorizadas: number[] |
       setError(e instanceof ApiRequestError ? e.error.mensaje : "No se pudo consultar el resumen.");
     }
   }
+
+  function consultar(evento: FormEvent) {
+    evento.preventDefault();
+    void pedir({ desde, hasta, id_unidad: unidad });
+  }
+
+  // FE-49: el último mes ya viene consultado; cambiar un filtro exige volver a consultar.
+  const consultaInicial = useRef(false);
+  useEffect(() => {
+    if (consultaInicial.current) return;
+    consultaInicial.current = true;
+    void pedir({ desde: periodo.desde, hasta: periodo.hasta, id_unidad: "" });
+  }, [periodo]);
 
   const r = resultado;
 

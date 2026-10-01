@@ -231,7 +231,7 @@ Origen:
 
 | Estado | Variación visual | Compatibilidad API |
 |---|---|---|
-| Sin consultar | Solo el formulario y los enlaces a los reportes | — |
+| Al entrar | Consulta automática del mes anterior; «Consultando…» mientras tanto | `GET /api/reportes/resumen`, §3.4 |
 | Consultando | «Consultando…» | `GET /api/reportes/resumen`, §3.4 |
 | Resultado | Indicadores, tablas, gráficos y enlaces | `200 OK` |
 | Usuario sin permiso | Accesos a «Mis reservas» y «Nueva reserva», sin sección de reportes ni llamada al endpoint | — (`FE-41`) |
@@ -262,4 +262,4 @@ Origen:
 | WF-REP-01 | SCR-REP-01 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado por dimensión, sin información, periodo inválido, denegado, exportando |
 | WF-REP-02 | SCR-REP-02 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado, sin periodo, periodo inválido, sin información, denegado |
 | WF-REP-03 | SCR-REP-03 | UF-REP-01, UF-REP-02 | Sin consultar, consultando, resultado, periodo inválido, sin información, denegado |
-| WF-REP-04 | SCR-REP-04 | UF-REP-01 | Sin consultar, consultando, resultado, usuario sin permiso, sin información, periodo inválido, denegado |
+| WF-REP-04 | SCR-REP-04 | UF-REP-01 | Consulta automática al entrar, consultando, resultado, usuario sin permiso, sin información, periodo inválido, denegado |

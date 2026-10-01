@@ -6,6 +6,17 @@ import { expect, test } from "@playwright/test";
 test.describe("administrador", () => {
   test.use({ storageState: "e2e/.auth/admin.json" });
 
+  test("al entrar ya muestra el último mes sin pulsar Consultar (FE-49)", async ({ page }) => {
+    await page.goto("/inicio");
+    const previo = new Date();
+    previo.setDate(1);
+    previo.setMonth(previo.getMonth() - 1);
+    const esperado = `${previo.getFullYear()}-${String(previo.getMonth() + 1).padStart(2, "0")}-01`;
+    await expect(page.getByLabel("Desde")).toHaveValue(esperado);
+    await expect(page.getByRole("region", { name: "Resumen del periodo" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Por estado" })).toBeVisible();
+  });
+
   test("el inicio muestra indicadores, estados y mapa tras consultar", async ({ page }) => {
     await page.goto("/inicio");
     await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
