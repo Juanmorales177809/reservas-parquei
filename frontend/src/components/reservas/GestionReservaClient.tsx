@@ -280,7 +280,7 @@ export function GestionReservaContenido({
       )}
 
       {ver("propuestas") && (estado === "SOLICITADA" || estado === "APROBADA") && puedeProponer &&
-        (propuesta !== null || puedeGestionar || esPropietario) && (
+        (propuesta !== null || puedeGestionar) && (
         <Tarjeta plano={enModal}>
 <section aria-label="Propuestas" className="flex flex-col gap-3">
           <h2 className="font-display text-lg font-bold text-text">Propuestas de periodo</h2>
