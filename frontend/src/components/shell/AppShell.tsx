@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/src/components/ui/Button";
 import { ETIQUETA_ROL, type ContextoSesion } from "@/src/lib/auth-types";
 import { apiRequest, renovarSesion } from "@/src/lib/http";
+import { CentroDeAlertas } from "./CentroDeAlertas";
 import { destinosVisiblesPara, type DestinoNav } from "./nav-items";
 
 export interface AppShellProps {
@@ -160,7 +161,9 @@ export function AppShell({ sesion, children }: AppShellProps) {
           >
             Menú
           </button>
-          <div className="ml-auto hidden items-center gap-4 lg:flex">
+          <div className="ml-auto flex items-center gap-3">
+          <CentroDeAlertas />
+          <div className="hidden items-center gap-4 lg:flex">
             <span
               aria-hidden="true"
               className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-tint font-display text-sm font-bold text-primary-2"
@@ -174,6 +177,7 @@ export function AppShell({ sesion, children }: AppShellProps) {
             <Button variant="ghost" size="sm" onClick={cerrarSesion} loading={cerrandoSesion}>
               Cerrar sesión
             </Button>
+          </div>
           </div>
         </header>
 

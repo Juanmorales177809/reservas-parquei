@@ -16,11 +16,19 @@ vi.mock("@/src/lib/auth", async () => {
   };
 });
 
+// Router estable: un objeto nuevo por render relanzaría los efectos de la campanita sin fin.
+const router = { push: vi.fn(), replace: vi.fn() };
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   },
   usePathname: () => "/reservas",
+  useRouter: () => router,
+}));
+
+vi.mock("@/src/lib/notificaciones-api", () => ({
+  bandeja: () => Promise.resolve({ datos: [] }),
+  marcarLectura: vi.fn(),
 }));
 
 function sesionDeEjemplo(rol: ContextoSesion["rol"]): ContextoSesion {

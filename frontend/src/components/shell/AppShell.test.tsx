@@ -5,8 +5,11 @@ import type { ContextoSesion } from "@/src/lib/auth-types";
 import { apiRequest } from "@/src/lib/http";
 import { AppShell } from "./AppShell";
 
+// Router estable: un objeto nuevo por render relanzaría los efectos sin fin.
+const router = { push: vi.fn(), replace: vi.fn() };
 vi.mock("next/navigation", () => ({
   usePathname: () => "/reservas",
+  useRouter: () => router,
 }));
 
 vi.mock("@/src/lib/http", () => ({
@@ -27,7 +30,8 @@ function sesionDeEjemplo(rol: ContextoSesion["rol"]): ContextoSesion {
 }
 
 describe("AppShell", () => {
-  it("USUARIO no ve Usuarios, Administración ni Reportes", () => {
+  // Decisión 2026-10-01: el usuario solo reserva, el técnico gestiona su laboratorio y el administrador todo.
+  it("USUARIO solo ve Reservas", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("USUARIO")}>
         <p>Pantalla</p>
@@ -35,42 +39,38 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByRole("link", { name: "Reservas" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Usuarios" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Reportes" })).toBeNull();
+    for (const oculto of ["Recursos", "Espacios", "Investigación", "Usuarios", "Administración", "Reportes", "Notificaciones"]) {
+      expect(screen.queryByRole("link", { name: oculto })).toBeNull();
+    }
   });
 
-  it("TECNICO ve Reportes pero no Usuarios ni Administración", () => {
+  it("TECNICO ve Reservas, Recursos, Espacios y Reportes, y nada global", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("TECNICO")}>
         <p>Pantalla</p>
       </AppShell>
     );
 
-    expect(screen.getByRole("link", { name: "Reportes" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Usuarios" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
+    for (const visible of ["Reservas", "Recursos", "Espacios", "Reportes"]) {
+      expect(screen.getByRole("link", { name: visible })).toBeInTheDocument();
+    }
+    for (const oculto of ["Investigación", "Usuarios", "Administración"]) {
+      expect(screen.queryByRole("link", { name: oculto })).toBeNull();
+    }
   });
 
-  it("ADMINISTRADOR ve los ocho destinos", () => {
+  it("ADMINISTRADOR ve los siete destinos; las notificaciones son la campanita, no un destino", () => {
     render(
       <AppShell sesion={sesionDeEjemplo("ADMINISTRADOR")}>
         <p>Pantalla</p>
       </AppShell>
     );
 
-    for (const etiqueta of [
-      "Reservas",
-      "Recursos",
-      "Espacios",
-      "Investigación",
-      "Usuarios",
-      "Administración",
-      "Notificaciones",
-      "Reportes",
-    ]) {
+    for (const etiqueta of ["Reservas", "Recursos", "Espacios", "Investigación", "Usuarios", "Administración", "Reportes"]) {
       expect(screen.getByRole("link", { name: etiqueta })).toBeInTheDocument();
     }
+    expect(screen.queryByRole("link", { name: "Notificaciones" })).toBeNull();
+    expect(screen.getByRole("button", { name: /Notificaciones/ })).toBeInTheDocument();
   });
 
   it("el botón Menú abre el panel superpuesto con los destinos y el estado de sesión", async () => {
